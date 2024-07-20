@@ -79,9 +79,11 @@ def label_link(label):
     url   = label["url"]
     bgcolor = label["color"]
     fgcolor = "000000" if isLight(int(bgcolor[:2], 16), int(bgcolor[2:4], 16), int(bgcolor[4:], 16)) else "FFFFFF"
+    s += "<a href='{}'>".format(url)
     s  = "<span class='label' style='color: #{}; background: #{}'>".format(fgcolor, bgcolor)
-    s += "<a href='{}'>{}</a>".format(url, name)
+    s += "{}".format(url, name)
     s += "</span>"
+    s += "</a>"
     return s
 
 # Function to format the time of the last update
@@ -133,7 +135,7 @@ def print_dashboard(data):
             print("<td>{}</td>".format(entry["title"]))
             print("<td>")
             for label in entry["labels"]["nodes"]:
-                print(label_link(label), end=' ')
+                print(label_link(label))
             print("</td>")
             print("<td>{}</td>".format(time_info(entry["updatedAt"])))
             print("</tr>")
