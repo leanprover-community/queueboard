@@ -9,14 +9,14 @@ from dateutil import relativedelta
 
 def main():
     # Check if the user has provided the correct number of arguments
-    if len(sys.argv) < 2:
-        print("Usage: python3 dashboard.py <json_file1> <json_file2> ...")
+    if len(sys.argv) < 3:
+        print("Usage: python3 dashboard.py <pr-info.json> <json_file1> <json_file2> ...")
         sys.exit(1)
 
     print_html5_header()
 
     # Iterate over the json files provided by the user
-    for i in range(1, len(sys.argv)):
+    for i in range(2, len(sys.argv)):
         with open(sys.argv[i]) as f:
             data = json.load(f)
             print_dashboard(data)
@@ -125,23 +125,45 @@ def print_dashboard(data):
     print("<th>Author</th>")
     print("<th>Title</th>")
     print("<th>Labels</th>")
+    print("<th>+/-</th>")
+    print("<th>&#128221;</th>")
+    print("<th>&#128172;</th>")
     print("<th>Updated</th>")
     print("</tr>")
     print("</thead>")
 
-    # Iterate over the data and print each entry in a row
-    for page in data["output"]:
-        for entry in page["data"]["search"]["nodes"]:
-            print("<tr>")
-            print("<td>{}</td>".format(pr_link(entry["number"], entry["url"])))
-            print("<td>{}</td>".format(user_link(entry["author"])))
-            print("<td>{}</td>".format(title_link(entry["title"], entry["url"])))
-            print("<td>")
-            for label in entry["labels"]["nodes"]:
-                print(label_link(label), end=' ')
-            print("</td>")
-            print("<td>{}</td>".format(time_info(entry["updatedAt"])))
-            print("</tr>")
+    # Open the file containing the PR info
+    with open(sys.argv[1], 'r') as f:
+        pr_infos = json.load(f)
+
+        # Iterate over the data and print each entry in a row
+        for page in data["output"]:
+            for entry in page["data"]["search"]["nodes"]:
+                print("<tr>")
+                print("<td>{}</td>".format(pr_link(entry["number"], entry["url"])))
+                print("<td>{}</td>".format(user_link(entry["author"])))
+                print("<td>{}</td>".format(title_link(entry["title"], entry["url"])))
+                print("<td>")
+                for label in entry["labels"]["nodes"]:
+                    print(label_link(label), end=' ')
+                print("</td>")
+
+                try:
+                    pr_info = pr_infos[str(entry["number"])]
+                    print("<td>{}/{}</td>".format(pr_info["additions"], pr_info["deletions"]))
+                    print("<td>{}</td>".format(pr_info["changed_files"]))
+                    comments = pr_info["comments"] + pr_info["review_comments"]
+                    print("<td>{}</td>".format(comments))
+                except KeyError:
+                    pr_info = {"additions": -1, "deletions": -1, "changed_files": -1, "comments": -1, "review_comments": -1}
+                    print("<td>{}/{}</td>".format(pr_info["additions"], pr_info["deletions"]))
+                    print("<td>{}</td>".format(pr_info["changed_files"]))
+                    comments = pr_info["comments"] + pr_info["review_comments"]
+                    print("<td>{}</td>".format(comments))
+                    print("PR #{} is wicked!".format(entry["number"]), file=sys.stderr)
+
+                print("<td>{}</td>".format(time_info(entry["updatedAt"])))
+                print("</tr>")
 
     # Print the footer
     print("</table>")
