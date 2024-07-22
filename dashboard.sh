@@ -88,7 +88,7 @@ done
 for pr_number in "${!pr_numbers[@]}"
 do
   # Get the diff info
-  diff_info=$(gh api repos/leanprover-community/mathlib/pulls/$pr_number)
+  diff_info=$(gh api repos/leanprover-community/mathlib4/pulls/$pr_number)
 
   # # Get the additions, deletions, and changed files
   # additions=$(echo $diff_info | jq '.additions')
