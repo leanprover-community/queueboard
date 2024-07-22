@@ -79,8 +79,8 @@ def label_link(label):
     url   = label["url"]
     bgcolor = label["color"]
     fgcolor = "000000" if isLight(int(bgcolor[:2], 16), int(bgcolor[2:4], 16), int(bgcolor[4:], 16)) else "FFFFFF"
-    s += "<a href='{}'>".format(url)
-    s  = "<span class='label' style='color: #{}; background: #{}'>".format(fgcolor, bgcolor)
+    s  = "<a href='{}'>".format(url)
+    s += "<span class='label' style='color: #{}; background: #{}'>".format(fgcolor, bgcolor)
     s += "{}".format(name)
     s += "</span>"
     s += "</a>"
