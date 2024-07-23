@@ -63,7 +63,46 @@ QUERY_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:ne
 gh api graphql --paginate --slurp -f query="$QUERY_NEWCONTRIBUTOR" |\
 	jq '{"output": ., "title": "Stale new-contributor"}' > new-contributor.json
 
-python3 ./dashboard.py queue.json ready-to-merge.json maintainer-merge.json delegated.json new-contributor.json > ./dashboard.html
+# List of JSON files
+json_files=("queue.json" "ready-to-merge.json" "maintainer-merge.json" "delegated.json" "new-contributor.json")
 
-rm queue.json ready-to-merge.json maintainer-merge.json delegated.json new-contributor.json
+# Output file
+pr_info="pr-info.json"
+
+# Empty the output file
+echo "{}" > $pr_info
+
+# Create an empty array to store PR numbers
+declare -A pr_numbers
+
+# For each JSON file
+for json_file in "${json_files[@]}"
+do
+  # Get the PR numbers and add them to the array
+  while read -r pr_number; do
+    pr_numbers["$pr_number"]=1
+  done < <(jq -r '.output[]["data"]["search"]["nodes"][]["number"]' $json_file)
+done
+
+# For each unique PR number
+for pr_number in "${!pr_numbers[@]}"
+do
+  # Get the diff info
+  diff_info=$(gh api repos/leanprover-community/mathlib4/pulls/$pr_number)
+
+  # # Get the additions, deletions, and changed files
+  # additions=$(echo $diff_info | jq '.additions')
+  # deletions=$(echo $diff_info | jq '.deletions')
+  # changed_files=$(echo $diff_info | jq '.changed_files')
+
+  # Add the diff info to the output file
+  jq --arg pr_number "$pr_number" --argjson diff_info "$diff_info" \
+    '.[$pr_number] = $diff_info' $pr_info > temp.json && mv temp.json $pr_info
+  # jq --arg pr_number "$pr_number" --argjson additions "$additions" --argjson deletions "$deletions" --argjson changed_files "$changed_files" \
+  #   '.[$pr_number] = {additions: $additions, deletions: $deletions, changed_files: $changed_files}' $pr_info > temp.json && mv temp.json $pr_info
+done
+
+python3 ./dashboard.py $pr_info ${json_files[*]} > ./dashboard.html
+
+rm *.json
 
