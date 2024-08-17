@@ -54,8 +54,8 @@ gh api graphql --paginate --slurp -f query="$QUERY_MAINTAINERMERGE" |\
 	jq '{"output": ., "title": "Stale maintainer-merge", "id": "stale-maintainer-merge"}' > maintainer-merge.json
 
 # Query Github API for all pull requests that are labeled `delegated` and have not been updated in 24 hours.
-QUERY_READYTOMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:delegated updated:<$yesterday")
-gh api graphql --paginate --slurp -f query="$QUERY_READYTOMERGE" |\
+QUERY_DELEGATED=$(prepare_query "sort:updated-asc is:pr state:open label:delegated updated:<$yesterday")
+gh api graphql --paginate --slurp -f query="$QUERY_DELEGATED" |\
 	jq '{"output": ., "title": "Stale delegated", "id": "stale-delegated"}' > delegated.json
 
 # Query Github API for all pull requests that are labeled `new-contributor` and have not been updated in 24 hours.
