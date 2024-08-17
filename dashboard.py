@@ -4,7 +4,7 @@
 
 import sys
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 from dateutil import relativedelta
 
 def main():
@@ -38,8 +38,9 @@ def print_html5_header():
     <base target="_blank">
     </head>
     <body>
-    <h1>Mathlib Review Dashboard</h1>
-    """)
+    <h1>Mathlib Review Dashboard</h1>""")
+    updated = datetime.now(UTC).strftime("%B %d, %Y at %H:%M UTC")
+    print(f"<small>This dashboard was last updated on: {updated}</small>")
 
 def print_html5_footer():
     print("""
