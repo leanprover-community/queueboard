@@ -40,28 +40,28 @@ query(\$endCursor: String) {
 # - do not have any of the following labels: blocked-by-other-PR, merge-conflict, awaiting-CI, WIP, awaiting-author, delegated, auto-merge-after-CI
 QUERY_QUEUE=$(prepare_query "sort:updated-asc is:pr state:open -is:draft -status:failure -label:blocked-by-other-PR -label:merge-conflict -label:awaiting-CI -label:awaiting-author -label:WIP -label:delegated -label:auto-merge-after-CI")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" |\
-	jq '{"output": ., "title": "Queue"}' > queue.json
+	jq '{"output": ., "title": "Queue", "id": "queue"}' > queue.json
 
 
 # Query Github API for all pull requests that are labeled `ready-to-merge` and have not been updated in 24 hours.
 QUERY_READYTOMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:ready-to-merge updated:<$yesterday")
 gh api graphql --paginate --slurp -f query="$QUERY_READYTOMERGE" |\
-	jq '{"output": ., "title": "Stale ready-to-merge"}' > ready-to-merge.json
+	jq '{"output": ., "title": "Stale ready-to-merge", "id": "stale-ready-to-merge"}' > ready-to-merge.json
 
 # Query Github API for all pull requests that are labeled `maintainer-merge` but not `ready-to-merge` and have not been updated in 24 hours.
 QUERY_MAINTAINERMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:maintainer-merge -label:ready-to-merge updated:<$yesterday")
 gh api graphql --paginate --slurp -f query="$QUERY_MAINTAINERMERGE" |\
-	jq '{"output": ., "title": "Stale maintainer-merge"}' > maintainer-merge.json
+	jq '{"output": ., "title": "Stale maintainer-merge", "id": "stale-maintainer-merge"}' > maintainer-merge.json
 
 # Query Github API for all pull requests that are labeled `delegated` and have not been updated in 24 hours.
 QUERY_READYTOMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:delegated updated:<$yesterday")
 gh api graphql --paginate --slurp -f query="$QUERY_READYTOMERGE" |\
-	jq '{"output": ., "title": "Stale delegated"}' > delegated.json
+	jq '{"output": ., "title": "Stale delegated", "id": "stale-delegated"}' > delegated.json
 
 # Query Github API for all pull requests that are labeled `new-contributor` and have not been updated in 24 hours.
 QUERY_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:new-contributor updated:<$yesterday")
 gh api graphql --paginate --slurp -f query="$QUERY_NEWCONTRIBUTOR" |\
-	jq '{"output": ., "title": "Stale new-contributor"}' > new-contributor.json
+	jq '{"output": ., "title": "Stale new-contributor", "id": "stale-new-contributor"}' > new-contributor.json
 
 # List of JSON files
 json_files=("queue.json" "ready-to-merge.json" "maintainer-merge.json" "delegated.json" "new-contributor.json")
