@@ -130,6 +130,7 @@ def print_dashboard(data):
             "stale-delegated" : "stale delegated PRs",
             "stale-ready-to-merge" : "stale PRs labelled ready-to-merge",
             "stale-new-contributor" : "stale PRs by new contributors",
+            "unlabelled" : "unlabelled PRs"
         }
         print("<h1 id=\"{}\">{}</h1>".format(data["id"], data["title"]))
         print(f'There are currently <b>no</b> {description[data["id"]]}. Congratulations!\n')
