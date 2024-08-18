@@ -2,6 +2,8 @@
 
 # The date and time, 24 hours ago, in the ISO8601 format
 yesterday=$(date -u -d "24 hours ago" '+%Y-%m-%dT%H:%M:%SZ')
+# The date and time, 7 days ago, in the ISO8601 format
+aweekago=$(date -u -d "7 days ago" '+%Y-%m-%dT%H:%M:%SZ')
 
 prepare_query () {
 	echo "
@@ -58,8 +60,8 @@ QUERY_DELEGATED=$(prepare_query "sort:updated-asc is:pr state:open label:delegat
 gh api graphql --paginate --slurp -f query="$QUERY_DELEGATED" |\
 	jq '{"output": ., "title": "Stale delegated", "id": "stale-delegated"}' > delegated.json
 
-# Query Github API for all pull requests that are labeled `new-contributor` and have not been updated in 24 hours.
-QUERY_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:new-contributor updated:<$yesterday")
+# Query Github API for all pull requests that are labeled `new-contributor` and have not been updated in seven days.
+QUERY_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:new-contributor updated:<$aweekago")
 gh api graphql --paginate --slurp -f query="$QUERY_NEWCONTRIBUTOR" |\
 	jq '{"output": ., "title": "Stale new-contributor", "id": "stale-new-contributor"}' > new-contributor.json
 
