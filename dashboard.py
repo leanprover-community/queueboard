@@ -11,6 +11,7 @@ from enum import Enum, auto, unique
 @unique
 class PRList(Enum):
     '''The different kind of PR lists this dashboard creates'''
+    # Note: the tables on the generated page are listed in the order of these variants.
     Queue = 0
     QueueNewContributor = auto()
     StaleReadyToMerge = auto()
