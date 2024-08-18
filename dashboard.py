@@ -12,6 +12,7 @@ from enum import Enum, auto, unique
 class PRList(Enum):
     '''The different kind of PR lists this dashboard creates'''
     Queue = 0
+    QueueNewContributor = auto()
     StaleReadyToMerge = auto()
     StaleMaintainerMerge = auto()
     StaleDelegated = auto()
@@ -21,6 +22,7 @@ class PRList(Enum):
 # but this script will complain if something unexpected happens.
 EXPECTED_INPUT_FILES = {
     "queue.json" : PRList.Queue,
+    "queue-new-contributor.json" : PRList.QueueNewContributor,
     "automerge.json" : PRList.StaleReadyToMerge,
     "ready-to-merge.json" : PRList.StaleReadyToMerge,
     "maintainer-merge.json" : PRList.StaleMaintainerMerge,
@@ -32,6 +34,7 @@ def short_description(kind : PRList):
     '''Describe what the table 'kind' contains, for use in a "there are no such PRs" message.'''
     return {
         PRList.Queue : "PRs on the review queue",
+        PRList.QueueNewContributor : "PRs by new mathlib contributors on the review queue",
         PRList.StaleMaintainerMerge : "stale PRs labelled maintainer merge",
         PRList.StaleDelegated : "stale delegated PRs",
         PRList.StaleReadyToMerge : "stale PRs labelled auto-merge-after-CI or ready-to-merge",
@@ -44,6 +47,7 @@ def long_description(kind : PRList):
     notupdated = "which have not been updated in the past"
     return {
         PRList.Queue : "All PRs which are ready for review: CI passes, no merge conflict and not blocked on other PRs",
+        PRList.QueueNewContributor : "All PRs by new contributors which are ready for review",
         PRList.StaleDelegated : f"PRs labelled 'delegated' {notupdated} 24 hours",
         PRList.StaleReadyToMerge : f"PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
         PRList.StaleMaintainerMerge : f"PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
@@ -55,6 +59,7 @@ def getIdTitle(kind : PRList):
     describing this PR kind.'''
     return {
         PRList.Queue : ("queue", "Queue"),
+        PRList.QueueNewContributor : ("queue-new-contributors", "New contributors' PRs on the queue"),
         PRList.StaleDelegated : ("stale-delegated", "Stale delegated"),
         PRList.StaleNewContributor : ("stale-new-contributor", "Stale new contributor"),
         PRList.StaleMaintainerMerge : ("stale-maintainer-merge", "Stale maintainer-merge"),

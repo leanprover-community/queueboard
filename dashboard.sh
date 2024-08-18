@@ -44,9 +44,13 @@ query(\$endCursor: String) {
 # - open, not draft
 # - do not have status:failure
 # - do not have any of the following labels: blocked-by-other-PR, merge-conflict, awaiting-CI, WIP, awaiting-author, delegated, auto-merge-after-CI
-QUERY_QUEUE=$(prepare_query "sort:updated-asc is:pr state:open -is:draft -status:failure -label:blocked-by-other-PR -label:merge-conflict -label:awaiting-CI -label:awaiting-author -label:WIP -label:delegated -label:auto-merge-after-CI")
+queue_labels = "-label:blocked-by-other-PR -label:merge-conflict -label:awaiting-CI -label:awaiting-author -label:WIP -label:delegated -label:auto-merge-after-CI"
+QUERY_QUEUE=$(prepare_query "sort:updated-asc is:pr state:open -is:draft -status:failure $(queue_labels)")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" | jq '{"output": .}' > queue.json
 
+# Query Github API for all pull requests in the queue that are labelled `new-contributor`.
+QUERY_QUEUE_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:new-contributor $(queue_labels)")
+gh api graphql --paginate --slurp -f query="$QUERY_QUEUE_NEWCONTRIBUTOR" | jq '{"output": .}' > queue-new-contributor.json
 
 # Query Github API for all pull requests that are labeled `ready-to-merge` and have not been updated in 24 hours.
 QUERY_READYTOMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:ready-to-merge updated:<$yesterday")
@@ -66,11 +70,12 @@ QUERY_DELEGATED=$(prepare_query "sort:updated-asc is:pr state:open label:delegat
 gh api graphql --paginate --slurp -f query="$QUERY_DELEGATED" | jq '{"output": .}' > delegated.json
 
 # Query Github API for all pull requests that are labeled `new-contributor` and have not been updated in seven days.
+# Sadly, this includes all PRs which are in the review queue...
 QUERY_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:new-contributor updated:<$aweekago")
 gh api graphql --paginate --slurp -f query="$QUERY_NEWCONTRIBUTOR" | jq '{"output": .}' > new-contributor.json
 
 # List of JSON files
-json_files=("queue.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "delegated.json" "new-contributor.json")
+json_files=("queue.json" "queue-new-contributor.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "delegated.json" "new-contributor.json")
 
 # Output file
 pr_info="pr-info.json"
