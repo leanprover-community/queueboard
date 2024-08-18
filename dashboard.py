@@ -149,20 +149,20 @@ def print_dashboard(data):
     explanation = f'<h5 style="font-weight:normal">{explanation}</h5>\n'
 
     print("<h1 id=\"{}\">{}</h1>".format(data["id"], data["title"]))
-    print(explanation)
-    print("<table>")
-    print("<thead>")
-    print("<tr>")
-    print("<th>Number</th>")
-    print("<th>Author</th>")
-    print("<th>Title</th>")
-    print("<th>Labels</th>")
-    print("<th>+/-</th>")
-    print("<th>&#128221;</th>")
-    print("<th>&#128172;</th>")
-    print("<th>Updated</th>")
-    print("</tr>")
-    print("</thead>")
+    print(f"""{explanation}
+    <table>
+    <thead>
+    <tr>
+    <th>Number</th>
+    <th>Author</th>
+    <th>Title</th>
+    <th>Labels</th>
+    <th>+/-</th>
+    <th>&#128221;</th>
+    <th>&#128172;</th>
+    <th>Updated</th>
+    </tr>
+    </thead>""")
 
     # Open the file containing the PR info
     with open(sys.argv[1], 'r') as f:
