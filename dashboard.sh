@@ -42,44 +42,42 @@ query(\$endCursor: String) {
 # - do not have any of the following labels: blocked-by-other-PR, merge-conflict, awaiting-CI, WIP, awaiting-author, delegated, auto-merge-after-CI
 QUERY_QUEUE=$(prepare_query "sort:updated-asc is:pr state:open -is:draft -status:failure -label:blocked-by-other-PR -label:merge-conflict -label:awaiting-CI -label:awaiting-author -label:WIP -label:delegated -label:auto-merge-after-CI")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" |\
-	jq '{"output": ., "title": "Queue", "id": "queue"}' > queue.json
+	jq '{"output": .}' > queue.json
 
 
 # Query Github API for all pull requests that are labeled `ready-to-merge` and have not been updated in 24 hours.
 QUERY_READYTOMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:ready-to-merge updated:<$yesterday")
 gh api graphql --paginate --slurp -f query="$QUERY_READYTOMERGE" |\
-	jq '{"output": ., "title": "Stale ready-to-merge", "id": "stale-ready-to-merge"}' > ready-to-merge.json
-# Add to this the list of stale PRs with `auto-merge-after-CI`.
-
+	jq '{"output": .}' > ready-to-merge.json
+# Query Github API for all pull requests that are labeled `ready-to-merge` and have not been updated in 24 hours.
 QUERY_AUTOMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:auto-merge-after-CI updated:<$yesterday")
 gh api graphql --paginate --slurp -f query="$QUERY_AUTOMERGE" |\
-	jq '{"output": ., "title": "Stale ready-to-merge", "id": "stale-ready-to-merge"}' > automerge.json
-# TODO: merge automerge.json into this; not sure how...
-# see https://stackoverflow.com/questions/42245288/add-new-element-to-existing-json-array-with-jq on how to...
-# and I cannot test any of this, which is annoying!
+	jq '{"output": .}' > automerge.json
 
 # Query Github API for all pull requests that are labeled `maintainer-merge` but not `ready-to-merge` and have not been updated in 24 hours.
 QUERY_MAINTAINERMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:maintainer-merge -label:ready-to-merge updated:<$yesterday")
 gh api graphql --paginate --slurp -f query="$QUERY_MAINTAINERMERGE" |\
-	jq '{"output": ., "title": "Stale maintainer-merge", "id": "stale-maintainer-merge"}' > maintainer-merge.json
+	jq '{"output": .}' > maintainer-merge.json
 
 # Query Github API for all pull requests that are labeled `delegated` and have not been updated in 24 hours.
 QUERY_DELEGATED=$(prepare_query "sort:updated-asc is:pr state:open label:delegated updated:<$yesterday")
 gh api graphql --paginate --slurp -f query="$QUERY_DELEGATED" |\
-	jq '{"output": ., "title": "Stale delegated", "id": "stale-delegated"}' > delegated.json
+	jq '{"output": .}' > delegated.json
 
 # Query Github API for all pull requests that are labeled `new-contributor` and have not been updated in seven days.
 QUERY_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:new-contributor updated:<$aweekago")
 gh api graphql --paginate --slurp -f query="$QUERY_NEWCONTRIBUTOR" |\
-	jq '{"output": ., "title": "Stale new-contributor", "id": "stale-new-contributor"}' > new-contributor.json
+	jq '{"output": .}' > new-contributor.json
 
 # Query Github API for all open pull requests without the label "CI" or a "topic" label.
 QUERY_UNLABELLED=$(prepare_query 'sort:updated-asc is:open is:pr in:title "feat" -label:t-algebra -label:t-linter -label:t-logic -label:t-number-theory -label:t-topology -label:t-order -label:t-category-theory -label:t-analysis -label:t-dynamics -label:t-combinatorics -label:t-measure-probability -label:t-algebraic-geometry -label:t-meta -label:t-computability -label:t-differential-geometry -label:t-euclidean-geometry -label:t-data -label:CI')
 gh api graphql --paginate --slurp -f query="$QUERY_UNLABELLED" |\
-	jq '{"output": ., "title": "PRs without an area label", "id": "unlabelled"}' > unlabelled.json
+	jq '{"output": .}' > unlabelled.json
 
+# Weirdly labelled PRs: this means somebody should take a look
+# awaiting-author and ready-to-merge is one
 # List of JSON files
-json_files=("queue.json" "ready-to-merge.json" "maintainer-merge.json" "delegated.json" "new-contributor.json" "unlabelled.json")
+json_files=("queue.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "delegated.json" "new-contributor.json" "unlabelled.json")
 
 # Output file
 pr_info="pr-info.json"
