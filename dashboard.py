@@ -79,7 +79,7 @@ def main():
     for i in range(2, len(sys.argv)):
         filename = sys.argv[i]
         if filename not in EXPECTED_INPUT_FILES:
-            print(f"bad argument: file {filename} is not recognised; did you mean one of these: {EXPECTED_INPUT_FILES.keys()}?")
+            print(f"bad argument: file {filename} is not recognised; did you mean one of these?\n{', '.join(EXPECTED_INPUT_FILES.keys())}")
             sys.exit(1)
         with open(filename) as f:
             data = json.load(f)
