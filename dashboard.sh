@@ -49,6 +49,14 @@ gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" |\
 QUERY_READYTOMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:ready-to-merge updated:<$yesterday")
 gh api graphql --paginate --slurp -f query="$QUERY_READYTOMERGE" |\
 	jq '{"output": ., "title": "Stale ready-to-merge", "id": "stale-ready-to-merge"}' > ready-to-merge.json
+# Add to this the list of stale PRs with `auto-merge-after-CI`.
+
+QUERY_AUTOMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:auto-merge-after-CI updated:<$yesterday")
+gh api graphql --paginate --slurp -f query="$QUERY_AUTOMERGE" |\
+	jq '{"output": ., "title": "Stale ready-to-merge", "id": "stale-ready-to-merge"}' > automerge.json
+# TODO: merge automerge.json into this; not sure how...
+# see https://stackoverflow.com/questions/42245288/add-new-element-to-existing-json-array-with-jq on how to...
+# and I cannot test any of this, which is annoying!
 
 # Query Github API for all pull requests that are labeled `maintainer-merge` but not `ready-to-merge` and have not been updated in 24 hours.
 QUERY_MAINTAINERMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:maintainer-merge -label:ready-to-merge updated:<$yesterday")
