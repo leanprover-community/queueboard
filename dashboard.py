@@ -23,6 +23,7 @@ class PRList(Enum):
 EXPECTED_INPUT_FILES = {
     "queue.json" : PRList.Queue,
     "ready-to-merge.json" : PRList.StaleReadyToMerge,
+    "automerge.json" : PRList.StaleReadyToMerge,
     "maintainer-merge.json" : PRList.StaleMaintainerMerge,
     "delegated.json" : PRList.StaleDelegated,
     "new-contributor.json" : PRList.StaleNewContributor,
@@ -49,8 +50,8 @@ def main():
             dataFilesWithKind.append(data, EXPECTED_INPUT_FILES[filename])
 
     # Process all data files for the same PR list together.
-    for kind in PRList.__members__:
-        files = [k for (d, k) in dataFilesWithKind if k == kind]
+    for kind in PRList._member_map_.values():
+        files = [d for (d, k) in dataFilesWithKind if k == kind]
         print_dashboard(files, kind)
 
     print_html5_footer()
