@@ -39,6 +39,7 @@ def print_html5_header():
     </head>
     <body>
     <h1>Mathlib Review Dashboard</h1>""")
+    # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
     updated = datetime.now(UTC).strftime("%B %d, %Y at %H:%M UTC")
     print(f"<small>This dashboard was last updated on: {updated}</small>")
 
