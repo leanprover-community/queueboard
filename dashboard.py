@@ -27,7 +27,7 @@ EXPECTED_INPUT_FILES = {
     "new-contributor.json" : PRList.StaleNewContributor,
 }
 
-def description_none(kind : PRList):
+def short_description(kind : PRList):
     '''Describe what the table 'kind' contains, for use in a "there are no such PRs" message.'''
     {
         PRList.Queue : "PRs on the review queue",
@@ -37,11 +37,11 @@ def description_none(kind : PRList):
         PRList.StaleNewContributor : "stale PRs by new contributors",
     }[kind]
 
-def explanation(kind : PRList):
+def long_description(kind : PRList):
     '''Explain what each PR list contains: full description, for the purposes of a sub-title
     to the full PR table.'''
     notupdated = "which have not been updated in the past"
-    explanation = {
+    {
         PRList.Queue : "All PRs which are ready for review: CI passes, no merge conflict and not blocked on other PRs",
         PRList.Unlabelled : "PRs without a 't-something' label which are not labelled 'CI'",
         PRList.StaleDelegated : f"PRs labelled 'delegated' {notupdated} 24 hours",
@@ -184,11 +184,11 @@ def print_dashboard(data, kind : PRList):
     # "There are currently **no** stale `delegated` PRs. Congratulations!".
     if not data["output"][0]["data"]["search"]["nodes"]:
         print("<h1 id=\"{}\">{}</h1>".format(data["id"], data["title"]))
-        print(f'There are currently <b>no</b> {description_none(kind)}. Congratulations!\n')
+        print(f'There are currently <b>no</b> {short_description(kind)}. Congratulations!\n')
         return
     # Explain what each PR list contains.
     # Use a header to make space before the table, but don't make it bold.
-    explanation = f'<h5 style="font-weight:normal">{explanation(kind)}</h5>\n'
+    explanation = f'<h5 style="font-weight:normal">{long_description(kind)}</h5>\n'
     # Title of each list, and the corresponding HTML anchor.
     (id, title) = getIdTitle(kind)
     print(f"""<h1 id=\"{id}\">{title}</h1>
