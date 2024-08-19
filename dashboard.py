@@ -122,7 +122,7 @@ def time_info(updatedAt):
 
 def print_dashboard(data):
     # If there are no PRs, skip the table header and print a bold notice such as
-    # "There are currently **no stale `delegated` PRs. Congratulations!".
+    # "There are currently **no** stale `delegated` PRs. Congratulations!".
     if not data["output"]:
         description = {
             "queue" : "PRs on the review queue",
