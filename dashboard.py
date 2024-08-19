@@ -134,7 +134,22 @@ def print_dashboard(data):
         print("<h1 id=\"{}\">{}</h1>".format(data["id"], data["title"]))
         print(f'There are currently <b>no</b> {description[data["id"]]}. Congratulations!\n')
         return
+
+    # Explain what each PR list contains.
+    notupdated = "which have not been updated in the past"
+    explanation = {
+        "queue" : "All PRs which are ready for review: CI passes, no merge conflict and not blocked on other PRs",
+        "unlabelled" : "PRs without a 't-something' label which are not labelled 'CI'",
+        "stale-delegated" : f"PRs labelled 'delegated' {notupdated} 24 hours",
+        "stale-ready-to-merge" : f"PRs labelled 'ready-to-merge' {notupdated} 24 hours",
+        "stale-maintainer-merge" : f"PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
+        "stale-new-contributor" : f"PR labelled 'new-contributor' {notupdated} 7 days",
+    }[[data["id"]]]
+    # Use a header to make space before the table, but don't make it bold.
+    explanation = f'<h5 style="font-weight:normal">{explanation}</h5>\n'
+
     print("<h1 id=\"{}\">{}</h1>".format(data["id"], data["title"]))
+    print(explanation)
     print("<table>")
     print("<thead>")
     print("<tr>")
