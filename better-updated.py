@@ -41,7 +41,7 @@ and pretend for now that every PR is passing all the time.
 
 '''
 
-from typing import NamedTuple
+from typing import List, NamedTuple
 from datetime import datetime
 from enum import Enum, auto, unique
 
@@ -111,7 +111,7 @@ class Event(NamedTuple):
 
 # The different kinds of PR labels we care about.
 # We usually do not care about the precise label names, but just their function.
-class LabelKinds(Enum):
+class LabelKind(Enum):
     Review = auto() # awaiting-review
     Author = auto() # awaiting-author
     MergeConflict = auto() # merge-conflict
@@ -121,41 +121,45 @@ class LabelKinds(Enum):
     Bors = auto() # ready-to-merge or auto-merge-after-CI
     Other = auto() # any other label, such as t-something (but also "easy", "bug" and a few more)
 
-
+# Map a label name (as a string) to a tuple of LabelKind, a boolean and a new PR state.
+# If true, assert that the previous state was different, as a sanity check.
+label_categorisation_rules = {
+    'awaiting-review' : (LabelKind.AwaitingReview, PRState.AwaitingReview),
+    'awaiting-author' : (LabelKind.AwaitingAuthor, PRState.AwaitingAuthor),
+    'blocked-on-other-PR' : (LabelKind.Blocked, PRState.Blocked),
+    'merge-conflict' : (LabelKind.MergeConflict, PRState.MergeConflict),
+    'awaiting-zulip' : (LabelKind.Decision, PRState.AwaitingDecision),
+    'delegated' : (LabelKind.Delegated, PRState.Delegated),
+    'ready-to-merge' : (LabelKind.Bors, PRState.AwaitingBors),
+}
+label_categorisation_rules['blocked-on-batt-PR'] = label_categorisation_rules['blocked-on-other-PR']
+label_categorisation_rules['blocked-on-core-PR'] = label_categorisation_rules['blocked-on-other-PR']
+label_categorisation_rules['auto-merge-after-CI'] = label_categorisation_rules['ready-to-merge']
 
 # Update the current state of this PR in light of some activity.
-def update_state(current : PRState, ev : Event) -> PRState:
+# current_label describes all kinds of labels this PR currently has.
+# Return the new labels and PR state.
+def update_state(current : PRState, current_labels : List[LabelKind], ev : Event) -> tuple[List[LabelKind], PRState]:
     # Fixme: we ignore these changes for now
     if ev.change in [PRChange.CIStatusChanged, PRChange.ToggleDraftStatus]:
         current
     elif ev.change == PRChange.LabelAdded:
         # Depending on the label added, update the PR state.
         lname = ev.extra["name"]
-        if lname == 'awaiting-review':
-            assert current != PRState.AwaitingReview  # sanity check
-            return PRState.AwaitingReview
-        elif lname == 'awaiting-author':
-            assert current != PRState.AwaitingAuthor
-            return PRState.AwaitingAuthor
-        elif lname == "blocked-on-other-PR": # todo others!
-            return PRState.Blocked
-        elif lname == "merge-conflict":
-            assert current != PRState.MergeConflict
-            return PRState.MergeConflict
-        elif lname == 'awaiting-zulip':
-            assert current != PRState.AwaitingDecision
-            return PRState.AwaitingDecision
-        elif lname == 'delegated':
-            assert current != PRState.Delegated
-            return PRState.Delegated
-        elif lname in ['ready-to-merge', 'auto-merge-after-CI']:
-            return PRState.AwaitingBors
+        if lname in label_categorisation_rules:
+            (label_kind, new_state) = label_categorisation_rules[lname]
+            if new_state != [PRState.Blocked, PRState.AwaitingBors]:
+                assert current != new_state
+            return (current_labels + [label_kind], new_state)
         else:
-            # Another irrelevant label does not change the PR state.
+            # Adding an irrelevant label does not change the PR state.
             if not lname.startswith("t-"):
                 print(f'found another label: {lname}')
-            return current
+            return (current_labels, current)
     elif ev.change == PRChange.LabelRemoved:
+        # TODO: a proper fix requires knowing the current set of labels
+
+        # The dfault state (no labels) is awaiting-review!
         # TODO: this requires knowing the current set of labels.. my algorithm is stateful!
         pass
     else:
