@@ -143,10 +143,10 @@ def print_dashboard(data):
         "stale-delegated" : f"PRs labelled 'delegated' {notupdated} 24 hours",
         "stale-ready-to-merge" : f"PRs labelled 'ready-to-merge' {notupdated} 24 hours",
         "stale-maintainer-merge" : f"PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
-        "stale-new-contributor" : f"PR labelled 'new-contributor' {notupdated} 7 days"
+        "stale-new-contributor" : f"PR labelled 'new-contributor' {notupdated} 7 days",
     }[[data["id"]]]
     # Use a header to make space before the table, but don't make it bold.
-    explanation = f'<h5 style="font-weight:normal">{explanation}</h5>\n' if explanation else ""
+    explanation = f'<h5 style="font-weight:normal">{explanation}</h5>\n'
 
     print("<h1 id=\"{}\">{}</h1>".format(data["id"], data["title"]))
     print(explanation)
