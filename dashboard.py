@@ -144,7 +144,7 @@ def print_dashboard(data):
         "stale-ready-to-merge" : f"PRs labelled 'ready-to-merge' {notupdated} 24 hours",
         "stale-maintainer-merge" : f"PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
         "stale-new-contributor" : f"PR labelled 'new-contributor' {notupdated} 7 days",
-    }[[data["id"]]]
+    }[data["id"]]
     # Use a header to make space before the table, but don't make it bold.
     explanation = f'<h5 style="font-weight:normal">{explanation}</h5>\n'
 
