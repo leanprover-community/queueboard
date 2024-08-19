@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Surface errors in this script to CI, so they get noticed.
+# See e.g. http://redsymbol.net/articles/unofficial-bash-strict-mode/ for explanation.
+set -e -u -o pipefail
+
 # The date and time, 24 hours ago, in the ISO8601 format
 yesterday=$(date -u -d "24 hours ago" '+%Y-%m-%dT%H:%M:%SZ')
 # The date and time, 7 days ago, in the ISO8601 format
