@@ -4,7 +4,7 @@
 
 import sys
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 from dateutil import relativedelta
 
 def main():
@@ -38,8 +38,10 @@ def print_html5_header():
     <base target="_blank">
     </head>
     <body>
-    <h1>Mathlib Review Dashboard</h1>
-    """)
+    <h1>Mathlib Review Dashboard</h1>""")
+    # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
+    updated = datetime.now(UTC).strftime("%B %d, %Y at %H:%M UTC")
+    print(f"<small>This dashboard was last updated on: {updated}</small>")
 
 def print_html5_footer():
     print("""
@@ -76,7 +78,7 @@ def label_link(label):
     # adapted from https://codepen.io/WebSeed/pen/pvgqEq
     def isLight(r, g, b):
         # Counting the perceptive luminance
-        # human eye favors green color... 
+        # human eye favors green color...
         a = 1 - (0.299 * r + 0.587 * g + 0.114 * b) / 255
         return (a < 0.5)
 
@@ -119,7 +121,7 @@ def time_info(updatedAt):
     return s
 
 def print_dashboard(data):
-    print("<h1>{}</h1>".format(data["title"]))
+    print("<h1 id=\"{}\">{}</h1>".format(data["id"], data["title"]))
     print("<table>")
     print("<thead>")
     print("<tr>")
