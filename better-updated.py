@@ -124,17 +124,31 @@ class LabelKind(Enum):
 # Map a label name (as a string) to a tuple of LabelKind, a boolean and a new PR state.
 # If true, assert that the previous state was different, as a sanity check.
 label_categorisation_rules = {
-    'awaiting-review' : (LabelKind.AwaitingReview, PRState.AwaitingReview),
-    'awaiting-author' : (LabelKind.AwaitingAuthor, PRState.AwaitingAuthor),
-    'blocked-on-other-PR' : (LabelKind.Blocked, PRState.Blocked),
-    'merge-conflict' : (LabelKind.MergeConflict, PRState.MergeConflict),
-    'awaiting-zulip' : (LabelKind.Decision, PRState.AwaitingDecision),
-    'delegated' : (LabelKind.Delegated, PRState.Delegated),
-    'ready-to-merge' : (LabelKind.Bors, PRState.AwaitingBors),
+    'awaiting-review' : LabelKind.AwaitingReview,
+    'awaiting-author' : LabelKind.AwaitingAuthor,
+    'blocked-on-other-PR' : LabelKind.Blocked,
+    'merge-conflict' : LabelKind.MergeConflict,
+    'awaiting-zulip' : LabelKind.Decision,
+    'delegated' : LabelKind.Delegated,
+    'ready-to-merge' : LabelKind.Bors,
 }
 label_categorisation_rules['blocked-on-batt-PR'] = label_categorisation_rules['blocked-on-other-PR']
 label_categorisation_rules['blocked-on-core-PR'] = label_categorisation_rules['blocked-on-other-PR']
 label_categorisation_rules['auto-merge-after-CI'] = label_categorisation_rules['ready-to-merge']
+
+def label_to_prstate(label : LabelKind) -> PRState:
+    {
+        LabelKind.Review: PRState.AwaitingReview,
+        LabelKind.Author: PRState.AwaitingAuthor,
+        LabelKind.Blocked: PRState.Blocked,
+        LabelKind.MergeConflict: PRState.MergeConflict,
+        LabelKind.Decision: PRState.AwaitingDecision,
+        LabelKind.Delegated: PRState.Delegated,
+        LabelKind.Bors: PRState.AwaitingBors,
+    }[label]
+
+# XXX: the awaiting-review label is just added for historical purposes.
+# FIXME: do I need to rename that to match github?
 
 # Update the current state of this PR in light of some activity.
 # current_label describes all kinds of labels this PR currently has.
@@ -147,7 +161,8 @@ def update_state(current : PRState, current_labels : List[LabelKind], ev : Event
         # Depending on the label added, update the PR state.
         lname = ev.extra["name"]
         if lname in label_categorisation_rules:
-            (label_kind, new_state) = label_categorisation_rules[lname]
+            label_kind = label_categorisation_rules[lname]
+            new_state = label_to_prstate(label_kind)
             if new_state != [PRState.Blocked, PRState.AwaitingBors]:
                 assert current != new_state
             return (current_labels + [label_kind], new_state)
@@ -157,11 +172,43 @@ def update_state(current : PRState, current_labels : List[LabelKind], ev : Event
                 print(f'found another label: {lname}')
             return (current_labels, current)
     elif ev.change == PRChange.LabelRemoved:
-        # TODO: a proper fix requires knowing the current set of labels
+        lname = ev.extra["name"]
+        new_labels = None
+        if lname in label_categorisation_rules:
+            (label_kind, _) = label_categorisation_rules[lname]
+            new_labels = current_labels.remove(label_kind)
+            new_state = current
 
-        # The dfault state (no labels) is awaiting-review!
-        # TODO: this requires knowing the current set of labels.. my algorithm is stateful!
-        pass
+            # Determine the PR state from the current set of labels.
+            # Labels can be contradictory, and their priority orders need not be transitive.
+            # We start with some approximation here, and hope for the best.
+            # Fixme: try all combinations exhaustively to check if this errors??
+
+            # Validate: should I deduplicate the kinds, somewhere?? No!!
+            if new_labels == []:
+                new_state = PRState.AwaitingReview # default
+            elif len(new_labels) == 1:
+                new_state = label_to_prstate[new_labels[0]]
+            else:
+                # Sometimes, labels can be contradictory...; we document our decisions here.
+
+                # merge conflict takes priority over bors, but bors over all other kinds
+                #
+                # blocked and decision take priority over merge conflict,
+                # but merge conflict takes priority over awaiting-review/author
+                #
+                # blocked takes priority over merge conflict, awaiting author/review/decision,
+                # also over bors? sure, also over bors, why not. (but could double-check!)
+                #
+                # delegated never takes priority
+
+                # definitely contradictory: any two of awaiting-{author,review,decision}
+                # TODO: implement this (e.g., compute a "min" of all kinds, with the algorithm above)
+                print("two label kinds, that is confusing; omitted for now")
+            return (new_labels, new_state)
+        else:
+            # Removing an irrelevant label does not change the PR state.
+            return (current_labels, current)
     else:
         print(f"unhandled variant {ev.change}")
         assert False
