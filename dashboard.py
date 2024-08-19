@@ -19,7 +19,7 @@ class PRList(Enum):
 
 # All input files this script expects. Needs to be kept in sync with dashboard.sh,
 # but this script will complain if something unexpected happens.
-filenames = {
+EXPECTED_INPUT_FILES = {
     "queue.json" : PRList.Queue,
     "ready-to-merge.json" : PRList.StaleReadyToMerge,
     "maintainer-merge.json" : PRList.StaleMaintainerMerge,
@@ -72,9 +72,13 @@ def main():
 
     # Iterate over the json files provided by the user
     for i in range(2, len(sys.argv)):
-        with open(sys.argv[i]) as f:
+        filename = sys.argv[i]
+        if filename not in EXPECTED_INPUT_FILES:
+            print(f"bad argument: file {filename} is not recognised; did you mean one of these: {EXPECTED_INPUT_FILES.keys()}?")
+            sys.exit(1)
+        with open(filename) as f:
             data = json.load(f)
-            print_dashboard(data, filenames[sys.argv[i]])
+            print_dashboard(data, EXPECTED_INPUT_FILES[filename])
 
     print_html5_footer()
 
