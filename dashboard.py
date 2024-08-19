@@ -123,7 +123,7 @@ def time_info(updatedAt):
 def print_dashboard(data):
     # If there are no PRs, skip the table header and print a bold notice such as
     # "There are currently **no** stale `delegated` PRs. Congratulations!".
-    if not data["output"]:
+    if not data["output"][0]["data"]["search"]["nodes"]:
         description = {
             "queue" : "PRs on the review queue",
             "stale-maintainer-merge" : "stale PRs labelled maintainer merge",
@@ -131,7 +131,8 @@ def print_dashboard(data):
             "stale-ready-to-merge" : "stale PRs labelled ready-to-merge",
             "stale-new-contributor" : "stale PRs by new contributors",
         }
-        print(f'There are currently <b>no</b> {description[data["id"]]}". Congratulations!\n')
+        print("<h1 id=\"{}\">{}</h1>".format(data["id"], data["title"]))
+        print(f'There are currently <b>no</b> {description[data["id"]]}. Congratulations!\n')
         return
     print("<h1 id=\"{}\">{}</h1>".format(data["id"], data["title"]))
     print("<table>")
