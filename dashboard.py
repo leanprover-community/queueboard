@@ -43,7 +43,6 @@ def long_description(kind : PRList):
     notupdated = "which have not been updated in the past"
     {
         PRList.Queue : "All PRs which are ready for review: CI passes, no merge conflict and not blocked on other PRs",
-        PRList.Unlabelled : "PRs without a 't-something' label which are not labelled 'CI'",
         PRList.StaleDelegated : f"PRs labelled 'delegated' {notupdated} 24 hours",
         PRList.StaleReadyToMerge : f"PRs labelled 'ready-to-merge' {notupdated} 24 hours",
         PRList.StaleMaintainerMerge : f"PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
@@ -55,7 +54,6 @@ def getIdTitle(kind : PRList):
     describing this PR kind.'''
     {
         PRList.Queue : ("queue", "Queue"),
-        PRList.Unlabelled : ("unlabelled", "PRs without an area label"),
         PRList.StaleDelegated : ("stale-delegated", "Stale delegated"),
         PRList.StaleNewContributor : ("stale-new-contributor", "Stale new contributor"),
         PRList.StaleMaintainerMerge : ("stale-maintainer-merge", "Stale maintainer-merge"),
