@@ -79,10 +79,11 @@ def main():
         with open(filename) as f:
             data = json.load(f)
             dataFilesWithKind.append((data, EXPECTED_INPUT_FILES[filename]))
+
     # Process all data files for the same PR list together.
     for kind in PRList._member_map_.values():
-        files = [d for (d, k) in dataFilesWithKind if k == kind]
-        print_dashboard(files, kind)
+        datae = [d for (d, k) in dataFilesWithKind if k == kind]
+        print_dashboard(datae, kind)
 
     print_html5_footer()
 
