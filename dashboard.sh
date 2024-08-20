@@ -44,7 +44,7 @@ query(\$endCursor: String) {
 # - open, not draft
 # - do not have status:failure
 # - do not have any of the following labels: blocked-by-other-PR, merge-conflict, awaiting-CI, WIP, awaiting-author, delegated, auto-merge-after-CI
-queue_labels = "-label:blocked-by-other-PR -label:merge-conflict -label:awaiting-CI -label:awaiting-author -label:WIP -label:delegated -label:auto-merge-after-CI"
+queue_labels="-label:blocked-by-other-PR -label:merge-conflict -label:awaiting-CI -label:awaiting-author -label:WIP -label:delegated -label:auto-merge-after-CI"
 QUERY_QUEUE=$(prepare_query "sort:updated-asc is:pr state:open -is:draft -status:failure $queue_labels")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" | jq '{"output": .}' > queue.json
 
