@@ -21,6 +21,7 @@ class PRList(Enum):
 # but this script will complain if something unexpected happens.
 EXPECTED_INPUT_FILES = {
     "queue.json" : PRList.Queue,
+    "automerge.json" : PRList.StaleReadyToMerge,
     "ready-to-merge.json" : PRList.StaleReadyToMerge,
     "maintainer-merge.json" : PRList.StaleMaintainerMerge,
     "delegated.json" : PRList.StaleDelegated,
@@ -33,7 +34,7 @@ def short_description(kind : PRList):
         PRList.Queue : "PRs on the review queue",
         PRList.StaleMaintainerMerge : "stale PRs labelled maintainer merge",
         PRList.StaleDelegated : "stale delegated PRs",
-        PRList.StaleReadyToMerge : "stale PRs labelled ready-to-merge",
+        PRList.StaleReadyToMerge : "stale PRs labelled auto-merge-after-CI or ready-to-merge",
         PRList.StaleNewContributor : "stale PRs by new contributors",
     }[kind]
 
@@ -44,7 +45,7 @@ def long_description(kind : PRList):
     return {
         PRList.Queue : "All PRs which are ready for review: CI passes, no merge conflict and not blocked on other PRs",
         PRList.StaleDelegated : f"PRs labelled 'delegated' {notupdated} 24 hours",
-        PRList.StaleReadyToMerge : f"PRs labelled 'ready-to-merge' {notupdated} 24 hours",
+        PRList.StaleReadyToMerge : f"PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
         PRList.StaleMaintainerMerge : f"PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
         PRList.StaleNewContributor : f"PR labelled 'new-contributor' {notupdated} 7 days",
     }[kind]
@@ -69,6 +70,7 @@ def main():
     print_html5_header()
 
     # Iterate over the json files provided by the user
+    dataFilesWithKind = []
     for i in range(2, len(sys.argv)):
         filename = sys.argv[i]
         if filename not in EXPECTED_INPUT_FILES:
@@ -76,7 +78,12 @@ def main():
             sys.exit(1)
         with open(filename) as f:
             data = json.load(f)
-            print_dashboard(data, EXPECTED_INPUT_FILES[filename])
+            dataFilesWithKind.append((data, EXPECTED_INPUT_FILES[filename]))
+
+    # Process all data files for the same PR list together.
+    for kind in PRList._member_map_.values():
+        datae = [d for (d, k) in dataFilesWithKind if k == kind]
+        print_dashboard(datae, kind)
 
     print_html5_footer()
 
@@ -177,20 +184,22 @@ def time_info(updatedAt):
 
     return s
 
-def print_dashboard(data, kind : PRList):
-    # If there are no PRs, skip the table header and print a bold notice such as
-    # "There are currently **no** stale `delegated` PRs. Congratulations!".
-    if not data["output"][0]["data"]["search"]["nodes"]:
-        print("<h1 id=\"{}\">{}</h1>".format(data["id"], data["title"]))
-        print(f'There are currently <b>no</b> {short_description(kind)}. Congratulations!\n')
-        return
-    # Explain what each PR list contains.
-    # Use a header to make space before the table, but don't make it bold.
-    explanation = f'<h5 style="font-weight:normal">{long_description(kind)}</h5>\n'
+from typing import List
+
+def print_dashboard(datae : List[dict], kind : PRList):
+    '''`datae` is a list of parsed data files to process'''
     # Title of each list, and the corresponding HTML anchor.
     (id, title) = getIdTitle(kind)
-    print(f"""<h1 id=\"{id}\">{title}</h1>
-    {explanation}
+    print("<h1 id=\"{}\">{}</h1>".format(id, title))
+    # If there are no PRs, skip the table header and print a bold notice such as
+    # "There are currently **no** stale `delegated` PRs. Congratulations!".
+    if not any([data for data in datae if data["output"][0]["data"]["search"]["nodes"]]):
+        print(f'There are currently <b>no</b> {short_description(kind)}. Congratulations!\n')
+        return
+
+    # Explain what each PR list contains.
+    # Use a header to make space before the table, but don't make it bold.
+    print(f"""<h5 style="font-weight:normal">{long_description(kind)}</h5>
     <table>
     <thead>
     <tr>
@@ -209,34 +218,35 @@ def print_dashboard(data, kind : PRList):
     with open(sys.argv[1], 'r') as f:
         pr_infos = json.load(f)
 
-        # Iterate over the data and print each entry in a row
-        for page in data["output"]:
-            for entry in page["data"]["search"]["nodes"]:
-                print("<tr>")
-                print("<td>{}</td>".format(pr_link(entry["number"], entry["url"])))
-                print("<td>{}</td>".format(user_link(entry["author"])))
-                print("<td>{}</td>".format(title_link(entry["title"], entry["url"])))
-                print("<td>")
-                for label in entry["labels"]["nodes"]:
-                    print(label_link(label))
-                print("</td>")
+        # Iterate over the each data file; print each entry in a row.
+        for data in datae:
+            for page in data["output"]:
+                for entry in page["data"]["search"]["nodes"]:
+                    print("<tr>")
+                    print("<td>{}</td>".format(pr_link(entry["number"], entry["url"])))
+                    print("<td>{}</td>".format(user_link(entry["author"])))
+                    print("<td>{}</td>".format(title_link(entry["title"], entry["url"])))
+                    print("<td>")
+                    for label in entry["labels"]["nodes"]:
+                        print(label_link(label))
+                    print("</td>")
 
-                try:
-                    pr_info = pr_infos[str(entry["number"])]
-                    print("<td>{}/{}</td>".format(pr_info["additions"], pr_info["deletions"]))
-                    print("<td>{}</td>".format(pr_info["changed_files"]))
-                    comments = pr_info["comments"] + pr_info["review_comments"]
-                    print("<td>{}</td>".format(comments))
-                except KeyError:
-                    pr_info = {"additions": -1, "deletions": -1, "changed_files": -1, "comments": -1, "review_comments": -1}
-                    print("<td>{}/{}</td>".format(pr_info["additions"], pr_info["deletions"]))
-                    print("<td>{}</td>".format(pr_info["changed_files"]))
-                    comments = pr_info["comments"] + pr_info["review_comments"]
-                    print("<td>{}</td>".format(comments))
-                    print("PR #{} is wicked!".format(entry["number"]), file=sys.stderr)
+                    try:
+                        pr_info = pr_infos[str(entry["number"])]
+                        print("<td>{}/{}</td>".format(pr_info["additions"], pr_info["deletions"]))
+                        print("<td>{}</td>".format(pr_info["changed_files"]))
+                        comments = pr_info["comments"] + pr_info["review_comments"]
+                        print("<td>{}</td>".format(comments))
+                    except KeyError:
+                        pr_info = {"additions": -1, "deletions": -1, "changed_files": -1, "comments": -1, "review_comments": -1}
+                        print("<td>{}/{}</td>".format(pr_info["additions"], pr_info["deletions"]))
+                        print("<td>{}</td>".format(pr_info["changed_files"]))
+                        comments = pr_info["comments"] + pr_info["review_comments"]
+                        print("<td>{}</td>".format(comments))
+                        print("PR #{} is wicked!".format(entry["number"]), file=sys.stderr)
 
-                print("<td>{}</td>".format(time_info(entry["updatedAt"])))
-                print("</tr>")
+                    print("<td>{}</td>".format(time_info(entry["updatedAt"])))
+                    print("</tr>")
 
     # Print the footer
     print("</table>")
