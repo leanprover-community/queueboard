@@ -52,6 +52,11 @@ gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" | jq '{"output": .}' >
 QUERY_READYTOMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:ready-to-merge updated:<$yesterday")
 gh api graphql --paginate --slurp -f query="$QUERY_READYTOMERGE" | jq '{"output": . }' > ready-to-merge.json
 
+# Query Github API for all pull requests that are labeled `auto-merge-after-CI` and have not been updated in 24 hours.
+QUERY_AUTOMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:auto-merge-after-CI updated:<$yesterday")
+gh api graphql --paginate --slurp -f query="$QUERY_AUTOMERGE" | jq '{"output": . }' > automerge.json
+
+
 # Query Github API for all pull requests that are labeled `maintainer-merge` but not `ready-to-merge` and have not been updated in 24 hours.
 QUERY_MAINTAINERMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:maintainer-merge -label:ready-to-merge updated:<$yesterday")
 gh api graphql --paginate --slurp -f query="$QUERY_MAINTAINERMERGE" | jq '{"output": .}' > maintainer-merge.json
@@ -65,7 +70,7 @@ QUERY_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:ne
 gh api graphql --paginate --slurp -f query="$QUERY_NEWCONTRIBUTOR" | jq '{"output": .}' > new-contributor.json
 
 # List of JSON files
-json_files=("queue.json" "ready-to-merge.json" "maintainer-merge.json" "delegated.json" "new-contributor.json")
+json_files=("queue.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "delegated.json" "new-contributor.json")
 
 # Output file
 pr_info="pr-info.json"

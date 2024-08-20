@@ -21,6 +21,7 @@ class PRList(Enum):
 # but this script will complain if something unexpected happens.
 EXPECTED_INPUT_FILES = {
     "queue.json" : PRList.Queue,
+    "automerge.json" : PRList.StaleReadyToMerge,
     "ready-to-merge.json" : PRList.StaleReadyToMerge,
     "maintainer-merge.json" : PRList.StaleMaintainerMerge,
     "delegated.json" : PRList.StaleDelegated,
