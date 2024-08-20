@@ -74,8 +74,12 @@ gh api graphql --paginate --slurp -f query="$QUERY_DELEGATED" | jq '{"output": .
 QUERY_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:new-contributor updated:<$aweekago")
 gh api graphql --paginate --slurp -f query="$QUERY_NEWCONTRIBUTOR" | jq '{"output": .}' > new-contributor.json
 
+# Query Github API for all open pull requests without the label "CI" or a "topic" label.
+QUERY_UNLABELLED=$(prepare_query 'sort:updated-asc is:open is:pr in:title "feat" -label:t-algebra -label:t-linter -label:t-logic -label:t-number-theory -label:t-topology -label:t-order -label:t-category-theory -label:t-analysis -label:t-dynamics -label:t-combinatorics -label:t-measure-probability -label:t-algebraic-geometry -label:t-meta -label:t-computability -label:t-differential-geometry -label:t-euclidean-geometry -label:t-data -label:CI')
+gh api graphql --paginate --slurp -f query="$QUERY_UNLABELLED" | jq '{"output": .}' > unlabelled.json
+
 # List of JSON files
-json_files=("queue.json" "queue-new-contributor.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "delegated.json" "new-contributor.json")
+json_files=("queue.json" "queue-new-contributor.json" "unlabelled.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "delegated.json" "new-contributor.json")
 
 # Output file
 pr_info="pr-info.json"
