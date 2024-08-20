@@ -15,8 +15,8 @@ class PRList(Enum):
     Queue = 0
     QueueNewContributor = auto()
     StaleReadyToMerge = auto()
-    StaleMaintainerMerge = auto()
     StaleDelegated = auto()
+    StaleMaintainerMerge = auto()
     StaleNewContributor = auto()
 
 # All input files this script expects. Needs to be kept in sync with dashboard.sh,
