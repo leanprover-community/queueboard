@@ -78,7 +78,7 @@ def main():
             sys.exit(1)
         with open(filename) as f:
             data = json.load(f)
-            dataFilesWithKind.append(data, EXPECTED_INPUT_FILES[filename])
+            dataFilesWithKind.append((data, EXPECTED_INPUT_FILES[filename]))
     # Process all data files for the same PR list together.
     for kind in PRList._member_map_.values():
         files = [d for (d, k) in dataFilesWithKind if k == kind]
@@ -192,8 +192,7 @@ def print_dashboard(datae : List[any], kind : PRList):
     print("<h1 id=\"{}\">{}</h1>".format(id, title))
     # If there are no PRs, skip the table header and print a bold notice such as
     # "There are currently **no** stale `delegated` PRs. Congratulations!".
-    if all(datae, lambda data : not data["output"][0]["data"]["search"]["nodes"]):
-
+    if all(data for data in datae if not data["output"][0]["data"]["search"]["nodes"]):
         print(f'There are currently <b>no</b> {short_description(kind)}. Congratulations!\n')
         return
     # Explain what each PR list contains.
