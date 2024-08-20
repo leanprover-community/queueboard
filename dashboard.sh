@@ -45,11 +45,11 @@ query(\$endCursor: String) {
 # - do not have status:failure
 # - do not have any of the following labels: blocked-by-other-PR, merge-conflict, awaiting-CI, WIP, awaiting-author, delegated, auto-merge-after-CI
 queue_labels = "-label:blocked-by-other-PR -label:merge-conflict -label:awaiting-CI -label:awaiting-author -label:WIP -label:delegated -label:auto-merge-after-CI"
-QUERY_QUEUE=$(prepare_query "sort:updated-asc is:pr state:open -is:draft -status:failure $(queue_labels)")
+QUERY_QUEUE=$(prepare_query "sort:updated-asc is:pr state:open -is:draft -status:failure $queue_labels")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" | jq '{"output": .}' > queue.json
 
 # Query Github API for all pull requests in the queue that are labelled `new-contributor`.
-QUERY_QUEUE_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:new-contributor $(queue_labels)")
+QUERY_QUEUE_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:new-contributor $queue_labels")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE_NEWCONTRIBUTOR" | jq '{"output": .}' > queue-new-contributor.json
 
 # Query Github API for all pull requests that are labeled `ready-to-merge` and have not been updated in 24 hours.
