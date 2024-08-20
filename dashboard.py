@@ -34,7 +34,7 @@ def short_description(kind : PRList):
         PRList.Queue : "PRs on the review queue",
         PRList.StaleMaintainerMerge : "stale PRs labelled maintainer merge",
         PRList.StaleDelegated : "stale delegated PRs",
-        PRList.StaleReadyToMerge : "stale PRs labelled ready-to-merge",
+        PRList.StaleReadyToMerge : "stale PRs labelled auto-merge-after-CI or ready-to-merge",
         PRList.StaleNewContributor : "stale PRs by new contributors",
     }[kind]
 
@@ -45,7 +45,7 @@ def long_description(kind : PRList):
     return {
         PRList.Queue : "All PRs which are ready for review: CI passes, no merge conflict and not blocked on other PRs",
         PRList.StaleDelegated : f"PRs labelled 'delegated' {notupdated} 24 hours",
-        PRList.StaleReadyToMerge : f"PRs labelled 'ready-to-merge' {notupdated} 24 hours",
+        PRList.StaleReadyToMerge : f"PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
         PRList.StaleMaintainerMerge : f"PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
         PRList.StaleNewContributor : f"PR labelled 'new-contributor' {notupdated} 7 days",
     }[kind]
