@@ -186,16 +186,17 @@ def time_info(updatedAt):
 
 from typing import List
 
-def print_dashboard(datae : List[any], kind : PRList):
+def print_dashboard(datae : List[dict], kind : PRList):
     '''`datae` is a list of parsed data files to process'''
     # Title of each list, and the corresponding HTML anchor.
     (id, title) = getIdTitle(kind)
     print("<h1 id=\"{}\">{}</h1>".format(id, title))
     # If there are no PRs, skip the table header and print a bold notice such as
     # "There are currently **no** stale `delegated` PRs. Congratulations!".
-    if all(data for data in datae if not data["output"][0]["data"]["search"]["nodes"]):
+    if not any([data for data in datae if data["output"][0]["data"]["search"]["nodes"]]):
         print(f'There are currently <b>no</b> {short_description(kind)}. Congratulations!\n')
         return
+
     # Explain what each PR list contains.
     # Use a header to make space before the table, but don't make it bold.
     print(f"""<h5 style="font-weight:normal">{long_description(kind)}</h5>
