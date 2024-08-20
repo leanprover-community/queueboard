@@ -6,6 +6,59 @@ import sys
 import json
 from datetime import datetime, timezone
 from dateutil import relativedelta
+from enum import Enum, auto, unique
+
+@unique
+class PRList(Enum):
+    '''The different kind of PR lists this dashboard creates'''
+    Queue = 0
+    StaleReadyToMerge = auto()
+    StaleMaintainerMerge = auto()
+    StaleDelegated = auto()
+    StaleNewContributor = auto()
+
+# All input files this script expects. Needs to be kept in sync with dashboard.sh,
+# but this script will complain if something unexpected happens.
+EXPECTED_INPUT_FILES = {
+    "queue.json" : PRList.Queue,
+    "ready-to-merge.json" : PRList.StaleReadyToMerge,
+    "maintainer-merge.json" : PRList.StaleMaintainerMerge,
+    "delegated.json" : PRList.StaleDelegated,
+    "new-contributor.json" : PRList.StaleNewContributor,
+}
+
+def short_description(kind : PRList):
+    '''Describe what the table 'kind' contains, for use in a "there are no such PRs" message.'''
+    return {
+        PRList.Queue : "PRs on the review queue",
+        PRList.StaleMaintainerMerge : "stale PRs labelled maintainer merge",
+        PRList.StaleDelegated : "stale delegated PRs",
+        PRList.StaleReadyToMerge : "stale PRs labelled ready-to-merge",
+        PRList.StaleNewContributor : "stale PRs by new contributors",
+    }[kind]
+
+def long_description(kind : PRList):
+    '''Explain what each PR list contains: full description, for the purposes of a sub-title
+    to the full PR table.'''
+    notupdated = "which have not been updated in the past"
+    return {
+        PRList.Queue : "All PRs which are ready for review: CI passes, no merge conflict and not blocked on other PRs",
+        PRList.StaleDelegated : f"PRs labelled 'delegated' {notupdated} 24 hours",
+        PRList.StaleReadyToMerge : f"PRs labelled 'ready-to-merge' {notupdated} 24 hours",
+        PRList.StaleMaintainerMerge : f"PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
+        PRList.StaleNewContributor : f"PR labelled 'new-contributor' {notupdated} 7 days",
+    }[kind]
+
+def getIdTitle(kind : PRList):
+    '''Return a tuple (id, title) of the HTML anchor ID and a section name for the table
+    describing this PR kind.'''
+    return {
+        PRList.Queue : ("queue", "Queue"),
+        PRList.StaleDelegated : ("stale-delegated", "Stale delegated"),
+        PRList.StaleNewContributor : ("stale-new-contributor", "Stale new contributor"),
+        PRList.StaleMaintainerMerge : ("stale-maintainer-merge", "Stale maintainer-merge"),
+        PRList.StaleReadyToMerge : ("stale-ready-to-merge", "Stale ready-to-merge")
+    }[kind]
 
 def main():
     # Check if the user has provided the correct number of arguments
@@ -17,9 +70,13 @@ def main():
 
     # Iterate over the json files provided by the user
     for i in range(2, len(sys.argv)):
-        with open(sys.argv[i]) as f:
+        filename = sys.argv[i]
+        if filename not in EXPECTED_INPUT_FILES:
+            print(f"bad argument: file {filename} is not recognised; did you mean one of these: {EXPECTED_INPUT_FILES.keys()}?")
+            sys.exit(1)
+        with open(filename) as f:
             data = json.load(f)
-            print_dashboard(data)
+            print_dashboard(data, EXPECTED_INPUT_FILES[filename])
 
     print_html5_footer()
 
@@ -120,36 +177,20 @@ def time_info(updatedAt):
 
     return s
 
-def print_dashboard(data):
+def print_dashboard(data, kind : PRList):
     # If there are no PRs, skip the table header and print a bold notice such as
     # "There are currently **no** stale `delegated` PRs. Congratulations!".
     if not data["output"][0]["data"]["search"]["nodes"]:
-        description = {
-            "queue" : "PRs on the review queue",
-            "stale-maintainer-merge" : "stale PRs labelled maintainer merge",
-            "stale-delegated" : "stale delegated PRs",
-            "stale-ready-to-merge" : "stale PRs labelled ready-to-merge",
-            "stale-new-contributor" : "stale PRs by new contributors",
-        }
         print("<h1 id=\"{}\">{}</h1>".format(data["id"], data["title"]))
-        print(f'There are currently <b>no</b> {description[data["id"]]}. Congratulations!\n')
+        print(f'There are currently <b>no</b> {short_description(kind)}. Congratulations!\n')
         return
-
     # Explain what each PR list contains.
-    notupdated = "which have not been updated in the past"
-    explanation = {
-        "queue" : "All PRs which are ready for review: CI passes, no merge conflict and not blocked on other PRs",
-        "unlabelled" : "PRs without a 't-something' label which are not labelled 'CI'",
-        "stale-delegated" : f"PRs labelled 'delegated' {notupdated} 24 hours",
-        "stale-ready-to-merge" : f"PRs labelled 'ready-to-merge' {notupdated} 24 hours",
-        "stale-maintainer-merge" : f"PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
-        "stale-new-contributor" : f"PR labelled 'new-contributor' {notupdated} 7 days",
-    }[data["id"]]
     # Use a header to make space before the table, but don't make it bold.
-    explanation = f'<h5 style="font-weight:normal">{explanation}</h5>\n'
-
-    print("<h1 id=\"{}\">{}</h1>".format(data["id"], data["title"]))
-    print(f"""{explanation}
+    explanation = f'<h5 style="font-weight:normal">{long_description(kind)}</h5>\n'
+    # Title of each list, and the corresponding HTML anchor.
+    (id, title) = getIdTitle(kind)
+    print(f"""<h1 id=\"{id}\">{title}</h1>
+    {explanation}
     <table>
     <thead>
     <tr>
