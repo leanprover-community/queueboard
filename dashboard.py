@@ -29,7 +29,7 @@ EXPECTED_INPUT_FILES = {
 
 def short_description(kind : PRList):
     '''Describe what the table 'kind' contains, for use in a "there are no such PRs" message.'''
-    {
+    return {
         PRList.Queue : "PRs on the review queue",
         PRList.StaleMaintainerMerge : "stale PRs labelled maintainer merge",
         PRList.StaleDelegated : "stale delegated PRs",
@@ -41,7 +41,7 @@ def long_description(kind : PRList):
     '''Explain what each PR list contains: full description, for the purposes of a sub-title
     to the full PR table.'''
     notupdated = "which have not been updated in the past"
-    {
+    return {
         PRList.Queue : "All PRs which are ready for review: CI passes, no merge conflict and not blocked on other PRs",
         PRList.StaleDelegated : f"PRs labelled 'delegated' {notupdated} 24 hours",
         PRList.StaleReadyToMerge : f"PRs labelled 'ready-to-merge' {notupdated} 24 hours",
@@ -52,7 +52,7 @@ def long_description(kind : PRList):
 def getIdTitle(kind : PRList):
     '''Return a tuple (id, title) of the HTML anchor ID and a section name for the table
     describing this PR kind.'''
-    {
+    return {
         PRList.Queue : ("queue", "Queue"),
         PRList.StaleDelegated : ("stale-delegated", "Stale delegated"),
         PRList.StaleNewContributor : ("stale-new-contributor", "Stale new contributor"),
