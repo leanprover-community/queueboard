@@ -11,11 +11,12 @@ from enum import Enum, auto, unique
 @unique
 class PRList(Enum):
     '''The different kind of PR lists this dashboard creates'''
+    # Note: the tables on the generated page are listed in the order of these variants.
     Queue = 0
     QueueNewContributor = auto()
     StaleReadyToMerge = auto()
-    StaleMaintainerMerge = auto()
     StaleDelegated = auto()
+    StaleMaintainerMerge = auto()
     StaleNewContributor = auto()
     # PRs without the CI or a t-something label.
     Unlabelled = auto()
@@ -85,7 +86,7 @@ def main():
     for i in range(2, len(sys.argv)):
         filename = sys.argv[i]
         if filename not in EXPECTED_INPUT_FILES:
-            print(f"bad argument: file {filename} is not recognised; did you mean one of these: {EXPECTED_INPUT_FILES.keys()}?")
+            print(f"bad argument: file {filename} is not recognised; did you mean one of these?\n{', '.join(EXPECTED_INPUT_FILES.keys())}")
             sys.exit(1)
         with open(filename) as f:
             data = json.load(f)
