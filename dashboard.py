@@ -178,19 +178,18 @@ def time_info(updatedAt):
     return s
 
 def print_dashboard(data, kind : PRList):
+    # Title of each list, and the corresponding HTML anchor.
+    (id, title) = getIdTitle(kind)
+    print("<h1 id=\"{}\">{}</h1>".format(id, title))
+
     # If there are no PRs, skip the table header and print a bold notice such as
     # "There are currently **no** stale `delegated` PRs. Congratulations!".
     if not data["output"][0]["data"]["search"]["nodes"]:
-        print("<h1 id=\"{}\">{}</h1>".format(data["id"], data["title"]))
         print(f'There are currently <b>no</b> {short_description(kind)}. Congratulations!\n')
         return
     # Explain what each PR list contains.
     # Use a header to make space before the table, but don't make it bold.
-    explanation = f'<h5 style="font-weight:normal">{long_description(kind)}</h5>\n'
-    # Title of each list, and the corresponding HTML anchor.
-    (id, title) = getIdTitle(kind)
-    print(f"""<h1 id=\"{id}\">{title}</h1>
-    {explanation}
+    print(f"""<h5 style="font-weight:normal">{long_description(kind)}</h5>
     <table>
     <thead>
     <tr>
