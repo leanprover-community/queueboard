@@ -342,6 +342,8 @@ def determine_status_changes(creation_time: datetime, events: List[Event]) -> Li
 
 ########### Final summing up #########
 
+from datetime import timedelta
+
 # Determine the total amount of time this PR was awaiting review.
 #
 # FUTURE ideas for tweaking this reporting:
@@ -370,8 +372,6 @@ def total_queue_time(creation_time: datetime, now: datetime, events: List[Event]
 def better_updated_at(number: int, data):
     pass # TODO!
 
-from datetime import timedelta
-
 # TODO: add sanity check if a never-added label is removed
 
 def april(n : int) -> datetime:
@@ -394,14 +394,14 @@ def test0():
     check_basic(april(5), [add_label(april(1), 'CI')], timedelta(days=4))
 
     # Removing it again.
-    check_basic(april(12), [add_label(april(1), 'CI'), remove_label(april(3), 'CI')], timedelta(days=12))
-    # After day 8, this PR is in WIP status -> only eight days in review.
-    check_basic(april(10), [add_label(april(1), 'CI'), remove_label(april(3), 'CI'), add_label(april(8), 'WIP')], timedelta(days=8))
+    check_basic(april(12), [add_label(april(1), 'CI'), remove_label(april(3), 'CI')], timedelta(days=11))
+    # After April 8th, this PR is in WIP status -> only seven days in review.
+    check_basic(april(10), [add_label(april(1), 'CI'), remove_label(april(3), 'CI'), add_label(april(8), 'WIP')], timedelta(days=7))
 
     # A PR getting blocked.
-    check_basic(april(10), [add_label(april(1), 'blocked-on-other-PR'), add_label(april(8), 'easy')], timedelta(days=1))
+    check_basic(april(10), [add_label(april(1), 'blocked-on-other-PR'), add_label(april(8), 'easy')], timedelta(days=0))
     # A PR getting unblocked again.
-    check_basic(april(10), [add_label(april(1), 'blocked-on-other-PR'), remove_label(april(8), 'blocked-on-other-PR')], timedelta(days=3))
+    check_basic(april(10), [add_label(april(1), 'blocked-on-other-PR'), remove_label(april(8), 'blocked-on-other-PR')], timedelta(days=2))
 
     # xxx Applying two irrelevant labels.
     # then removing one...
