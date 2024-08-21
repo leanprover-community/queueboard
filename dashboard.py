@@ -215,6 +215,7 @@ class BasicPRInformation(NamedTuple):
     # Github's answer to "last updated at"
     updatedAt : str
 
+
 # Print table entries about a sequence of PRs.
 def _print_pr_entries(pr_infos, prs : List[BasicPRInformation]):
     for pr in prs:
