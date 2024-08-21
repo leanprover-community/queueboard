@@ -106,8 +106,7 @@ def main():
 
     with open(sys.argv[2]) as f:
         all_ready_prs = json.load(f)
-        print_dashboard([all_ready_prs], PRList.BadTitle) # TODO: this prints *all* PRs!!!
-        print_dashboard([all_ready_prs], PRList.Unlabelled) # TODO: this prints *all* PRs!!!
+        print_bad_unlabelled_prs(all_ready_prs)
 
     print_html5_footer()
 
@@ -306,6 +305,32 @@ def print_dashboard(datae : List[dict], kind : PRList):
     with open(sys.argv[1], 'r') as f:
         pr_infos = json.load(f)
         _print_dashboard(pr_infos, prs_to_show, kind)
+
+
+def print_bad_unlabelled_prs(data : dict):
+    # Print dashboards of all PRs without a topic label and all PRs with a badly formatted title,
+    # among those given in `data`.
+
+    all_prs = []
+    for page in data["output"]:
+        for entry in page["data"]["search"]["nodes"]:
+            labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
+            all_prs.append(BasicPRInformation(
+                entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
+            ))
+
+    with_bad_title = [pr for pr in all_prs if not pr.title.startswith(("feat", "chore", "perf", "refactor", "style", "fix", "doc"))]
+    # Whether a PR has a "topic" label.
+    def is_without_topic_label(pr: BasicPRInformation) -> bool:
+        topiclabels = [l for l in pr.labels if l.name == 'CI' or l.name.startswith("t-")]
+        len(topiclabels) >= 1
+    without_topic_label = [pr for pr in all_prs if pr.title.startswith("feat") and is_without_topic_label(pr)]
+
+    # Open the file containing the PR info.
+    with open(sys.argv[1], 'r') as f:
+        pr_infos = json.load(f)
+        _print_dashboard(pr_infos, with_bad_title, PRList.BadTitle)
+        _print_dashboard(pr_infos, without_topic_label, PRList.Unlabelled)
 
 
 main()
