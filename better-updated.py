@@ -109,7 +109,7 @@ class Event(NamedTuple):
 # Update the current PR state in light of some change.
 def update_state(current : PRState, ev : Event) -> PRState:
     if ev.change == PRChange.ToggleDraftStatus:
-        return PRState(current.labels, current.ci, not current.draft.toggle)
+        return PRState(current.labels, current.ci, not current.draft)
     elif ev.change == PRChange.CIStatusChanged:
         # FUTURE: we ignore changes of the PR status for now
         return current
@@ -128,7 +128,8 @@ def update_state(current : PRState, ev : Event) -> PRState:
         lname = ev.extra["name"]
         if lname in label_categorisation_rules:
             label_kind = label_categorisation_rules[lname]
-            return PRState(current.labels.remove(label_kind), current.ci, current.draft)
+            current.labels.remove(label_kind)
+            return PRState(current.labels, current.ci, current.draft)
         else:
             # Removing an irrelevant label does not change the PR status.
             return current
@@ -198,7 +199,7 @@ label_categorisation_rules['blocked-on-core-PR'] = label_categorisation_rules['b
 label_categorisation_rules['auto-merge-after-CI'] = label_categorisation_rules['ready-to-merge']
 
 def label_to_prstatus(label : LabelKind) -> PRStatus:
-    {
+    return {
         LabelKind.WIP: PRStatus.NotReady,
         LabelKind.Review: PRStatus.AwaitingReview,
         LabelKind.Author: PRStatus.AwaitingAuthor,
@@ -246,7 +247,7 @@ def determine_PR_status(labels : List[LabelKind]) -> PRStatus:
         # Any item is equal it itself.
         # Store all pairs (kind, kind2) where 'kind' has lower prior
         # than 'kind2' for determining this PR's status.
-        lower_than : List[LabelKind, LabelKind] = [
+        lower_than : List[Tuple[LabelKind, LabelKind]] = [
             # "Blocked" tages priority over most other labels.
             (LabelKind.Author, LabelKind.Blocked),
             (LabelKind.Review, LabelKind.Blocked),
@@ -335,7 +336,7 @@ def determine_status_changes(creation_time: datetime, events: List[Event]) -> Li
     evolution = determine_state_changes(creation_time, events)
     res = []
     for (time, state) in evolution:
-        res.append((time, determine_PR_status(state)))
+        res.append((time, determine_PR_status(state.labels)))
     return res
 
 
@@ -346,7 +347,7 @@ def determine_status_changes(creation_time: datetime, events: List[Event]) -> Li
 # FUTURE ideas for tweaking this reporting:
 #  - ignore short intervals of merge conflicts, say less than a day?
 #  - ignore short intervals of CI running (if successful before and after)?
-def total_queue_time(creation_time: datetime, now: datetime, events: List[Event]) -> datetime:
+def total_queue_time(creation_time: datetime, now: datetime, events: List[Event]) -> timedelta:
     total = timedelta(0)
     evolution_status = determine_status_changes(creation_time, events)
     # first entry is the PR creation, as a separate event
@@ -374,7 +375,7 @@ from datetime import timedelta
 # TODO: add sanity check if a never-added label is removed
 
 def april(n : int) -> datetime:
-    datetime(2024, 4, n)
+    return datetime(2024, 4, n)
 def add_label(time: datetime, name: str) -> Event:
     return Event(time, PRChange.LabelAdded, {'name' : name})
 def remove_label(time: datetime, name: str) -> Event:
