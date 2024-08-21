@@ -62,9 +62,7 @@ class PRState(Enum):
     # not awaiting author action and and otherwise awaiting review.
     # (Put differently, "blocked", "not ready" or "awaiting-author" take precedence over a merge conflict.)
     MergeConflict = auto()
-
     # This PR was delegated to the user.
-    # FIXME: for now, we ignore this category and treat it the same as awaiting-author.
     Delegated = auto()
     # Ready-to-merge or auto-merge-after-CI. Can become stale if CI fails/multiple retries etc.
     AwaitingBors = auto()
@@ -105,8 +103,9 @@ class Event(NamedTuple):
     # For Label{Added,Removed}, this will contain the name of all label(s) added/respectively removed.
     extra : dict
 
-# XXX: when a label gets renamed, do all occurences of that label get renamed? yes, they do.
-# so unless we are scraping data from github and patching things together, we need not worry about this
+# NB. Make sure this mapping reflects the *current* label names on github.
+# When a label gets renamed, all occurrences are renamed to match, including
+# historical ones --- so we need not worry about this.
 
 # The different kinds of PR labels we care about.
 # We usually do not care about the precise label names, but just their function.
@@ -182,7 +181,8 @@ def update_state(current : PRState, current_labels : List[LabelKind], ev : Event
 
             # Determine the PR state from the current set of labels.
             # Labels can be contradictory (so we need to recognise this).
-            # Also note that their priority orders need not be transitive.
+            # Also note that their priority orders are not transitive!
+            # TODO: is this actually a problem for our algorithm?
 
             # NB. A PR *can* legitimately have *two* labels of a blocked kind, for example,
             # so we *do not* want to deduplicate the kinds here.
@@ -232,7 +232,9 @@ def update_state(current : PRState, current_labels : List[LabelKind], ev : Event
                     (LabelKind.Bors, LabelKind.MergeConflict),
                     # "Waiting for decision" takes priority over a merge conflict, though,
                     # as does "work in progress".
-                    # XXX: does this make this ordering non-transitive? But perhaps that is not too bad.
+                    # NB. This makes our relation non-transitive, as it is reflexive and anti-symmetric
+                    # by definition, but satisfies WIP < Author > Bors > MergeConflict < WIP.
+                    # We *can* deal with that, though.
                     (LabelKind.MergeConflict, LabelKind.Decision),
                     (LabelKind.MergeConflict, LabelKind.WIP),
 
