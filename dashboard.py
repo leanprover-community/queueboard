@@ -256,14 +256,14 @@ def _print_pr_entries(pr_infos, prs : List[BasicPRInformation]):
         print("</tr>")
 
 
-def print_dashboard(datae : List[dict], kind : PRList):
-    '''`datae` is a list of parsed data files to process'''
+# Print a dashboard of a given list of PRs.
+def _print_dashboard(pr_infos, prs : List[BasicPRInformation], kind: PRList):
     # Title of each list, and the corresponding HTML anchor.
     (id, title) = getIdTitle(kind)
     print("<h1 id=\"{}\">{}</h1>".format(id, title))
     # If there are no PRs, skip the table header and print a bold notice such as
     # "There are currently **no** stale `delegated` PRs. Congratulations!".
-    if not any([data for data in datae if data["output"][0]["data"]["search"]["nodes"]]):
+    if not prs:
         print(f'There are currently <b>no</b> {short_description(kind)}. Congratulations!\n')
         return
 
@@ -284,22 +284,28 @@ def print_dashboard(datae : List[dict], kind : PRList):
     </tr>
     </thead>""")
 
-    # Open the file containing the PR info.
-    with open(sys.argv[1], 'r') as f:
-        pr_infos = json.load(f)
-
-        # Print all PRs in all the data files.
-        prs_to_show = []
-        for data in datae:
-            for page in data["output"]:
-                for entry in page["data"]["search"]["nodes"]:
-                    labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
-                    prs_to_show.append(BasicPRInformation(
-                        entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
-                    ))
-        _print_pr_entries(pr_infos, prs_to_show)
+    _print_pr_entries(pr_infos, prs)
 
     # Print the footer
     print("</table>")
+
+
+def print_dashboard(datae : List[dict], kind : PRList):
+    '''`datae` is a list of parsed data files to process'''
+
+    # Print all PRs in all the data files.
+    prs_to_show = []
+    for data in datae:
+        for page in data["output"]:
+            for entry in page["data"]["search"]["nodes"]:
+                labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
+                prs_to_show.append(BasicPRInformation(
+                    entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
+                ))
+    # Open the file containing the PR info.
+    with open(sys.argv[1], 'r') as f:
+        pr_infos = json.load(f)
+        _print_dashboard(pr_infos, prs_to_show, kind)
+
 
 main()
