@@ -68,6 +68,8 @@ class PRState(Enum):
     AwaitingBors = auto()
     # FIXME: do we actually need this category?
     Closed = auto()
+    '''PR labels are contradictory: we cannot determine easily what this PR's status is'''
+    Contradictory = auto()
 
 
 # Something changed on a PR which we care about:
@@ -191,25 +193,24 @@ def update_state(current : PRState, current_labels : List[LabelKind], ev : Event
             elif len(new_labels) == 1:
                 new_state = label_to_prstate[new_labels[0]]
             else:
-                # Some label combinations are contradictory.
-                # XXX: should I warn about this? For now, we mostly keep the current PR state.
+                # Some label combinations are contradictory. We mark the PR as in a "contradictory" state.
                 # awaiting-decision is exclusive with any of waiting on review, author, delegation and sent to bors.
                 if LabelKind.Decision in new_labels and any([l for l in new_labels if
                         l in [LabelKind.Author, LabelKind.Review, LabelKind.Delegated, LabelKind.Bors, LabelKind.WIP]]):
                     print(f"contradictory label kinds: {new_labels}")
-                    return (new_labels, PRState.Decision)
+                    return (new_labels, PRState.Contradictory)
                 # Work in progress contradicts "awaiting review" and "ready for bors".
                 if LabelKind.WIP in new_labels and any([l for l in new_labels if l in [LabelKind.Review, LabelKind.Bors]]):
                     print(f"contradictory label kinds: {new_labels}")
-                    return (new_labels, PRState.NotReady)
+                    return (new_labels, PRState.Contradictory)
                 # Waiting for the author and review is also contradictory,
                 if len([l for l in new_labels if l in [LabelKind.Author, LabelKind.Review]]):
                     print(f"contradictory label kinds: {new_labels}")
-                    return (new_labels, PRState.AwaitingReview)
-                # as is ready-for-merge and blocked.
+                    return (new_labels, PRState.Contradictory)
+                # as is being ready-for-merge and blocked.
                 if len([l for l in new_labels if l in [LabelKind.Bors, LabelKind.Blocked]]):
                     print(f"contradictory label kinds: {new_labels}")
-                    return (new_labels, PRState.Blocked)
+                    return (new_labels, PRState.Contradictory)
 
                 # Any item is equal it itself.
                 # Store all pairs (kind, kind2) where 'kind' has lower priority
