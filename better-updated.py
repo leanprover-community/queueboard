@@ -161,6 +161,7 @@ def update_state(current : PRState, current_labels : List[LabelKind], ev : Event
         current
     elif ev.change == PRChange.LabelAdded:
         # Depending on the label added, update the PR state.
+        # TODO: check if this yields different results than removal; presumably re-use that logic!
         lname = ev.extra["name"]
         if lname in label_categorisation_rules:
             label_kind = label_categorisation_rules[lname]
@@ -182,9 +183,8 @@ def update_state(current : PRState, current_labels : List[LabelKind], ev : Event
             new_state = current
 
             # Determine the PR state from the current set of labels.
-            # Labels can be contradictory, and their priority orders need not be transitive.
-            # We start with some approximation here, and hope for the best.
-            # Fixme: try all combinations exhaustively to check if this errors??
+            # Labels can be contradictory (so we need to recognise this).
+            # Also note that their priority orders need not be transitive.
 
             # NB. A PR *can* legitimately have *two* labels of a blocked kind, for example,
             # so we *do not* want to deduplicate the kinds here.
