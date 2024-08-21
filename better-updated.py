@@ -123,6 +123,18 @@ class LabelKind(Enum):
     Bors = auto() # ready-to-merge or auto-merge-after-CI
     Other = auto() # any other label, such as t-something (but also "easy", "bug" and a few more)
 
+class CIStatus(Enum):
+    Pass = auto()
+    Fail = auto()
+    Running = auto()
+
+# All relevant state of a PR at each point in time.
+class PRState(NamedTuple):
+    labels : List[LabelKind]
+    ci: CIStatus
+    draft : bool
+
+
 # Map a label name (as a string) to a `LabelKind`.
 label_categorisation_rules : dict[str, LabelKind] = {
     'WIP' : LabelKind.WIP,
@@ -271,6 +283,35 @@ def test_determine_status():
 test_determine_status()
 
 
+# Update the current PR state in light of some change.
+def update_state(current : PRState, ev : Event) -> PRState:
+    if ev.change == PRChange.ToggleDraftStatus:
+        return PRState(current.labels, current.ci, not current.draft.toggle)
+    elif ev.change == PRChange.CIStatusChanged:
+        # FUTURE: we ignore changes of the PR status for now
+        return current
+    elif ev.change == PRChange.LabelAdded:
+        # Depending on the label added, update the PR status.
+        lname = ev.extra["name"]
+        if lname in label_categorisation_rules:
+            label_kind = label_categorisation_rules[lname]
+            return PRState(current.labels + [label_kind], current.ci, current.draft)
+        else:
+            # Adding an irrelevant label does not change the PR status.
+            if not lname.startswith("t-") and lname != 'CI':
+                print(f'found another irrelevant label: {lname}')
+            return current
+    elif ev.change == PRChange.LabelRemoved:
+        lname = ev.extra["name"]
+        if lname in label_categorisation_rules:
+            (label_kind, _) = label_categorisation_rules[lname]
+            return PRState(current.labels.remove(label_kind), current.ci, current.draft)
+        else:
+            # Removing an irrelevant label does not change the PR status.
+            return current
+    else:
+        print(f"unhandled event variant {ev.change}")
+        assert False
 
 # Update the current status of this PR in light of some activity.
 # current_label describes all kinds of labels this PR currently has.
