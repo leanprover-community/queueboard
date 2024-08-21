@@ -76,7 +76,7 @@ gh api graphql --paginate --slurp -f query="$QUERY_NEWCONTRIBUTOR" | jq '{"outpu
 
 # Query Github API for all open pull requests which are ready (without a WIP label or draft status).
 QUERY_READY=$(prepare_query 'sort:updated-asc is:pr -is:draft state:open -label:WIP')
-gh api graphql --paginate --slurp -f query="$QUERY_UNLABELLED" | jq '{"output": .}' > all-ready-PRs.json
+gh api graphql --paginate --slurp -f query="$QUERY_READY" | jq '{"output": .}' > all-ready-PRs.json
 
 # List of JSON files
 # NB: we purposefully do not add 'all-ready-PRs' to this list, to avoid making another 200 API calls per run of this script.
