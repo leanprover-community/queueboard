@@ -41,9 +41,9 @@ and pretend for now that every PR is passing all the time.
 
 '''
 
+from datetime import datetime, timedelta
+from enum import Enum, auto
 from typing import List, NamedTuple, Tuple
-from datetime import datetime
-from enum import Enum, auto, unique
 
 ############# PR state: the relevant pieces of PR state we care about #########
 
@@ -341,8 +341,6 @@ def determine_status_changes(creation_time: datetime, events: List[Event]) -> Li
 
 
 ########### Final summing up #########
-
-from datetime import timedelta
 
 # Determine the total amount of time this PR was awaiting review.
 #
