@@ -112,7 +112,8 @@ class Event(NamedTuple):
 # We usually do not care about the precise label names, but just their function.
 class LabelKind(Enum):
     WIP = auto() # WIP
-    Review = auto() # awaiting-review
+    '''This PR is ready for review: this label is only added for historical purposes, as mathlib does not use this label any more'''
+    Review = auto()
     Author = auto() # awaiting-author
     MergeConflict = auto() # merge-conflict
     Blocked = auto() # blocked-on-other-PR, etc.
@@ -125,7 +126,7 @@ class LabelKind(Enum):
 # If true, assert that the previous state was different, as a sanity check.
 label_categorisation_rules = {
     'WIP' : LabelKind.WIP,
-    'awaiting-review' : LabelKind.Review,
+    'awaiting-review-DONT-USE' : LabelKind.Review,
     'awaiting-author' : LabelKind.Author,
     'blocked-on-other-PR' : LabelKind.Blocked,
     'merge-conflict' : LabelKind.MergeConflict,
@@ -148,9 +149,6 @@ def label_to_prstate(label : LabelKind) -> PRState:
         LabelKind.Delegated: PRState.Delegated,
         LabelKind.Bors: PRState.AwaitingBors,
     }[label]
-
-# XXX: the awaiting-review label is just added for historical purposes.
-# FIXME: do I need to rename that to match github?
 
 # Update the current state of this PR in light of some activity.
 # current_label describes all kinds of labels this PR currently has.
@@ -200,7 +198,7 @@ def update_state(current : PRState, current_labels : List[LabelKind], ev : Event
                         l in [LabelKind.Author, LabelKind.Review, LabelKind.Delegated, LabelKind.Bors, LabelKind.WIP]]):
                     print(f"contradictory label kinds: {new_labels}")
                     return (new_labels, PRState.Decision)
-                # Work in progress contradicts awaiting-review and ready for bors.
+                # Work in progress contradicts "awaiting review" and "ready for bors".
                 if LabelKind.WIP in new_labels and any([l for l in new_labels if l in [LabelKind.Review, LabelKind.Bors]]):
                     print(f"contradictory label kinds: {new_labels}")
                     return (new_labels, PRState.NotReady)
