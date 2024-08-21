@@ -41,7 +41,7 @@ and pretend for now that every PR is passing all the time.
 
 '''
 
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Tuple
 from datetime import datetime
 from enum import Enum, auto, unique
 
@@ -102,7 +102,8 @@ class Event(NamedTuple):
     change : PRChange
     # Additional details about what changed.
     # For ToggleDraftStatus and CIStatusChanged, this will be empty for now.
-    # For Label{Added,Removed}, this will contain the name of all label(s) added/respectively removed.
+    # For Label{Added,Removed}, this will contain the name of all label(s)
+    # added and removed, respectively.
     extra : dict
 
 # Update the current PR state in light of some change.
@@ -126,7 +127,7 @@ def update_state(current : PRState, ev : Event) -> PRState:
     elif ev.change == PRChange.LabelRemoved:
         lname = ev.extra["name"]
         if lname in label_categorisation_rules:
-            (label_kind, _) = label_categorisation_rules[lname]
+            label_kind = label_categorisation_rules[lname]
             return PRState(current.labels.remove(label_kind), current.ci, current.draft)
         else:
             # Removing an irrelevant label does not change the PR status.
@@ -137,14 +138,15 @@ def update_state(current : PRState, ev : Event) -> PRState:
 
 # Determine the evolution of this PR's state over time.
 # Return a list of pairs (timestamp, s), where this PR moved into state *s* at time *timestamp*.
-def determine_state_changes(creation_time: datetime, events: List[Event]) -> List[(datetime, PRState)]:
+# The first item corresponds to the PR's creation.
+def determine_state_changes(creation_time: datetime, events: List[Event]) -> List[Tuple[datetime, PRState]]:
     result = []
     # XXX: we currently assume the PR was created in passing state, not in draft mode
     # and with no labels. (Otherwise, this function excepts a "label change" event right at the beginning.)
     result.append((creation_time, PRState([], CIStatus.Pass, False)))
     for event in events:
         (_time, prev_state) = result[-1]
-        result.append(event.time, update_state(prev_state, event))
+        result.append((event.time, update_state(prev_state, event)))
     return result
 
 
@@ -324,4 +326,83 @@ def test_determine_status():
     check([LabelKind.Blocked, LabelKind.Review], PRStatus.Blocked)
     check([LabelKind.Review, LabelKind.Blocked], PRStatus.Blocked)
 
-test_determine_status()
+#test_determine_status()
+
+# Determine the evolution of this PR's status over time.
+# Return a list of pairs (timestamp, s), where this PR moved into status *s* at time *timestamp*.
+# The first item corresponds to the PR's creation.
+def determine_status_changes(creation_time: datetime, events: List[Event]) -> List[Tuple[datetime, PRStatus]]:
+    evolution = determine_state_changes(creation_time, events)
+    res = []
+    for (time, state) in evolution:
+        res.append((time, determine_PR_status(state)))
+    return res
+
+
+########### Final summing up #########
+
+# Determine the total amount of time this PR was awaiting review.
+#
+# FUTURE ideas for tweaking this reporting:
+#  - ignore short intervals of merge conflicts, say less than a day?
+#  - ignore short intervals of CI running (if successful before and after)?
+def total_queue_time(creation_time: datetime, now: datetime, events: List[Event]) -> datetime:
+    total = timedelta(0)
+    evolution_status = determine_status_changes(creation_time, events)
+    # first entry is the PR creation, as a separate event
+    assert len(evolution_status) == len(events) + 1
+    for i in range(len(evolution_status) - 1):
+        (old_time, old_status) = evolution_status[i]
+        (new_time, _new_status) = evolution_status[i + 1]
+        if old_status == PRStatus.AwaitingReview:
+            total += new_time - old_time
+    (last, last_status) = evolution_status[-1]
+    if last_status == PRStatus.AwaitingReview:
+        total += now - last
+    return total
+
+
+# FUTURE: the following is nice API to expose to the dashboard itself
+# A better estimate for "when was this PR updated", namely the total amount of time
+# this PR was waiting for review. 'number' is the PR's number,
+# 'data' the file with all PR data we have.
+def better_updated_at(number: int, data):
+    pass # TODO!
+
+from datetime import timedelta
+
+# TODO: add sanity check if a never-added label is removed
+
+def april(n : int) -> datetime:
+    datetime(2024, 4, n)
+def add_label(time: datetime, name: str) -> Event:
+    return Event(time, PRChange.LabelAdded, {'name' : name})
+def remove_label(time: datetime, name: str) -> Event:
+    return Event(time, PRChange.LabelRemoved, {'name' : name})
+
+def check_basic(now, events, expected):
+    wait = total_queue_time(april(1), now, events)
+    if wait != expected:
+        print(f"basic test failed: expected total time of {expected} in review, obtained {wait} instead")
+        #assert False
+
+def test0():
+    # Doing nothing.
+    check_basic(april(3), [], timedelta(days=2))
+    # Applying an irrelevant label.
+    check_basic(april(5), [add_label(april(1), 'CI')], timedelta(days=4))
+
+    # Removing it again.
+    check_basic(april(12), [add_label(april(1), 'CI'), remove_label(april(3), 'CI')], timedelta(days=12))
+    # After day 8, this PR is in WIP status -> only eight days in review.
+    check_basic(april(10), [add_label(april(1), 'CI'), remove_label(april(3), 'CI'), add_label(april(8), 'WIP')], timedelta(days=8))
+
+    # A PR getting blocked.
+    check_basic(april(10), [add_label(april(1), 'blocked-on-other-PR'), add_label(april(8), 'easy')], timedelta(days=1))
+    # A PR getting unblocked again.
+    check_basic(april(10), [add_label(april(1), 'blocked-on-other-PR'), remove_label(april(8), 'blocked-on-other-PR')], timedelta(days=3))
+
+    # xxx Applying two irrelevant labels.
+    # then removing one...
+    # more complex tests to come!
+test0()
