@@ -164,7 +164,7 @@ def determine_PR_state(labels : List[LabelKind]) -> PRState:
     if labels == []:
         return PRState.AwaitingReview # default
     elif len(labels) == 1:
-        return label_to_prstate[labels[0]]
+        return label_to_prstate(labels[0])
     else:
         # Some label combinations are contradictory. We mark the PR as in a "contradictory" state.
         # awaiting-decision is exclusive with any of waiting on review, author, delegation and sent to bors.
