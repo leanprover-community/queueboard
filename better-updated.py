@@ -61,8 +61,7 @@ class PRState(Enum):
     AwaitingDecision = auto()
     # This PR has a merge conflict and is ready, not blocked on another PR,
     # not awaiting author action and and otherwise awaiting review.
-    # (Put differently, "blocked", "not ready" or "awaiting-author" take precedence over a merge conflict.
-    # FIXME: not sure how to analyse this later!! -> move fixme there!
+    # (Put differently, "blocked", "not ready" or "awaiting-author" take precedence over a merge conflict.)
     MergeConflict = auto()
 
     # This PR was delegated to the user.
@@ -112,6 +111,7 @@ class Event(NamedTuple):
 # The different kinds of PR labels we care about.
 # We usually do not care about the precise label names, but just their function.
 class LabelKind(Enum):
+    WIP = auto() # WIP
     Review = auto() # awaiting-review
     Author = auto() # awaiting-author
     MergeConflict = auto() # merge-conflict
@@ -124,6 +124,7 @@ class LabelKind(Enum):
 # Map a label name (as a string) to a tuple of LabelKind, a boolean and a new PR state.
 # If true, assert that the previous state was different, as a sanity check.
 label_categorisation_rules = {
+    'WIP' : LabelKind.WIP,
     'awaiting-review' : LabelKind.Review,
     'awaiting-author' : LabelKind.Author,
     'blocked-on-other-PR' : LabelKind.Blocked,
@@ -138,6 +139,7 @@ label_categorisation_rules['auto-merge-after-CI'] = label_categorisation_rules['
 
 def label_to_prstate(label : LabelKind) -> PRState:
     {
+        LabelKind.WIP: PRState.NotReady,
         LabelKind.Review: PRState.AwaitingReview,
         LabelKind.Author: PRState.AwaitingAuthor,
         LabelKind.Blocked: PRState.Blocked,
@@ -195,9 +197,13 @@ def update_state(current : PRState, current_labels : List[LabelKind], ev : Event
                 # awaiting-decision is exclusive with any of waiting on review, author, delegation and sent to bors.
                 # XXX: should I warn about this? For now, we treat it as awaiting-decision.
                 if LabelKind.Decision in new_labels and any([l for l in new_labels if
-                        l in [LabelKind.Author, LabelKind.Review, LabelKind.Delegated, LabelKind.Bors]]):
+                        l in [LabelKind.Author, LabelKind.Review, LabelKind.Delegated, LabelKind.Bors, LabelKind.WIP]]):
                     print(f"contradictory label kinds: {new_labels}")
                     return (new_labels, PRState.Decision)
+                # Work in progress contradicts awaiting-review and ready for bors.
+                if LabelKind.WIP in new_labels and any([l for l in new_labels if l in [LabelKind.Review, LabelKind.Bors]]):
+                    print(f"contradictory label kinds: {new_labels}")
+                    return (new_labels, PRState.NotReady)
                 # Waiting for the author and review is also contradictory.
                 if len([l for l in new_labels if l in [LabelKind.Author, LabelKind.Review]]):
                     print(f"contradictory label kinds: {new_labels}")
@@ -216,6 +222,7 @@ def update_state(current : PRState, current_labels : List[LabelKind], ev : Event
                     (LabelKind.Review, LabelKind.Blocked),
                     (LabelKind.Decision, LabelKind.Blocked),
                     (LabelKind.MergeConflict, LabelKind.Blocked),
+                    (LabelKind.WIP, LabelKind.Blocked),
                     # A PR should be **not** be marked ready-for-merge and blocked; that is excluded above.
                     # Weird combination, but could make sense.
                     (LabelKind.Delegated, LabelKind.Blocked),
@@ -225,26 +232,32 @@ def update_state(current : PRState, current_labels : List[LabelKind], ev : Event
                     (LabelKind.Review, LabelKind.MergeConflict),
                     (LabelKind.Delegated, LabelKind.MergeConflict),
                     (LabelKind.Bors, LabelKind.MergeConflict),
-                    # "Waiting for decision" takes priority over a merge conflict, though.
+                    # "Waiting for decision" takes priority over a merge conflict, though,
+                    # as does "work in progress".
                     # XXX: does this make this ordering non-transitive? But perhaps that is not too bad.
                     (LabelKind.MergeConflict, LabelKind.Decision),
+                    (LabelKind.MergeConflict, LabelKind.WIP),
 
-                    # Decision is exclusive with the others, and checked above.
+                    # "Waiting for a decision" contradicts the remaining label kinds; that is excluded above.
 
                     # Sent to bors takes priority over awaiting review, author or a delegation.
+                    # Bors and WIP are contradictory and excluded above.
                     # FIXME: In practice, these combinations can occur with a *failing* CI state,
                     # in which case this labelling should be reversed. Revisit later!
                     (LabelKind.Author, LabelKind.Bors),
                     (LabelKind.Review, LabelKind.Bors),
                     (LabelKind.Bors, LabelKind.Delegated),
 
-                    # Waiting for review and delegated *can* make sense, if the delegation is not to the PR author.
-                    (LabelKind.Delegated, LabelKind.AwaitingAuthor),
-                    (LabelKind.Delegated, LabelKind.AwaitingReview),
-                    # Awaiting review and author is contradictory.
+                    # Waiting for review and delegated *can* make sense, if the delegation is not to the PR author,
+                    # as can 'WIP' and delegated.
+                    (LabelKind.Delegated, LabelKind.Review),
+                    (LabelKind.Review, LabelKind.WIP),
+                    (LabelKind.WIP, LabelKind.Author),
+                    (LabelKind.Delegated, LabelKind.Author),
+                    # Awaiting review and author is contradictory, as is WIP and awaiting review.
                 ]
-                # Should have 7 choose 2 pairs; 6 of them are excluded above as contradictory.
-                assert len(lower_than) + 6 == 21
+                # Should have 8 choose 2 pairs; 9 of them are excluded above as contradictory.
+                assert len(lower_than) + 9 == 28
 
                 # TODO: implement the final decision: compute a min of all kinds, using lower_than
                 print("two label kinds, that is confusing; omitted for now")
