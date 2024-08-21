@@ -238,6 +238,39 @@ def determine_PR_state(labels : List[LabelKind]) -> PRState:
         return PRState.Closed # TODO, placeholder!
 
 
+def test_determine_state():
+    def check(labels: List[LabelKind], expected : PRState):
+        actual = determine_PR_state(labels)
+        assert expected == actual, f"expected PR state {expected} from labels {labels}, got {actual}"
+    # All label kinds we distinguish.
+    ALL = LabelKind._member_map_.values()
+    # For each combination of labels, the resulting PR state is either contradictory
+    # or the state associated to some label.
+    # The order of adding labels does not matter.
+    check([], PRState.AwaitingReview)
+    for a in ALL:
+        check([a], label_to_prstate(a))
+        for b in ALL:
+            actual = determine_PR_state([a, b])
+            assert actual in [label_to_prstate(a), label_to_prstate(b), PRState.Contradictory]
+            check([b, a], actual)
+            for c in ALL:
+                # Adding further labels to some contradictory state remains contradictory.
+                actual = determine_PR_state([a, b, c])
+                if determine_PR_state([a, b]) == PRState.Contradictory:
+                    check([a, b, c], PRState.Contradictory)
+                assert actual in [label_to_prstate(a), label_to_prstate(b), label_to_prstate(c), PRState.Contradictory]
+                check([a, c, b], actual)
+                check([b, a, c], actual)
+                check([b, c, a], actual)
+                check([c, a, b], actual)
+                check([c, b, a], actual)
+    # One specific sanity check, which fails in the previous implementation.
+    check([LabelKind.Blocked, LabelKind.Review], PRState.Blocked)
+    check([LabelKind.Review, LabelKind.Blocked], PRState.Blocked)
+
+test_determine_state()
+
 # Update the current state of this PR in light of some activity.
 # current_label describes all kinds of labels this PR currently has.
 # Return the new labels and PR state.
