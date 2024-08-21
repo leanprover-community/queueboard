@@ -19,8 +19,10 @@ class PRList(Enum):
     StaleDelegated = auto()
     StaleMaintainerMerge = auto()
     StaleNewContributor = auto()
-    # PRs without the CI or a t-something label.
+    # "Ready" PRs without the CI or a t-something label.
     Unlabelled = auto()
+    # "Ready" PRs whose title does not start with an abbreviation like 'feat' or 'style'
+    BadTitle = auto()
 
 # All input files this script expects. Needs to be kept in sync with dashboard.sh,
 # but this script will complain if something unexpected happens.
@@ -32,7 +34,6 @@ EXPECTED_INPUT_FILES = {
     "maintainer-merge.json" : PRList.StaleMaintainerMerge,
     "delegated.json" : PRList.StaleDelegated,
     "new-contributor.json" : PRList.StaleNewContributor,
-    "unlabelled.json" : PRList.Unlabelled,
 }
 
 def short_description(kind : PRList):
@@ -44,7 +45,8 @@ def short_description(kind : PRList):
         PRList.StaleDelegated : "stale delegated PRs",
         PRList.StaleReadyToMerge : "stale PRs labelled auto-merge-after-CI or ready-to-merge",
         PRList.StaleNewContributor : "stale PRs by new contributors",
-        PRList.Unlabelled : "PRs without a 'CI' or 't-something' label",
+        PRList.Unlabelled : "ready PRs without a 'CI' or 't-something' label",
+        PRList.BadTitle : "ready PRs whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
     }[kind]
 
 def long_description(kind : PRList):
@@ -58,7 +60,8 @@ def long_description(kind : PRList):
         PRList.StaleReadyToMerge : f"PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
         PRList.StaleMaintainerMerge : f"PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
         PRList.StaleNewContributor : f"PR labelled 'new-contributor' {notupdated} 7 days",
-        PRList.Unlabelled : "All PRs without a 'CI' or 't-something' label",
+        PRList.Unlabelled : "All PRs without draft status or 'WIP' label without a 'CI' or 't-something' label",
+        PRList.BadTitle : "All PRs without draft status or 'WIP' label whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
     }[kind]
 
 def getIdTitle(kind : PRList):
@@ -72,6 +75,7 @@ def getIdTitle(kind : PRList):
         PRList.StaleMaintainerMerge : ("stale-maintainer-merge", "Stale maintainer-merge"),
         PRList.StaleReadyToMerge : ("stale-ready-to-merge", "Stale ready-to-merge"),
         PRList.Unlabelled : ("unlabelled", "PRs without an area label"),
+        PRList.BadTitle : ("bad-title", "PRs with non-conforming titles"),
     }[kind]
 
 def main():
@@ -95,8 +99,11 @@ def main():
 
     # Process all data files for the same PR list together.
     for kind in PRList._member_map_.values():
+        # We generate their table later.
+        if kind in [PRList.Unlabelled, PRList.BadTitle]: continue
         datae = [d for (d, k) in dataFilesWithKind if k == kind]
         print_dashboard(datae, kind)
+
 
     print_html5_footer()
 
