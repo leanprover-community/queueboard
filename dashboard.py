@@ -7,6 +7,7 @@ import json
 from datetime import datetime, timezone
 from dateutil import relativedelta
 from enum import Enum, auto, unique
+from typing import List, NamedTuple
 
 @unique
 class PRList(Enum):
@@ -147,9 +148,17 @@ def user_link(author):
 def title_link(title, url):
     return "<a href='{}'>{}</a>".format(url, title)
 
-# An HTML link to a Github label in the mathlib repo
-def label_link(label):
 
+# The information we need about each PR label: name, colour and URL
+class Label(NamedTuple):
+    name : str
+    '''This label's background colour, as a six-digit hexadeciaml code'''
+    color : str
+    url : str
+
+
+# An HTML link to a Github label in the mathlib repo
+def label_link(label:Label):
     # Function to check if the colour of the label is light or dark
     # adapted from https://codepen.io/WebSeed/pen/pvgqEq
     def isLight(r, g, b):
@@ -158,16 +167,15 @@ def label_link(label):
         a = 1 - (0.299 * r + 0.587 * g + 0.114 * b) / 255
         return (a < 0.5)
 
-    name  = label["name"]
-    url   = label["url"]
-    bgcolor = label["color"]
+    bgcolor = label.color
     fgcolor = "000000" if isLight(int(bgcolor[:2], 16), int(bgcolor[2:4], 16), int(bgcolor[4:], 16)) else "FFFFFF"
-    s  = "<a href='{}'>".format(url)
+    s  = "<a href='{}'>".format(label.url)
     s += "<span class='label' style='color: #{}; background: #{}'>".format(fgcolor, bgcolor)
-    s += "{}".format(name)
+    s += "{}".format(label.name)
     s += "</span>"
     s += "</a>"
     return s
+
 
 # Function to format the time of the last update
 # Input is in the format: "2020-11-02T14:23:56Z"
@@ -196,7 +204,45 @@ def time_info(updatedAt):
 
     return s
 
-from typing import List
+
+# Basic information about a PR: does not contain the diff size, which is contained in pr_info.json instead.
+class BasicPRInformation(NamedTuple):
+    number : int # PR number, non-negative
+    author : str
+    title : str
+    url : str
+    labels : List[Label]
+    # Github's answer to "last updated at"
+    updatedAt : str
+
+# Print table entries about a sequence of PRs.
+def _print_pr_entries(pr_infos, prs : List[BasicPRInformation]):
+    for pr in prs:
+        print("<tr>")
+        print("<td>{}</td>".format(pr_link(pr.number, pr.url)))
+        print("<td>{}</td>".format(user_link(pr.author)))
+        print("<td>{}</td>".format(title_link(pr.title, pr.url)))
+        print("<td>")
+        for label in pr.labels:
+            print(label_link(label))
+        print("</td>")
+        try:
+            pr_info = pr_infos[str(pr.number)]
+            print("<td>{}/{}</td>".format(pr_info["additions"], pr_info["deletions"]))
+            print("<td>{}</td>".format(pr_info["changed_files"]))
+            comments = pr_info["comments"] + pr_info["review_comments"]
+            print("<td>{}</td>".format(comments))
+        except KeyError:
+            pr_info = {"additions": -1, "deletions": -1, "changed_files": -1, "comments": -1, "review_comments": -1}
+            print("<td>{}/{}</td>".format(pr_info["additions"], pr_info["deletions"]))
+            print("<td>{}</td>".format(pr_info["changed_files"]))
+            comments = pr_info["comments"] + pr_info["review_comments"]
+            print("<td>{}</td>".format(comments))
+            print(f"PR #{pr.number} is wicked!", file=sys.stderr)
+
+        print("<td>{}</td>".format(time_info(pr.updatedAt)))
+        print("</tr>")
+
 
 def print_dashboard(datae : List[dict], kind : PRList):
     '''`datae` is a list of parsed data files to process'''
@@ -226,39 +272,20 @@ def print_dashboard(datae : List[dict], kind : PRList):
     </tr>
     </thead>""")
 
-    # Open the file containing the PR info
+    # Open the file containing the PR info.
     with open(sys.argv[1], 'r') as f:
         pr_infos = json.load(f)
 
-        # Iterate over the each data file; print each entry in a row.
+        # Print all PRs in all the data files.
+        prs_to_show = []
         for data in datae:
             for page in data["output"]:
                 for entry in page["data"]["search"]["nodes"]:
-                    print("<tr>")
-                    print("<td>{}</td>".format(pr_link(entry["number"], entry["url"])))
-                    print("<td>{}</td>".format(user_link(entry["author"])))
-                    print("<td>{}</td>".format(title_link(entry["title"], entry["url"])))
-                    print("<td>")
-                    for label in entry["labels"]["nodes"]:
-                        print(label_link(label))
-                    print("</td>")
-
-                    try:
-                        pr_info = pr_infos[str(entry["number"])]
-                        print("<td>{}/{}</td>".format(pr_info["additions"], pr_info["deletions"]))
-                        print("<td>{}</td>".format(pr_info["changed_files"]))
-                        comments = pr_info["comments"] + pr_info["review_comments"]
-                        print("<td>{}</td>".format(comments))
-                    except KeyError:
-                        pr_info = {"additions": -1, "deletions": -1, "changed_files": -1, "comments": -1, "review_comments": -1}
-                        print("<td>{}/{}</td>".format(pr_info["additions"], pr_info["deletions"]))
-                        print("<td>{}</td>".format(pr_info["changed_files"]))
-                        comments = pr_info["comments"] + pr_info["review_comments"]
-                        print("<td>{}</td>".format(comments))
-                        print("PR #{} is wicked!".format(entry["number"]), file=sys.stderr)
-
-                    print("<td>{}</td>".format(time_info(entry["updatedAt"])))
-                    print("</tr>")
+                    labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
+                    prs_to_show.append(BasicPRInformation(
+                        entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
+                    ))
+        _print_pr_entries(pr_infos, prs_to_show)
 
     # Print the footer
     print("</table>")
