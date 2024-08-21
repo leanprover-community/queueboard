@@ -280,13 +280,14 @@ def update_state(current : PRState, current_labels : List[LabelKind], ev : Event
         current
     elif ev.change == PRChange.LabelAdded:
         # Depending on the label added, update the PR state.
-        # TODO: check if this yields different results than removal; presumably re-use that logic!
         lname = ev.extra["name"]
         if lname in label_categorisation_rules:
             label_kind = label_categorisation_rules[lname]
             new_state = label_to_prstate(label_kind)
             if new_state != [PRState.Blocked, PRState.AwaitingBors]:
-                assert current != new_state
+                assert new_state != current
+            # TODO: this currently fails; use determine_pr_state instead!
+            assert new_state == determine_PR_state(current_labels + [label_kind])
             return (current_labels + [label_kind], new_state)
         else:
             # Adding an irrelevant label does not change the PR state.
