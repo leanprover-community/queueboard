@@ -19,8 +19,10 @@ class PRList(Enum):
     StaleDelegated = auto()
     StaleMaintainerMerge = auto()
     StaleNewContributor = auto()
-    # PRs without the CI or a t-something label.
+    # "Ready" PRs without the CI or a t-something label.
     Unlabelled = auto()
+    # "Ready" PRs whose title does not start with an abbreviation like 'feat' or 'style'
+    BadTitle = auto()
 
 # All input files this script expects. Needs to be kept in sync with dashboard.sh,
 # but this script will complain if something unexpected happens.
@@ -32,7 +34,6 @@ EXPECTED_INPUT_FILES = {
     "maintainer-merge.json" : PRList.StaleMaintainerMerge,
     "delegated.json" : PRList.StaleDelegated,
     "new-contributor.json" : PRList.StaleNewContributor,
-    "unlabelled.json" : PRList.Unlabelled,
 }
 
 def short_description(kind : PRList):
@@ -44,7 +45,8 @@ def short_description(kind : PRList):
         PRList.StaleDelegated : "stale delegated PRs",
         PRList.StaleReadyToMerge : "stale PRs labelled auto-merge-after-CI or ready-to-merge",
         PRList.StaleNewContributor : "stale PRs by new contributors",
-        PRList.Unlabelled : "PRs without a 'CI' or 't-something' label",
+        PRList.Unlabelled : "ready PRs without a 'CI' or 't-something' label",
+        PRList.BadTitle : "ready PRs whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
     }[kind]
 
 def long_description(kind : PRList):
@@ -58,7 +60,8 @@ def long_description(kind : PRList):
         PRList.StaleReadyToMerge : f"PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
         PRList.StaleMaintainerMerge : f"PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
         PRList.StaleNewContributor : f"PR labelled 'new-contributor' {notupdated} 7 days",
-        PRList.Unlabelled : "All PRs without a 'CI' or 't-something' label",
+        PRList.Unlabelled : "All PRs without draft status or 'WIP' label without a 'CI' or 't-something' label",
+        PRList.BadTitle : "All PRs without draft status or 'WIP' label whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
     }[kind]
 
 def getIdTitle(kind : PRList):
@@ -72,19 +75,20 @@ def getIdTitle(kind : PRList):
         PRList.StaleMaintainerMerge : ("stale-maintainer-merge", "Stale maintainer-merge"),
         PRList.StaleReadyToMerge : ("stale-ready-to-merge", "Stale ready-to-merge"),
         PRList.Unlabelled : ("unlabelled", "PRs without an area label"),
+        PRList.BadTitle : ("bad-title", "PRs with non-conforming titles"),
     }[kind]
 
 def main():
     # Check if the user has provided the correct number of arguments
     if len(sys.argv) < 3:
-        print("Usage: python3 dashboard.py <pr-info.json> <json_file1> <json_file2> ...")
+        print("Usage: python3 dashboard.py <pr-info.json> <all-ready-prs.json> <json_file1> <json_file2> ...")
         sys.exit(1)
 
     print_html5_header()
 
     # Iterate over the json files provided by the user
     dataFilesWithKind = []
-    for i in range(2, len(sys.argv)):
+    for i in range(3, len(sys.argv)):
         filename = sys.argv[i]
         if filename not in EXPECTED_INPUT_FILES:
             print(f"bad argument: file {filename} is not recognised; did you mean one of these?\n{', '.join(EXPECTED_INPUT_FILES.keys())}")
@@ -95,8 +99,14 @@ def main():
 
     # Process all data files for the same PR list together.
     for kind in PRList._member_map_.values():
+        # We generate their table later.
+        if kind in [PRList.Unlabelled, PRList.BadTitle]: continue
         datae = [d for (d, k) in dataFilesWithKind if k == kind]
         print_dashboard(datae, kind)
+
+    with open(sys.argv[2]) as f:
+        all_ready_prs = json.load(f)
+        print_bad_unlabelled_prs(all_ready_prs)
 
     print_html5_footer()
 
@@ -215,6 +225,7 @@ class BasicPRInformation(NamedTuple):
     # Github's answer to "last updated at"
     updatedAt : str
 
+
 # Print table entries about a sequence of PRs.
 def _print_pr_entries(pr_infos, prs : List[BasicPRInformation]):
     for pr in prs:
@@ -244,14 +255,14 @@ def _print_pr_entries(pr_infos, prs : List[BasicPRInformation]):
         print("</tr>")
 
 
-def print_dashboard(datae : List[dict], kind : PRList):
-    '''`datae` is a list of parsed data files to process'''
+# Print a dashboard of a given list of PRs.
+def _print_dashboard(pr_infos, prs : List[BasicPRInformation], kind: PRList):
     # Title of each list, and the corresponding HTML anchor.
     (id, title) = getIdTitle(kind)
     print("<h1 id=\"{}\">{}</h1>".format(id, title))
     # If there are no PRs, skip the table header and print a bold notice such as
     # "There are currently **no** stale `delegated` PRs. Congratulations!".
-    if not any([data for data in datae if data["output"][0]["data"]["search"]["nodes"]]):
+    if not prs:
         print(f'There are currently <b>no</b> {short_description(kind)}. Congratulations!\n')
         return
 
@@ -272,22 +283,54 @@ def print_dashboard(datae : List[dict], kind : PRList):
     </tr>
     </thead>""")
 
-    # Open the file containing the PR info.
-    with open(sys.argv[1], 'r') as f:
-        pr_infos = json.load(f)
-
-        # Print all PRs in all the data files.
-        prs_to_show = []
-        for data in datae:
-            for page in data["output"]:
-                for entry in page["data"]["search"]["nodes"]:
-                    labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
-                    prs_to_show.append(BasicPRInformation(
-                        entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
-                    ))
-        _print_pr_entries(pr_infos, prs_to_show)
+    _print_pr_entries(pr_infos, prs)
 
     # Print the footer
     print("</table>")
+
+
+def print_dashboard(datae : List[dict], kind : PRList):
+    '''`datae` is a list of parsed data files to process'''
+
+    # Print all PRs in all the data files.
+    prs_to_show = []
+    for data in datae:
+        for page in data["output"]:
+            for entry in page["data"]["search"]["nodes"]:
+                labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
+                prs_to_show.append(BasicPRInformation(
+                    entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
+                ))
+    # Open the file containing the PR info.
+    with open(sys.argv[1], 'r') as f:
+        pr_infos = json.load(f)
+        _print_dashboard(pr_infos, prs_to_show, kind)
+
+
+def print_bad_unlabelled_prs(data : dict):
+    # Print dashboards of all PRs without a topic label and all PRs with a badly formatted title,
+    # among those given in `data`.
+
+    all_prs = []
+    for page in data["output"]:
+        for entry in page["data"]["search"]["nodes"]:
+            labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
+            all_prs.append(BasicPRInformation(
+                entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
+            ))
+
+    with_bad_title = [pr for pr in all_prs if not pr.title.startswith(("feat", "chore", "perf", "refactor", "style", "fix", "doc"))]
+    # Whether a PR has a "topic" label.
+    def is_without_topic_label(pr: BasicPRInformation) -> bool:
+        topiclabels = [l for l in pr.labels if l.name == 'CI' or l.name.startswith("t-")]
+        len(topiclabels) >= 1
+    without_topic_label = [pr for pr in all_prs if pr.title.startswith("feat") and is_without_topic_label(pr)]
+
+    # Open the file containing the PR info.
+    with open(sys.argv[1], 'r') as f:
+        pr_infos = json.load(f)
+        _print_dashboard(pr_infos, with_bad_title, PRList.BadTitle)
+        _print_dashboard(pr_infos, without_topic_label, PRList.Unlabelled)
+
 
 main()
