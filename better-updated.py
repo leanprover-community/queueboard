@@ -47,7 +47,7 @@ from enum import Enum, auto, unique
 
 
 # Describes the current status of a pull request in terms of the categories we care about.
-class PRState(Enum):
+class PRStatus(Enum):
     # This PR is marked as work in progress.
     # FUTURE: if this PR is marked as draft or CI fails (or just: fails initially?), also mark as such.
     NotReady = auto()
@@ -123,9 +123,8 @@ class LabelKind(Enum):
     Bors = auto() # ready-to-merge or auto-merge-after-CI
     Other = auto() # any other label, such as t-something (but also "easy", "bug" and a few more)
 
-# Map a label name (as a string) to a tuple of LabelKind, a boolean and a new PR state.
-# If true, assert that the previous state was different, as a sanity check.
-label_categorisation_rules = {
+# Map a label name (as a string) to a `LabelKind`.
+label_categorisation_rules : dict[str, LabelKind] = {
     'WIP' : LabelKind.WIP,
     'awaiting-review-DONT-USE' : LabelKind.Review,
     'awaiting-author' : LabelKind.Author,
@@ -139,51 +138,51 @@ label_categorisation_rules['blocked-on-batt-PR'] = label_categorisation_rules['b
 label_categorisation_rules['blocked-on-core-PR'] = label_categorisation_rules['blocked-on-other-PR']
 label_categorisation_rules['auto-merge-after-CI'] = label_categorisation_rules['ready-to-merge']
 
-def label_to_prstate(label : LabelKind) -> PRState:
+def label_to_prstatus(label : LabelKind) -> PRStatus:
     {
-        LabelKind.WIP: PRState.NotReady,
-        LabelKind.Review: PRState.AwaitingReview,
-        LabelKind.Author: PRState.AwaitingAuthor,
-        LabelKind.Blocked: PRState.Blocked,
-        LabelKind.MergeConflict: PRState.MergeConflict,
-        LabelKind.Decision: PRState.AwaitingDecision,
-        LabelKind.Delegated: PRState.Delegated,
-        LabelKind.Bors: PRState.AwaitingBors,
+        LabelKind.WIP: PRStatus.NotReady,
+        LabelKind.Review: PRStatus.AwaitingReview,
+        LabelKind.Author: PRStatus.AwaitingAuthor,
+        LabelKind.Blocked: PRStatus.Blocked,
+        LabelKind.MergeConflict: PRStatus.MergeConflict,
+        LabelKind.Decision: PRStatus.AwaitingDecision,
+        LabelKind.Delegated: PRStatus.Delegated,
+        LabelKind.Bors: PRStatus.AwaitingBors,
     }[label]
 
 
-# Determine a PR's state just from its labels.
+# Determine a PR's status just from its labels.
 # Assumes that "insignificant labels" have been filtered out.
 # FUTURE: also take the PRs CI status and draft status into account.
-def determine_PR_state(labels : List[LabelKind]) -> PRState:
+def determine_PR_status(labels : List[LabelKind]) -> PRStatus:
     # Labels can be contradictory (so we need to recognise this).
     # Also note that their priority orders are not transitive!
     # TODO: is this actually a problem for our algorithm?
     # NB. A PR *can* legitimately have *two* labels of a blocked kind, for example,
     # so we *do not* want to deduplicate the kinds here.
     if labels == []:
-        return PRState.AwaitingReview # default
+        return PRStatus.AwaitingReview # default
     elif len(labels) == 1:
-        return label_to_prstate(labels[0])
+        return label_to_prstatus(labels[0])
     else:
         # Some label combinations are contradictory. We mark the PR as in a "contradictory" state.
         # awaiting-decision is exclusive with any of waiting on review, author, delegation and sent to bors.
         if LabelKind.Decision in labels and any([l for l in labels if
                 l in [LabelKind.Author, LabelKind.Review, LabelKind.Delegated, LabelKind.Bors, LabelKind.WIP]]):
             print(f"contradictory label kinds: {labels}")
-            return PRState.Contradictory
+            return PRStatus.Contradictory
         # Work in progress contradicts "awaiting review" and "ready for bors".
         if LabelKind.WIP in labels and any([l for l in labels if l in [LabelKind.Review, LabelKind.Bors]]):
             print(f"contradictory label kinds: {labels}")
-            return PRState.Contradictory
+            return PRStatus.Contradictory
         # Waiting for the author and review is also contradictory,
         if len([l for l in labels if l in [LabelKind.Author, LabelKind.Review]]):
             print(f"contradictory label kinds: {labels}")
-            return PRState.Contradictory
+            return PRStatus.Contradictory
         # as is being ready-for-merge and blocked.
         if len([l for l in labels if l in [LabelKind.Bors, LabelKind.Blocked]]):
             print(f"contradictory label kinds: {labels}")
-            return PRState.Contradictory
+            return PRStatus.Contradictory
 
         # Any item is equal it itself.
         # Store all pairs (kind, kind2) where 'kind' has lower prior
@@ -235,62 +234,64 @@ def determine_PR_state(labels : List[LabelKind]) -> PRState:
 
         # TODO: implement the final decision: compute a min of all k
         print("two label kinds, that is confusing; omitted for now")
-        return PRState.Closed # TODO, placeholder!
+        return PRStatus.Closed # TODO, placeholder!
 
 
-def test_determine_state():
-    def check(labels: List[LabelKind], expected : PRState):
-        actual = determine_PR_state(labels)
-        assert expected == actual, f"expected PR state {expected} from labels {labels}, got {actual}"
+def test_determine_status():
+    def check(labels: List[LabelKind], expected : PRStatus):
+        actual = determine_PR_status(labels)
+        assert expected == actual, f"expected PR status {expected} from labels {labels}, got {actual}"
     # All label kinds we distinguish.
     ALL = LabelKind._member_map_.values()
-    # For each combination of labels, the resulting PR state is either contradictory
-    # or the state associated to some label.
+    # For each combination of labels, the resulting PR status is either contradictory
+    # or the status associated to some label.
     # The order of adding labels does not matter.
-    check([], PRState.AwaitingReview)
+    check([], PRStatus.AwaitingReview)
     for a in ALL:
-        check([a], label_to_prstate(a))
+        check([a], label_to_prstatus(a))
         for b in ALL:
-            actual = determine_PR_state([a, b])
-            assert actual in [label_to_prstate(a), label_to_prstate(b), PRState.Contradictory]
+            actual = determine_PR_status([a, b])
+            assert actual in [label_to_prstatus(a), label_to_prstatus(b), PRStatus.Contradictory]
             check([b, a], actual)
             for c in ALL:
-                # Adding further labels to some contradictory state remains contradictory.
-                actual = determine_PR_state([a, b, c])
-                if determine_PR_state([a, b]) == PRState.Contradictory:
-                    check([a, b, c], PRState.Contradictory)
-                assert actual in [label_to_prstate(a), label_to_prstate(b), label_to_prstate(c), PRState.Contradictory]
+                # Adding further labels to some contradictory status remains contradictory.
+                actual = determine_PR_status([a, b, c])
+                if determine_PR_status([a, b]) == PRStatus.Contradictory:
+                    check([a, b, c], PRStatus.Contradictory)
+                assert actual in [label_to_prstatus(a), label_to_prstatus(b), label_to_prstatus(c), PRStatus.Contradictory]
                 check([a, c, b], actual)
                 check([b, a, c], actual)
                 check([b, c, a], actual)
                 check([c, a, b], actual)
                 check([c, b, a], actual)
     # One specific sanity check, which fails in the previous implementation.
-    check([LabelKind.Blocked, LabelKind.Review], PRState.Blocked)
-    check([LabelKind.Review, LabelKind.Blocked], PRState.Blocked)
+    check([LabelKind.Blocked, LabelKind.Review], PRStatus.Blocked)
+    check([LabelKind.Review, LabelKind.Blocked], PRStatus.Blocked)
 
-test_determine_state()
+test_determine_status()
 
-# Update the current state of this PR in light of some activity.
+
+
+# Update the current status of this PR in light of some activity.
 # current_label describes all kinds of labels this PR currently has.
-# Return the new labels and PR state.
-def update_state(current : PRState, current_labels : List[LabelKind], ev : Event) -> tuple[List[LabelKind], PRState]:
+# Return the new labels and PR status.
+def update_status(current : PRStatus, current_labels : List[LabelKind], ev : Event) -> tuple[List[LabelKind], PRStatus]:
     # FIXME: we ignore these changes for now
     if ev.change in [PRChange.CIStatusChanged, PRChange.ToggleDraftStatus]:
         current
     elif ev.change == PRChange.LabelAdded:
-        # Depending on the label added, update the PR state.
+        # Depending on the label added, update the PR status.
         lname = ev.extra["name"]
         if lname in label_categorisation_rules:
             label_kind = label_categorisation_rules[lname]
-            new_state = label_to_prstate(label_kind)
-            if new_state != [PRState.Blocked, PRState.AwaitingBors]:
-                assert new_state != current
-            # TODO: this currently fails; use determine_pr_state instead!
-            assert new_state == determine_PR_state(current_labels + [label_kind])
-            return (current_labels + [label_kind], new_state)
+            new_status = label_to_prstatus(label_kind)
+            if new_status != [PRStatus.Blocked, PRStatus.AwaitingBors]:
+                assert new_status != current
+            # TODO: this currently fails; use determine_pr_status instead!
+            assert new_status == determine_PR_status(current_labels + [label_kind])
+            return (current_labels + [label_kind], new_status)
         else:
-            # Adding an irrelevant label does not change the PR state.
+            # Adding an irrelevant label does not change the PR status.
             if not lname.startswith("t-"):
                 print(f'found another label: {lname}')
             return (current_labels, current)
@@ -300,10 +301,10 @@ def update_state(current : PRState, current_labels : List[LabelKind], ev : Event
         if lname in label_categorisation_rules:
             (label_kind, _) = label_categorisation_rules[lname]
             new_labels = current_labels.remove(label_kind)
-            # Determine the PR state from the current set of labels.
-            return (new_labels, determine_PR_state(new_labels))
+            # Determine the PR status from the current set of labels.
+            return (new_labels, determine_PR_status(new_labels))
         else:
-            # Removing an irrelevant label does not change the PR state.
+            # Removing an irrelevant label does not change the PR status.
             return (current_labels, current)
     else:
         print(f"unhandled variant {ev.change}")
