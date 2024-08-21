@@ -45,32 +45,32 @@ from typing import List, NamedTuple
 from datetime import datetime
 from enum import Enum, auto, unique
 
+############# PR state: the relevant pieces of PR state we care about #########
 
-# Describes the current status of a pull request in terms of the categories we care about.
-class PRStatus(Enum):
-    # This PR is marked as work in progress.
-    # FUTURE: if this PR is marked as draft or CI fails (or just: fails initially?), also mark as such.
-    NotReady = auto()
-    # This PR is blocked on another PR, to mathlib, core or batteries.
-    Blocked = auto()
-    AwaitingReview = auto()
-    # Review comments to process: different from "not ready"
-    AwaitingAuthor = auto()
-    # This PR is blocked on a decision: the awaiting-zulip label signifies this.
-    AwaitingDecision = auto()
-    # This PR has a merge conflict and is ready, not blocked on another PR,
-    # not awaiting author action and and otherwise awaiting review.
-    # (Put differently, "blocked", "not ready" or "awaiting-author" take precedence over a merge conflict.)
-    MergeConflict = auto()
-    # This PR was delegated to the user.
-    Delegated = auto()
-    # Ready-to-merge or auto-merge-after-CI. Can become stale if CI fails/multiple retries etc.
-    AwaitingBors = auto()
-    # FIXME: do we actually need this category?
-    Closed = auto()
-    '''PR labels are contradictory: we cannot determine easily what this PR's status is'''
-    Contradictory = auto()
+# The different kinds of PR labels we care about.
+# We usually do not care about the precise label names, but just their function.
+class LabelKind(Enum):
+    WIP = auto() # WIP
+    '''This PR is ready for review: this label is only added for historical purposes, as mathlib does not use this label any more'''
+    Review = auto()
+    Author = auto() # awaiting-author
+    MergeConflict = auto() # merge-conflict
+    Blocked = auto() # blocked-on-other-PR, etc.
+    Decision = auto() # awaiting-zulip
+    Delegated = auto() # delegated
+    Bors = auto() # ready-to-merge or auto-merge-after-CI
+    Other = auto() # any other label, such as t-something (but also "easy", "bug" and a few more)
 
+class CIStatus(Enum):
+    Pass = auto()
+    Fail = auto()
+    Running = auto()
+
+# All relevant state of a PR at each point in time.
+class PRState(NamedTuple):
+    labels : List[LabelKind]
+    ci: CIStatus
+    draft : bool
 
 # Something changed on a PR which we care about:
 # - a new label got added or removed
@@ -105,37 +105,82 @@ class Event(NamedTuple):
     # For Label{Added,Removed}, this will contain the name of all label(s) added/respectively removed.
     extra : dict
 
-# NB. Make sure this mapping reflects the *current* label names on github.
-# When a label gets renamed, all occurrences are renamed to match, including
-# historical ones --- so we need not worry about this.
+# Update the current PR state in light of some change.
+def update_state(current : PRState, ev : Event) -> PRState:
+    if ev.change == PRChange.ToggleDraftStatus:
+        return PRState(current.labels, current.ci, not current.draft.toggle)
+    elif ev.change == PRChange.CIStatusChanged:
+        # FUTURE: we ignore changes of the PR status for now
+        return current
+    elif ev.change == PRChange.LabelAdded:
+        # Depending on the label added, update the PR status.
+        lname = ev.extra["name"]
+        if lname in label_categorisation_rules:
+            label_kind = label_categorisation_rules[lname]
+            return PRState(current.labels + [label_kind], current.ci, current.draft)
+        else:
+            # Adding an irrelevant label does not change the PR status.
+            if not lname.startswith("t-") and lname != 'CI':
+                print(f'found another irrelevant label: {lname}')
+            return current
+    elif ev.change == PRChange.LabelRemoved:
+        lname = ev.extra["name"]
+        if lname in label_categorisation_rules:
+            (label_kind, _) = label_categorisation_rules[lname]
+            return PRState(current.labels.remove(label_kind), current.ci, current.draft)
+        else:
+            # Removing an irrelevant label does not change the PR status.
+            return current
+    else:
+        print(f"unhandled event variant {ev.change}")
+        assert False
 
-# The different kinds of PR labels we care about.
-# We usually do not care about the precise label names, but just their function.
-class LabelKind(Enum):
-    WIP = auto() # WIP
-    '''This PR is ready for review: this label is only added for historical purposes, as mathlib does not use this label any more'''
-    Review = auto()
-    Author = auto() # awaiting-author
-    MergeConflict = auto() # merge-conflict
-    Blocked = auto() # blocked-on-other-PR, etc.
-    Decision = auto() # awaiting-zulip
-    Delegated = auto() # delegated
-    Bors = auto() # ready-to-merge or auto-merge-after-CI
-    Other = auto() # any other label, such as t-something (but also "easy", "bug" and a few more)
+# Determine the evolution of this PR's state over time.
+# Return a list of pairs (timestamp, s), where this PR moved into state *s* at time *timestamp*.
+def determine_state_changes(creation_time: datetime, events: List[Event]) -> List[(datetime, PRState)]:
+    result = []
+    # XXX: we currently assume the PR was created in passing state, not in draft mode
+    # and with no labels. (Otherwise, this function excepts a "label change" event right at the beginning.)
+    result.append((creation_time, PRState([], CIStatus.Pass, False)))
+    for event in events:
+        (_time, prev_state) = result[-1]
+        result.append(event.time, update_state(prev_state, event))
+    return result
 
-class CIStatus(Enum):
-    Pass = auto()
-    Fail = auto()
-    Running = auto()
 
-# All relevant state of a PR at each point in time.
-class PRState(NamedTuple):
-    labels : List[LabelKind]
-    ci: CIStatus
-    draft : bool
+######## PR status: determine a PR's status from its current state #######
+
+# Describes the current status of a pull request in terms of the categories we care about.
+class PRStatus(Enum):
+    # This PR is marked as work in progress.
+    # FUTURE: if this PR is marked as draft or CI fails (or just: fails initially?), also mark as such.
+    NotReady = auto()
+    # This PR is blocked on another PR, to mathlib, core or batteries.
+    Blocked = auto()
+    AwaitingReview = auto()
+    # Review comments to process: different from "not ready"
+    AwaitingAuthor = auto()
+    # This PR is blocked on a decision: the awaiting-zulip label signifies this.
+    AwaitingDecision = auto()
+    # This PR has a merge conflict and is ready, not blocked on another PR,
+    # not awaiting author action and and otherwise awaiting review.
+    # (Put differently, "blocked", "not ready" or "awaiting-author" take precedence over a merge conflict.)
+    MergeConflict = auto()
+    # This PR was delegated to the user.
+    Delegated = auto()
+    # Ready-to-merge or auto-merge-after-CI. Can become stale if CI fails/multiple retries etc.
+    AwaitingBors = auto()
+    # FIXME: do we actually need this category?
+    Closed = auto()
+    '''PR labels are contradictory: we cannot determine easily what this PR's status is'''
+    Contradictory = auto()
 
 
 # Map a label name (as a string) to a `LabelKind`.
+#
+# NB. Make sure this mapping reflects the *current* label names on github.
+# When a label gets renamed, all occurrences are renamed to match, including
+# historical ones --- so we need not worry about this.
 label_categorisation_rules : dict[str, LabelKind] = {
     'WIP' : LabelKind.WIP,
     'awaiting-review-DONT-USE' : LabelKind.Review,
@@ -248,7 +293,6 @@ def determine_PR_status(labels : List[LabelKind]) -> PRStatus:
         print("two label kinds, that is confusing; omitted for now")
         return PRStatus.Closed # TODO, placeholder!
 
-
 def test_determine_status():
     def check(labels: List[LabelKind], expected : PRStatus):
         actual = determine_PR_status(labels)
@@ -281,47 +325,3 @@ def test_determine_status():
     check([LabelKind.Review, LabelKind.Blocked], PRStatus.Blocked)
 
 test_determine_status()
-
-
-# Update the current PR state in light of some change.
-def update_state(current : PRState, ev : Event) -> PRState:
-    if ev.change == PRChange.ToggleDraftStatus:
-        return PRState(current.labels, current.ci, not current.draft.toggle)
-    elif ev.change == PRChange.CIStatusChanged:
-        # FUTURE: we ignore changes of the PR status for now
-        return current
-    elif ev.change == PRChange.LabelAdded:
-        # Depending on the label added, update the PR status.
-        lname = ev.extra["name"]
-        if lname in label_categorisation_rules:
-            label_kind = label_categorisation_rules[lname]
-            return PRState(current.labels + [label_kind], current.ci, current.draft)
-        else:
-            # Adding an irrelevant label does not change the PR status.
-            if not lname.startswith("t-") and lname != 'CI':
-                print(f'found another irrelevant label: {lname}')
-            return current
-    elif ev.change == PRChange.LabelRemoved:
-        lname = ev.extra["name"]
-        if lname in label_categorisation_rules:
-            (label_kind, _) = label_categorisation_rules[lname]
-            return PRState(current.labels.remove(label_kind), current.ci, current.draft)
-        else:
-            # Removing an irrelevant label does not change the PR status.
-            return current
-    else:
-        print(f"unhandled event variant {ev.change}")
-        assert False
-
-# Determine the evolution of this PR's state over time.
-# Return a list of pairs (timestamp, s), where this PR moved into state *s* at time *timestamp*.
-def determine_state_changes(creation_time: datetime, events: List[Event]) -> List[(datetime, PRState)]:
-    result = []
-    # XXX: we currently assume the PR was created in passing state, not in draft mode
-    # and with no labels. (Otherwise, this function excepts a "label change" event right at the beginning.)
-    result.append((creation_time, PRState([], CIStatus.Pass, False)))
-    for event in events:
-        (_time, prev_state) = result[-1]
-        result.append(event.time, update_state(prev_state, event))
-    return result
-
