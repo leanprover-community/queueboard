@@ -313,41 +313,15 @@ def update_state(current : PRState, ev : Event) -> PRState:
         print(f"unhandled event variant {ev.change}")
         assert False
 
-# Update the current status of this PR in light of some activity.
-# current_label describes all kinds of labels this PR currently has.
-# Return the new labels and PR status.
-def update_status(current : PRStatus, current_labels : List[LabelKind], ev : Event) -> tuple[List[LabelKind], PRStatus]:
-    # FIXME: we ignore these changes for now
-    if ev.change in [PRChange.CIStatusChanged, PRChange.ToggleDraftStatus]:
-        current
-    elif ev.change == PRChange.LabelAdded:
-        # Depending on the label added, update the PR status.
-        lname = ev.extra["name"]
-        if lname in label_categorisation_rules:
-            label_kind = label_categorisation_rules[lname]
-            new_status = label_to_prstatus(label_kind)
-            if new_status != [PRStatus.Blocked, PRStatus.AwaitingBors]:
-                assert new_status != current
-            # TODO: this currently fails; use determine_pr_status instead!
-            assert new_status == determine_PR_status(current_labels + [label_kind])
-            return (current_labels + [label_kind], new_status)
-        else:
-            # Adding an irrelevant label does not change the PR status.
-            if not lname.startswith("t-"):
-                print(f'found another label: {lname}')
-            return (current_labels, current)
-    elif ev.change == PRChange.LabelRemoved:
-        lname = ev.extra["name"]
-        new_labels = None
-        if lname in label_categorisation_rules:
-            (label_kind, _) = label_categorisation_rules[lname]
-            new_labels = current_labels.remove(label_kind)
-            # Determine the PR status from the current set of labels.
-            return (new_labels, determine_PR_status(new_labels))
-        else:
-            # Removing an irrelevant label does not change the PR status.
-            return (current_labels, current)
-    else:
-        print(f"unhandled variant {ev.change}")
-        assert False
+# Determine the evolution of this PR's state over time.
+# Return a list of pairs (timestamp, s), where this PR moved into state *s* at time *timestamp*.
+def determine_state_changes(creation_time: datetime, events: List[Event]) -> List[(datetime, PRState)]:
+    result = []
+    # XXX: we currently assume the PR was created in passing state, not in draft mode
+    # and with no labels. (Otherwise, this function excepts a "label change" event right at the beginning.)
+    result.append((creation_time, PRState([], CIStatus.Pass, False)))
+    for event in events:
+        (_time, prev_state) = result[-1]
+        result.append(event.time, update_state(prev_state, event))
+    return result
 
