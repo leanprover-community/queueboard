@@ -152,7 +152,7 @@ def title_link(title, url):
 # The information we need about each PR label: name, colour and URL
 class Label(NamedTuple):
     name : str
-    '''This label's background colour, as a six-digit hexadeciaml code'''
+    '''This label's background colour, as a six-digit hexadecimal code'''
     color : str
     url : str
 
