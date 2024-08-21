@@ -369,8 +369,9 @@ def total_queue_time(creation_time: datetime, now: datetime, events: List[Event]
 # A better estimate for "when was this PR updated", namely the total amount of time
 # this PR was waiting for review. 'number' is the PR's number,
 # 'data' the file with all PR data we have.
-def better_updated_at(number: int, data):
-    pass # TODO!
+def better_updated_at(number: int, data): # -> timedelta:
+    pass # TODO
+
 
 # TODO: add sanity check if a never-added label is removed
 
@@ -381,13 +382,13 @@ def add_label(time: datetime, name: str) -> Event:
 def remove_label(time: datetime, name: str) -> Event:
     return Event(time, PRChange.LabelRemoved, {'name' : name})
 
-def check_basic(now, events, expected):
+def check_basic(now, events, expected) -> None:
     wait = total_queue_time(april(1), now, events)
     if wait != expected:
         print(f"basic test failed: expected total time of {expected} in review, obtained {wait} instead")
         #assert False
 
-def test0():
+def test0() -> None:
     # Doing nothing.
     check_basic(april(3), [], timedelta(days=2))
     # Applying an irrelevant label.
