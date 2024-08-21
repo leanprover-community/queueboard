@@ -81,14 +81,14 @@ def getIdTitle(kind : PRList):
 def main():
     # Check if the user has provided the correct number of arguments
     if len(sys.argv) < 3:
-        print("Usage: python3 dashboard.py <pr-info.json> <json_file1> <json_file2> ...")
+        print("Usage: python3 dashboard.py <pr-info.json> <all-ready-prs.json> <json_file1> <json_file2> ...")
         sys.exit(1)
 
     print_html5_header()
 
     # Iterate over the json files provided by the user
     dataFilesWithKind = []
-    for i in range(2, len(sys.argv)):
+    for i in range(3, len(sys.argv)):
         filename = sys.argv[i]
         if filename not in EXPECTED_INPUT_FILES:
             print(f"bad argument: file {filename} is not recognised; did you mean one of these?\n{', '.join(EXPECTED_INPUT_FILES.keys())}")
@@ -104,6 +104,10 @@ def main():
         datae = [d for (d, k) in dataFilesWithKind if k == kind]
         print_dashboard(datae, kind)
 
+    with open(sys.argv[2]) as f:
+        all_ready_prs = json.load(f)
+        print_dashboard([all_ready_prs], PRList.BadTitle) # TODO: this prints *all* PRs!!!
+        print_dashboard([all_ready_prs], PRList.Unlabelled) # TODO: this prints *all* PRs!!!
 
     print_html5_footer()
 
