@@ -57,7 +57,6 @@ class PRState(Enum):
     # Review comments to process: different from "not ready"
     AwaitingAuthor = auto()
     # This PR is blocked on a decision: the awaiting-zulip label signifies this.
-    # FIXME: actually assign this label; for now, we do not do so.
     AwaitingDecision = auto()
     # This PR has a merge conflict and is ready, not blocked on another PR,
     # not awaiting author action and and otherwise awaiting review.
@@ -78,8 +77,9 @@ class PRState(Enum):
 # - the PR was (un)marked draft: omitting this for now
 # - the PR status changed (passing or failing to build)
 #
-# XXX: the most elegant design would be using sum types, i.e. encoding the details of that change
-# as part of each variant's data. That is not possible in Python...
+# The most elegant design would be using sum types, i.e. encoding the data for
+# each variant directly within the enum.
+# As Python does not have these, we use a dictionary of extra data.
 class PRChange(Enum):
     '''A new label got added'''
     LabelAdded = auto()
@@ -102,7 +102,7 @@ class Event(NamedTuple):
     change : PRChange
     # Additional details about what changed.
     # For ToggleDraftStatus and CIStatusChanged, this will be empty for now.
-    # For Label{Added,Removed}, this will contain the name of all label(s) added/resp removed.
+    # For Label{Added,Removed}, this will contain the name of all label(s) added/respectively removed.
     extra : dict
 
 # XXX: when a label gets renamed, do all occurences of that label get renamed? yes, they do.
@@ -156,7 +156,7 @@ def label_to_prstate(label : LabelKind) -> PRState:
 # current_label describes all kinds of labels this PR currently has.
 # Return the new labels and PR state.
 def update_state(current : PRState, current_labels : List[LabelKind], ev : Event) -> tuple[List[LabelKind], PRState]:
-    # Fixme: we ignore these changes for now
+    # FIXME: we ignore these changes for now
     if ev.change in [PRChange.CIStatusChanged, PRChange.ToggleDraftStatus]:
         current
     elif ev.change == PRChange.LabelAdded:
@@ -194,8 +194,8 @@ def update_state(current : PRState, current_labels : List[LabelKind], ev : Event
                 new_state = label_to_prstate[new_labels[0]]
             else:
                 # Some label combinations are contradictory.
+                # XXX: should I warn about this? For now, we mostly keep the current PR state.
                 # awaiting-decision is exclusive with any of waiting on review, author, delegation and sent to bors.
-                # XXX: should I warn about this? For now, we treat it as awaiting-decision.
                 if LabelKind.Decision in new_labels and any([l for l in new_labels if
                         l in [LabelKind.Author, LabelKind.Review, LabelKind.Delegated, LabelKind.Bors, LabelKind.WIP]]):
                     print(f"contradictory label kinds: {new_labels}")
@@ -204,11 +204,11 @@ def update_state(current : PRState, current_labels : List[LabelKind], ev : Event
                 if LabelKind.WIP in new_labels and any([l for l in new_labels if l in [LabelKind.Review, LabelKind.Bors]]):
                     print(f"contradictory label kinds: {new_labels}")
                     return (new_labels, PRState.NotReady)
-                # Waiting for the author and review is also contradictory.
+                # Waiting for the author and review is also contradictory,
                 if len([l for l in new_labels if l in [LabelKind.Author, LabelKind.Review]]):
                     print(f"contradictory label kinds: {new_labels}")
                     return (new_labels, PRState.AwaitingReview)
-                # As is ready-for-merge and blocked.
+                # as is ready-for-merge and blocked.
                 if len([l for l in new_labels if l in [LabelKind.Bors, LabelKind.Blocked]]):
                     print(f"contradictory label kinds: {new_labels}")
                     return (new_labels, PRState.Blocked)
