@@ -180,12 +180,7 @@ def label_link(label:Label):
 
     bgcolor = label.color
     fgcolor = "000000" if isLight(int(bgcolor[:2], 16), int(bgcolor[2:4], 16), int(bgcolor[4:], 16)) else "FFFFFF"
-    s  = "<a href='{}'>".format(label.url)
-    s += "<span class='label' style='color: #{}; background: #{}'>".format(fgcolor, bgcolor)
-    s += "{}".format(label.name)
-    s += "</span>"
-    s += "</a>"
-    return s
+    return f"<a href='{label.url}'><span class='label' style='color: #{fgcolor}; background: #{bgcolor}'>{label.name}</span></a>"
 
 
 # Function to format the time of the last update
