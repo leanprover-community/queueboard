@@ -323,15 +323,15 @@ def print_bad_unlabelled_prs(data : dict):
     with_bad_title = [pr for pr in all_prs if not pr.title.startswith(("feat", "chore", "perf", "refactor", "style", "fix", "doc"))]
     # Whether a PR has a "topic" label.
     def has_topic_label(pr: BasicPRInformation) -> bool:
-        topiclabels = [l for l in pr.labels if l.name == 'CI' or l.name.startswith("t-")]
-        return len(topiclabels) >= 1
-    without_topic_label = [pr for pr in all_prs if pr.title.startswith("feat") and not has_topic_label(pr)]
+        topic_labels = [l for l in pr.labels if l.name == 'CI' or l.name.startswith("t-")]
+        return len(topic_labels) >= 1
+    prs_without_topic_label = [pr for pr in all_prs if pr.title.startswith("feat") and not has_topic_label(pr)]
 
     # Open the file containing the PR info.
     with open(sys.argv[1], 'r') as f:
         pr_infos = json.load(f)
         _print_dashboard(pr_infos, with_bad_title, PRList.BadTitle)
-        _print_dashboard(pr_infos, without_topic_label, PRList.Unlabelled)
+        _print_dashboard(pr_infos, prs_without_topic_label, PRList.Unlabelled)
 
 
 main()
