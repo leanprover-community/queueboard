@@ -100,7 +100,8 @@ def main():
     # Process all data files for the same PR list together.
     for kind in PRList._member_map_.values():
         # We generate their table later.
-        if kind in [PRList.Unlabelled, PRList.BadTitle]: continue
+        if kind in [PRList.Unlabelled, PRList.BadTitle]:
+            continue
         datae = [d for (d, k) in dataFilesWithKind if k == kind]
         print_dashboard(datae, kind)
 
@@ -321,10 +322,10 @@ def print_bad_unlabelled_prs(data : dict):
 
     with_bad_title = [pr for pr in all_prs if not pr.title.startswith(("feat", "chore", "perf", "refactor", "style", "fix", "doc"))]
     # Whether a PR has a "topic" label.
-    def is_without_topic_label(pr: BasicPRInformation) -> bool:
+    def has_topic_label(pr: BasicPRInformation) -> bool:
         topiclabels = [l for l in pr.labels if l.name == 'CI' or l.name.startswith("t-")]
-        len(topiclabels) >= 1
-    without_topic_label = [pr for pr in all_prs if pr.title.startswith("feat") and is_without_topic_label(pr)]
+        return len(topiclabels) >= 1
+    without_topic_label = [pr for pr in all_prs if pr.title.startswith("feat") and not has_topic_label(pr)]
 
     # Open the file containing the PR info.
     with open(sys.argv[1], 'r') as f:
