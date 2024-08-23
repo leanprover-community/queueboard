@@ -7,7 +7,7 @@ import json
 from datetime import datetime, timezone
 from dateutil import relativedelta
 from enum import Enum, auto, unique
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Tuple
 
 @unique
 class PRList(Enum):
@@ -36,7 +36,7 @@ EXPECTED_INPUT_FILES = {
     "new-contributor.json" : PRList.StaleNewContributor,
 }
 
-def short_description(kind : PRList):
+def short_description(kind : PRList) -> str:
     '''Describe what the table 'kind' contains, for use in a "there are no such PRs" message.'''
     return {
         PRList.Queue : "PRs on the review queue",
@@ -49,7 +49,7 @@ def short_description(kind : PRList):
         PRList.BadTitle : "ready PRs whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
     }[kind]
 
-def long_description(kind : PRList):
+def long_description(kind : PRList) -> str:
     '''Explain what each PR list contains: full description, for the purposes of a sub-title
     to the full PR table.'''
     notupdated = "which have not been updated in the past"
@@ -64,7 +64,7 @@ def long_description(kind : PRList):
         PRList.BadTitle : "All PRs without draft status or 'WIP' label whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
     }[kind]
 
-def getIdTitle(kind : PRList):
+def getIdTitle(kind : PRList) -> Tuple[str, str]:
     '''Return a tuple (id, title) of the HTML anchor ID and a section name for the table
     describing this PR kind.'''
     return {
@@ -78,7 +78,7 @@ def getIdTitle(kind : PRList):
         PRList.BadTitle : ("bad-title", "PRs with non-conforming titles"),
     }[kind]
 
-def main():
+def main() -> None:
     # Check if the user has provided the correct number of arguments
     if len(sys.argv) < 3:
         print("Usage: python3 dashboard.py <pr-info.json> <all-ready-prs.json> <json_file1> <json_file2> ...")
@@ -111,7 +111,7 @@ def main():
 
     print_html5_footer()
 
-def print_html5_header():
+def print_html5_header() -> None:
     print("""
     <!DOCTYPE html>
     <html>
@@ -131,7 +131,7 @@ def print_html5_header():
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
     print(f"<small>This dashboard was last updated on: {updated}</small>")
 
-def print_html5_footer():
+def print_html5_footer() -> None:
     print("""
     <script>
     $(document).ready( function () {
@@ -146,17 +146,17 @@ def print_html5_footer():
     """)
 
 # An HTML link to a mathlib PR from the PR number
-def pr_link(number, url):
+def pr_link(number, url) -> str:
     return "<a href='{}'>#{}</a>".format(url, number)
 
 # An HTML link to a GitHub user profile
-def user_link(author):
+def user_link(author) -> str:
     login = author["login"]
     url   = author["url"]
     return "<a href='{}'>{}</a>".format(url, login)
 
 # An HTML link to a mathlib PR from the PR title
-def title_link(title, url):
+def title_link(title, url) -> str:
     return "<a href='{}'>{}</a>".format(url, title)
 
 
@@ -169,10 +169,11 @@ class Label(NamedTuple):
 
 
 # An HTML link to a Github label in the mathlib repo
-def label_link(label:Label):
+def label_link(label:Label) -> str:
     # Function to check if the colour of the label is light or dark
     # adapted from https://codepen.io/WebSeed/pen/pvgqEq
-    def isLight(r, g, b):
+    # r, g and b are integers between 0 and 255.
+    def isLight(r : int, g: int, b: int) -> bool:
         # Counting the perceptive luminance
         # human eye favors green color...
         a = 1 - (0.299 * r + 0.587 * g + 0.114 * b) / 255
@@ -186,7 +187,7 @@ def label_link(label:Label):
 # Function to format the time of the last update
 # Input is in the format: "2020-11-02T14:23:56Z"
 # Output is in the format: "2020-11-02 14:23 (2 days ago)"
-def time_info(updatedAt):
+def time_info(updatedAt: str) -> str:
     updated = datetime.strptime(updatedAt, "%Y-%m-%dT%H:%M:%SZ")
     now = datetime.now()
 
@@ -223,7 +224,7 @@ class BasicPRInformation(NamedTuple):
 
 
 # Print table entries about a sequence of PRs.
-def _print_pr_entries(pr_infos, prs : List[BasicPRInformation]):
+def _print_pr_entries(pr_infos: dict, prs : List[BasicPRInformation]) -> None:
     for pr in prs:
         print("<tr>")
         print("<td>{}</td>".format(pr_link(pr.number, pr.url)))
@@ -252,7 +253,7 @@ def _print_pr_entries(pr_infos, prs : List[BasicPRInformation]):
 
 
 # Print a dashboard of a given list of PRs.
-def _print_dashboard(pr_infos, prs : List[BasicPRInformation], kind: PRList):
+def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRList) -> None:
     # Title of each list, and the corresponding HTML anchor.
     (id, title) = getIdTitle(kind)
     print("<h1 id=\"{}\">{}</h1>".format(id, title))
@@ -285,7 +286,7 @@ def _print_dashboard(pr_infos, prs : List[BasicPRInformation], kind: PRList):
     print("</table>")
 
 
-def print_dashboard(datae : List[dict], kind : PRList):
+def print_dashboard(datae : List[dict], kind : PRList) -> None:
     '''`datae` is a list of parsed data files to process'''
 
     # Print all PRs in all the data files.
@@ -303,7 +304,7 @@ def print_dashboard(datae : List[dict], kind : PRList):
         _print_dashboard(pr_infos, prs_to_show, kind)
 
 
-def print_bad_unlabelled_prs(data : dict):
+def print_bad_unlabelled_prs(data : dict) -> None:
     # Print dashboards of all PRs without a topic label and all PRs with a badly formatted title,
     # among those given in `data`.
 
