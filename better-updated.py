@@ -230,14 +230,20 @@ def label_to_prstatus(label : LabelKind) -> PRStatus:
 # Determine a PR's status just from its labels.
 # Assumes that "insignificant labels" have been filtered out.
 # FUTURE: also take the PRs CI status and draft status into account.
-def determine_PR_status(labels: List[LabelKind]) -> PRStatus:
+def determine_PR_status(date: datetime, labels: List[LabelKind]) -> PRStatus:
     # Labels can be contradictory (so we need to recognise this).
     # Also note that their priority orders are not transitive!
     # TODO: is this actually a problem for our algorithm?
     # NB. A PR *can* legitimately have *two* labels of a blocked kind, for example,
     # so we *do not* want to deduplicate the kinds here.
     if labels == []:
-        return PRStatus.AwaitingReview  # default
+        # Until July 9th, a PR had to be labelled awaiting-review to be marked as such.
+        # After that date, the label is retired and PRs are considered ready for review
+        # by default.
+        if date > datetime(2024, 7, 9):
+            return PRStatus.AwaitingReview
+        else:
+            return PRStatus.AwaitingAuthor
     elif len(labels) == 1:
         return label_to_prstatus(labels[0])
     else:
@@ -316,7 +322,8 @@ def determine_PR_status(labels: List[LabelKind]) -> PRStatus:
 
 def test_determine_status():
     def check(labels: List[LabelKind], expected: PRStatus):
-        actual = determine_PR_status(labels)
+        # NB: this only tests the new handling of awaiting-review status.
+        actual = determine_PR_status(datetime(2024, 8, 1), labels)
         assert (
             expected == actual
         ), f"expected PR status {expected} from labels {labels}, got {actual}"
@@ -361,7 +368,7 @@ def determine_status_changes(
     evolution = determine_state_changes(creation_time, events)
     res = []
     for time, state in evolution:
-        res.append((time, determine_PR_status(state.labels)))
+        res.append((time, determine_PR_status(time, state.labels)))
     return res
 
 
@@ -403,6 +410,8 @@ def better_updated_at(number: int, data):  # -> timedelta:
 
 def april(n: int) -> datetime:
     return datetime(2024, 4, n)
+def sep(n: int) -> datetime:
+    return datetime(2024, 9, n)
 
 def add_label(time: datetime, name: str) -> Event:
     return Event(time, PRChange.LabelAdded, {'name' : name})
@@ -411,31 +420,32 @@ def remove_label(time: datetime, name: str) -> Event:
     return Event(time, PRChange.LabelRemoved, {"name": name})
 
 
-def check_basic(now, events, expected) -> None:
-    wait = total_queue_time(april(1), now, events)
+def check_basic(created: datetime, now:datetime, events: List[Event], expected: timedelta) -> None:
+    wait = total_queue_time(created, now, events)
     if wait != expected:
         print(f"basic test failed: expected total time of {expected} in review, obtained {wait} instead")
         assert False
 
 def smoketest() -> None:
-    # Doing nothing.
-    check_basic(april(3), [], timedelta(days=2))
+    # Doing nothing in April: not ready for review. In September, it is!
+    check_basic(april(1), april(3), [], timedelta(days=0))
+    check_basic(sep(1), sep(3), [], timedelta(days=2))
     # Applying an irrelevant label.
-    check_basic(april(5), [add_label(april(1), "CI")], timedelta(days=4))
-
+    check_basic(sep(1), sep(5), [add_label(sep(1), "CI")], timedelta(days=4))
     # Removing it again.
     check_basic(
-        april(12),
-        [add_label(april(1), "CI"), remove_label(april(3), "CI")],
+        sep(1), sep(12),
+        [add_label(sep(1), "CI"), remove_label(sep(3), "CI")],
         timedelta(days=11),
     )
-    # After April 8th, this PR is in WIP status -> only seven days in review.
-    check_basic(april(10), [add_label(april(1), 'CI'), remove_label(april(3), 'CI'), add_label(april(8), 'WIP')], timedelta(days=7))
+
+    # After September 8th, this PR is in WIP status -> only seven days in review.
+    check_basic(sep(1), sep(10), [add_label(sep(1), 'CI'), remove_label(sep(3), 'CI'), add_label(sep(8), 'WIP')], timedelta(days=7))
 
     # A PR getting blocked.
-    check_basic(april(10), [add_label(april(1), 'blocked-by-other-PR'), add_label(april(8), 'easy')], timedelta(days=0))
+    check_basic(sep(1), sep(10), [add_label(sep(1), 'blocked-by-other-PR'), add_label(sep(8), 'easy')], timedelta(days=0))
     # A PR getting unblocked again.
-    check_basic(april(10), [add_label(april(1), 'blocked-by-other-PR'), remove_label(april(8), 'blocked-by-other-PR')], timedelta(days=2))
+    check_basic(sep(1), sep(10), [add_label(sep(1), 'blocked-by-other-PR'), remove_label(sep(8), 'blocked-by-other-PR')], timedelta(days=2))
 
     # xxx Applying two irrelevant labels.
     # then removing one...
