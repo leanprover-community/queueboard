@@ -414,8 +414,8 @@ def remove_label(time: datetime, name: str) -> Event:
 
 
 # These tests are just some basic smoketests and not exhaustive
-def test_determine_state_changes():
-    def check(events: List[Event], expected: PRState):
+def test_determine_state_changes() -> None:
+    def check(events: List[Event], expected: PRState) -> None:
         compute = determine_state_changes(datetime(2024, 7, 15), events)
         actual = compute[-1][1]
         assert expected == actual, f"expected PR state {expected} from events {events}, got {actual}"
@@ -434,7 +434,7 @@ def test_determine_state_changes():
     check([add_label(dummy, "awaiting-author"), remove_label(dummy, "awaiting-author"), add_label(dummy, "awaiting-zulip")], PRState([LabelKind.Decision], CIStatus.Pass, False))
 
 
-def test_determine_status():
+def test_determine_status() -> None:
     # NB: this only tests the new handling of awaiting-review status.
     default_date = datetime(2024, 8, 1)
     def check(labels: List[LabelKind], expected: PRStatus) -> None:
