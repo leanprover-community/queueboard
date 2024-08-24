@@ -321,12 +321,17 @@ def determine_PR_status(date: datetime, labels: List[LabelKind]) -> PRStatus:
 
 
 def test_determine_status():
-    def check(labels: List[LabelKind], expected: PRStatus):
-        # NB: this only tests the new handling of awaiting-review status.
-        actual = determine_PR_status(datetime(2024, 8, 1), labels)
-        assert (
-            expected == actual
-        ), f"expected PR status {expected} from labels {labels}, got {actual}"
+    # NB: this only tests the new handling of awaiting-review status.
+    default_date = datetime(2024, 8, 1)
+    def check(labels: List[LabelKind], expected: PRStatus) -> None:
+        actual = determine_PR_status(default_date, labels)
+        assert expected == actual, f"expected PR status {expected} from labels {labels}, got {actual}"
+    # Check if the PR status on a given list of labels in one of several allowed values.
+    # If successful, returns the actual PR status computed.
+    def check_flexible(labels : List[LabelKind], allowed: List[PRStatus]) -> PRStatus:
+        actual = determine_PR_status(default_date, labels)
+        assert actual in allowed, f"expected PR status in {allowed} from labels {labels}, got {actual}"
+        return actual
 
     # All label kinds we distinguish.
     ALL = LabelKind._member_map_.values()
@@ -337,20 +342,19 @@ def test_determine_status():
     for a in ALL:
         check([a], label_to_prstatus(a))
         for b in ALL:
-            actual = determine_PR_status([a, b])
-            assert actual in [label_to_prstatus(a), label_to_prstatus(b), PRStatus.Contradictory]
+            actual = check_flexible([a, b], [label_to_prstatus(a), label_to_prstatus(b), PRStatus.Contradictory])
             check([b, a], actual)
             for c in ALL:
                 # Adding further labels to some contradictory status remains contradictory.
-                actual = determine_PR_status([a, b, c])
-                if determine_PR_status([a, b]) == PRStatus.Contradictory:
+                if actual == PRStatus.Contradictory:
                     check([a, b, c], PRStatus.Contradictory)
-                assert actual in [label_to_prstatus(a), label_to_prstatus(b), label_to_prstatus(c), PRStatus.Contradictory]
-                check([a, c, b], actual)
-                check([b, a, c], actual)
-                check([b, c, a], actual)
-                check([c, a, b], actual)
-                check([c, b, a], actual)
+                else:
+                    actual = check_flexible([a, b, c], [label_to_prstatus(a), label_to_prstatus(b), label_to_prstatus(c), PRStatus.Contradictory])
+                    check([a, c, b], actual)
+                    check([b, a, c], actual)
+                    check([b, c, a], actual)
+                    check([c, a, b], actual)
+                    check([c, b, a], actual)
     # One specific sanity check, which fails in the previous implementation.
     check([LabelKind.Blocked, LabelKind.Review], PRStatus.Blocked)
     check([LabelKind.Review, LabelKind.Blocked], PRStatus.Blocked)
