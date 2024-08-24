@@ -162,6 +162,32 @@ def determine_state_changes(
         result.append((event.time, update_state(prev_state, event)))
     return result
 
+def add_label(time: datetime, name: str) -> Event:
+    return Event(time, PRChange.LabelAdded, {'name' : name})
+
+def remove_label(time: datetime, name: str) -> Event:
+    return Event(time, PRChange.LabelRemoved, {"name": name})
+
+# Just some basic smoketest.
+def test_determine_state_changes():
+    def check(events: List[Event], expected: PRState):
+        compute = determine_state_changes(datetime(2024, 7, 15), events)
+        actual = compute[-1][1]
+        assert expected == actual, f"expected PR state {expected} from events {events}, got {actual}"
+    check([], PRState([], CIStatus.Pass, False))
+    dummy = datetime(2024, 7, 2)
+    check([add_label(dummy, "WIP")], PRState([LabelKind.WIP], CIStatus.Pass, False))
+    check([add_label(dummy, "awaiting-author")], PRState([LabelKind.Author], CIStatus.Pass, False))
+    # Non-relevant labels are not recorded here.
+    check([add_label(dummy, "t-data")], PRState([], CIStatus.Pass, False))
+    check([add_label(dummy, "t-data"), add_label(dummy, "WIP")], PRState([LabelKind.WIP], CIStatus.Pass, False))
+    check([add_label(dummy, "t-data"), add_label(dummy, "WIP"), remove_label(dummy, "t-data")], PRState([LabelKind.WIP], CIStatus.Pass, False))
+    # Adding two labels.
+    check([add_label(dummy, "awaiting-author")], PRState([LabelKind.Author], CIStatus.Pass, False))
+    check([add_label(dummy, "awaiting-author"), add_label(dummy, "WIP")], PRState([LabelKind.Author, LabelKind.WIP], CIStatus.Pass, False))
+    check([add_label(dummy, "awaiting-author"), remove_label(dummy, "awaiting-author")], PRState([], CIStatus.Pass, False))
+    check([add_label(dummy, "awaiting-author"), remove_label(dummy, "awaiting-author"), add_label(dummy, "awaiting-zulip")], PRState([LabelKind.Decision], CIStatus.Pass, False))
+
 
 ######## PR status: determine a PR's status from its current state #######
 
@@ -360,6 +386,7 @@ def test_determine_status():
     check([LabelKind.Review, LabelKind.Blocked], PRStatus.Blocked)
 
 
+test_determine_state_changes()
 # test_determine_status()
 
 
@@ -416,12 +443,6 @@ def april(n: int) -> datetime:
     return datetime(2024, 4, n)
 def sep(n: int) -> datetime:
     return datetime(2024, 9, n)
-
-def add_label(time: datetime, name: str) -> Event:
-    return Event(time, PRChange.LabelAdded, {'name' : name})
-
-def remove_label(time: datetime, name: str) -> Event:
-    return Event(time, PRChange.LabelRemoved, {"name": name})
 
 
 def check_basic(created: datetime, now:datetime, events: List[Event], expected: timedelta) -> None:
