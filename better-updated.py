@@ -162,32 +162,6 @@ def determine_state_changes(
         result.append((event.time, update_state(prev_state, event)))
     return result
 
-def add_label(time: datetime, name: str) -> Event:
-    return Event(time, PRChange.LabelAdded, {'name' : name})
-
-def remove_label(time: datetime, name: str) -> Event:
-    return Event(time, PRChange.LabelRemoved, {"name": name})
-
-# Just some basic smoketest.
-def test_determine_state_changes():
-    def check(events: List[Event], expected: PRState):
-        compute = determine_state_changes(datetime(2024, 7, 15), events)
-        actual = compute[-1][1]
-        assert expected == actual, f"expected PR state {expected} from events {events}, got {actual}"
-    check([], PRState([], CIStatus.Pass, False))
-    dummy = datetime(2024, 7, 2)
-    check([add_label(dummy, "WIP")], PRState([LabelKind.WIP], CIStatus.Pass, False))
-    check([add_label(dummy, "awaiting-author")], PRState([LabelKind.Author], CIStatus.Pass, False))
-    # Non-relevant labels are not recorded here.
-    check([add_label(dummy, "t-data")], PRState([], CIStatus.Pass, False))
-    check([add_label(dummy, "t-data"), add_label(dummy, "WIP")], PRState([LabelKind.WIP], CIStatus.Pass, False))
-    check([add_label(dummy, "t-data"), add_label(dummy, "WIP"), remove_label(dummy, "t-data")], PRState([LabelKind.WIP], CIStatus.Pass, False))
-    # Adding two labels.
-    check([add_label(dummy, "awaiting-author")], PRState([LabelKind.Author], CIStatus.Pass, False))
-    check([add_label(dummy, "awaiting-author"), add_label(dummy, "WIP")], PRState([LabelKind.Author, LabelKind.WIP], CIStatus.Pass, False))
-    check([add_label(dummy, "awaiting-author"), remove_label(dummy, "awaiting-author")], PRState([], CIStatus.Pass, False))
-    check([add_label(dummy, "awaiting-author"), remove_label(dummy, "awaiting-author"), add_label(dummy, "awaiting-zulip")], PRState([LabelKind.Decision], CIStatus.Pass, False))
-
 
 ######## PR status: determine a PR's status from its current state #######
 
@@ -346,50 +320,6 @@ def determine_PR_status(date: datetime, labels: List[LabelKind]) -> PRStatus:
         return PRStatus.Closed  # TODO, placeholder!
 
 
-def test_determine_status():
-    # NB: this only tests the new handling of awaiting-review status.
-    default_date = datetime(2024, 8, 1)
-    def check(labels: List[LabelKind], expected: PRStatus) -> None:
-        actual = determine_PR_status(default_date, labels)
-        assert expected == actual, f"expected PR status {expected} from labels {labels}, got {actual}"
-    # Check if the PR status on a given list of labels in one of several allowed values.
-    # If successful, returns the actual PR status computed.
-    def check_flexible(labels : List[LabelKind], allowed: List[PRStatus]) -> PRStatus:
-        actual = determine_PR_status(default_date, labels)
-        assert actual in allowed, f"expected PR status in {allowed} from labels {labels}, got {actual}"
-        return actual
-
-    # All label kinds we distinguish.
-    ALL = LabelKind._member_map_.values()
-    # For each combination of labels, the resulting PR status is either contradictory
-    # or the status associated to some label.
-    # The order of adding labels does not matter.
-    check([], PRStatus.AwaitingReview)
-    for a in ALL:
-        check([a], label_to_prstatus(a))
-        for b in ALL:
-            actual = check_flexible([a, b], [label_to_prstatus(a), label_to_prstatus(b), PRStatus.Contradictory])
-            check([b, a], actual)
-            for c in ALL:
-                # Adding further labels to some contradictory status remains contradictory.
-                if actual == PRStatus.Contradictory:
-                    check([a, b, c], PRStatus.Contradictory)
-                else:
-                    actual = check_flexible([a, b, c], [label_to_prstatus(a), label_to_prstatus(b), label_to_prstatus(c), PRStatus.Contradictory])
-                    check([a, c, b], actual)
-                    check([b, a, c], actual)
-                    check([b, c, a], actual)
-                    check([c, a, b], actual)
-                    check([c, b, a], actual)
-    # One specific sanity check, which fails in the previous implementation.
-    check([LabelKind.Blocked, LabelKind.Review], PRStatus.Blocked)
-    check([LabelKind.Review, LabelKind.Blocked], PRStatus.Blocked)
-
-
-test_determine_state_changes()
-# test_determine_status()
-
-
 # Determine the evolution of this PR's status over time.
 # Return a list of pairs (timestamp, s), where this PR moved into status *s* at time *timestamp*.
 # The first item corresponds to the PR's creation.
@@ -439,19 +369,88 @@ def better_updated_at(number: int, data):  # -> timedelta:
 # TODO: add sanity check if a never-added label is removed
 
 
+######### Some basic unit tests ##########
+
+# Helper methods to reduce boilerplate
+
 def april(n: int) -> datetime:
     return datetime(2024, 4, n)
+
 def sep(n: int) -> datetime:
     return datetime(2024, 9, n)
 
+def add_label(time: datetime, name: str) -> Event:
+    return Event(time, PRChange.LabelAdded, {'name' : name})
 
-def check_basic(created: datetime, now:datetime, events: List[Event], expected: timedelta) -> None:
-    wait = total_queue_time(created, now, events)
-    if wait != expected:
-        print(f"basic test failed: expected total time of {expected} in review, obtained {wait} instead")
-        assert False
+def remove_label(time: datetime, name: str) -> Event:
+    return Event(time, PRChange.LabelRemoved, {"name": name})
+
+# These tests are just some basic smoketests and not exhaustive
+def test_determine_state_changes():
+    def check(events: List[Event], expected: PRState):
+        compute = determine_state_changes(datetime(2024, 7, 15), events)
+        actual = compute[-1][1]
+        assert expected == actual, f"expected PR state {expected} from events {events}, got {actual}"
+    check([], PRState([], CIStatus.Pass, False))
+    dummy = datetime(2024, 7, 2)
+    check([add_label(dummy, "WIP")], PRState([LabelKind.WIP], CIStatus.Pass, False))
+    check([add_label(dummy, "awaiting-author")], PRState([LabelKind.Author], CIStatus.Pass, False))
+    # Non-relevant labels are not recorded here.
+    check([add_label(dummy, "t-data")], PRState([], CIStatus.Pass, False))
+    check([add_label(dummy, "t-data"), add_label(dummy, "WIP")], PRState([LabelKind.WIP], CIStatus.Pass, False))
+    check([add_label(dummy, "t-data"), add_label(dummy, "WIP"), remove_label(dummy, "t-data")], PRState([LabelKind.WIP], CIStatus.Pass, False))
+    # Adding two labels.
+    check([add_label(dummy, "awaiting-author")], PRState([LabelKind.Author], CIStatus.Pass, False))
+    check([add_label(dummy, "awaiting-author"), add_label(dummy, "WIP")], PRState([LabelKind.Author, LabelKind.WIP], CIStatus.Pass, False))
+    check([add_label(dummy, "awaiting-author"), remove_label(dummy, "awaiting-author")], PRState([], CIStatus.Pass, False))
+    check([add_label(dummy, "awaiting-author"), remove_label(dummy, "awaiting-author"), add_label(dummy, "awaiting-zulip")], PRState([LabelKind.Decision], CIStatus.Pass, False))
+
+
+def test_determine_status():
+    # NB: this only tests the new handling of awaiting-review status.
+    default_date = datetime(2024, 8, 1)
+    def check(labels: List[LabelKind], expected: PRStatus) -> None:
+        actual = determine_PR_status(default_date, labels)
+        assert expected == actual, f"expected PR status {expected} from labels {labels}, got {actual}"
+    # Check if the PR status on a given list of labels in one of several allowed values.
+    # If successful, returns the actual PR status computed.
+    def check_flexible(labels : List[LabelKind], allowed: List[PRStatus]) -> PRStatus:
+        actual = determine_PR_status(default_date, labels)
+        assert actual in allowed, f"expected PR status in {allowed} from labels {labels}, got {actual}"
+        return actual
+
+    # All label kinds we distinguish.
+    ALL = LabelKind._member_map_.values()
+    # For each combination of labels, the resulting PR status is either contradictory
+    # or the status associated to some label.
+    # The order of adding labels does not matter.
+    check([], PRStatus.AwaitingReview)
+    for a in ALL:
+        check([a], label_to_prstatus(a))
+        for b in ALL:
+            actual = check_flexible([a, b], [label_to_prstatus(a), label_to_prstatus(b), PRStatus.Contradictory])
+            check([b, a], actual)
+            for c in ALL:
+                # Adding further labels to some contradictory status remains contradictory.
+                if actual == PRStatus.Contradictory:
+                    check([a, b, c], PRStatus.Contradictory)
+                else:
+                    actual = check_flexible([a, b, c], [label_to_prstatus(a), label_to_prstatus(b), label_to_prstatus(c), PRStatus.Contradictory])
+                    check([a, c, b], actual)
+                    check([b, a, c], actual)
+                    check([b, c, a], actual)
+                    check([c, a, b], actual)
+                    check([c, b, a], actual)
+    # One specific sanity check, which fails in the previous implementation.
+    check([LabelKind.Blocked, LabelKind.Review], PRStatus.Blocked)
+    check([LabelKind.Review, LabelKind.Blocked], PRStatus.Blocked)
+
 
 def smoketest() -> None:
+    def check_basic(created: datetime, now:datetime, events: List[Event], expected: timedelta) -> None:
+        wait = total_queue_time(created, now, events)
+        assert wait == expected, f"basic test failed: expected total time of {expected} in review, obtained {wait} instead"
+
     # Doing nothing in April: not ready for review. In September, it is!
     check_basic(april(1), april(3), [], timedelta(days=0))
     check_basic(sep(1), sep(3), [], timedelta(days=2))
@@ -477,4 +476,6 @@ def smoketest() -> None:
     # more complex tests to come!
 
 
-smoketest()
+test_determine_state_changes()
+# test_determine_status()
+# smoketest()
