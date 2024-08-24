@@ -214,7 +214,7 @@ label_categorisation_rules: dict[str, LabelKind] = {
 }
 
 
-def label_to_prstatus(label : LabelKind) -> PRStatus:
+def label_to_prstatus(label: LabelKind) -> PRStatus:
     return {
         LabelKind.WIP: PRStatus.NotReady,
         LabelKind.Review: PRStatus.AwaitingReview,
@@ -335,6 +335,7 @@ def determine_status_changes(
 
 ########### Final summing up #########
 
+
 # Determine the total amount of time this PR was awaiting review.
 #
 # FUTURE ideas for tweaking this reporting:
@@ -373,17 +374,22 @@ def better_updated_at(number: int, data):  # -> timedelta:
 
 # Helper methods to reduce boilerplate
 
+
 def april(n: int) -> datetime:
     return datetime(2024, 4, n)
+
 
 def sep(n: int) -> datetime:
     return datetime(2024, 9, n)
 
+
 def add_label(time: datetime, name: str) -> Event:
-    return Event(time, PRChange.LabelAdded, {'name' : name})
+    return Event(time, PRChange.LabelAdded, {"name": name})
+
 
 def remove_label(time: datetime, name: str) -> Event:
     return Event(time, PRChange.LabelRemoved, {"name": name})
+
 
 # These tests are just some basic smoketests and not exhaustive
 def test_determine_state_changes():
@@ -414,7 +420,7 @@ def test_determine_status():
         assert expected == actual, f"expected PR status {expected} from labels {labels}, got {actual}"
     # Check if the PR status on a given list of labels in one of several allowed values.
     # If successful, returns the actual PR status computed.
-    def check_flexible(labels : List[LabelKind], allowed: List[PRStatus]) -> PRStatus:
+    def check_flexible(labels: List[LabelKind], allowed: List[PRStatus]) -> PRStatus:
         actual = determine_PR_status(default_date, labels)
         assert actual in allowed, f"expected PR status in {allowed} from labels {labels}, got {actual}"
         return actual
