@@ -87,7 +87,6 @@ class PRState(NamedTuple):
 # As Python does not have these, we use a dictionary of extra data.
 class PRChange(Enum):
     """A new label got added"""
-
     LabelAdded = auto()
     """An existing label got removed"""
     LabelRemoved = auto()
@@ -117,6 +116,7 @@ class Event(NamedTuple):
 
 # Update the current PR state in light of some change.
 def update_state(current: PRState, ev: Event) -> PRState:
+    #print(f"current state is {current}, incoming event is {ev}")
     if ev.change == PRChange.ToggleDraftStatus:
         return PRState(current.labels, current.ci, not current.draft)
     elif ev.change == PRChange.CIStatusChanged:
@@ -154,12 +154,18 @@ def determine_state_changes(
     creation_time: datetime, events: List[Event]
 ) -> List[Tuple[datetime, PRState]]:
     result = []
+    #print(f"determine_state_changes: events passed are {events}")
     # XXX: we currently assume the PR was created in passing state, not in draft mode
-    # and with no labels. (Otherwise, this function excepts a "label change" event right at the beginning.)
-    result.append((creation_time, PRState([], CIStatus.Pass, False)))
+    # and with no labels. (Otherwise, this function expects a "label change" event right at the beginning.)
+    curr_state = PRState([], CIStatus.Pass, False)
+    result.append((creation_time, curr_state))
     for event in events:
-        (_time, prev_state) = result[-1]
-        result.append((event.time, update_state(prev_state, event)))
+        #print(event.time)
+        new_state = update_state(curr_state, event)
+        result.append((event.time, new_state))
+        curr_state = new_state
+        #print(f"appended state is {result}")
+    #print(f"determine_state_changes: result is {result}")
     return result
 
 
@@ -349,6 +355,7 @@ def determine_status_changes(
     creation_time: datetime, events: List[Event]
 ) -> List[Tuple[datetime, PRStatus]]:
     evolution = determine_state_changes(creation_time, events)
+    #print(f"state changes are {evolution}")
     res = []
     for time, state in evolution:
         res.append((time, determine_PR_status(time, state.labels)))
@@ -368,6 +375,7 @@ def total_queue_time(
 ) -> timedelta:
     total = timedelta(0)
     evolution_status = determine_status_changes(creation_time, events)
+    #print(f"status changes are {evolution_status}")
     # first entry is the PR creation, as a separate event
     assert len(evolution_status) == len(events) + 1
     for i in range(len(evolution_status) - 1):
@@ -413,7 +421,7 @@ def remove_label(time: datetime, name: str) -> Event:
     return Event(time, PRChange.LabelRemoved, {"name": name})
 
 
-# These tests are just some basic smoketests and not exhaustive
+# These tests are just some basic smoketests and not exhaustive.
 def test_determine_state_changes() -> None:
     def check(events: List[Event], expected: PRState) -> None:
         compute = determine_state_changes(datetime(2024, 7, 15), events)
@@ -491,6 +499,21 @@ def smoketest() -> None:
         wait = total_queue_time(created, now, events)
         assert wait == expected, f"basic test failed: expected total time of {expected} in review, obtained {wait} instead"
 
+    # these pass and behave well
+    check_basic(sep(1), sep(10), [add_label(sep(1), 'blocked-by-other-PR')], timedelta(days=0))
+    check_basic(sep(1), sep(10), [add_label(sep(1), 'blocked-by-other-PR'), add_label(sep(6), 'merge-conflict')], timedelta(days=0))
+
+    # adding and removing a label yields a BUG: all intermediate lists of labels are empty
+    # fixed now, wohoo!
+    check_basic(sep(1), sep(10), [add_label(sep(1), 'blocked-by-other-PR'), remove_label(sep(6), "blocked-by-other-PR")], timedelta(days=4))
+    # the add_label afterwards was and is fine
+    check_basic(sep(1), sep(10), [add_label(sep(1), 'blocked-by-other-PR'), remove_label(sep(6), "blocked-by-other-PR"), add_label(sep(8), "WIP")], timedelta(days=2))
+
+    # trying a variant
+    check_basic(sep(1), sep(20), [add_label(sep(1), 'blocked-by-other-PR'), remove_label(sep(8), 'blocked-by-other-PR'), add_label(sep(10), 'WIP')], timedelta(days=2))
+    # current failure, minimized
+    check_basic(sep(1), sep(10), [add_label(sep(1), 'blocked-by-other-PR'), remove_label(sep(8), 'blocked-by-other-PR')], timedelta(days=2))
+
     # Doing nothing in April: not ready for review. In September, it is!
     check_basic(april(1), april(3), [], timedelta(days=0))
     check_basic(sep(1), sep(3), [], timedelta(days=2))
@@ -516,6 +539,6 @@ def smoketest() -> None:
     # more complex tests to come!
 
 
-test_determine_state_changes()
-test_determine_status()
-# smoketest()
+# test_determine_state_changes()
+# test_determine_status()
+smoketest()
