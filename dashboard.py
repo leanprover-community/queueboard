@@ -18,22 +18,32 @@ class PRList(Enum):
     StaleReadyToMerge = auto()
     StaleDelegated = auto()
     StaleMaintainerMerge = auto()
+    # PRs passes, but just has a merge conflict.: same labels as for review, but do require a merge conflict
+    NeedsMerge = auto()
     StaleNewContributor = auto()
+    # Labelled please-adopt or help-wanted
+    NeedsHelp = auto()
     # "Ready" PRs without the CI or a t-something label.
     Unlabelled = auto()
     # "Ready" PRs whose title does not start with an abbreviation like 'feat' or 'style'
     BadTitle = auto()
+    # This PR carries inconsistent labels, such as "WIP" and "ready-to-merge".
+    ContradictoryLabels = auto()
+
 
 # All input files this script expects. Needs to be kept in sync with dashboard.sh,
 # but this script will complain if something unexpected happens.
 EXPECTED_INPUT_FILES = {
     "queue.json" : PRList.Queue,
     "queue-new-contributor.json" : PRList.QueueNewContributor,
-    "automerge.json" : PRList.StaleReadyToMerge,
     "ready-to-merge.json" : PRList.StaleReadyToMerge,
+    "automerge.json" : PRList.StaleReadyToMerge,
+    "needs-merge.json" : PRList.NeedsMerge,
     "maintainer-merge.json" : PRList.StaleMaintainerMerge,
     "delegated.json" : PRList.StaleDelegated,
     "new-contributor.json" : PRList.StaleNewContributor,
+    "please-adopt.json" : PRList.NeedsHelp,
+    "help-wanted.json" : PRList.NeedsHelp,
 }
 
 def short_description(kind : PRList) -> str:
@@ -44,9 +54,12 @@ def short_description(kind : PRList) -> str:
         PRList.StaleMaintainerMerge : "stale PRs labelled maintainer merge",
         PRList.StaleDelegated : "stale delegated PRs",
         PRList.StaleReadyToMerge : "stale PRs labelled auto-merge-after-CI or ready-to-merge",
+        PRList.NeedsMerge : "PRs which just have a merge conflict",
         PRList.StaleNewContributor : "stale PRs by new contributors",
+        PRList.NeedsHelp : "PRs which are looking for a help",
         PRList.Unlabelled : "ready PRs without a 'CI' or 't-something' label",
         PRList.BadTitle : "ready PRs whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
+        PRList.ContradictoryLabels : "PRs with contradictory labels",
     }[kind]
 
 def long_description(kind : PRList) -> str:
@@ -56,12 +69,15 @@ def long_description(kind : PRList) -> str:
     return {
         PRList.Queue : "All PRs which are ready for review: CI passes, no merge conflict and not blocked on other PRs",
         PRList.QueueNewContributor : "All PRs by new contributors which are ready for review",
+        PRList.NeedsMerge : "PRs which have a merge conflict, but otherwise fit the review queue",
         PRList.StaleDelegated : f"PRs labelled 'delegated' {notupdated} 24 hours",
         PRList.StaleReadyToMerge : f"PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
         PRList.StaleMaintainerMerge : f"PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
+        PRList.NeedsHelp : "PRs which are labelled 'please-adopt' or 'help-wanted'",
         PRList.StaleNewContributor : f"PR labelled 'new-contributor' {notupdated} 7 days",
         PRList.Unlabelled : "All PRs without draft status or 'WIP' label without a 'CI' or 't-something' label",
         PRList.BadTitle : "All PRs without draft status or 'WIP' label whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
+        PRList.ContradictoryLabels : "PRs whose labels are contradictory, such as 'WIP' and 'ready-to-merge'",
     }[kind]
 
 def getIdTitle(kind : PRList) -> Tuple[str, str]:
@@ -74,8 +90,11 @@ def getIdTitle(kind : PRList) -> Tuple[str, str]:
         PRList.StaleNewContributor : ("stale-new-contributor", "Stale new contributor"),
         PRList.StaleMaintainerMerge : ("stale-maintainer-merge", "Stale maintainer-merge"),
         PRList.StaleReadyToMerge : ("stale-ready-to-merge", "Stale ready-to-merge"),
+        PRList.NeedsMerge : ("needs-merge", "PRs with just a merge conflict"),
+        PRList.NeedsHelp : ("needs-owner", "PRs looking for help"),
         PRList.Unlabelled : ("unlabelled", "PRs without an area label"),
         PRList.BadTitle : ("bad-title", "PRs with non-conforming titles"),
+        PRList.ContradictoryLabels : ("contradictory-labels", "PRs with contradictory labels"),
     }[kind]
 
 def main() -> None:
@@ -99,15 +118,15 @@ def main() -> None:
 
     # Process all data files for the same PR list together.
     for kind in PRList._member_map_.values():
-        # We generate their table later.
-        if kind in [PRList.Unlabelled, PRList.BadTitle]:
+        # For these kinds, we create a dashboard later (by filtering the list of all ready PRs instead).
+        if kind in [PRList.Unlabelled, PRList.BadTitle, PRList.ContradictoryLabels]:
             continue
         datae = [d for (d, k) in dataFilesWithKind if k == kind]
         print_dashboard(datae, kind)
 
     with open(sys.argv[2]) as f:
         all_ready_prs = json.load(f)
-        print_bad_unlabelled_prs(all_ready_prs)
+        print_dashboard_bad_labels_title(all_ready_prs)
 
     print_html5_footer()
 
@@ -304,10 +323,12 @@ def print_dashboard(datae : List[dict], kind : PRList) -> None:
         _print_dashboard(pr_infos, prs_to_show, kind)
 
 
-def print_bad_unlabelled_prs(data : dict) -> None:
-    # Print dashboards of all PRs without a topic label and all PRs with a badly formatted title,
-    # among those given in `data`.
-
+# Print dashboards of
+# - all feature PRs without a topic label,
+# - all PRs with a badly formatted title,
+# - all PRs with contradictory labels
+# among those given in `data`.
+def print_dashboard_bad_labels_title(data : dict) -> None:
     all_prs = []
     for page in data["output"]:
         for entry in page["data"]["search"]["nodes"]:
@@ -323,11 +344,35 @@ def print_bad_unlabelled_prs(data : dict) -> None:
         return len(topic_labels) >= 1
     prs_without_topic_label = [pr for pr in all_prs if pr.title.startswith("feat") and not has_topic_label(pr)]
 
+    def has_contradictory_labels(pr: BasicPRInformation) -> bool:
+        # Combine common labels.
+        canonicalise = {
+            "ready-to-merge": "bors", "auto-merge-after-CI": "bors",
+            "blocked-by-other-PR": "blocked", "blocked-by-core-PR": "blocked", "blocked-by-batt-PR": "blocked", "blocked-by-qq-PR": "blocked",
+        }
+        normalised_labels = [(canonicalise[l.name] if l.name in canonicalise else l.name) for l in pr.labels]
+        # Test for contradictory label combinations.
+        if 'awaiting-review-DONT-USE' in normalised_labels:
+            return True
+        # Waiting for a decision contradicts most other labels.
+        elif "awaiting-zulip" in normalised_labels and any(
+                [l for l in normalised_labels if l in ["awaiting-author", "delegated", "bors", "WIP"]]):
+            return True
+        elif "WIP" in normalised_labels and ("awaiting-review" in normalised_labels or "bors" in normalised_labels):
+            return True
+        elif "awaiting-author" in normalised_labels and "awaiting-zulip" in normalised_labels:
+            return True
+        elif "bors" in normalised_labels and "WIP" in normalised_labels:
+            return True
+        return False
+    prs_with_contradictory_labels = [pr for pr in all_prs if has_contradictory_labels(pr)]
+
     # Open the file containing the PR info.
     with open(sys.argv[1], 'r') as f:
         pr_infos = json.load(f)
         _print_dashboard(pr_infos, with_bad_title, PRList.BadTitle)
         _print_dashboard(pr_infos, prs_without_topic_label, PRList.Unlabelled)
+        _print_dashboard(pr_infos, prs_with_contradictory_labels, PRList.ContradictoryLabels)
 
 
 main()
