@@ -227,10 +227,68 @@ def label_to_prstatus(label: LabelKind) -> PRStatus:
     }[label]
 
 
+# An old fragment, trying to create a perfect "ordering" among all possible labels
+# (about which label is "most significant" about the PR's state). Sadly, the list below
+# yields a non-transitive "order", which means the *order* in which labels are added
+# makes a difference. Hence, we settled on a simpler (but transitive) scheme instead.
+
+# Basic set-up is as below: no and only one label is easy; exclude contradictory labels first.
+# Algorithm here is: find the "maximal" label if there are several; then return the
+# corresponding state.
+# # Any item is equal it itself.
+# # Store all pairs (kind, kind2) where 'kind' has lower prior
+# # than 'kind2' for determining this PR's status.
+# lower_than: List[Tuple[LabelKind, LabelKind]] = [
+#     # "Blocked" tages priority over most other labels.
+#     (LabelKind.Author, LabelKind.Blocked),
+#     (LabelKind.Review, LabelKind.Blocked),
+#     (LabelKind.Decision, LabelKind.Blocked),
+#     (LabelKind.MergeConflict, LabelKind.Blocked),
+#     (LabelKind.WIP, LabelKind.Blocked),
+#     # A PR should be **not** be marked ready-for-merge and b
+#     # Weird combination, but could make sense.
+#     (LabelKind.Delegated, LabelKind.Blocked),
+#     # A merge conflict takes priority over waiting on author
+#     (LabelKind.Author, LabelKind.MergeConflict),
+#     (LabelKind.Review, LabelKind.MergeConflict),
+#     (LabelKind.Delegated, LabelKind.MergeConflict),
+#     (LabelKind.Bors, LabelKind.MergeConflict),
+#     # "Waiting for decision" takes priority over a merge con
+#     # as does "work in progress".
+#     # NB. This makes our relation non-transitive, as it is r
+#     # by definition, but satisfies WIP < Author > Bors > Mer
+#     # We *can* deal with that, though.
+#     (LabelKind.MergeConflict, LabelKind.Decision),
+#     (LabelKind.MergeConflict, LabelKind.WIP),
+#     # "Waiting for a decision" contradicts the remaining lab
+#     # Sent to bors takes priority over awaiting review, auth
+#     # Bors and WIP are contradictory and excluded above.
+#     # FIXME: In practice, these combinations can occur with
+#     # in which case this labelling should be reversed. Revis
+#     (LabelKind.Author, LabelKind.Bors),
+#     (LabelKind.Review, LabelKind.Bors),
+#     (LabelKind.Bors, LabelKind.Delegated),
+#     # Waiting for review and delegated *can* make sense, if
+#     # as can 'WIP' and delegated.
+#     (LabelKind.Delegated, LabelKind.Review),
+#     (LabelKind.Review, LabelKind.WIP),
+#     (LabelKind.WIP, LabelKind.Author),
+#     (LabelKind.Delegated, LabelKind.Author),
+#     # Awaiting review and author is contradictory, as is WIP
+# ]
+# # Should have 8 choose 2 pairs; 9 of them are excluded above
+# assert len(lower_than) + 9 == 28
+# # TODO: implement the final decision: compute a min of all k
+# print("two label kinds, that is confusing; omitted for now")
+# return PRStatus.Closed  # TODO, placeholder!
+
+
 # Determine a PR's status just from its labels.
-# Assumes that "insignificant labels" have been filtered out.
 # FUTURE: also take the PRs CI status and draft status into account.
 def determine_PR_status(date: datetime, labels: List[LabelKind]) -> PRStatus:
+    # Ignore all "other" labels, which are not relevant for this anyway.
+    labels = [l for l in labels if l != LabelKind.Other]
+
     # Labels can be contradictory (so we need to recognise this).
     # Also note that their priority orders are not transitive!
     # TODO: is this actually a problem for our algorithm?
@@ -258,66 +316,30 @@ def determine_PR_status(date: datetime, labels: List[LabelKind]) -> PRStatus:
             print(f"contradictory label kinds: {labels}")
             return PRStatus.Contradictory
         # Waiting for the author and review is also contradictory,
-        if len([l for l in labels if l in [LabelKind.Author, LabelKind.Review]]):
+        if LabelKind.Author in labels and LabelKind.Review in labels:
             print(f"contradictory label kinds: {labels}")
             return PRStatus.Contradictory
         # as is being ready-for-merge and blocked.
-        if len([l for l in labels if l in [LabelKind.Bors, LabelKind.Blocked]]):
+        if LabelKind.Bors in labels and LabelKind.Blocked in labels:
             print(f"contradictory label kinds: {labels}")
             return PRStatus.Contradictory
 
-        # Any item is equal it itself.
-        # Store all pairs (kind, kind2) where 'kind' has lower prior
-        # than 'kind2' for determining this PR's status.
-        lower_than: List[Tuple[LabelKind, LabelKind]] = [
-            # "Blocked" tages priority over most other labels.
-            (LabelKind.Author, LabelKind.Blocked),
-            (LabelKind.Review, LabelKind.Blocked),
-            (LabelKind.Decision, LabelKind.Blocked),
-            (LabelKind.MergeConflict, LabelKind.Blocked),
-            (LabelKind.WIP, LabelKind.Blocked),
-            # A PR should be **not** be marked ready-for-merge and b
-            # Weird combination, but could make sense.
-            (LabelKind.Delegated, LabelKind.Blocked),
-
-            # A merge conflict takes priority over waiting on author
-            (LabelKind.Author, LabelKind.MergeConflict),
-            (LabelKind.Review, LabelKind.MergeConflict),
-            (LabelKind.Delegated, LabelKind.MergeConflict),
-            (LabelKind.Bors, LabelKind.MergeConflict),
-
-            # "Waiting for decision" takes priority over a merge con
-            # as does "work in progress".
-            # NB. This makes our relation non-transitive, as it is r
-            # by definition, but satisfies WIP < Author > Bors > Mer
-            # We *can* deal with that, though.
-            (LabelKind.MergeConflict, LabelKind.Decision),
-            (LabelKind.MergeConflict, LabelKind.WIP),
-
-            # "Waiting for a decision" contradicts the remaining lab
-
-            # Sent to bors takes priority over awaiting review, auth
-            # Bors and WIP are contradictory and excluded above.
-            # FIXME: In practice, these combinations can occur with
-            # in which case this labelling should be reversed. Revis
-            (LabelKind.Author, LabelKind.Bors),
-            (LabelKind.Review, LabelKind.Bors),
-            (LabelKind.Bors, LabelKind.Delegated),
-
-            # Waiting for review and delegated *can* make sense, if
-            # as can 'WIP' and delegated.
-            (LabelKind.Delegated, LabelKind.Review),
-            (LabelKind.Review, LabelKind.WIP),
-            (LabelKind.WIP, LabelKind.Author),
-            (LabelKind.Delegated, LabelKind.Author),
-            # Awaiting review and author is contradictory, as is WIP
-        ]
-        # Should have 8 choose 2 pairs; 9 of them are excluded above
-        assert len(lower_than) + 9 == 28
-
-        # TODO: implement the final decision: compute a min of all k
-        print("two label kinds, that is confusing; omitted for now")
-        return PRStatus.Closed  # TODO, placeholder!
+        # If the set of labels is not contradictory, we use a clear priority order:
+        # from highest to lowest priority, the label kinds are ordered as
+        # blocked > WIP > merge conflict > bors > decision > author; review > delegate.
+        # We can simply use Python's sorting to find the highest priority label.
+        key: dict[LabelKind, int] = {
+            LabelKind.Blocked: 10,
+            LabelKind.WIP: 9,
+            LabelKind.MergeConflict: 8,
+            LabelKind.Bors: 7,
+            LabelKind.Decision: 6,
+            LabelKind.Author: 5,
+            LabelKind.Review: 5,
+            LabelKind.Delegated: 4,
+        }
+        sorted_labels = sorted(labels, key=lambda k: key[k], reverse=True)
+        return label_to_prstatus(sorted_labels[0])
 
 
 # Determine the evolution of this PR's status over time.
@@ -431,17 +453,29 @@ def test_determine_status():
     # or the status associated to some label.
     # The order of adding labels does not matter.
     check([], PRStatus.AwaitingReview)
+    check([LabelKind.Other], PRStatus.AwaitingReview)
+    check([LabelKind.Other, LabelKind.Other], PRStatus.AwaitingReview)
+    check([LabelKind.Other, LabelKind.Other, LabelKind.Other], PRStatus.AwaitingReview)
     for a in ALL:
-        check([a], label_to_prstatus(a))
+        if a != LabelKind.Other:
+            check([a], label_to_prstatus(a))
         for b in ALL:
-            actual = check_flexible([a, b], [label_to_prstatus(a), label_to_prstatus(b), PRStatus.Contradictory])
+            statusses = [label_to_prstatus(l) for l in [a, b] if l != LabelKind.Other]
+            # The "other" kind has no associated PR state: continue if all labels are "other"
+            if not statusses:
+                continue
+            actual = check_flexible([a, b], statusses + [PRStatus.Contradictory])
             check([b, a], actual)
+            result_ab = actual
             for c in ALL:
                 # Adding further labels to some contradictory status remains contradictory.
-                if actual == PRStatus.Contradictory:
+                if result_ab == PRStatus.Contradictory:
                     check([a, b, c], PRStatus.Contradictory)
                 else:
-                    actual = check_flexible([a, b, c], [label_to_prstatus(a), label_to_prstatus(b), label_to_prstatus(c), PRStatus.Contradictory])
+                    statusses = [label_to_prstatus(l) for l in [a, b, c] if l != LabelKind.Other]
+                    if not statusses:
+                        continue
+                    actual = check_flexible([a, b, c], statusses + [PRStatus.Contradictory])
                     check([a, c, b], actual)
                     check([b, a, c], actual)
                     check([b, c, a], actual)
@@ -483,5 +517,5 @@ def smoketest() -> None:
 
 
 test_determine_state_changes()
-# test_determine_status()
+test_determine_status()
 # smoketest()
