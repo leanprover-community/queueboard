@@ -56,7 +56,7 @@ class LabelKind(Enum):
     Review = auto()
     Author = auto()  # awaiting-author
     MergeConflict = auto()  # merge-conflict
-    Blocked = auto()  # blocked-on-other-PR, etc.
+    Blocked = auto()  # blocked-by-other-PR, etc.
     Decision = auto()  # awaiting-zulip
     Delegated = auto()  # delegated
     Bors = auto()  # ready-to-merge or auto-merge-after-CI
@@ -201,15 +201,18 @@ label_categorisation_rules: dict[str, LabelKind] = {
     "WIP": LabelKind.WIP,
     "awaiting-review-DONT-USE": LabelKind.Review,
     "awaiting-author": LabelKind.Author,
-    "blocked-on-other-PR": LabelKind.Blocked,
+    "blocked-by-other-PR": LabelKind.Blocked,
+    "blocked-by-batt-PR": LabelKind.Blocked,
+    "blocked-by-core-PR": LabelKind.Blocked,
+    "blocked-by-qq-PR": LabelKind.Blocked,
+    "blocked-by-core-relase": LabelKind.Blocked,
     "merge-conflict": LabelKind.MergeConflict,
     "awaiting-zulip": LabelKind.Decision,
     "delegated": LabelKind.Delegated,
     "ready-to-merge": LabelKind.Bors,
+    "auto-merge-after-CI": LabelKind.Bors,
 }
-label_categorisation_rules['blocked-on-batt-PR'] = label_categorisation_rules['blocked-on-other-PR']
-label_categorisation_rules['blocked-on-core-PR'] = label_categorisation_rules['blocked-on-other-PR']
-label_categorisation_rules['auto-merge-after-CI'] = label_categorisation_rules['ready-to-merge']
+
 
 def label_to_prstatus(label : LabelKind) -> PRStatus:
     return {
@@ -430,9 +433,9 @@ def smoketest() -> None:
     check_basic(april(10), [add_label(april(1), 'CI'), remove_label(april(3), 'CI'), add_label(april(8), 'WIP')], timedelta(days=7))
 
     # A PR getting blocked.
-    check_basic(april(10), [add_label(april(1), 'blocked-on-other-PR'), add_label(april(8), 'easy')], timedelta(days=0))
+    check_basic(april(10), [add_label(april(1), 'blocked-by-other-PR'), add_label(april(8), 'easy')], timedelta(days=0))
     # A PR getting unblocked again.
-    check_basic(april(10), [add_label(april(1), 'blocked-on-other-PR'), remove_label(april(8), 'blocked-on-other-PR')], timedelta(days=2))
+    check_basic(april(10), [add_label(april(1), 'blocked-by-other-PR'), remove_label(april(8), 'blocked-by-other-PR')], timedelta(days=2))
 
     # xxx Applying two irrelevant labels.
     # then removing one...
