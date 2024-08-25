@@ -136,9 +136,10 @@ def update_state(current: PRState, ev: Event) -> PRState:
     elif ev.change == PRChange.LabelRemoved:
         lname = ev.extra["name"]
         if lname in label_categorisation_rules:
-            label_kind = label_categorisation_rules[lname]
-            current.labels.remove(label_kind)
-            return PRState(current.labels, current.ci, current.draft)
+            # NB: make sure to *copy* current.labels using [:], otherwise that state is also modified!
+            new_labels = current.labels[:]
+            new_labels.remove(label_categorisation_rules[lname])
+            return PRState(new_labels, current.ci, current.draft)
         else:
             # Removing an irrelevant label does not change the PR status.
             return current
