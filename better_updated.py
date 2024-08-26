@@ -32,11 +32,6 @@ From this information, we can compute the total time a PR was waiting for review
 
 This algorithm is just a skeleton: it contains the *analysis* of the given input data,
 but does not parse the input data from any other input. (That is a second step.)
-
-As an initial prototype, this file makes a number of simplifying assumptions:
-1. We omit changes of the PR status between "draft" and "regular".
-2. We also ignore changes of the CI status (between "passing", "running" and "failing"),
-and pretend for now that every PR is passing all the time.
 """
 
 from datetime import datetime, timedelta
@@ -94,11 +89,10 @@ class PRChange(Enum):
     MarkedDraft = auto()
     """This PR was marked as draft"""
     MarkedReady = auto()
-    """This PRwas marked as ready for review"""
+    """This PR was marked as ready for review"""
 
-    # FIXME: we ignore this for now
     CIStatusChanged = auto()
-    """This's PR's CI state changed"""
+    """This PR's CI state changed"""
 
 # XXX: does github produce events like "labels xyz got added and wpq got removed"?
 # If so, need to process these separately or something... we will see!
@@ -110,9 +104,8 @@ class Event(NamedTuple):
     time: datetime
     change: PRChange
     # Additional details about what changed.
-    # For CIStatusChanged, this is empty for now.
-    # For Label{Added,Removed}, this contains the name of all label(s)
-    # added and removed, respectively.
+    # For CIStatusChanged, this contains the new state.
+    # For Label{Added,Removed}, this contains the name of all label(s) added/removed.
     extra: dict
 
 
@@ -124,8 +117,7 @@ def update_state(current: PRState, ev: Event) -> PRState:
     elif ev.change == PRChange.MarkedReady:
         return PRState(current.labels, current.ci, False)
     elif ev.change == PRChange.CIStatusChanged:
-        # FUTURE: we ignore changes of the PR status for now
-        return current
+        return PRState(current.labels, ev.extra["new_state"], current.draft)
     elif ev.change == PRChange.LabelAdded:
         # Depending on the label added, update the PR status.
         lname = ev.extra["name"]
@@ -179,8 +171,8 @@ def determine_state_changes(
 
 # Describes the current status of a pull request in terms of the categories we care about.
 class PRStatus(Enum):
-    # This PR is marked as work in progress.
-    # FUTURE: if this PR is marked as draft or CI fails (or just: fails initially?), also mark as such.
+    # This PR is marked as work in progress, is in draft state or CI fails.
+    # CI running is ignored, as this ought to be intermittent.
     NotReady = auto()
     # This PR is blocked on another PR, to mathlib, core or batteries.
     Blocked = auto()
@@ -199,9 +191,8 @@ class PRStatus(Enum):
     AwaitingBors = auto()
     # FIXME: do we actually need this category?
     Closed = auto()
-    """PR labels are contradictory: we cannot determine easily what this PR's status is"""
     Contradictory = auto()
-
+    """PR labels are contradictory: we cannot determine easily what this PR's status is"""
 
 # Map a label name (as a string) to a `LabelKind`.
 #
@@ -294,11 +285,13 @@ def label_to_prstatus(label: LabelKind) -> PRStatus:
 # return PRStatus.Closed  # TODO, placeholder!
 
 
-# Determine a PR's status just from its labels.
-# FUTURE: also take the PRs CI status and draft status into account.
-def determine_PR_status(date: datetime, labels: List[LabelKind]) -> PRStatus:
+def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
+    '''Determine a PR's status from its state
+    'date' is necessary as the interpretation of the awaiting-review label changes over time'''
+    if state.draft or state.ci == CIStatus.Fail:
+        return PRStatus.NotReady
     # Ignore all "other" labels, which are not relevant for this anyway.
-    labels = [l for l in labels if l != LabelKind.Other]
+    labels = [l for l in state.labels if l != LabelKind.Other]
 
     # Labels can be contradictory (so we need to recognise this).
     # Also note that their priority orders are not transitive!
@@ -363,7 +356,7 @@ def determine_status_changes(
     #print(f"state changes are {evolution}")
     res = []
     for time, state in evolution:
-        res.append((time, determine_PR_status(time, state.labels)))
+        res.append((time, determine_PR_status(time, state)))
     return res
 
 
@@ -427,11 +420,15 @@ def remove_label(time: datetime, name: str) -> Event:
 
 
 def draft(time: datetime) -> Event:
-    return Event(time, PRChange.MarkedDraft, None)
+    return Event(time, PRChange.MarkedDraft, {})
 
 
 def undraft(time: datetime) -> Event:
-    return Event(time, PRChange.MarkedReady, None)
+    return Event(time, PRChange.MarkedReady, {})
+
+
+def update_ci_status(time: datetime, new: CIStatus) -> Event:
+    return Event(time, PRChange.CIStatusChanged, {"new_state": new})
 
 
 # These tests are just some basic smoketests and not exhaustive.
@@ -442,14 +439,21 @@ def test_determine_state_changes() -> None:
         assert expected == actual, f"expected PR state {expected} from events {events}, got {actual}"
     check([], PRState([], CIStatus.Pass, False))
     dummy = datetime(2024, 7, 2)
+    # Drafting or undrafting; changing CI status.
     check([draft(dummy)], PRState([], CIStatus.Pass, True))
     check([draft(dummy), undraft(dummy)], PRState([], CIStatus.Pass, False))
     # Additional "undraft" or "draft" events are ignored.
     check([undraft(dummy)], PRState([], CIStatus.Pass, False))
     check([undraft(dummy), undraft(dummy), draft(dummy)], PRState([], CIStatus.Pass, True))
     check([undraft(dummy), draft(dummy), draft(dummy)], PRState([], CIStatus.Pass, True))
+    # Updating the CI status.
+    check([update_ci_status(dummy, CIStatus.Running)], PRState([], CIStatus.Running, False))
+    check([update_ci_status(dummy, CIStatus.Fail)], PRState([], CIStatus.Fail, False))
+    check([update_ci_status(dummy, CIStatus.Pass)], PRState([], CIStatus.Pass, False))
+    check([update_ci_status(dummy, CIStatus.Pass), update_ci_status(dummy, CIStatus.Fail)], PRState([], CIStatus.Fail, False))
+    check([update_ci_status(dummy, CIStatus.Pass), draft(dummy), update_ci_status(dummy, CIStatus.Running), undraft(dummy)], PRState([], CIStatus.Running, False))
 
-
+    # Adding and removing labels.
     check([add_label(dummy, "WIP")], PRState([LabelKind.WIP], CIStatus.Pass, False))
     check([add_label(dummy, "awaiting-author")], PRState([LabelKind.Author], CIStatus.Pass, False))
     # Non-relevant labels are not recorded here.
@@ -467,14 +471,30 @@ def test_determine_status() -> None:
     # NB: this only tests the new handling of awaiting-review status.
     default_date = datetime(2024, 8, 1)
     def check(labels: List[LabelKind], expected: PRStatus) -> None:
-        actual = determine_PR_status(default_date, labels)
+        state = PRState(labels, CIStatus.Pass, False)
+        actual = determine_PR_status(default_date, state)
         assert expected == actual, f"expected PR status {expected} from labels {labels}, got {actual}"
+    # This version takes a PR state instead.
+    def check2(state: PRState, expected: PRStatus) -> None:
+        actual = determine_PR_status(default_date, state)
+        assert expected == actual, f"expected PR status {expected} from state {state}, got {actual}"
     # Check if the PR status on a given list of labels in one of several allowed values.
     # If successful, returns the actual PR status computed.
     def check_flexible(labels: List[LabelKind], allowed: List[PRStatus]) -> PRStatus:
-        actual = determine_PR_status(default_date, labels)
+        state = PRState(labels, CIStatus.Pass, False)
+        actual = determine_PR_status(default_date, state)
         assert actual in allowed, f"expected PR status in {allowed} from labels {labels}, got {actual}"
         return actual
+
+    # Tests for handling draft and CI state.
+    # These take precedence over any other labels.
+    check2(PRState([], CIStatus.Pass, True), PRStatus.NotReady)
+    check2(PRState([], CIStatus.Fail, False), PRStatus.NotReady)
+    check2(PRState([], CIStatus.Fail, True), PRStatus.NotReady)
+    # Running CI is treated as "passing" for the purposes of our classification.
+    check2(PRState([], CIStatus.Running, False), PRStatus.AwaitingReview)
+    check2(PRState([LabelKind.WIP], CIStatus.Fail, False), PRStatus.NotReady)
+    check2(PRState([LabelKind.MergeConflict], CIStatus.Fail, False), PRStatus.NotReady)
 
     # All label kinds we distinguish.
     ALL = LabelKind._member_map_.values()
@@ -560,6 +580,6 @@ def smoketest() -> None:
     # more complex tests to come!
 
 
-# test_determine_state_changes()
-# test_determine_status()
+test_determine_state_changes()
+test_determine_status()
 smoketest()
