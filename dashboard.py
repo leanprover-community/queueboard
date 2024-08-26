@@ -5,9 +5,10 @@
 import sys
 import json
 from datetime import datetime, timezone
-from dateutil import relativedelta
 from enum import Enum, auto, unique
 from typing import List, NamedTuple, Tuple
+
+from dateutil.relativedelta import relativedelta
 
 @unique
 class PRList(Enum):
@@ -210,32 +211,32 @@ def label_link(label:Label) -> str:
     return f"<a href='{label.url}'><span class='label' style='color: #{fgcolor}; background: #{bgcolor}'>{label.name}</span></a>"
 
 
+def format_delta(delta: relativedelta) -> str:
+    if delta.years > 0:
+        return f"{delta.years} years ago"
+    elif delta.months > 0:
+        return f"{delta.months} months ago"
+    elif delta.days > 0:
+        return f"{delta.days} days ago"
+    elif delta.hours > 0:
+        return f"{delta.hours} hours ago"
+    elif delta.minutes > 0:
+        return f"{delta.minutes} minutes ago"
+    else:
+        return f"{delta.seconds} seconds ago)"
+
+
 # Function to format the time of the last update
 # Input is in the format: "2020-11-02T14:23:56Z"
 # Output is in the format: "2020-11-02 14:23 (2 days ago)"
 def time_info(updatedAt: str) -> str:
     updated = datetime.strptime(updatedAt, "%Y-%m-%dT%H:%M:%SZ")
     now = datetime.now()
-
     # Calculate the difference in time
-    delta = relativedelta.relativedelta(now, updated)
-
+    delta = relativedelta(now, updated)
     # Format the output
     s = updated.strftime("%Y-%m-%d %H:%M")
-    if delta.years > 0:
-        s += " ({} years ago)".format(delta.years)
-    elif delta.months > 0:
-        s += " ({} months ago)".format(delta.months)
-    elif delta.days > 0:
-        s += " ({} days ago)".format(delta.days)
-    elif delta.hours > 0:
-        s += " ({} hours ago)".format(delta.hours)
-    elif delta.minutes > 0:
-        s += " ({} minutes ago)".format(delta.minutes)
-    else:
-        s += " ({} seconds ago)".format(delta.seconds)
-
-    return s
+    return f"{s} ({format_delta(delta)})"
 
 
 # Basic information about a PR: does not contain the diff size, which is contained in pr_info.json instead.
