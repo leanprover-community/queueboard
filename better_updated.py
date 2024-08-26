@@ -73,6 +73,7 @@ class PRState(NamedTuple):
     labels: List[LabelKind]
     ci: CIStatus
     draft: bool
+    """True if and only if this PR is marked as draft."""
 
 
 # Something changed on a PR which we care about:
@@ -90,9 +91,10 @@ class PRChange(Enum):
     LabelRemoved = auto()
     """An existing label got removed"""
 
-    # FIXME: we ignore this for now
-    ToggleDraftStatus = auto()
-    """This PR's draft status changed"""
+    MarkedDraft = auto()
+    """This PR was marked as draft"""
+    MarkedReady = auto()
+    """This PRwas marked as ready for review"""
 
     # FIXME: we ignore this for now
     CIStatusChanged = auto()
@@ -108,8 +110,8 @@ class Event(NamedTuple):
     time: datetime
     change: PRChange
     # Additional details about what changed.
-    # For ToggleDraftStatus and CIStatusChanged, this will be empty for now.
-    # For Label{Added,Removed}, this will contain the name of all label(s)
+    # For CIStatusChanged, this is empty for now.
+    # For Label{Added,Removed}, this contains the name of all label(s)
     # added and removed, respectively.
     extra: dict
 
@@ -117,8 +119,10 @@ class Event(NamedTuple):
 # Update the current PR state in light of some change.
 def update_state(current: PRState, ev: Event) -> PRState:
     #print(f"current state is {current}, incoming event is {ev}")
-    if ev.change == PRChange.ToggleDraftStatus:
-        return PRState(current.labels, current.ci, not current.draft)
+    if ev.change == PRChange.MarkedDraft:
+        return PRState(current.labels, current.ci, True)
+    elif ev.change == PRChange.MarkedReady:
+        return PRState(current.labels, current.ci, False)
     elif ev.change == PRChange.CIStatusChanged:
         # FUTURE: we ignore changes of the PR status for now
         return current
@@ -422,6 +426,14 @@ def remove_label(time: datetime, name: str) -> Event:
     return Event(time, PRChange.LabelRemoved, {"name": name})
 
 
+def draft(time: datetime) -> Event:
+    return Event(time, PRChange.MarkedDraft, None)
+
+
+def undraft(time: datetime) -> Event:
+    return Event(time, PRChange.MarkedReady, None)
+
+
 # These tests are just some basic smoketests and not exhaustive.
 def test_determine_state_changes() -> None:
     def check(events: List[Event], expected: PRState) -> None:
@@ -430,6 +442,14 @@ def test_determine_state_changes() -> None:
         assert expected == actual, f"expected PR state {expected} from events {events}, got {actual}"
     check([], PRState([], CIStatus.Pass, False))
     dummy = datetime(2024, 7, 2)
+    check([draft(dummy)], PRState([], CIStatus.Pass, True))
+    check([draft(dummy), undraft(dummy)], PRState([], CIStatus.Pass, False))
+    # Additional "undraft" or "draft" events are ignored.
+    check([undraft(dummy)], PRState([], CIStatus.Pass, False))
+    check([undraft(dummy), undraft(dummy), draft(dummy)], PRState([], CIStatus.Pass, True))
+    check([undraft(dummy), draft(dummy), draft(dummy)], PRState([], CIStatus.Pass, True))
+
+
     check([add_label(dummy, "WIP")], PRState([LabelKind.WIP], CIStatus.Pass, False))
     check([add_label(dummy, "awaiting-author")], PRState([LabelKind.Author], CIStatus.Pass, False))
     # Non-relevant labels are not recorded here.
