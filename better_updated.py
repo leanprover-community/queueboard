@@ -73,7 +73,7 @@ class PRState(NamedTuple):
     @staticmethod
     def with_labels(labels : List[LabelKind]):
         '''Create a PR state with just these labels, passing CI and ready for review'''
-        PRState(labels, CIStatus.Pass, False)
+        return PRState(labels, CIStatus.Pass, False)
 
 
 # Something changed on a PR which we care about:
@@ -90,6 +90,10 @@ class PRChange(Enum):
 
     LabelRemoved = auto()
     """An existing label got removed"""
+
+    LabelAddedRemoved = auto()
+    '''A set of labels was added, and some set of labels was removed
+    Note that a given label can be added and removed at the same time'''
 
     MarkedDraft = auto()
     """This PR was marked as draft"""
@@ -110,27 +114,32 @@ class Event(NamedTuple):
     change: PRChange
     # Additional details about what changed.
     # For CIStatusChanged, this contains the new state.
-    # For Label{Added,Removed}, this contains the name of all label(s) added/removed.
+    # For Label{Added,Removed}, this contains the name of the label added resp. removed.
+    # For LabelsAddedRemoved, this contains two lists of the labels added resp. removed.
     extra: dict
 
     @staticmethod
-    def add_label(time: datetime, name: str):# -> Event:
+    def add_label(time: datetime, name: str):
         return Event(time, PRChange.LabelAdded, {"name": name})
 
     @staticmethod
-    def remove_label(time: datetime, name: str):# -> Event:
+    def remove_label(time: datetime, name: str):
         return Event(time, PRChange.LabelRemoved, {"name": name})
 
     @staticmethod
-    def draft(time: datetime):# -> Event:
+    def add_remove_labels(time: datetime, added: List[str], removed: List[str]):
+        return Event(time, PRChange.LabelAddedRemoved, {"added": added, "removed": removed})
+
+    @staticmethod
+    def draft(time: datetime):
         return Event(time, PRChange.MarkedDraft, {})
 
     @staticmethod
-    def undraft(time: datetime):# -> Event:
+    def undraft(time: datetime):
         return Event(time, PRChange.MarkedReady, {})
 
     @staticmethod
-    def update_ci_status(time: datetime, new: CIStatus):# -> Event:
+    def update_ci_status(time: datetime, new: CIStatus):
         return Event(time, PRChange.CIStatusChanged, {"new_state": new})
 
 
@@ -164,6 +173,18 @@ def update_state(current: PRState, ev: Event) -> PRState:
         else:
             # Removing an irrelevant label does not change the PR status.
             return current
+    elif ev.change == PRChange.LabelAddedRemoved:
+        added = ev.extra["added"]
+        removed = ev.extra["removed"]
+        # Remove any label which is both added and removed, and filter out irrelevant labels.
+        both = set(added) & set(removed)
+        added = [l for l in added if l in label_categorisation_rules and l not in both]
+        removed = [l for l in removed if l in label_categorisation_rules and l not in both]
+        # Any remaining labels to be removed should exist.
+        new_labels = current.labels[:]
+        for r in removed:
+            new_labels.remove(label_categorisation_rules[r])
+        return PRState(new_labels + [label_categorisation_rules[l] for l in added], current.ci, current.draft)
     else:
         print(f"unhandled event variant {ev.change}")
         assert False
@@ -470,6 +491,12 @@ def test_determine_state_changes() -> None:
     check([Event.add_label(dummy, "awaiting-author"), Event.add_label(dummy, "WIP")], PRState.with_labels([LabelKind.Author, LabelKind.WIP]))
     check([Event.add_label(dummy, "awaiting-author"), Event.remove_label(dummy, "awaiting-author")], PRState.with_labels([]))
     check([Event.add_label(dummy, "awaiting-author"), Event.remove_label(dummy, "awaiting-author"), Event.add_label(dummy, "awaiting-zulip")], PRState.with_labels([LabelKind.Decision]))
+    # TODO: better tests for add-remove
+    # - equivalent to individual additions; with irrelevant labels; same for removal
+    # - adding and removing same label is a no-op
+    # - test that intermediate states are - no errors and - no contradictory states
+    #   => need to test intermediate ones -> need the full sequence of states to test?
+    check([Event.add_remove_labels(dummy, ["WIP"], ["WIP"])], PRState.with_labels([]))
 
 
 def test_determine_status() -> None:
