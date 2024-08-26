@@ -108,6 +108,26 @@ class Event(NamedTuple):
     # For Label{Added,Removed}, this contains the name of all label(s) added/removed.
     extra: dict
 
+    @staticmethod
+    def add_label(time: datetime, name: str):# -> Event:
+        return Event(time, PRChange.LabelAdded, {"name": name})
+
+    @staticmethod
+    def remove_label(time: datetime, name: str):# -> Event:
+        return Event(time, PRChange.LabelRemoved, {"name": name})
+
+    @staticmethod
+    def draft(time: datetime):# -> Event:
+        return Event(time, PRChange.MarkedDraft, {})
+
+    @staticmethod
+    def undraft(time: datetime):# -> Event:
+        return Event(time, PRChange.MarkedReady, {})
+
+    @staticmethod
+    def update_ci_status(time: datetime, new: CIStatus):# -> Event:
+        return Event(time, PRChange.CIStatusChanged, {"new_state": new})
+
 
 # Update the current PR state in light of some change.
 def update_state(current: PRState, ev: Event) -> PRState:
@@ -313,19 +333,19 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
         # awaiting-decision is exclusive with any of waiting on review, author, delegation and sent to bors.
         if LabelKind.Decision in labels and any([l for l in labels if
                 l in [LabelKind.Author, LabelKind.Review, LabelKind.Delegated, LabelKind.Bors, LabelKind.WIP]]):
-            print(f"contradictory label kinds: {labels}")
+            #print(f"contradictory label kinds: {labels}")
             return PRStatus.Contradictory
         # Work in progress contradicts "awaiting review" and "ready for bors".
         if LabelKind.WIP in labels and any([l for l in labels if l in [LabelKind.Review, LabelKind.Bors]]):
-            print(f"contradictory label kinds: {labels}")
+            #print(f"contradictory label kinds: {labels}")
             return PRStatus.Contradictory
         # Waiting for the author and review is also contradictory,
         if LabelKind.Author in labels and LabelKind.Review in labels:
-            print(f"contradictory label kinds: {labels}")
+            #print(f"contradictory label kinds: {labels}")
             return PRStatus.Contradictory
         # as is being ready-for-merge and blocked.
         if LabelKind.Bors in labels and LabelKind.Blocked in labels:
-            print(f"contradictory label kinds: {labels}")
+            #print(f"contradictory label kinds: {labels}")
             return PRStatus.Contradictory
 
         # If the set of labels is not contradictory, we use a clear priority order:
@@ -411,26 +431,6 @@ def sep(n: int) -> datetime:
     return datetime(2024, 9, n)
 
 
-def add_label(time: datetime, name: str) -> Event:
-    return Event(time, PRChange.LabelAdded, {"name": name})
-
-
-def remove_label(time: datetime, name: str) -> Event:
-    return Event(time, PRChange.LabelRemoved, {"name": name})
-
-
-def draft(time: datetime) -> Event:
-    return Event(time, PRChange.MarkedDraft, {})
-
-
-def undraft(time: datetime) -> Event:
-    return Event(time, PRChange.MarkedReady, {})
-
-
-def update_ci_status(time: datetime, new: CIStatus) -> Event:
-    return Event(time, PRChange.CIStatusChanged, {"new_state": new})
-
-
 # These tests are just some basic smoketests and not exhaustive.
 def test_determine_state_changes() -> None:
     def check(events: List[Event], expected: PRState) -> None:
@@ -440,31 +440,31 @@ def test_determine_state_changes() -> None:
     check([], PRState([], CIStatus.Pass, False))
     dummy = datetime(2024, 7, 2)
     # Drafting or undrafting; changing CI status.
-    check([draft(dummy)], PRState([], CIStatus.Pass, True))
-    check([draft(dummy), undraft(dummy)], PRState([], CIStatus.Pass, False))
+    check([Event.draft(dummy)], PRState([], CIStatus.Pass, True))
+    check([Event.draft(dummy), Event.undraft(dummy)], PRState([], CIStatus.Pass, False))
     # Additional "undraft" or "draft" events are ignored.
-    check([undraft(dummy)], PRState([], CIStatus.Pass, False))
-    check([undraft(dummy), undraft(dummy), draft(dummy)], PRState([], CIStatus.Pass, True))
-    check([undraft(dummy), draft(dummy), draft(dummy)], PRState([], CIStatus.Pass, True))
+    check([Event.undraft(dummy)], PRState([], CIStatus.Pass, False))
+    check([Event.undraft(dummy), Event.undraft(dummy), Event.draft(dummy)], PRState([], CIStatus.Pass, True))
+    check([Event.undraft(dummy), Event.draft(dummy), Event.draft(dummy)], PRState([], CIStatus.Pass, True))
     # Updating the CI status.
-    check([update_ci_status(dummy, CIStatus.Running)], PRState([], CIStatus.Running, False))
-    check([update_ci_status(dummy, CIStatus.Fail)], PRState([], CIStatus.Fail, False))
-    check([update_ci_status(dummy, CIStatus.Pass)], PRState([], CIStatus.Pass, False))
-    check([update_ci_status(dummy, CIStatus.Pass), update_ci_status(dummy, CIStatus.Fail)], PRState([], CIStatus.Fail, False))
-    check([update_ci_status(dummy, CIStatus.Pass), draft(dummy), update_ci_status(dummy, CIStatus.Running), undraft(dummy)], PRState([], CIStatus.Running, False))
+    check([Event.update_ci_status(dummy, CIStatus.Running)], PRState([], CIStatus.Running, False))
+    check([Event.update_ci_status(dummy, CIStatus.Fail)], PRState([], CIStatus.Fail, False))
+    check([Event.update_ci_status(dummy, CIStatus.Pass)], PRState([], CIStatus.Pass, False))
+    check([Event.update_ci_status(dummy, CIStatus.Pass), Event.update_ci_status(dummy, CIStatus.Fail)], PRState([], CIStatus.Fail, False))
+    check([Event.update_ci_status(dummy, CIStatus.Pass), Event.draft(dummy), Event.update_ci_status(dummy, CIStatus.Running), Event.undraft(dummy)], PRState([], CIStatus.Running, False))
 
     # Adding and removing labels.
-    check([add_label(dummy, "WIP")], PRState([LabelKind.WIP], CIStatus.Pass, False))
-    check([add_label(dummy, "awaiting-author")], PRState([LabelKind.Author], CIStatus.Pass, False))
+    check([Event.add_label(dummy, "WIP")], PRState([LabelKind.WIP], CIStatus.Pass, False))
+    check([Event.add_label(dummy, "awaiting-author")], PRState([LabelKind.Author], CIStatus.Pass, False))
     # Non-relevant labels are not recorded here.
-    check([add_label(dummy, "t-data")], PRState([], CIStatus.Pass, False))
-    check([add_label(dummy, "t-data"), add_label(dummy, "WIP")], PRState([LabelKind.WIP], CIStatus.Pass, False))
-    check([add_label(dummy, "t-data"), add_label(dummy, "WIP"), remove_label(dummy, "t-data")], PRState([LabelKind.WIP], CIStatus.Pass, False))
+    check([Event.add_label(dummy, "t-data")], PRState([], CIStatus.Pass, False))
+    check([Event.add_label(dummy, "t-data"), Event.add_label(dummy, "WIP")], PRState([LabelKind.WIP], CIStatus.Pass, False))
+    check([Event.add_label(dummy, "t-data"), Event.add_label(dummy, "WIP"), Event.remove_label(dummy, "t-data")], PRState([LabelKind.WIP], CIStatus.Pass, False))
     # Adding two labels.
-    check([add_label(dummy, "awaiting-author")], PRState([LabelKind.Author], CIStatus.Pass, False))
-    check([add_label(dummy, "awaiting-author"), add_label(dummy, "WIP")], PRState([LabelKind.Author, LabelKind.WIP], CIStatus.Pass, False))
-    check([add_label(dummy, "awaiting-author"), remove_label(dummy, "awaiting-author")], PRState([], CIStatus.Pass, False))
-    check([add_label(dummy, "awaiting-author"), remove_label(dummy, "awaiting-author"), add_label(dummy, "awaiting-zulip")], PRState([LabelKind.Decision], CIStatus.Pass, False))
+    check([Event.add_label(dummy, "awaiting-author")], PRState([LabelKind.Author], CIStatus.Pass, False))
+    check([Event.add_label(dummy, "awaiting-author"), Event.add_label(dummy, "WIP")], PRState([LabelKind.Author, LabelKind.WIP], CIStatus.Pass, False))
+    check([Event.add_label(dummy, "awaiting-author"), Event.remove_label(dummy, "awaiting-author")], PRState([], CIStatus.Pass, False))
+    check([Event.add_label(dummy, "awaiting-author"), Event.remove_label(dummy, "awaiting-author"), Event.add_label(dummy, "awaiting-zulip")], PRState([LabelKind.Decision], CIStatus.Pass, False))
 
 
 def test_determine_status() -> None:
@@ -541,39 +541,39 @@ def smoketest() -> None:
         assert wait == expected, f"basic test failed: expected total time of {expected} in review, obtained {wait} instead"
 
     # these pass and behave well
-    check_basic(sep(1), sep(10), [add_label(sep(1), 'blocked-by-other-PR')], timedelta(days=0))
-    check_basic(sep(1), sep(10), [add_label(sep(1), 'blocked-by-other-PR'), add_label(sep(6), 'merge-conflict')], timedelta(days=0))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR')], timedelta(days=0))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.add_label(sep(6), 'merge-conflict')], timedelta(days=0))
 
     # adding and removing a label yields a BUG: all intermediate lists of labels are empty
     # fixed now, wohoo!
-    check_basic(sep(1), sep(10), [add_label(sep(1), 'blocked-by-other-PR'), remove_label(sep(6), "blocked-by-other-PR")], timedelta(days=4))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.remove_label(sep(6), "blocked-by-other-PR")], timedelta(days=4))
     # the add_label afterwards was and is fine
-    check_basic(sep(1), sep(10), [add_label(sep(1), 'blocked-by-other-PR'), remove_label(sep(6), "blocked-by-other-PR"), add_label(sep(8), "WIP")], timedelta(days=2))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.remove_label(sep(6), "blocked-by-other-PR"), Event.add_label(sep(8), "WIP")], timedelta(days=2))
 
     # trying a variant
-    check_basic(sep(1), sep(20), [add_label(sep(1), 'blocked-by-other-PR'), remove_label(sep(8), 'blocked-by-other-PR'), add_label(sep(10), 'WIP')], timedelta(days=2))
+    check_basic(sep(1), sep(20), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.remove_label(sep(8), 'blocked-by-other-PR'), Event.add_label(sep(10), 'WIP')], timedelta(days=2))
     # current failure, minimized
-    check_basic(sep(1), sep(10), [add_label(sep(1), 'blocked-by-other-PR'), remove_label(sep(8), 'blocked-by-other-PR')], timedelta(days=2))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.remove_label(sep(8), 'blocked-by-other-PR')], timedelta(days=2))
 
     # Doing nothing in April: not ready for review. In September, it is!
     check_basic(april(1), april(3), [], timedelta(days=0))
     check_basic(sep(1), sep(3), [], timedelta(days=2))
     # Applying an irrelevant label.
-    check_basic(sep(1), sep(5), [add_label(sep(1), "CI")], timedelta(days=4))
+    check_basic(sep(1), sep(5), [Event.add_label(sep(1), "CI")], timedelta(days=4))
     # Removing it again.
     check_basic(
         sep(1), sep(12),
-        [add_label(sep(1), "CI"), remove_label(sep(3), "CI")],
+        [Event.add_label(sep(1), "CI"), Event.remove_label(sep(3), "CI")],
         timedelta(days=11),
     )
 
     # After September 8th, this PR is in WIP status -> only seven days in review.
-    check_basic(sep(1), sep(10), [add_label(sep(1), 'CI'), remove_label(sep(3), 'CI'), add_label(sep(8), 'WIP')], timedelta(days=7))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'CI'), Event.remove_label(sep(3), 'CI'), Event.add_label(sep(8), 'WIP')], timedelta(days=7))
 
     # A PR getting blocked.
-    check_basic(sep(1), sep(10), [add_label(sep(1), 'blocked-by-other-PR'), add_label(sep(8), 'easy')], timedelta(days=0))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.add_label(sep(8), 'easy')], timedelta(days=0))
     # A PR getting unblocked again.
-    check_basic(sep(1), sep(10), [add_label(sep(1), 'blocked-by-other-PR'), remove_label(sep(8), 'blocked-by-other-PR')], timedelta(days=2))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.remove_label(sep(8), 'blocked-by-other-PR')], timedelta(days=2))
 
     # xxx Applying two irrelevant labels.
     # then removing one...
