@@ -37,8 +37,6 @@ As an initial prototype, this file makes a number of simplifying assumptions:
 1. We omit changes of the PR status between "draft" and "regular".
 2. We also ignore changes of the CI status (between "passing", "running" and "failing"),
 and pretend for now that every PR is passing all the time.
-
-
 """
 
 from datetime import datetime, timedelta
@@ -52,8 +50,8 @@ from typing import List, NamedTuple, Tuple
 # We usually do not care about the precise label names, but just their function.
 class LabelKind(Enum):
     WIP = auto()  # WIP
-    """This PR is ready for review: this label is only added for historical purposes, as mathlib does not use this label any more"""
     Review = auto()
+    """This PR is ready for review: this label is only added for historical purposes, as mathlib does not use this label any more"""
     Author = auto()  # awaiting-author
     MergeConflict = auto()  # merge-conflict
     Blocked = auto()  # blocked-by-other-PR, etc.
@@ -86,17 +84,19 @@ class PRState(NamedTuple):
 # each variant directly within the enum.
 # As Python does not have these, we use a dictionary of extra data.
 class PRChange(Enum):
-    """A new label got added"""
     LabelAdded = auto()
-    """An existing label got removed"""
+    """A new label got added"""
+
     LabelRemoved = auto()
-    """This PR's draft status changed"""
+    """An existing label got removed"""
+
     # FIXME: we ignore this for now
     ToggleDraftStatus = auto()
-    """This's PR's CI state changed"""
+    """This PR's draft status changed"""
+
     # FIXME: we ignore this for now
     CIStatusChanged = auto()
-
+    """This's PR's CI state changed"""
 
 # XXX: does github produce events like "labels xyz got added and wpq got removed"?
 # If so, need to process these separately or something... we will see!
@@ -131,7 +131,7 @@ def update_state(current: PRState, ev: Event) -> PRState:
         else:
             # Adding an irrelevant label does not change the PR status.
             if not lname.startswith("t-") and lname != "CI":
-                print(f"found another irrelevant label: {lname}")
+                print(f"found irrelevant label: {lname}")
             return current
     elif ev.change == PRChange.LabelRemoved:
         lname = ev.extra["name"]
