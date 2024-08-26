@@ -103,10 +103,6 @@ class PRChange(Enum):
     CIStatusChanged = auto()
     """This PR's CI state changed"""
 
-# XXX: does github produce events like "labels xyz got added and wpq got removed"?
-# If so, need to process these separately or something... we will see!
-# For now, pretend these are separate events.
-
 
 # Something changed on this PR.
 class Event(NamedTuple):
@@ -409,39 +405,50 @@ def determine_status_changes(
 ########### Final summing up #########
 
 
+def total_time_in_status(creation_time: datetime, now: datetime, events: List[Event], status: PRStatus) -> timedelta:
+    '''Determine the total amount of time this PR was in a given status,
+    from its creation to the current time.'''
+    total = timedelta(0)
+    evolution_status = determine_status_changes(creation_time, events)
+    # The PR creation should be the first event in `evolution_status`.
+    assert len(evolution_status) == len(events) + 1
+    for i in range(len(evolution_status) - 1):
+        (old_time, old_status) = evolution_status[i]
+        (new_time, _new_status) = evolution_status[i + 1]
+        if old_status == status:
+            total += new_time - old_time
+    (last, last_status) = evolution_status[-1]
+    if last_status == status:
+        total += now - last
+    return total
+
+
 # Determine the total amount of time this PR was awaiting review.
 #
 # FUTURE ideas for tweaking this reporting:
 #  - ignore short intervals of merge conflicts, say less than a day?
 #  - ignore short intervals of CI running (if successful before and after)?
-def total_queue_time(
-    creation_time: datetime, now: datetime, events: List[Event]
-) -> timedelta:
-    total = timedelta(0)
+def total_queue_time(creation_time: datetime, now: datetime, events: List[Event]) -> timedelta:
+    return total_time_in_status(creation_time, now, events, PRStatus.AwaitingReview)
+
+
+# FUTURE: this could be exposed to the dashboard using the following API
+# better_updated_at(number: int, data) -> timedelta
+# return the total time since this PR's last status change
+def last_status_update(creation_time: datetime, now: datetime, events: List[Event]) -> timedelta:
+    '''Compute the total time since this PR's state changed last.'''
+    # FUTURE: should this ignore short-lived merge conflicts? for now, it does not
     evolution_status = determine_status_changes(creation_time, events)
-    #print(f"status changes are {evolution_status}")
-    # first entry is the PR creation, as a separate event
+    # The PR creation should be the first event in `evolution_status`.
     assert len(evolution_status) == len(events) + 1
-    for i in range(len(evolution_status) - 1):
-        (old_time, old_status) = evolution_status[i]
-        (new_time, _new_status) = evolution_status[i + 1]
-        if old_status == PRStatus.AwaitingReview:
-            total += new_time - old_time
-    (last, last_status) = evolution_status[-1]
-    if last_status == PRStatus.AwaitingReview:
-        total += now - last
-    return total
+    last : datetime = evolution_status[-1][0]
+    return now - last
 
 
-# FUTURE: the following is nice API to expose to the dashboard itself
-# A better estimate for "when was this PR updated", namely the total amount of time
-# this PR was waiting for review. 'number' is the PR's number,
-# 'data' the file with all PR data we have.
-def better_updated_at(number: int, data):  # -> timedelta:
-    pass  # TODO
 
-
-# TODO: add sanity check if a never-added label is removed
+# UX for the generated dashboards: expose both total time and current time in the current state
+# review time for the queue, "merge"/"delegated" for the stale "XY" dashboard; "merge conflict" for the merge conflict list
+# allow filtering by both the "current streak" and the "total time" in this status
 
 
 ######### Some basic unit tests ##########
