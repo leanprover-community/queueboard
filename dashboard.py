@@ -275,7 +275,7 @@ def _print_pr_entries(pr_infos: dict, prs : List[BasicPRInformation]) -> None:
 def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRList) -> None:
     # Title of each list, and the corresponding HTML anchor.
     (id, title) = getIdTitle(kind)
-    print("<h1 id=\"{}\">{}</h1>".format(id, title))
+    print(f"<h1 id=\"{id}\"><a href=\"#{id}\">{title}</a></h1>")
     # If there are no PRs, skip the table header and print a bold notice such as
     # "There are currently **no** stale `delegated` PRs. Congratulations!".
     if not prs:
