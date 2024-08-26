@@ -70,6 +70,11 @@ class PRState(NamedTuple):
     draft: bool
     """True if and only if this PR is marked as draft."""
 
+    @staticmethod
+    def with_labels(labels : List[LabelKind]):
+        '''Create a PR state with just these labels, passing CI and ready for review'''
+        PRState(labels, CIStatus.Pass, False)
+
 
 # Something changed on a PR which we care about:
 # - a new label got added or removed
@@ -454,24 +459,24 @@ def test_determine_state_changes() -> None:
     check([Event.update_ci_status(dummy, CIStatus.Pass), Event.draft(dummy), Event.update_ci_status(dummy, CIStatus.Running), Event.undraft(dummy)], PRState([], CIStatus.Running, False))
 
     # Adding and removing labels.
-    check([Event.add_label(dummy, "WIP")], PRState([LabelKind.WIP], CIStatus.Pass, False))
-    check([Event.add_label(dummy, "awaiting-author")], PRState([LabelKind.Author], CIStatus.Pass, False))
+    check([Event.add_label(dummy, "WIP")], PRState.with_labels([LabelKind.WIP]))
+    check([Event.add_label(dummy, "awaiting-author")], PRState.with_labels([LabelKind.Author]))
     # Non-relevant labels are not recorded here.
-    check([Event.add_label(dummy, "t-data")], PRState([], CIStatus.Pass, False))
-    check([Event.add_label(dummy, "t-data"), Event.add_label(dummy, "WIP")], PRState([LabelKind.WIP], CIStatus.Pass, False))
-    check([Event.add_label(dummy, "t-data"), Event.add_label(dummy, "WIP"), Event.remove_label(dummy, "t-data")], PRState([LabelKind.WIP], CIStatus.Pass, False))
+    check([Event.add_label(dummy, "t-data")], PRState.with_labels([]))
+    check([Event.add_label(dummy, "t-data"), Event.add_label(dummy, "WIP")], PRState.with_labels([LabelKind.WIP]))
+    check([Event.add_label(dummy, "t-data"), Event.add_label(dummy, "WIP"), Event.remove_label(dummy, "t-data")], PRState.with_labels([LabelKind.WIP]))
     # Adding two labels.
     check([Event.add_label(dummy, "awaiting-author")], PRState([LabelKind.Author], CIStatus.Pass, False))
-    check([Event.add_label(dummy, "awaiting-author"), Event.add_label(dummy, "WIP")], PRState([LabelKind.Author, LabelKind.WIP], CIStatus.Pass, False))
-    check([Event.add_label(dummy, "awaiting-author"), Event.remove_label(dummy, "awaiting-author")], PRState([], CIStatus.Pass, False))
-    check([Event.add_label(dummy, "awaiting-author"), Event.remove_label(dummy, "awaiting-author"), Event.add_label(dummy, "awaiting-zulip")], PRState([LabelKind.Decision], CIStatus.Pass, False))
+    check([Event.add_label(dummy, "awaiting-author"), Event.add_label(dummy, "WIP")], PRState.with_labels([LabelKind.Author, LabelKind.WIP]))
+    check([Event.add_label(dummy, "awaiting-author"), Event.remove_label(dummy, "awaiting-author")], PRState.with_labels([]))
+    check([Event.add_label(dummy, "awaiting-author"), Event.remove_label(dummy, "awaiting-author"), Event.add_label(dummy, "awaiting-zulip")], PRState.with_labels([LabelKind.Decision]))
 
 
 def test_determine_status() -> None:
     # NB: this only tests the new handling of awaiting-review status.
     default_date = datetime(2024, 8, 1)
     def check(labels: List[LabelKind], expected: PRStatus) -> None:
-        state = PRState(labels, CIStatus.Pass, False)
+        state = PRState.with_labels(labels)
         actual = determine_PR_status(default_date, state)
         assert expected == actual, f"expected PR status {expected} from labels {labels}, got {actual}"
     # This version takes a PR state instead.
