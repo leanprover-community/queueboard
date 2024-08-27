@@ -264,10 +264,10 @@ def _print_pr_entries(pr_infos: dict, prs : List[BasicPRInformation], print_deta
                 comments = pr_info["comments"] + pr_info["review_comments"]
                 print("<td>{}</td>".format(comments))
             except KeyError:
-                print("<td>-1/-1</td>\\n<td>-1</td>\\n<td>-1</td>")
+                print("<td>-1/-1</td>\n<td>-1</td>\n<td>-1</td>")
                 print(f"PR #{pr.number} is wicked!", file=sys.stderr)
         else:
-            print("<td>-1/-1</td>\\n<td>-1</td>\\n<td>-1</td>")
+            print("<td>-1/-1</td>\n<td>-1</td>\n<td>-1</td>")
 
         print("<td>{}</td>".format(time_info(pr.updatedAt)))
         print("</tr>")
