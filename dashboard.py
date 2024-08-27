@@ -84,8 +84,8 @@ def getIdTitle(kind : PRList) -> Tuple[str, str]:
     '''Return a tuple (id, title) of the HTML anchor ID and a section name for the table
     describing this PR kind.'''
     return {
-        PRList.Queue : ("queue", "Queue"),
-        PRList.QueueNewContributor : ("queue-new-contributors", "New contributors' PRs on the queue"),
+        PRList.Queue : ("queue", "Review queue"),
+        PRList.QueueNewContributor : ("queue-new-contributors", "New contributors' PRs on the review queue"),
         PRList.StaleDelegated : ("stale-delegated", "Stale delegated"),
         PRList.StaleNewContributor : ("stale-new-contributor", "Stale new contributor"),
         PRList.StaleMaintainerMerge : ("stale-maintainer-merge", "Stale maintainer-merge"),
@@ -135,7 +135,7 @@ def print_html5_header() -> None:
     <!DOCTYPE html>
     <html>
     <head>
-    <title>Mathlib Review Dashboard</title>
+    <title>Mathlib review and triage dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
 			integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg=="
 			crossorigin="anonymous"></script>
@@ -145,7 +145,7 @@ def print_html5_header() -> None:
     <base target="_blank">
     </head>
     <body>
-    <h1>Mathlib Review Dashboard</h1>""")
+    <h1>Mathlib review and triage dashboard</h1>""")
     # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
     print(f"<small>This dashboard was last updated on: {updated}</small>")
