@@ -243,7 +243,10 @@ class BasicPRInformation(NamedTuple):
 
 
 # Print table entries about a sequence of PRs.
-def _print_pr_entries(pr_infos: dict, prs : List[BasicPRInformation]) -> None:
+# If 'print_detailed_information' is true, print information about each PR in this list:
+# its diff size, number of files modified and number of comments.
+# (Some queries, e.g. about badly labelled PR, omit this information.)
+def _print_pr_entries(pr_infos: dict, prs : List[BasicPRInformation], print_detailed_information: bool) -> None:
     for pr in prs:
         print("<tr>")
         print("<td>{}</td>".format(pr_link(pr.number, pr.url)))
@@ -253,26 +256,25 @@ def _print_pr_entries(pr_infos: dict, prs : List[BasicPRInformation]) -> None:
         for label in pr.labels:
             print(label_link(label))
         print("</td>")
-        try:
-            pr_info = pr_infos[str(pr.number)]
-            print("<td>{}/{}</td>".format(pr_info["additions"], pr_info["deletions"]))
-            print("<td>{}</td>".format(pr_info["changed_files"]))
-            comments = pr_info["comments"] + pr_info["review_comments"]
-            print("<td>{}</td>".format(comments))
-        except KeyError:
-            pr_info = {"additions": -1, "deletions": -1, "changed_files": -1, "comments": -1, "review_comments": -1}
-            print("<td>{}/{}</td>".format(pr_info["additions"], pr_info["deletions"]))
-            print("<td>{}</td>".format(pr_info["changed_files"]))
-            comments = pr_info["comments"] + pr_info["review_comments"]
-            print("<td>{}</td>".format(comments))
-            print(f"PR #{pr.number} is wicked!", file=sys.stderr)
+        if print_detailed_information:
+            try:
+                pr_info = pr_infos[str(pr.number)]
+                print("<td>{}/{}</td>".format(pr_info["additions"], pr_info["deletions"]))
+                print("<td>{}</td>".format(pr_info["changed_files"]))
+                comments = pr_info["comments"] + pr_info["review_comments"]
+                print("<td>{}</td>".format(comments))
+            except KeyError:
+                print("<td>-1/-1</td>\\n<td>-1</td>\\n<td>-1</td>")
+                print(f"PR #{pr.number} is wicked!", file=sys.stderr)
+        else:
+            print("<td>-1/-1</td>\\n<td>-1</td>\\n<td>-1</td>")
 
         print("<td>{}</td>".format(time_info(pr.updatedAt)))
         print("</tr>")
 
 
 # Print a dashboard of a given list of PRs.
-def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRList) -> None:
+def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRList, print_detailed_information: bool) -> None:
     # Title of each list, and the corresponding HTML anchor.
     (id, title) = getIdTitle(kind)
     print(f"<h1 id=\"{id}\"><a href=\"#{id}\">{title}</a></h1>")
@@ -299,7 +301,7 @@ def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRLis
     </tr>
     </thead>""")
 
-    _print_pr_entries(pr_infos, prs)
+    _print_pr_entries(pr_infos, prs, print_detailed_information)
 
     # Print the footer
     print("</table>")
@@ -320,7 +322,7 @@ def print_dashboard(datae : List[dict], kind : PRList) -> None:
     # Open the file containing the PR info.
     with open(sys.argv[1], 'r') as f:
         pr_infos = json.load(f)
-        _print_dashboard(pr_infos, prs_to_show, kind)
+        _print_dashboard(pr_infos, prs_to_show, kind, True)
 
 
 # Print dashboards of
@@ -370,9 +372,9 @@ def print_dashboard_bad_labels_title(data : dict) -> None:
     # Open the file containing the PR info.
     with open(sys.argv[1], 'r') as f:
         pr_infos = json.load(f)
-        _print_dashboard(pr_infos, with_bad_title, PRList.BadTitle)
-        _print_dashboard(pr_infos, prs_without_topic_label, PRList.Unlabelled)
-        _print_dashboard(pr_infos, prs_with_contradictory_labels, PRList.ContradictoryLabels)
+        _print_dashboard(pr_infos, with_bad_title, PRList.BadTitle, False)
+        _print_dashboard(pr_infos, prs_without_topic_label, PRList.Unlabelled, False)
+        _print_dashboard(pr_infos, prs_with_contradictory_labels, PRList.ContradictoryLabels, False)
 
 
 main()
