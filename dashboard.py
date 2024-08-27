@@ -276,6 +276,7 @@ def _print_pr_entries(pr_infos: dict, prs : List[BasicPRInformation], print_deta
 # Print a dashboard of a given list of PRs.
 def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRList, print_detailed_information: bool) -> None:
     # Title of each list, and the corresponding HTML anchor.
+    # Explain what each PR list contains upon hovering the heading.
     (id, title) = getIdTitle(kind)
     print(f"<h1 id=\"{id}\"><a href=\"#{id}\" title=\"{long_description(kind)}\">{title}</a></h1>")
     # If there are no PRs, skip the table header and print a bold notice such as
@@ -284,10 +285,7 @@ def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRLis
         print(f'There are currently <b>no</b> {short_description(kind)}. Congratulations!\n')
         return
 
-    # Explain what each PR list contains.
-    # Use a header to make space before the table, but don't make it bold.
-    print(f"""<h5 style="font-weight:normal">{long_description(kind)}</h5>
-    <table>
+    print(f"""<table>
     <thead>
     <tr>
     <th>Number</th>
