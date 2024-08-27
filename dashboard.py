@@ -108,8 +108,8 @@ def main() -> None:
     # Print a quick table of contents.
     links = []
     for kind in PRList._member_map_.values():
-        (id, title) = getIdTitle(kind)
-        links.append(f"<a href=\"#{id}\">{title}</a>")
+        (id, _title) = getIdTitle(kind)
+        links.append(f"<a href=\"#{id}\" title=\"{short_description(kind)}\">{id}</a>")
     print(f"<br><p>\nQuick links: {str.join(' | ', links)}</p>")
 
     # Iterate over the json files provided by the user
