@@ -84,8 +84,8 @@ def getIdTitle(kind : PRList) -> Tuple[str, str]:
     '''Return a tuple (id, title) of the HTML anchor ID and a section name for the table
     describing this PR kind.'''
     return {
-        PRList.Queue : ("queue", "Queue"),
-        PRList.QueueNewContributor : ("queue-new-contributors", "New contributors' PRs on the queue"),
+        PRList.Queue : ("queue", "Review queue"),
+        PRList.QueueNewContributor : ("queue-new-contributors", "New contributors' PRs on the review queue"),
         PRList.StaleDelegated : ("stale-delegated", "Stale delegated"),
         PRList.StaleNewContributor : ("stale-new-contributor", "Stale new contributor"),
         PRList.StaleMaintainerMerge : ("stale-maintainer-merge", "Stale maintainer-merge"),
@@ -135,7 +135,7 @@ def print_html5_header() -> None:
     <!DOCTYPE html>
     <html>
     <head>
-    <title>Mathlib Review Dashboard</title>
+    <title>Mathlib review and triage dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
 			integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg=="
 			crossorigin="anonymous"></script>
@@ -145,7 +145,7 @@ def print_html5_header() -> None:
     <base target="_blank">
     </head>
     <body>
-    <h1>Mathlib Review Dashboard</h1>""")
+    <h1>Mathlib review and triage dashboard</h1>""")
     # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
     print(f"<small>This dashboard was last updated on: {updated}</small>")
@@ -276,18 +276,16 @@ def _print_pr_entries(pr_infos: dict, prs : List[BasicPRInformation], print_deta
 # Print a dashboard of a given list of PRs.
 def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRList, print_detailed_information: bool) -> None:
     # Title of each list, and the corresponding HTML anchor.
+    # Explain what each PR list contains upon hovering the heading.
     (id, title) = getIdTitle(kind)
-    print(f"<h1 id=\"{id}\"><a href=\"#{id}\">{title}</a></h1>")
+    print(f"<h1 id=\"{id}\"><a href=\"#{id}\" title=\"{long_description(kind)}\">{title}</a></h1>")
     # If there are no PRs, skip the table header and print a bold notice such as
     # "There are currently **no** stale `delegated` PRs. Congratulations!".
     if not prs:
         print(f'There are currently <b>no</b> {short_description(kind)}. Congratulations!\n')
         return
 
-    # Explain what each PR list contains.
-    # Use a header to make space before the table, but don't make it bold.
-    print(f"""<h5 style="font-weight:normal">{long_description(kind)}</h5>
-    <table>
+    print(f"""<table>
     <thead>
     <tr>
     <th>Number</th>
