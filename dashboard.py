@@ -82,14 +82,14 @@ def long_description(kind : PRList) -> str:
 
 def getIdTitle(kind : PRList) -> Tuple[str, str]:
     '''Return a tuple (id, title) of the HTML anchor ID and a section name for the table
-    describing this PR kind.'''
+    describing this PR kind. The title should not be capitalised.'''
     return {
-        PRList.Queue : ("queue", "Review queue"),
-        PRList.QueueNewContributor : ("queue-new-contributors", "New contributors' PRs on the review queue"),
-        PRList.StaleDelegated : ("stale-delegated", "Stale delegated"),
-        PRList.StaleNewContributor : ("stale-new-contributor", "Stale new contributor"),
-        PRList.StaleMaintainerMerge : ("stale-maintainer-merge", "Stale maintainer-merge"),
-        PRList.StaleReadyToMerge : ("stale-ready-to-merge", "Stale ready-to-merge"),
+        PRList.Queue : ("queue", "review queue"),
+        PRList.QueueNewContributor : ("queue-new-contributors", "new contributors' PRs on the queue"),
+        PRList.StaleDelegated : ("stale-delegated", "stale delegated"),
+        PRList.StaleNewContributor : ("stale-new-contributor", "stale new contributor"),
+        PRList.StaleMaintainerMerge : ("stale-maintainer-merge", "stale maintainer-merge"),
+        PRList.StaleReadyToMerge : ("stale-ready-to-merge", "stale ready-to-merge"),
         PRList.NeedsMerge : ("needs-merge", "PRs with just a merge conflict"),
         PRList.NeedsHelp : ("needs-owner", "PRs looking for help"),
         PRList.Unlabelled : ("unlabelled", "PRs without an area label"),
@@ -104,6 +104,13 @@ def main() -> None:
         sys.exit(1)
 
     print_html5_header()
+
+    # Print a quick table of contents.
+    links = []
+    for kind in PRList._member_map_.values():
+        (id, _title) = getIdTitle(kind)
+        links.append(f"<a href=\"#{id}\" title=\"{short_description(kind)}\">{id}</a>")
+    print(f"<br><p>\nQuick links: {str.join(' | ', links)}</p>")
 
     # Iterate over the json files provided by the user
     dataFilesWithKind = []
@@ -278,7 +285,7 @@ def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRLis
     # Title of each list, and the corresponding HTML anchor.
     # Explain what each PR list contains upon hovering the heading.
     (id, title) = getIdTitle(kind)
-    print(f"<h1 id=\"{id}\"><a href=\"#{id}\" title=\"{long_description(kind)}\">{title}</a></h1>")
+    print(f"<h1 id=\"{id}\"><a href=\"#{id}\" title=\"{long_description(kind)}\">{str.capitalize(title)}</a></h1>")
     # If there are no PRs, skip the table header and print a bold notice such as
     # "There are currently **no** stale `delegated` PRs. Congratulations!".
     if not prs:
