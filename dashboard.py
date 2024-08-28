@@ -19,7 +19,9 @@ class PRList(Enum):
     StaleReadyToMerge = auto()
     StaleDelegated = auto()
     StaleMaintainerMerge = auto()
-    # PRs passes, but just has a merge conflict.: same labels as for review, but do require a merge conflict
+    # This PR is blocked on a zulip discussion or similar.
+    NeedsDecision = auto()
+    # PRs passes, but just has a merge conflict: same labels as for review, except we do require a merge conflict
     NeedsMerge = auto()
     StaleNewContributor = auto()
     # Labelled please-adopt or help-wanted
@@ -41,6 +43,7 @@ EXPECTED_INPUT_FILES = {
     "automerge.json" : PRList.StaleReadyToMerge,
     "needs-merge.json" : PRList.NeedsMerge,
     "maintainer-merge.json" : PRList.StaleMaintainerMerge,
+    "needs-decision.json" : PRList.NeedsDecision,
     "delegated.json" : PRList.StaleDelegated,
     "new-contributor.json" : PRList.StaleNewContributor,
     "please-adopt.json" : PRList.NeedsHelp,
@@ -55,6 +58,7 @@ def short_description(kind : PRList) -> str:
         PRList.StaleMaintainerMerge : "stale PRs labelled maintainer merge",
         PRList.StaleDelegated : "stale delegated PRs",
         PRList.StaleReadyToMerge : "stale PRs labelled auto-merge-after-CI or ready-to-merge",
+        PRList.NeedsDecision : "PRs blocked on a zulip discussion or similar",
         PRList.NeedsMerge : "PRs which just have a merge conflict",
         PRList.StaleNewContributor : "stale PRs by new contributors",
         PRList.NeedsHelp : "PRs which are looking for a help",
@@ -73,6 +77,7 @@ def long_description(kind : PRList) -> str:
         PRList.NeedsMerge : "all PRs which have a merge conflict, but otherwise fit the review queue",
         PRList.StaleDelegated : f"all PRs labelled 'delegated' {notupdated} 24 hours",
         PRList.StaleReadyToMerge : f"all PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
+        PRList.NeedsDecision : "all PRs labelled 'awaiting-zulip': these are blocked on a zulip discussion or similar",
         PRList.StaleMaintainerMerge : f"all PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
         PRList.NeedsHelp : "all PRs which are labelled 'please-adopt' or 'help-wanted'",
         PRList.StaleNewContributor : f"all PR labelled 'new-contributor' {notupdated} 7 days",
@@ -91,6 +96,7 @@ def getIdTitle(kind : PRList) -> Tuple[str, str]:
         PRList.StaleNewContributor : ("stale-new-contributor", "stale new contributor"),
         PRList.StaleMaintainerMerge : ("stale-maintainer-merge", "stale maintainer-merge"),
         PRList.StaleReadyToMerge : ("stale-ready-to-merge", "stale ready-to-merge"),
+        PRList.NeedsDecision : ("needs-decision", "blocked on a zulip discussion"),
         PRList.NeedsMerge : ("needs-merge", "PRs with just a merge conflict"),
         PRList.NeedsHelp : ("needs-owner", "PRs looking for help"),
         PRList.Unlabelled : ("unlabelled", "PRs without an area label"),
