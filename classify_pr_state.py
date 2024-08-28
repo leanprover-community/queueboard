@@ -145,14 +145,14 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
 
         # If the set of labels is not contradictory, we use a clear priority order:
         # from highest to lowest priority, the label kinds are ordered as
-        # blocked > WIP > merge conflict > bors > decision > author; review > delegate.
+        # blocked > WIP > decision > merge conflict > bors > author; review > delegate.
         # We can simply use Python's sorting to find the highest priority label.
         key: dict[LabelKind, int] = {
             LabelKind.Blocked: 10,
             LabelKind.WIP: 9,
-            LabelKind.MergeConflict: 8,
-            LabelKind.Bors: 7,
-            LabelKind.Decision: 6,
+            LabelKind.Decision: 8,
+            LabelKind.MergeConflict: 7,
+            LabelKind.Bors: 6,
             LabelKind.Author: 5,
             LabelKind.Review: 5,
             LabelKind.Delegated: 4,
@@ -227,3 +227,6 @@ def test_determine_status() -> None:
     # One specific sanity check, which fails in the previous implementation.
     check([LabelKind.Blocked, LabelKind.Review], PRStatus.Blocked)
     check([LabelKind.Review, LabelKind.Blocked], PRStatus.Blocked)
+
+
+# test_determine_status()
