@@ -91,8 +91,13 @@ gh api graphql --paginate --slurp -f query="$QUERY_PLEASE_ADOPT" | jq '{"output"
 QUERY_READY=$(prepare_query 'sort:updated-asc is:pr -is:draft state:open -label:WIP')
 gh api graphql --paginate --slurp -f query="$QUERY_READY" | jq '{"output": .}' > all-ready-PRs.json
 
+# Query Github API for all open pull requests which are in draft status
+QUERY_DRAFT=$(prepare_query 'sort:updated-asc is:pr is:draft state:open')
+gh api graphql --paginate --slurp -f query="$QUERY_DRAFT" | jq '{"output": .}' > all-draft-PRs.json
+
 # List of JSON files: their order does not matter for the generated output.
-# NB: we purposefully do not add 'all-ready-PRs' to this list, to avoid making another 200 API calls per run of this script.
+# NB: we purposefully do not add 'all-ready-PRs' or 'all-draft-PRs' to this list,
+# as each PR means an additional API call, and we don't need this specific information here
 json_files=("queue.json" "queue-new-contributor.json" "needs-merge.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "needs-decision.json" "delegated.json" "new-contributor.json" "help-wanted.json" "please-adopt.json")
 
 # Output file
@@ -131,7 +136,7 @@ do
   #   '.[$pr_number] = {additions: $additions, deletions: $deletions, changed_files: $changed_files}' $pr_info > temp.json && mv temp.json $pr_info
 done
 
-python3 ./dashboard.py $pr_info "all-ready-PRs.json" ${json_files[*]} > ./dashboard.html
+python3 ./dashboard.py $pr_info "all-ready-PRs.json" "all-draft-PRs.json" ${json_files[*]} > ./dashboard.html
 
 rm *.json
 

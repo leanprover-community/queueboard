@@ -2,8 +2,9 @@
 
 # This script accepts json files as command line arguments and displays the data in an HTML dashboard
 
-import sys
+from classify_pr_state import CIStatus, PRState, PRStatus, determine_PR_status, label_categorisation_rules
 import json
+import sys
 from datetime import datetime, timezone
 from enum import Enum, auto, unique
 from typing import List, NamedTuple, Tuple
@@ -106,8 +107,8 @@ def getIdTitle(kind : PRList) -> Tuple[str, str]:
 
 def main() -> None:
     # Check if the user has provided the correct number of arguments
-    if len(sys.argv) < 3:
-        print("Usage: python3 dashboard.py <pr-info.json> <all-ready-prs.json> <json_file1> <json_file2> ...")
+    if len(sys.argv) < 4:
+        print("Usage: python3 dashboard.py <pr-info.json> <all-ready-prs.json> <all-draft-PRs.json> <json_file1> <json_file2> ...")
         sys.exit(1)
 
     print_html5_header()
@@ -121,7 +122,7 @@ def main() -> None:
 
     # Iterate over the json files provided by the user
     dataFilesWithKind = []
-    for i in range(3, len(sys.argv)):
+    for i in range(4, len(sys.argv)):
         filename = sys.argv[i]
         if filename not in EXPECTED_INPUT_FILES:
             print(f"bad argument: file {filename} is not recognised; did you mean one of these?\n{', '.join(EXPECTED_INPUT_FILES.keys())}")
@@ -130,19 +131,62 @@ def main() -> None:
             data = json.load(f)
             dataFilesWithKind.append((data, EXPECTED_INPUT_FILES[filename]))
 
-    # Process all data files for the same PR list together.
-    for kind in PRList._member_map_.values():
-        # For these kinds, we create a dashboard later (by filtering the list of all ready PRs instead).
-        if kind in [PRList.Unlabelled, PRList.BadTitle, PRList.ContradictoryLabels]:
-            continue
-        datae = [d for (d, k) in dataFilesWithKind if k == kind]
-        print_dashboard(datae, kind)
+    with open(sys.argv[2]) as ready_file, open(sys.argv[3]) as draft_file:
+        all_ready_prs = json.load(ready_file)
+        all_draft_prs = json.load(draft_file)
+        print(gather_pr_statistics(dataFilesWithKind, all_ready_prs, all_draft_prs))
 
-    with open(sys.argv[2]) as f:
-        all_ready_prs = json.load(f)
+        # Process all data files for the same PR list together.
+        for kind in PRList._member_map_.values():
+            # For these kinds, we create a dashboard later (by filtering the list of all ready PRs instead).
+            if kind in [PRList.Unlabelled, PRList.BadTitle, PRList.ContradictoryLabels]:
+                continue
+            datae = [d for (d, k) in dataFilesWithKind if k == kind]
+            print_dashboard(datae, kind)
+
         print_dashboard_bad_labels_title(all_ready_prs)
 
     print_html5_footer()
+
+
+def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready_prs: dict, all_draft_prs: dict) -> str:
+    def determine_status(info: BasicPRInformation, is_draft: bool) -> PRStatus:
+        # Ignore all "other" labels, which are not relevant for this anyway.
+        labels = [label_categorisation_rules[l.name] for l in info.labels if l in label_categorisation_rules]
+        state = PRState(labels, CIStatus.Pass, is_draft)
+        return determine_PR_status(datetime.now(), state)
+
+    ready_prs : List[BasicPRInformation] = _extract_prs([all_ready_prs])
+    # Collect the status of every ready PR.
+    # FIXME: we assume every PR is passing CI, which is too optimistic
+    # We would like to choose the `BasicPRInformation` as the key; as these are not hashable,
+    # we index by the PR number instead.
+    ready_pr_status : dict[int, PRStatus] = {
+       info.number: determine_status(info, False) for info in ready_prs
+    }
+    draft_prs = _extract_prs([all_draft_prs])
+    queue_prs = _extract_prs([d for (d, k) in dataFilesWithKind if k == PRList.Queue])
+
+    # Collect the number of PRs in each possible status.
+    number_prs : dict[PRStatus, int] = {}
+    statusses = [PRStatus.AwaitingReview, PRStatus.Blocked, PRStatus.AwaitingAuthor, PRStatus.AwaitingDecision, PRStatus.AwaitingBors, PRStatus.MergeConflict, PRStatus.Delegated, PRStatus.Contradictory, PRStatus.NotReady]
+    for status in statusses:
+        number_prs[status] = len([number for number in ready_pr_status if ready_pr_status[number] == status])
+    number_prs[PRStatus.NotReady] += len(draft_prs)
+    # Check that we did not miss any variant above
+    for status in PRStatus._member_map_.values():
+        assert status == PRStatus.Closed or status in number_prs.keys()
+
+    # For some kinds, we have this data already: the review queue and the "not merged" kinds come to mind.
+    # Let us compare with the classification logic.
+    queue_prs_numbers = [pr for pr in ready_pr_status if ready_pr_status[pr] == PRStatus.AwaitingReview]
+    assert queue_prs_numbers == [i.number for i in queue_prs], f"the review queue and the classification differ: found PRs {[i.number for i in queue_prs]} on the former, but {queue_prs_numbers} on the latter!"
+    # TODO: also cross-check the data for merge conflicts
+
+    # TODO: make the printed output more readable: print each status as something nice!
+    details = '\n'.join([f"  <li>{number_prs[s]} are in status {s}</li>" for s in statusses])
+    return f"\n<h2 id=\"statistics\"><a href=\"#statistics\">Overall statistics</a></h2>\nFound {len(ready_prs) + len(draft_prs)} open PRs overall, of which\n<ul>\n{details}\n</ul>\n\n"
+
 
 def print_html5_header() -> None:
     print("""
@@ -193,7 +237,7 @@ def title_link(title, url) -> str:
     return "<a href='{}'>{}</a>".format(url, title)
 
 
-# The information we need about each PR label: name, colour and URL
+# The information we need about each PR label: its name, background colour and URL
 class Label(NamedTuple):
     name : str
     '''This label's background colour, as a six-digit hexadecimal code'''
@@ -254,6 +298,19 @@ class BasicPRInformation(NamedTuple):
     labels : List[Label]
     # Github's answer to "last updated at"
     updatedAt : str
+
+
+# Extract all PRs mentioned in a list of data files.
+def _extract_prs(datae: List[dict]) -> List[BasicPRInformation]:
+    prs = []
+    for data in datae:
+        for page in data["output"]:
+            for entry in page["data"]["search"]["nodes"]:
+                labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
+                prs.append(BasicPRInformation(
+                    entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
+                ))
+    return prs
 
 
 # Print table entries about a sequence of PRs.
@@ -321,20 +378,10 @@ def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRLis
 
 def print_dashboard(datae : List[dict], kind : PRList) -> None:
     '''`datae` is a list of parsed data files to process'''
-
-    # Print all PRs in all the data files.
-    prs_to_show = []
-    for data in datae:
-        for page in data["output"]:
-            for entry in page["data"]["search"]["nodes"]:
-                labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
-                prs_to_show.append(BasicPRInformation(
-                    entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
-                ))
-    # Open the file containing the PR info.
+    # Print all PRs in all the data files. We use the PR info file to provide additional information.
     with open(sys.argv[1], 'r') as f:
         pr_infos = json.load(f)
-        _print_dashboard(pr_infos, prs_to_show, kind, True)
+        _print_dashboard(pr_infos, _extract_prs(datae), kind, True)
 
 
 # Print dashboards of
@@ -343,14 +390,7 @@ def print_dashboard(datae : List[dict], kind : PRList) -> None:
 # - all PRs with contradictory labels
 # among those given in `data`.
 def print_dashboard_bad_labels_title(data : dict) -> None:
-    all_prs = []
-    for page in data["output"]:
-        for entry in page["data"]["search"]["nodes"]:
-            labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
-            all_prs.append(BasicPRInformation(
-                entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
-            ))
-
+    all_prs = _extract_prs([data])
     with_bad_title = [pr for pr in all_prs if not pr.title.startswith(("feat", "chore", "perf", "refactor", "style", "fix", "doc"))]
     # Whether a PR has a "topic" label.
     def has_topic_label(pr: BasicPRInformation) -> bool:
