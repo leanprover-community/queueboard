@@ -92,15 +92,15 @@ def long_description(kind : PRList) -> str:
 
 def getIdTitle(kind : PRList) -> Tuple[str, str]:
     '''Return a tuple (id, title) of the HTML anchor ID and a section name for the table
-    describing this PR kind. The title should not be capitalised.'''
+    describing this PR kind.'''
     return {
-        PRList.Queue : ("queue", "review queue"),
-        PRList.QueueNewContributor : ("queue-new-contributors", "new contributors' PRs on the queue"),
-        PRList.StaleDelegated : ("stale-delegated", "stale delegated"),
-        PRList.StaleNewContributor : ("stale-new-contributor", "stale new contributor"),
-        PRList.StaleMaintainerMerge : ("stale-maintainer-merge", "stale maintainer-merge"),
-        PRList.StaleReadyToMerge : ("stale-ready-to-merge", "stale ready-to-merge"),
-        PRList.NeedsDecision : ("needs-decision", "blocked on a zulip discussion"),
+        PRList.Queue : ("queue", "Review queue"),
+        PRList.QueueNewContributor : ("queue-new-contributors", "New contributors' PRs on the queue"),
+        PRList.StaleDelegated : ("stale-delegated", "Stale delegated PRs"),
+        PRList.StaleNewContributor : ("stale-new-contributor", "Stale new contributor PRs"),
+        PRList.StaleMaintainerMerge : ("stale-maintainer-merge", "Stale maintainer-merge'd PRs"),
+        PRList.StaleReadyToMerge : ("stale-ready-to-merge", "Stale ready-to-merge'd PRs"),
+        PRList.NeedsDecision : ("needs-decision", "PRS blocked on a zulip discussion"),
         PRList.NeedsMerge : ("needs-merge", "PRs with just a merge conflict"),
         PRList.NeedsHelp : ("needs-owner", "PRs looking for help"),
         PRList.Unlabelled : ("unlabelled", "PRs without an area label"),
@@ -365,7 +365,7 @@ def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRLis
     # Title of each list, and the corresponding HTML anchor.
     # Explain what each PR list contains upon hovering the heading.
     (id, title) = getIdTitle(kind)
-    print(f"<h2 id=\"{id}\"><a href=\"#{id}\" title=\"{long_description(kind)}\">{str.capitalize(title)}</a></h2>")
+    print(f"<h2 id=\"{id}\"><a href=\"#{id}\" title=\"{long_description(kind)}\">{title}</a></h2>")
     # If there are no PRs, skip the table header and print a bold notice such as
     # "There are currently **no** stale `delegated` PRs. Congratulations!".
     if not prs:
