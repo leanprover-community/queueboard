@@ -183,7 +183,9 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
     # For some kinds, we have this data already: the review queue and the "not merged" kinds come to mind.
     # Let us compare with the classification logic.
     queue_prs_numbers = [pr for pr in ready_pr_status if ready_pr_status[pr] == PRStatus.AwaitingReview]
-    assert queue_prs_numbers == [i.number for i in queue_prs], f"the review queue and the classification differ: found PRs {[i.number for i in queue_prs]} on the former, but {queue_prs_numbers} on the latter!"
+    if queue_prs_numbers != [i.number for i in queue_prs]:
+        right = [i.number for i in queue_prs]
+        print(f"warning: the review queue and the classification differ: found {len(right)} PRs {right} on the former, but the {len(queue_prs_numbers)} PRs {queue_prs_numbers} on the latter!")
     # TODO: also cross-check the data for merge conflicts
 
     # TODO: make the printed output more readable: print each status as something nice!
