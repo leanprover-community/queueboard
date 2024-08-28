@@ -2,8 +2,8 @@ import sys
 from datetime import datetime
 from typing import List, Tuple
 
-from better_updated import (Event, PRChange, format_delta, last_status_update,
-                            total_queue_time)
+from better_updated import (Event, PRChange, last_status_update, total_queue_time)
+from dashboard import format_delta
 
 
 # input of the form "April 30, 2024 14:07" or "April 30, 2024"
