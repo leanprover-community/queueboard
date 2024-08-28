@@ -1,9 +1,9 @@
-from datetime import datetime, timedelta
-from enum import Enum, auto
-from typing import List, NamedTuple, Tuple
 import sys
+from datetime import datetime
+from typing import List, Tuple
 
-from better_updated import Event, PRChange, total_queue_time
+from better_updated import (Event, PRChange, format_delta, last_status_update,
+                            total_queue_time)
 
 
 # input of the form "April 30, 2024 14:07" or "April 30, 2024"
@@ -14,8 +14,9 @@ def parse_date(rep: str) -> datetime:
     else:
         return datetime.strptime(rep, "%b %d, %Y")
 
+
 # Analyse a hackily scraped PR page to extract the github events.
-# FIXME: this currently only allows daily granularity; perhaps this is good enough
+# FIXME: this currently only provides daily granularity; perhaps this is good enough
 def hacky_scrape(lines: List[str]) -> Tuple[datetime, List[Event]]:
     events = []
     # Assumes this file only contains interesting lines:
@@ -120,13 +121,15 @@ def hacky_scrape(lines: List[str]) -> Tuple[datetime, List[Event]]:
 # Determine a rough estimate how long PR 'number' was awaiting review.
 # Limitations:
 # - assumes this PR is open/does not take closing the PR into account.
-# - assumes CI always passed/ignores this thing
-# - label edits are only processed with a daily granularity; rounding errors may accumulate!
+# - assumes CI always passed/ignores failing CI
+# - label edits are only processed with a daily granularity
 def analyse(number: int) -> None:
     with open(f'interesting-pr-{number}.txt', 'r', encoding='utf-8') as f:
         (created, events) = hacky_scrape(f.readlines())
         total = total_queue_time(created, datetime.now(), events)
-        print(f"PR {number} was in review for overall {total}")
+        updated = last_status_update(created, datetime.now(), events)
+        print(f"PR {number} was in review for overall {total}; was last updated {format_delta(updated)}")
+
 
 if len(sys.argv) < 2:
     print("Usage: python3 scrape.py <pr-number>")
