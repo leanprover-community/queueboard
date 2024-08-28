@@ -64,19 +64,19 @@ def short_description(kind : PRList) -> str:
 
 def long_description(kind : PRList) -> str:
     '''Explain what each PR list contains: full description, for the purposes of a sub-title
-    to the full PR table.'''
+    to the full PR table. This description should not be capitalised.'''
     notupdated = "which have not been updated in the past"
     return {
-        PRList.Queue : "All PRs which are ready for review: CI passes, no merge conflict and not blocked on other PRs",
-        PRList.QueueNewContributor : "All PRs by new contributors which are ready for review",
-        PRList.NeedsMerge : "PRs which have a merge conflict, but otherwise fit the review queue",
-        PRList.StaleDelegated : f"PRs labelled 'delegated' {notupdated} 24 hours",
-        PRList.StaleReadyToMerge : f"PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
-        PRList.StaleMaintainerMerge : f"PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
-        PRList.NeedsHelp : "PRs which are labelled 'please-adopt' or 'help-wanted'",
-        PRList.StaleNewContributor : f"PR labelled 'new-contributor' {notupdated} 7 days",
-        PRList.Unlabelled : "All PRs without draft status or 'WIP' label without a 'CI' or 't-something' label",
-        PRList.BadTitle : "All PRs without draft status or 'WIP' label whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
+        PRList.Queue : "all PRs which are ready for review: CI passes, no merge conflict and not blocked on other PRs",
+        PRList.QueueNewContributor : "all PRs by new contributors which are ready for review",
+        PRList.NeedsMerge : "all PRs which have a merge conflict, but otherwise fit the review queue",
+        PRList.StaleDelegated : f"all PRs labelled 'delegated' {notupdated} 24 hours",
+        PRList.StaleReadyToMerge : f"all PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
+        PRList.StaleMaintainerMerge : f"all PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
+        PRList.NeedsHelp : "all PRs which are labelled 'please-adopt' or 'help-wanted'",
+        PRList.StaleNewContributor : f"all PR labelled 'new-contributor' {notupdated} 7 days",
+        PRList.Unlabelled : "all PRs without draft status or 'WIP' label without a 'CI' or 't-something' label",
+        PRList.BadTitle : "all PRs without draft status or 'WIP' label whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
         PRList.ContradictoryLabels : "PRs whose labels are contradictory, such as 'WIP' and 'ready-to-merge'",
     }[kind]
 
