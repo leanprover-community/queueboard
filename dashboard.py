@@ -185,7 +185,7 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
     queue_prs_numbers = [pr for pr in ready_pr_status if ready_pr_status[pr] == PRStatus.AwaitingReview]
     if queue_prs_numbers != [i.number for i in queue_prs]:
         right = [i.number for i in queue_prs]
-        print(f"warning: the review queue and the classification differ: found {len(right)} PRs {right} on the former, but the {len(queue_prs_numbers)} PRs {queue_prs_numbers} on the latter!")
+        print(f"warning: the review queue and the classification differ: found {len(right)} PRs {right} on the former, but the {len(queue_prs_numbers)} PRs {queue_prs_numbers} on the latter!", file=sys.stderr)
     # TODO: also cross-check the data for merge conflicts
 
     # TODO: make the printed output more readable: print each status as something nice!
