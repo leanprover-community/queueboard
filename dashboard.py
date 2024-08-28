@@ -188,8 +188,19 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
         print(f"warning: the review queue and the classification differ: found {len(right)} PRs {right} on the former, but the {len(queue_prs_numbers)} PRs {queue_prs_numbers} on the latter!", file=sys.stderr)
     # TODO: also cross-check the data for merge conflicts
 
-    # TODO: make the printed output more readable: print each status as something nice!
-    details = '\n'.join([f"  <li>{number_prs[s]} are in status {s}</li>" for s in statusses])
+    instatus = {
+        PRStatus.AwaitingReview: "are awaiting review",
+        PRStatus.AwaitingAuthor: "are awaiting the PR author's action",
+        PRStatus.AwaitingDecision: "are awaiting the outcome of a zulip discussion",
+        PRStatus.Blocked: "are blocked on another PR",
+        PRStatus.Delegated: "are delegated",
+        PRStatus.AwaitingBors: "are sent to bors",
+        PRStatus.MergeConflict: "have a merge conflict, but are otherwise ready for review",
+        PRStatus.Contradictory: "have contradictory labels",
+        PRStatus.NotReady: "are marked as draft or work in progress",
+    }
+    assert set(instatus.keys()) == set(statusses)
+    details = '\n'.join([f"  <li>{number_prs[s]} {instatus[s]}</li>" for s in statusses])
     return f"\n<h2 id=\"statistics\"><a href=\"#statistics\">Overall statistics</a></h2>\nFound {len(ready_prs) + len(draft_prs)} open PRs overall, of which\n<ul>\n{details}\n</ul>\n\n"
 
 
