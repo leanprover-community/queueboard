@@ -67,6 +67,10 @@ gh api graphql --paginate --slurp -f query="$QUERY_AUTOMERGE" | jq '{"output": .
 QUERY_MAINTAINERMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:maintainer-merge -label:ready-to-merge updated:<$yesterday")
 gh api graphql --paginate --slurp -f query="$QUERY_MAINTAINERMERGE" | jq '{"output": .}' > maintainer-merge.json
 
+# Query Github API for all ready pull requests that are labeled `awaiting-zulip`.
+QUERY_NEEDS_DECISION=$(prepare_query "sort:updated-asc is:pr -is:draft state:open label:awaiting-zulip")
+gh api graphql --paginate --slurp -f query="$QUERY_NEEDS_DECISION" | jq '{"output": .}' > needs-decision.json
+
 # Query Github API for all pull requests that are labeled `delegated` and have not been updated in 24 hours.
 QUERY_DELEGATED=$(prepare_query "sort:updated-asc is:pr state:open label:delegated updated:<$yesterday")
 gh api graphql --paginate --slurp -f query="$QUERY_DELEGATED" | jq '{"output": .}' > delegated.json
@@ -89,7 +93,7 @@ gh api graphql --paginate --slurp -f query="$QUERY_READY" | jq '{"output": .}' >
 
 # List of JSON files: their order does not matter for the generated output.
 # NB: we purposefully do not add 'all-ready-PRs' to this list, to avoid making another 200 API calls per run of this script.
-json_files=("queue.json" "queue-new-contributor.json" "needs-merge.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "delegated.json" "new-contributor.json" "help-wanted.json" "please-adopt.json")
+json_files=("queue.json" "queue-new-contributor.json" "needs-merge.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "needs-decision.json" "delegated.json" "new-contributor.json" "help-wanted.json" "please-adopt.json")
 
 # Output file
 pr_info="pr-info.json"
