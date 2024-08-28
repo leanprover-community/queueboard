@@ -121,7 +121,7 @@ def main() -> None:
     for kind in PRList._member_map_.values():
         (id, _title) = getIdTitle(kind)
         links.append(f"<a href=\"#{id}\" title=\"{short_description(kind)}\">{id}</a>")
-    print(f"<br><p>\n<b>Quick links:</b> <a href=\"#statistics\">Statistics</a> | {str.join(' | ', links)}</p>")
+    print(f"<br><p>\n<b>Quick links:</b> <a href=\"#statistics\">PR statistics</a> | {str.join(' | ', links)}</p>")
 
     # Iterate over the json files provided by the user
     dataFilesWithKind = []
