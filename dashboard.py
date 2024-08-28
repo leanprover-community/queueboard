@@ -319,22 +319,25 @@ def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRLis
     print("</table>")
 
 
-def print_dashboard(datae : List[dict], kind : PRList) -> None:
-    '''`datae` is a list of parsed data files to process'''
-
-    # Print all PRs in all the data files.
-    prs_to_show = []
+# Extract all PRs mentioned in a list of data files.
+def _extract_prs(datae: List[dict]) -> List[BasicPRInformation]:
+    prs = []
     for data in datae:
         for page in data["output"]:
             for entry in page["data"]["search"]["nodes"]:
                 labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
-                prs_to_show.append(BasicPRInformation(
+                prs.append(BasicPRInformation(
                     entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
                 ))
-    # Open the file containing the PR info.
+    return prs
+
+
+def print_dashboard(datae : List[dict], kind : PRList) -> None:
+    '''`datae` is a list of parsed data files to process'''
+    # Print all PRs in all the data files. We use the PR info file to provide additional information.
     with open(sys.argv[1], 'r') as f:
         pr_infos = json.load(f)
-        _print_dashboard(pr_infos, prs_to_show, kind, True)
+        _print_dashboard(pr_infos, _extract_prs(datae), kind, True)
 
 
 # Print dashboards of
@@ -343,14 +346,7 @@ def print_dashboard(datae : List[dict], kind : PRList) -> None:
 # - all PRs with contradictory labels
 # among those given in `data`.
 def print_dashboard_bad_labels_title(data : dict) -> None:
-    all_prs = []
-    for page in data["output"]:
-        for entry in page["data"]["search"]["nodes"]:
-            labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
-            all_prs.append(BasicPRInformation(
-                entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
-            ))
-
+    all_prs = _extract_prs([data])
     with_bad_title = [pr for pr in all_prs if not pr.title.startswith(("feat", "chore", "perf", "refactor", "style", "fix", "doc"))]
     # Whether a PR has a "topic" label.
     def has_topic_label(pr: BasicPRInformation) -> bool:
