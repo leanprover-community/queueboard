@@ -34,14 +34,15 @@ This algorithm is just a skeleton: it contains the *analysis* of the given input
 but does not parse the input data from any other input. (That is a second step.)
 """
 
-from classify_pr_state import (LabelKind, CIStatus, PRState, PRStatus,
-                               determine_PR_status, label_categorisation_rules, label_to_prstatus)
-
 from datetime import datetime
 from enum import Enum, auto
 from typing import List, NamedTuple, Tuple
 
 from dateutil.relativedelta import relativedelta
+
+from classify_pr_state import (CIStatus, LabelKind, PRState, PRStatus,
+                               determine_PR_status, label_categorisation_rules,
+                               label_to_prstatus)
 
 
 # Something changed on a PR which we care about:
