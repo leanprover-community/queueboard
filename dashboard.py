@@ -2,8 +2,9 @@
 
 # This script accepts json files as command line arguments and displays the data in an HTML dashboard
 
-import sys
+from classify_pr_state import CIStatus, PRState, PRStatus, determine_PR_status, label_categorisation_rules
 import json
+import sys
 from datetime import datetime, timezone
 from enum import Enum, auto, unique
 from typing import List, NamedTuple, Tuple
@@ -133,7 +134,7 @@ def main() -> None:
     with open(sys.argv[2]) as ready_file, open(sys.argv[3]) as draft_file:
         all_ready_prs = json.load(ready_file)
         all_draft_prs = json.load(draft_file)
-        gather_pr_statistics(dataFilesWithKind, all_ready_prs, all_draft_prs)
+        print(gather_pr_statistics(dataFilesWithKind, all_ready_prs, all_draft_prs))
 
         # Process all data files for the same PR list together.
         for kind in PRList._member_map_.values():
@@ -149,7 +150,43 @@ def main() -> None:
 
 
 def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready_prs: dict, all_draft_prs: dict) -> str:
-    pass  # TODO
+    def determine_status(info: BasicPRInformation, is_draft: bool) -> PRStatus:
+        # Ignore all "other" labels, which are not relevant for this anyway.
+        labels = [label_categorisation_rules[l.name] for l in info.labels if l in label_categorisation_rules]
+        state = PRState(labels, CIStatus.Pass, is_draft)
+        return determine_PR_status(datetime.now(), state)
+
+    ready_prs : List[BasicPRInformation] = _extract_prs([all_ready_prs])
+    # Collect the status of every ready PR.
+    # FIXME: we assume every PR is passing CI, which is too optimistic
+    # We would like to choose the `BasicPRInformation` as the key; as these are not hashable,
+    # we index by the PR number instead.
+    ready_pr_status : dict[int, PRStatus] = {
+       info.number: determine_status(info, False) for info in ready_prs
+    }
+    draft_prs = _extract_prs([all_draft_prs])
+    queue_prs = _extract_prs([d for (d, k) in dataFilesWithKind if k == PRList.Queue])
+
+    # Collect the number of PRs in each possible status.
+    number_prs : dict[PRStatus, int] = {}
+    statusses = [PRStatus.AwaitingReview, PRStatus.Blocked, PRStatus.AwaitingAuthor, PRStatus.AwaitingDecision, PRStatus.AwaitingBors, PRStatus.MergeConflict, PRStatus.Delegated, PRStatus.Contradictory, PRStatus.NotReady]
+    for status in statusses:
+        number_prs[status] = len([number for number in ready_pr_status if ready_pr_status[number] == status])
+    number_prs[PRStatus.NotReady] += len(draft_prs)
+    # Check that we did not miss any variant above
+    for status in PRStatus._member_map_.values():
+        assert status == PRStatus.Closed or status in number_prs.keys()
+
+    # For some kinds, we have this data already: the review queue and the "not merged" kinds come to mind.
+    # Let us compare with the classification logic.
+    queue_prs_numbers = [pr for pr in ready_pr_status if ready_pr_status[pr] == PRStatus.AwaitingReview]
+    assert queue_prs_numbers == [i.number for i in queue_prs], f"the review queue and the classification differ: found PRs {[i.number for i in queue_prs]} on the former, but {queue_prs_numbers} on the latter!"
+    # TODO: also cross-check the data for merge conflicts
+
+    # TODO: make the printed output more readable: print each status as something nice!
+    details = '\n'.join([f"  <li>{number_prs[s]} are in status {s}</li>" for s in statusses])
+    return f"\n<h2 id=\"statistics\"><a href=\"#statistics\">Overall statistics</a></h2>\nFound {len(ready_prs) + len(draft_prs)} open PRs overall, of which\n<ul>\n{details}\n</ul>\n\n"
+
 
 def print_html5_header() -> None:
     print("""
