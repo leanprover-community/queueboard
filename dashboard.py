@@ -368,9 +368,9 @@ def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRLis
     <th>Author</th>
     <th>Title</th>
     <th>Labels</th>
-    <th>+/-</th>
-    <th>&#128221;</th>
-    <th>&#128172;</th>
+    <th><a title="number of added/deleted lines">+/-</a></th>
+    <th><a title="number of files modified">&#128221;</a></th>
+    <th><a title="number of review comments on this PR">&#128172;</a></th>
     <th>Updated</th>
     </tr>
     </thead>""")
