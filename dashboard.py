@@ -200,8 +200,9 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
         PRStatus.NotReady: "are marked as draft or work in progress",
     }
     assert set(instatus.keys()) == set(statusses)
-    details = '\n'.join([f"  <li>{number_prs[s]} {instatus[s]}</li>" for s in statusses])
-    return f"\n<h2 id=\"statistics\"><a href=\"#statistics\">Overall statistics</a></h2>\nFound {len(ready_prs) + len(draft_prs)} open PRs overall, of which\n<ul>\n{details}\n</ul>\n\n"
+    number_all = len(ready_prs) + len(draft_prs)
+    details = '\n'.join([f"  <li><b>{number_prs[s]} ({number_prs[s]/number_all:.1%})</b> {instatus[s]}</li>" for s in statusses])
+    return f"\n<h2 id=\"statistics\"><a href=\"#statistics\">Overall statistics</a></h2>\nFound <b>{number_all}</b> open PRs overall. Disregarding their CI state, of these PRs\n<ul>\n{details}\n</ul>\n\n"
 
 
 def print_html5_header() -> None:
