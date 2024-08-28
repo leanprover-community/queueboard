@@ -195,13 +195,14 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
         PRStatus.AwaitingDecision: "are awaiting the outcome of a zulip discussion",
         PRStatus.Blocked: "are blocked on another PR",
         PRStatus.Delegated: "are delegated",
-        PRStatus.AwaitingBors: "are sent to bors",
+        PRStatus.AwaitingBors: "have been sent to bors",
         PRStatus.MergeConflict: "have a merge conflict*",
         PRStatus.Contradictory: "have contradictory labels",
         PRStatus.NotReady: "are marked as draft or work in progress",
     }
     assert set(instatus.keys()) == set(statusses)
-    footnote = f"* (among these, {len(justmerge_prs)} PRs would be ready for review otherwise)"
+    footnote = f"* (among these, <b>{len(justmerge_prs)}</b> PRs would be ready for review otherwise)"
+
     number_all = len(ready_prs) + len(draft_prs)
     details = '\n'.join([f"  <li><b>{number_prs[s]} ({number_prs[s]/number_all:.1%})</b> {instatus[s]}</li>" for s in statusses])
     return f"\n<h2 id=\"statistics\"><a href=\"#statistics\">Overall statistics</a></h2>\nFound <b>{number_all}</b> open PRs overall. Disregarding their CI state, of these PRs\n<ul>\n{details}\n</ul>\n{footnote}\n"
