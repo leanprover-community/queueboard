@@ -144,6 +144,7 @@ def main() -> None:
 
     print_html5_footer()
 
+
 def print_html5_header() -> None:
     print("""
     <!DOCTYPE html>
@@ -193,7 +194,7 @@ def title_link(title, url) -> str:
     return "<a href='{}'>{}</a>".format(url, title)
 
 
-# The information we need about each PR label: name, colour and URL
+# The information we need about each PR label: its name, background colour and URL
 class Label(NamedTuple):
     name : str
     '''This label's background colour, as a six-digit hexadecimal code'''
@@ -254,6 +255,19 @@ class BasicPRInformation(NamedTuple):
     labels : List[Label]
     # Github's answer to "last updated at"
     updatedAt : str
+
+
+# Extract all PRs mentioned in a list of data files.
+def _extract_prs(datae: List[dict]) -> List[BasicPRInformation]:
+    prs = []
+    for data in datae:
+        for page in data["output"]:
+            for entry in page["data"]["search"]["nodes"]:
+                labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
+                prs.append(BasicPRInformation(
+                    entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
+                ))
+    return prs
 
 
 # Print table entries about a sequence of PRs.
@@ -317,19 +331,6 @@ def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRLis
 
     # Print the footer
     print("</table>")
-
-
-# Extract all PRs mentioned in a list of data files.
-def _extract_prs(datae: List[dict]) -> List[BasicPRInformation]:
-    prs = []
-    for data in datae:
-        for page in data["output"]:
-            for entry in page["data"]["search"]["nodes"]:
-                labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
-                prs.append(BasicPRInformation(
-                    entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
-                ))
-    return prs
 
 
 def print_dashboard(datae : List[dict], kind : PRList) -> None:
