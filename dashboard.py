@@ -106,8 +106,8 @@ def getIdTitle(kind : PRList) -> Tuple[str, str]:
 
 def main() -> None:
     # Check if the user has provided the correct number of arguments
-    if len(sys.argv) < 3:
-        print("Usage: python3 dashboard.py <pr-info.json> <all-ready-prs.json> <json_file1> <json_file2> ...")
+    if len(sys.argv) < 4:
+        print("Usage: python3 dashboard.py <pr-info.json> <all-ready-prs.json> <all-draft-PRs.json> <json_file1> <json_file2> ...")
         sys.exit(1)
 
     print_html5_header()
@@ -121,7 +121,7 @@ def main() -> None:
 
     # Iterate over the json files provided by the user
     dataFilesWithKind = []
-    for i in range(3, len(sys.argv)):
+    for i in range(4, len(sys.argv)):
         filename = sys.argv[i]
         if filename not in EXPECTED_INPUT_FILES:
             print(f"bad argument: file {filename} is not recognised; did you mean one of these?\n{', '.join(EXPECTED_INPUT_FILES.keys())}")
