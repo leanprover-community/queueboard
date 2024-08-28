@@ -128,7 +128,9 @@ def analyse(number: int) -> None:
         (created, events) = hacky_scrape(f.readlines())
         total = total_queue_time(created, datetime.now(), events)
         updated = last_status_update(created, datetime.now(), events)
-        print(f"PR {number} was in review for overall {total}; was last updated {format_delta(updated)}")
+        totalstr = format_delta(total).replace(" ago", "")
+        print(total)
+        print(f"PR {number} was in review for overall {totalstr}; was last updated {format_delta(updated)} ago")
 
 
 if len(sys.argv) < 2:
