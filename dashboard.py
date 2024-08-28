@@ -365,7 +365,7 @@ def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRLis
     # Title of each list, and the corresponding HTML anchor.
     # Explain what each PR list contains upon hovering the heading.
     (id, title) = getIdTitle(kind)
-    print(f"<h1 id=\"{id}\"><a href=\"#{id}\" title=\"{long_description(kind)}\">{str.capitalize(title)}</a></h1>")
+    print(f"<h2 id=\"{id}\"><a href=\"#{id}\" title=\"{long_description(kind)}\">{str.capitalize(title)}</a></h2>")
     # If there are no PRs, skip the table header and print a bold notice such as
     # "There are currently **no** stale `delegated` PRs. Congratulations!".
     if not prs:
