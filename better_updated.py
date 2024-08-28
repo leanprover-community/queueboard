@@ -37,9 +37,11 @@ but does not parse the input data from any other input. (That is a second step.)
 from classify_pr_state import (LabelKind, CIStatus, PRState, PRStatus,
                                determine_PR_status, label_categorisation_rules, label_to_prstatus)
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum, auto
 from typing import List, NamedTuple, Tuple
+
+from dateutil.relativedelta import relativedelta
 
 
 # Something changed on a PR which we care about:
@@ -191,10 +193,10 @@ def determine_status_changes(
 ########### Overall computation #########
 
 
-def total_time_in_status(creation_time: datetime, now: datetime, events: List[Event], status: PRStatus) -> timedelta:
+def total_time_in_status(creation_time: datetime, now: datetime, events: List[Event], status: PRStatus) -> relativedelta:
     '''Determine the total amount of time this PR was in a given status,
     from its creation to the current time.'''
-    total = timedelta(0)
+    total = relativedelta(days=0)
     evolution_status = determine_status_changes(creation_time, events)
     # The PR creation should be the first event in `evolution_status`.
     assert len(evolution_status) == len(events) + 1
@@ -214,22 +216,21 @@ def total_time_in_status(creation_time: datetime, now: datetime, events: List[Ev
 # FUTURE ideas for tweaking this reporting:
 #  - ignore short intervals of merge conflicts, say less than a day?
 #  - ignore short intervals of CI running (if successful before and after)?
-def total_queue_time(creation_time: datetime, now: datetime, events: List[Event]) -> timedelta:
+def total_queue_time(creation_time: datetime, now: datetime, events: List[Event]) -> relativedelta:
     return total_time_in_status(creation_time, now, events, PRStatus.AwaitingReview)
 
 
 # FUTURE: this could be exposed to the dashboard using the following API
-# better_updated_at(number: int, data) -> timedelta
+# better_updated_at(number: int, data) -> relativedelta
 # return the total time since this PR's last status change
-def last_status_update(creation_time: datetime, now: datetime, events: List[Event]) -> timedelta:
+def last_status_update(creation_time: datetime, now: datetime, events: List[Event]) -> relativedelta:
     '''Compute the total time since this PR's state changed last.'''
     # FUTURE: should this ignore short-lived merge conflicts? for now, it does not
     evolution_status = determine_status_changes(creation_time, events)
     # The PR creation should be the first event in `evolution_status`.
     assert len(evolution_status) == len(events) + 1
     last : datetime = evolution_status[-1][0]
-    return now - last
-
+    return relativedelta(last, now)
 
 
 # UX for the generated dashboards: expose both total time and current time in the current state
@@ -361,44 +362,44 @@ def test_determine_status() -> None:
 
 
 def smoketest() -> None:
-    def check_basic(created: datetime, now:datetime, events: List[Event], expected: timedelta) -> None:
+    def check_basic(created: datetime, now:datetime, events: List[Event], expected: relativedelta) -> None:
         wait = total_queue_time(created, now, events)
         assert wait == expected, f"basic test failed: expected total time of {expected} in review, obtained {wait} instead"
 
     # these pass and behave well
-    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR')], timedelta(days=0))
-    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.add_label(sep(6), 'merge-conflict')], timedelta(days=0))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR')], relativedelta(days=0))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.add_label(sep(6), 'merge-conflict')], relativedelta(days=0))
 
     # adding and removing a label yields a BUG: all intermediate lists of labels are empty
     # fixed now, wohoo!
-    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.remove_label(sep(6), "blocked-by-other-PR")], timedelta(days=4))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.remove_label(sep(6), "blocked-by-other-PR")], relativedelta(days=4))
     # the add_label afterwards was and is fine
-    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.remove_label(sep(6), "blocked-by-other-PR"), Event.add_label(sep(8), "WIP")], timedelta(days=2))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.remove_label(sep(6), "blocked-by-other-PR"), Event.add_label(sep(8), "WIP")], relativedelta(days=2))
 
     # trying a variant
-    check_basic(sep(1), sep(20), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.remove_label(sep(8), 'blocked-by-other-PR'), Event.add_label(sep(10), 'WIP')], timedelta(days=2))
+    check_basic(sep(1), sep(20), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.remove_label(sep(8), 'blocked-by-other-PR'), Event.add_label(sep(10), 'WIP')], relativedelta(days=2))
     # current failure, minimized
-    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.remove_label(sep(8), 'blocked-by-other-PR')], timedelta(days=2))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.remove_label(sep(8), 'blocked-by-other-PR')], relativedelta(days=2))
 
     # Doing nothing in April: not ready for review. In September, it is!
-    check_basic(april(1), april(3), [], timedelta(days=0))
-    check_basic(sep(1), sep(3), [], timedelta(days=2))
+    check_basic(april(1), april(3), [], relativedelta(days=0))
+    check_basic(sep(1), sep(3), [], relativedelta(days=2))
     # Applying an irrelevant label.
-    check_basic(sep(1), sep(5), [Event.add_label(sep(1), "CI")], timedelta(days=4))
+    check_basic(sep(1), sep(5), [Event.add_label(sep(1), "CI")], relativedelta(days=4))
     # Removing it again.
     check_basic(
         sep(1), sep(12),
         [Event.add_label(sep(1), "CI"), Event.remove_label(sep(3), "CI")],
-        timedelta(days=11),
+        relativedelta(days=11),
     )
 
     # After September 8th, this PR is in WIP status -> only seven days in review.
-    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'CI'), Event.remove_label(sep(3), 'CI'), Event.add_label(sep(8), 'WIP')], timedelta(days=7))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'CI'), Event.remove_label(sep(3), 'CI'), Event.add_label(sep(8), 'WIP')], relativedelta(days=7))
 
     # A PR getting blocked.
-    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.add_label(sep(8), 'easy')], timedelta(days=0))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.add_label(sep(8), 'easy')], relativedelta(days=0))
     # A PR getting unblocked again.
-    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.remove_label(sep(8), 'blocked-by-other-PR')], timedelta(days=2))
+    check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR'), Event.remove_label(sep(8), 'blocked-by-other-PR')], relativedelta(days=2))
 
     # xxx Applying two irrelevant labels.
     # then removing one...
