@@ -41,8 +41,6 @@ from datetime import datetime, timedelta
 from enum import Enum, auto
 from typing import List, NamedTuple, Tuple
 
-############# PR state: the relevant pieces of PR state we care about #########
-
 
 # Something changed on a PR which we care about:
 # - a new label got added or removed
@@ -176,9 +174,6 @@ def determine_state_changes(
     return result
 
 
-######## PR status: determine a PR's status from its current state #######
-
-
 # Determine the evolution of this PR's status over time.
 # Return a list of pairs (timestamp, s), where this PR moved into status *s* at time *timestamp*.
 # The first item corresponds to the PR's creation.
@@ -193,7 +188,7 @@ def determine_status_changes(
     return res
 
 
-########### Final summing up #########
+########### Overall computation #########
 
 
 def total_time_in_status(creation_time: datetime, now: datetime, events: List[Event], status: PRStatus) -> timedelta:
