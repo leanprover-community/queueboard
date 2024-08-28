@@ -2,7 +2,6 @@
 
 # This script accepts json files as command line arguments and displays the data in an HTML dashboard
 
-from classify_pr_state import CIStatus, PRState, PRStatus, determine_PR_status, label_categorisation_rules
 import json
 import sys
 from datetime import datetime, timezone
@@ -10,6 +9,10 @@ from enum import Enum, auto, unique
 from typing import List, NamedTuple, Tuple
 
 from dateutil.relativedelta import relativedelta
+
+from classify_pr_state import (CIStatus, PRState, PRStatus,
+                               determine_PR_status, label_categorisation_rules)
+
 
 @unique
 class PRList(Enum):
@@ -152,7 +155,7 @@ def main() -> None:
 def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready_prs: dict, all_draft_prs: dict) -> str:
     def determine_status(info: BasicPRInformation, is_draft: bool) -> PRStatus:
         # Ignore all "other" labels, which are not relevant for this anyway.
-        labels = [label_categorisation_rules[l.name] for l in info.labels if l in label_categorisation_rules]
+        labels = [label_categorisation_rules[l.name] for l in info.labels if l.name in label_categorisation_rules]
         state = PRState(labels, CIStatus.Pass, is_draft)
         return determine_PR_status(datetime.now(), state)
 
@@ -168,10 +171,10 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
     queue_prs = _extract_prs([d for (d, k) in dataFilesWithKind if k == PRList.Queue])
 
     # Collect the number of PRs in each possible status.
-    number_prs : dict[PRStatus, int] = {}
     statusses = [PRStatus.AwaitingReview, PRStatus.Blocked, PRStatus.AwaitingAuthor, PRStatus.AwaitingDecision, PRStatus.AwaitingBors, PRStatus.MergeConflict, PRStatus.Delegated, PRStatus.Contradictory, PRStatus.NotReady]
-    for status in statusses:
-        number_prs[status] = len([number for number in ready_pr_status if ready_pr_status[number] == status])
+    number_prs : dict[PRStatus, int] = {
+        status : len([number for number in ready_pr_status if ready_pr_status[number] == status]) for status in statusses
+    }
     number_prs[PRStatus.NotReady] += len(draft_prs)
     # Check that we did not miss any variant above
     for status in PRStatus._member_map_.values():
@@ -223,17 +226,17 @@ def print_html5_footer() -> None:
     """)
 
 # An HTML link to a mathlib PR from the PR number
-def pr_link(number, url) -> str:
+def pr_link(number: int, url: str) -> str:
     return "<a href='{}'>#{}</a>".format(url, number)
 
 # An HTML link to a GitHub user profile
-def user_link(author) -> str:
+def user_link(author: dict) -> str:
     login = author["login"]
     url   = author["url"]
     return "<a href='{}'>{}</a>".format(url, login)
 
 # An HTML link to a mathlib PR from the PR title
-def title_link(title, url) -> str:
+def title_link(title: str, url: str) -> str:
     return "<a href='{}'>{}</a>".format(url, title)
 
 
@@ -292,7 +295,7 @@ def time_info(updatedAt: str) -> str:
 # Basic information about a PR: does not contain the diff size, which is contained in pr_info.json instead.
 class BasicPRInformation(NamedTuple):
     number : int # PR number, non-negative
-    author : str
+    author : dict
     title : str
     url : str
     labels : List[Label]
@@ -356,7 +359,7 @@ def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: PRLis
         print(f'There are currently <b>no</b> {short_description(kind)}. Congratulations!\n')
         return
 
-    print(f"""<table>
+    print("""<table>
     <thead>
     <tr>
     <th>Number</th>
