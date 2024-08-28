@@ -87,11 +87,11 @@ gh api graphql --paginate --slurp -f query="$QUERY_HELP_WANTED" |	jq '{"output":
 QUERY_PLEASE_ADOPT=$(prepare_query "sort:updated-asc is:pr state:open label:please-adopt")
 gh api graphql --paginate --slurp -f query="$QUERY_PLEASE_ADOPT" | jq '{"output": .}' > please-adopt.json
 
-# Query Github API for all open pull requests which are ready (without a WIP label or draft status).
-QUERY_READY=$(prepare_query 'sort:updated-asc is:pr -is:draft state:open -label:WIP')
-gh api graphql --paginate --slurp -f query="$QUERY_READY" | jq '{"output": .}' > all-ready-PRs.json
+# Query Github API for all open pull requests which are marked as ready for review
+QUERY_NONDRAFT=$(prepare_query 'sort:updated-asc is:pr -is:draft state:open')
+gh api graphql --paginate --slurp -f query="$QUERY_NONDRAFT" | jq '{"output": .}' > all-ready-PRs.json
 
-# Query Github API for all open pull requests which are in draft status
+# Query Github API for all open pull requests which are in draft stage
 QUERY_DRAFT=$(prepare_query 'sort:updated-asc is:pr is:draft state:open')
 gh api graphql --paginate --slurp -f query="$QUERY_DRAFT" | jq '{"output": .}' > all-draft-PRs.json
 
