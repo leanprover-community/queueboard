@@ -130,20 +130,26 @@ def main() -> None:
             data = json.load(f)
             dataFilesWithKind.append((data, EXPECTED_INPUT_FILES[filename]))
 
-    # Process all data files for the same PR list together.
-    for kind in PRList._member_map_.values():
-        # For these kinds, we create a dashboard later (by filtering the list of all ready PRs instead).
-        if kind in [PRList.Unlabelled, PRList.BadTitle, PRList.ContradictoryLabels]:
-            continue
-        datae = [d for (d, k) in dataFilesWithKind if k == kind]
-        print_dashboard(datae, kind)
+    with open(sys.argv[2]) as ready_file, open(sys.argv[3]) as draft_file:
+        all_ready_prs = json.load(ready_file)
+        all_draft_prs = json.load(draft_file)
+        gather_pr_statistics(dataFilesWithKind, all_ready_prs, all_draft_prs)
 
-    with open(sys.argv[2]) as f:
-        all_ready_prs = json.load(f)
+        # Process all data files for the same PR list together.
+        for kind in PRList._member_map_.values():
+            # For these kinds, we create a dashboard later (by filtering the list of all ready PRs instead).
+            if kind in [PRList.Unlabelled, PRList.BadTitle, PRList.ContradictoryLabels]:
+                continue
+            datae = [d for (d, k) in dataFilesWithKind if k == kind]
+            print_dashboard(datae, kind)
+
         print_dashboard_bad_labels_title(all_ready_prs)
 
     print_html5_footer()
 
+
+def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready_prs: dict, all_draft_prs: dict) -> str:
+    pass  # TODO
 
 def print_html5_header() -> None:
     print("""
