@@ -172,7 +172,7 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
     justmerge_prs = _extract_prs([d for (d, k) in dataFilesWithKind if k == PRList.NeedsMerge])
 
     # Collect the number of PRs in each possible status.
-    statusses = [PRStatus.AwaitingReview, PRStatus.Blocked, PRStatus.AwaitingAuthor, PRStatus.AwaitingDecision, PRStatus.AwaitingBors, PRStatus.MergeConflict, PRStatus.Delegated, PRStatus.Contradictory, PRStatus.NotReady]
+    statusses = [PRStatus.AwaitingReview, PRStatus.Blocked, PRStatus.HelpWanted, PRStatus.AwaitingAuthor, PRStatus.AwaitingDecision, PRStatus.AwaitingBors, PRStatus.MergeConflict, PRStatus.Delegated, PRStatus.Contradictory, PRStatus.NotReady]
     number_prs : dict[PRStatus, int] = {
         status : len([number for number in ready_pr_status if ready_pr_status[number] == status]) for status in statusses
     }
@@ -191,6 +191,7 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
 
     instatus = {
         PRStatus.AwaitingReview: "are awaiting review",
+        PRStatus.HelpWanted: "are labelled help-wanted or please-adopt",
         PRStatus.AwaitingAuthor: "are awaiting the PR author's action",
         PRStatus.AwaitingDecision: "are awaiting the outcome of a zulip discussion",
         PRStatus.Blocked: "are blocked on another PR",

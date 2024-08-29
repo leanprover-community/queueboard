@@ -10,6 +10,7 @@ class LabelKind(Enum):
     WIP = auto()  # WIP
     Review = auto()
     """This PR is ready for review: this label is only added for historical purposes, as mathlib does not use this label any more"""
+    HelpWanted = auto()  # this PR is labelled help-wanted or please-adopt
     Author = auto()  # awaiting-author
     MergeConflict = auto()  # merge-conflict
     Blocked = auto()  # blocked-by-other-PR, etc.
@@ -39,6 +40,8 @@ label_categorisation_rules: dict[str, LabelKind] = {
     "delegated": LabelKind.Delegated,
     "ready-to-merge": LabelKind.Bors,
     "auto-merge-after-CI": LabelKind.Bors,
+    "help-wanted": LabelKind.HelpWanted,
+    "please-adopt": LabelKind.HelpWanted,
 }
 
 
@@ -69,6 +72,9 @@ class PRStatus(Enum):
     # This PR is blocked on another PR, to mathlib, core or batteries.
     Blocked = auto()
     AwaitingReview = auto()
+    # This PR is labelled help-wanted or please-adopt: it needs some help
+    # to be moved along (not just the author finding enough time).
+    HelpWanted = auto()
     # Review comments to process: different from "not ready"
     AwaitingAuthor = auto()
     # This PR is blocked on a decision: the awaiting-zulip label signifies this.
@@ -91,6 +97,7 @@ def label_to_prstatus(label: LabelKind) -> PRStatus:
     return {
         LabelKind.WIP: PRStatus.NotReady,
         LabelKind.Review: PRStatus.AwaitingReview,
+        LabelKind.HelpWanted: PRStatus.HelpWanted,
         LabelKind.Author: PRStatus.AwaitingAuthor,
         LabelKind.Blocked: PRStatus.Blocked,
         LabelKind.MergeConflict: PRStatus.MergeConflict,
@@ -128,27 +135,27 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
         # awaiting-decision is exclusive with any of waiting on review, author, delegation and sent to bors.
         if LabelKind.Decision in labels and any([l for l in labels if
                 l in [LabelKind.Author, LabelKind.Review, LabelKind.Delegated, LabelKind.Bors, LabelKind.WIP]]):
-            #print(f"contradictory label kinds: {labels}")
             return PRStatus.Contradictory
         # Work in progress contradicts "awaiting review" and "ready for bors".
         if LabelKind.WIP in labels and any([l for l in labels if l in [LabelKind.Review, LabelKind.Bors]]):
-            #print(f"contradictory label kinds: {labels}")
             return PRStatus.Contradictory
         # Waiting for the author and review is also contradictory,
         if LabelKind.Author in labels and LabelKind.Review in labels:
-            #print(f"contradictory label kinds: {labels}")
             return PRStatus.Contradictory
-        # as is being ready-for-merge and blocked.
+        # as is being ready for merge and blocked
         if LabelKind.Bors in labels and LabelKind.Blocked in labels:
-            #print(f"contradictory label kinds: {labels}")
+            return PRStatus.Contradictory
+        # or being ready for merge and looking for help.
+        if LabelKind.Bors in labels and LabelKind.HelpWanted in labels:
             return PRStatus.Contradictory
 
         # If the set of labels is not contradictory, we use a clear priority order:
         # from highest to lowest priority, the label kinds are ordered as
-        # blocked > WIP > decision > merge conflict > bors > author; review > delegate.
+        # blocked > help wanted > WIP > decision > merge conflict > bors > author; review > delegate.
         # We can simply use Python's sorting to find the highest priority label.
         key: dict[LabelKind, int] = {
-            LabelKind.Blocked: 10,
+            LabelKind.Blocked: 11,
+            LabelKind.HelpWanted: 10,
             LabelKind.WIP: 9,
             LabelKind.Decision: 8,
             LabelKind.MergeConflict: 7,
