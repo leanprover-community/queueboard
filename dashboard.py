@@ -172,7 +172,14 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
     justmerge_prs = _extract_prs([d for (d, k) in dataFilesWithKind if k == PRList.NeedsMerge])
 
     # Collect the number of PRs in each possible status.
-    statusses = [PRStatus.AwaitingReview, PRStatus.Blocked, PRStatus.HelpWanted, PRStatus.AwaitingAuthor, PRStatus.AwaitingDecision, PRStatus.AwaitingBors, PRStatus.MergeConflict, PRStatus.Delegated, PRStatus.Contradictory, PRStatus.NotReady]
+    # NB. The order of these statusses is meaningful; the statistics are shown in the order of these items.
+    statusses = [
+        PRStatus.AwaitingReview, PRStatus.Blocked, PRStatus.AwaitingAuthor, PRStatus.MergeConflict,
+        PRStatus.HelpWanted,PRStatus.NotReady,
+        PRStatus.AwaitingDecision,
+        PRStatus.Contradictory,
+        PRStatus.Delegated, PRStatus.AwaitingBors,
+    ]
     number_prs : dict[PRStatus, int] = {
         status : len([number for number in ready_pr_status if ready_pr_status[number] == status]) for status in statusses
     }
@@ -207,8 +214,7 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
         PRStatus.NotReady: "are marked as draft or work in progress",
     }
     assert set(instatus.keys()) == set(statusses)
-    sorted_statusses = sorted(instatus.keys(), key=lambda s: number_prs[s], reverse=True)
-    details = '\n'.join([f"  <li><b>{number_percent(number_prs[s], number_all)}</b> {instatus[s]}</li>" for s in sorted_statusses])
+    details = '\n'.join([f"  <li><b>{number_percent(number_prs[s], number_all)}</b> {instatus[s]}</li>" for s in statusses])
     return f"\n<h2 id=\"statistics\"><a href=\"#statistics\">Overall statistics</a></h2>\nFound <b>{number_all}</b> open PRs overall. Disregarding their CI state, of these PRs\n<ul>\n{details}\n</ul>\n"
 
 
