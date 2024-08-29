@@ -196,7 +196,7 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
         return f"{n} ({n/total:.1%})"
     instatus = {
         PRStatus.AwaitingReview: f"are awaiting review ({link_to('queue')})",
-        PRStatus.HelpWanted: f"are labelled help-wanted or please-adopt ({link_to('needs-owner')})",
+        PRStatus.HelpWanted: f"are labelled help-wanted or please-adopt ({link_to('needs-owner', 'roughly these')})",
         PRStatus.AwaitingAuthor: "are awaiting the PR author's action",
         PRStatus.AwaitingDecision: f"are awaiting the outcome of a zulip discussion ({link_to('needs-decision')})",
         PRStatus.Blocked: "are blocked on another PR",
