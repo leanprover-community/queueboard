@@ -207,7 +207,8 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
         PRStatus.NotReady: "are marked as draft or work in progress",
     }
     assert set(instatus.keys()) == set(statusses)
-    details = '\n'.join([f"  <li><b>{number_percent(number_prs[s], number_all)}</b> {instatus[s]}</li>" for s in statusses])
+    sorted_statusses = sorted(instatus.keys(), key=lambda s: number_prs[s], reverse=True)
+    details = '\n'.join([f"  <li><b>{number_percent(number_prs[s], number_all)}</b> {instatus[s]}</li>" for s in sorted_statusses])
     return f"\n<h2 id=\"statistics\"><a href=\"#statistics\">Overall statistics</a></h2>\nFound <b>{number_all}</b> open PRs overall. Disregarding their CI state, of these PRs\n<ul>\n{details}\n</ul>\n"
 
 
