@@ -207,7 +207,7 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
         PRStatus.AwaitingAuthor: "are awaiting the PR author's action",
         PRStatus.AwaitingDecision: f"are awaiting the outcome of a zulip discussion ({link_to('needs-decision')})",
         PRStatus.Blocked: "are blocked on another PR",
-        PRStatus.Delegated: f"are delegated (stale ones are {link_to('delegated', 'here')})",
+        PRStatus.Delegated: f"are delegated (stale ones are {link_to('stale-delegated', 'here')})",
         PRStatus.AwaitingBors: f"have been sent to bors (stale ones are {link_to('stale-ready-to-merge', 'here')})",
         PRStatus.MergeConflict: f"have a merge conflict: among these, <b>{number_percent(len(justmerge_prs), number_all)}</b> would be ready for review otherwise: {link_to('needs-merge', 'these')}",
         PRStatus.Contradictory: f"have contradictory labels ({link_to('contradictory-labels')})",
