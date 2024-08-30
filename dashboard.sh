@@ -136,7 +136,7 @@ do
   #   '.[$pr_number] = {additions: $additions, deletions: $deletions, changed_files: $changed_files}' $pr_info > temp.json && mv temp.json $pr_info
 done
 
-python3 ./dashboard.py $pr_info "all-ready-PRs.json" "all-draft-PRs.json" ${json_files[*]} > ./dashboard.html
+python3 ./dashboard.py $pr_info "all-nondraft-PRs.json" "all-draft-PRs.json" ${json_files[*]} > ./dashboard.html
 
 rm *.json
 
