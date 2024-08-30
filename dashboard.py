@@ -418,9 +418,12 @@ def print_dashboard(datae : List[dict], kind : PRList) -> None:
 # - all feature PRs without a topic label,
 # - all PRs with a badly formatted title,
 # - all PRs with contradictory labels
-# among those given in `data`.
+# among those given in `data` that are not labelled as work in progress.
 def print_dashboard_bad_labels_title(data : dict) -> None:
     all_prs = _extract_prs([data])
+    # Filter out all PRs with have a WIP label.
+    all_prs = [pr for pr in all_prs if not ('WIP' in [l.name for l in pr.labels])]
+
     with_bad_title = [pr for pr in all_prs if not pr.title.startswith(("feat", "chore", "perf", "refactor", "style", "fix", "doc"))]
     # Whether a PR has a "topic" label.
     def has_topic_label(pr: BasicPRInformation) -> bool:
