@@ -89,14 +89,14 @@ gh api graphql --paginate --slurp -f query="$QUERY_PLEASE_ADOPT" | jq '{"output"
 
 # Query Github API for all open pull requests which are marked as ready for review
 QUERY_NONDRAFT=$(prepare_query 'sort:updated-asc is:pr -is:draft state:open')
-gh api graphql --paginate --slurp -f query="$QUERY_NONDRAFT" | jq '{"output": .}' > all-ready-PRs.json
+gh api graphql --paginate --slurp -f query="$QUERY_NONDRAFT" | jq '{"output": .}' > all-nondraft-PRs.json
 
 # Query Github API for all open pull requests which are in draft stage
 QUERY_DRAFT=$(prepare_query 'sort:updated-asc is:pr is:draft state:open')
 gh api graphql --paginate --slurp -f query="$QUERY_DRAFT" | jq '{"output": .}' > all-draft-PRs.json
 
 # List of JSON files: their order does not matter for the generated output.
-# NB: we purposefully do not add 'all-ready-PRs' or 'all-draft-PRs' to this list,
+# NB: we purposefully do not add 'all-nondraft-PRs' or 'all-draft-PRs' to this list,
 # as each PR means an additional API call, and we don't need this specific information here
 json_files=("queue.json" "queue-new-contributor.json" "needs-merge.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "needs-decision.json" "delegated.json" "new-contributor.json" "help-wanted.json" "please-adopt.json")
 

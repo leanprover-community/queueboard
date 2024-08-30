@@ -111,7 +111,7 @@ def getIdTitle(kind : PRList) -> Tuple[str, str]:
 def main() -> None:
     # Check if the user has provided the correct number of arguments
     if len(sys.argv) < 4:
-        print("Usage: python3 dashboard.py <pr-info.json> <all-ready-prs.json> <all-draft-PRs.json> <json_file1> <json_file2> ...")
+        print("Usage: python3 dashboard.py <pr-info.json> <all-nondraft-prs.json> <all-draft-PRs.json> <json_file1> <json_file2> ...")
         sys.exit(1)
 
     print_html5_header()
@@ -135,9 +135,9 @@ def main() -> None:
             dataFilesWithKind.append((data, EXPECTED_INPUT_FILES[filename]))
 
     with open(sys.argv[2]) as ready_file, open(sys.argv[3]) as draft_file:
-        all_ready_prs = json.load(ready_file)
+        all_nondraft_prs = json.load(ready_file)
         all_draft_prs = json.load(draft_file)
-        print(gather_pr_statistics(dataFilesWithKind, all_ready_prs, all_draft_prs))
+        print(gather_pr_statistics(dataFilesWithKind, all_nondraft_prs, all_draft_prs))
 
         # Process all data files for the same PR list together.
         for kind in PRList._member_map_.values():
@@ -147,7 +147,7 @@ def main() -> None:
             datae = [d for (d, k) in dataFilesWithKind if k == kind]
             print_dashboard(datae, kind)
 
-        print_dashboard_bad_labels_title(all_ready_prs)
+        print_dashboard_bad_labels_title(all_nondraft_prs)
 
     print_html5_footer()
 
