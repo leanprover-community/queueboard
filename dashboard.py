@@ -214,8 +214,24 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
         PRStatus.NotReady: "are marked as draft or work in progress",
     }
     assert set(instatus.keys()) == set(statusses)
+    color = {
+        PRStatus.AwaitingReview: "#33DBEC",
+        PRStatus.HelpWanted: "#cc317c",
+        PRStatus.AwaitingAuthor: "#f9d0c4",
+        PRStatus.AwaitingDecision: "#53A5FF",
+        PRStatus.Blocked: "#8A6A1C",
+        PRStatus.Delegated: "#bfd4f2",
+        PRStatus.AwaitingBors: "#06e039",
+        PRStatus.MergeConflict: "#f99094",
+        PRStatus.Contradictory: "black",
+        PRStatus.NotReady: "#e899cd",
+    }
+    assert set(color.keys()) == set(statusses)
     details = '\n'.join([f"  <li><b>{number_percent(number_prs[s], number_all)}</b> {instatus[s]}</li>" for s in statusses])
-    return f"\n<h2 id=\"statistics\"><a href=\"#statistics\">Overall statistics</a></h2>\nFound <b>{number_all}</b> open PRs overall. Disregarding their CI state, of these PRs\n<ul>\n{details}\n</ul>\n"
+    piechart = ' '.join([f'{color[s]} 0 {sum(number_prs[:s]) * 360 // number_all}deg,' for s in statusses])
+    piechart_style="width: 200px;height: 200px;border-radius: 50%;border: 1px solid black;background-image: conic-gradient( {piechart} );"
+
+    return f"\n<h2 id=\"statistics\"><a href=\"#statistics\">Overall statistics</a></h2>\nFound <b>{number_all}</b> open PRs overall. Disregarding their CI state, of these PRs\n<ul>\n{details}\n</ul><div class=\"piechart\" style=\"{piechart_style}\"\n"
 
 
 def print_html5_header() -> None:
