@@ -100,7 +100,7 @@ def getIdTitle(kind : PRList) -> Tuple[str, str]:
         PRList.StaleNewContributor : ("stale-new-contributor", "Stale new contributor PRs"),
         PRList.StaleMaintainerMerge : ("stale-maintainer-merge", "Stale maintainer-merge'd PRs"),
         PRList.StaleReadyToMerge : ("stale-ready-to-merge", "Stale ready-to-merge'd PRs"),
-        PRList.NeedsDecision : ("needs-decision", "PRS blocked on a zulip discussion"),
+        PRList.NeedsDecision : ("needs-decision", "PRs blocked on a zulip discussion"),
         PRList.NeedsMerge : ("needs-merge", "PRs with just a merge conflict"),
         PRList.NeedsHelp : ("needs-owner", "PRs looking for help"),
         PRList.Unlabelled : ("unlabelled", "PRs without an area label"),
