@@ -198,7 +198,7 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
 
     number_all = len(ready_prs) + len(draft_prs)
     def link_to(kind: PRList, name="these ones") -> str:
-        return f"<a href=\"#{getIdTitle(kind)[0]}\">{name}</a>"
+        return f"<a href=\"#{getIdTitle(kind)[0]}\" target=\"_self\">{name}</a>"
     def number_percent(n: int , total: int) -> str:
         return f"{n} ({n/total:.1%})"
     instatus = {
