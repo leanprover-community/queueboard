@@ -127,7 +127,7 @@ def analyse(number: int) -> None:
     with open(f'interesting-pr-{number}.txt', 'r', encoding='utf-8') as f:
         (created, events) = hacky_scrape(f.readlines())
         total = total_queue_time(created, datetime.now(), events)
-        updated = last_status_update(created, datetime.now(), events)
+        (current_status, updated) = last_status_update(created, datetime.now(), events)
         print(f"PR {number} was in review for overall {format_delta(total)}; was last updated {format_delta(updated)} ago")
 
 

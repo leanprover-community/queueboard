@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 from typing import List, Tuple
 
-from better_updated import Event, format_delta, last_status_update, total_queue_time
+from better_updated import Event, PRStatus, format_delta, last_status_update, total_queue_time
 
 # Second version of my scraping script: read in a file <number>.json
 # which is meant to contain all the information I need.
@@ -72,7 +72,7 @@ def parse_data(data: dict) -> Tuple[datetime, List[Event]]:
 def analyse(number: int, data: dict) -> None:
     (createdAt, events) = parse_data(data)
     total = total_queue_time(createdAt, datetime.now(), events)
-    updated = last_status_update(createdAt, datetime.now(), events)
+    (current_status, updated) = last_status_update(createdAt, datetime.now(), events)
     print(f"PR {number} was in review for overall {format_delta(total)}; was last updated {format_delta(updated)} ago")
 
 

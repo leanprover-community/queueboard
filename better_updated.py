@@ -238,15 +238,15 @@ def total_queue_time(creation_time: datetime, now: datetime, events: List[Event]
 
 # FUTURE: this could be exposed to the dashboard using the following API
 # better_updated_at(number: int, data) -> relativedelta
-# return the total time since this PR's last status change
-def last_status_update(creation_time: datetime, now: datetime, events: List[Event]) -> relativedelta:
+# Return a tuple of the current status and the total time since this PR's last status change.
+def last_status_update(creation_time: datetime, now: datetime, events: List[Event]) -> Tuple[PRStatus, relativedelta]:
     '''Compute the total time since this PR's state changed last.'''
     # FUTURE: should this ignore short-lived merge conflicts? for now, it does not
     evolution_status = determine_status_changes(creation_time, events)
     # The PR creation should be the first event in `evolution_status`.
     assert len(evolution_status) == len(events) + 1
-    last : datetime = evolution_status[-1][0]
-    return relativedelta(now, last)
+    (last_change, status) = evolution_status[-1]
+    return (status, relativedelta(now, last_change))
 
 
 # UX for the generated dashboards: expose both total time and current time in the current state
