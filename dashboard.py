@@ -42,7 +42,6 @@ class PRList(Enum):
 # but this script will complain if something unexpected happens.
 EXPECTED_INPUT_FILES = {
     "queue.json" : PRList.Queue,
-    "queue-new-contributor.json" : PRList.QueueNewContributor,
     "ready-to-merge.json" : PRList.StaleReadyToMerge,
     "automerge.json" : PRList.StaleReadyToMerge,
     "needs-merge.json" : PRList.NeedsMerge,
@@ -139,8 +138,12 @@ def main() -> None:
         all_draft_prs = json.load(draft_file)
         print(gather_pr_statistics(dataFilesWithKind, all_nondraft_prs, all_draft_prs))
 
+        queue_data = [d for (d, k) in dataFilesWithKind if k == PRList.Queue]
+        print_queue_boards(queue_data)
         # Process all data files for the same PR list together.
         for kind in PRList._member_map_.values():
+            if kind in [PRList.Queue, PRList.QueueNewContributor]:
+                continue # These dashboards were just printed above.
             # For these kinds, we create a dashboard later (by filtering the list of all ready PRs instead).
             if kind in [PRList.Unlabelled, PRList.BadTitle, PRList.ContradictoryLabels]:
                 continue
@@ -432,6 +435,17 @@ def print_dashboard(datae : List[dict], kind : PRList) -> None:
     with open(sys.argv[1], 'r') as f:
         pr_infos = json.load(f)
         _print_dashboard(pr_infos, _extract_prs(datae), kind, True)
+
+
+# Print the list of PRs in the review queue, as well as two sub-lists of these:
+# all PRs by new contributors, and all PRs labelled 'easy'.
+def print_queue_boards(queue_data : List[dict]) -> None:
+    queue_prs = _extract_prs(queue_data)
+    newcontrib = [prinfo for prinfo in queue_prs if 'new-contributor' in [l.name for l in prinfo.labels]]
+    with open(sys.argv[1], 'r') as f:
+        pr_infos = json.load(f)
+        _print_dashboard(pr_infos, queue_prs, PRList.Queue, True)
+        _print_dashboard(pr_infos, newcontrib, PRList.QueueNewContributor, True)
 
 
 # Print dashboards of

@@ -48,10 +48,6 @@ queue_labels="-label:blocked-by-other-PR -label:merge-conflict -label:awaiting-C
 QUERY_QUEUE=$(prepare_query "sort:updated-asc is:pr state:open -is:draft -status:failure $queue_labels")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" | jq '{"output": .}' > queue.json
 
-# Query Github API for all pull requests in the queue that are labelled `new-contributor`.
-QUERY_QUEUE_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:new-contributor $queue_labels")
-gh api graphql --paginate --slurp -f query="$QUERY_QUEUE_NEWCONTRIBUTOR" | jq '{"output": .}' > queue-new-contributor.json
-
 # Query Github API for all pull requests with a merge conflict, that would be otherwise ready for review
 QUERY_QUEUE_BUT_MERGE_CONFLICT=$(prepare_query "sort:updated-asc is:pr state:open -is:draft -status:failure -label:blocked-by-other-PR -label:awaiting-CI -label:awaiting-author -label:WIP -label:delegated -label:auto-merge-after-CI label:merge-conflict")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE_BUT_MERGE_CONFLICT" | jq '{"output": .}' > needs-merge.json
@@ -98,7 +94,7 @@ gh api graphql --paginate --slurp -f query="$QUERY_DRAFT" | jq '{"output": .}' >
 # List of JSON files: their order does not matter for the generated output.
 # NB: we purposefully do not add 'all-nondraft-PRs' or 'all-draft-PRs' to this list,
 # as each PR means an additional API call, and we don't need this specific information here
-json_files=("queue.json" "queue-new-contributor.json" "needs-merge.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "needs-decision.json" "delegated.json" "new-contributor.json" "help-wanted.json" "please-adopt.json")
+json_files=("queue.json" "needs-merge.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "needs-decision.json" "delegated.json" "new-contributor.json" "help-wanted.json" "please-adopt.json")
 
 # Output file
 pr_info="pr-info.json"
