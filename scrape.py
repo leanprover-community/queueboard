@@ -30,10 +30,10 @@ def hacky_scrape(lines: List[str]) -> Tuple[datetime, List[Event]]:
         if "marked this pull request as " in line:
             if "ready for review" in line:
                 idx = line.index("ready for review") + len("ready for review ")
-                events.append(Event(parse_date(line[idx:]), PRChange.MarkedReady))
+                events.append(Event.undraft(parse_date(line[idx:])))
             elif "draft" in line:
                 idx = line.index("draft") + len("draft ")
-                events.append(Event(parse_date(line[idx:]), PRChange.MarkedDraft))
+                events.append(Event.draft(parse_date(line[idx:])))
             else:
                 print(f"unexpected line: {line}")
                 assert False
@@ -128,7 +128,7 @@ def analyse(number: int) -> None:
         (created, events) = hacky_scrape(f.readlines())
         total = total_queue_time(created, datetime.now(), events)
         updated = last_status_update(created, datetime.now(), events)
-        print(f"PR {number} was in review for overall {total}; was last updated {format_delta(updated)}")
+        print(f"PR {number} was in review for overall {format_delta(total)}; was last updated {format_delta(updated)} ago")
 
 
 if len(sys.argv) < 2:
