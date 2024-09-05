@@ -73,8 +73,19 @@ def analyse(number: int, data: dict) -> None:
     (createdAt, events) = parse_data(data)
     total = total_queue_time(createdAt, datetime.now(), events)
     (current_status, updated) = last_status_update(createdAt, datetime.now(), events)
-    print(f"PR {number} was in review for overall {format_delta(total)}; was last updated {format_delta(updated)} ago")
-
+    current = {
+        PRStatus.AwaitingBors: "is awaiting bors",
+        PRStatus.AwaitingAuthor: "is awaiting author",
+        PRStatus.AwaitingReview: "is awaiting review",
+        PRStatus.AwaitingDecision: "is awaiting a zulip discussion",
+        PRStatus.MergeConflict: "has a merge conflict",
+        PRStatus.Delegated: "is delegated",
+        PRStatus.HelpWanted: "is looking for help",
+        PRStatus.Blocked: "is blocked on another PR",
+        PRStatus.NotReady: "is labelled WIP or marked draft",
+        PRStatus.Contradictory: "has contradictory labels",
+    }
+    print(f"PR {number} was in review for {format_delta(total)} overall. It was last updated {format_delta(updated)} ago and {current[current_status]}")
 
 
 main()
