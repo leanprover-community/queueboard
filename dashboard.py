@@ -313,17 +313,17 @@ def label_link(label:Label) -> str:
 
 def format_delta(delta: relativedelta) -> str:
     if delta.years > 0:
-        return f"{delta.years} years ago"
+        return f"{delta.years} years"
     elif delta.months > 0:
-        return f"{delta.months} months ago"
+        return f"{delta.months} months"
     elif delta.days > 0:
-        return f"{delta.days} days ago"
+        return f"{delta.days} days"
     elif delta.hours > 0:
-        return f"{delta.hours} hours ago"
+        return f"{delta.hours} hours"
     elif delta.minutes > 0:
-        return f"{delta.minutes} minutes ago"
+        return f"{delta.minutes} minutes"
     else:
-        return f"{delta.seconds} seconds ago)"
+        return f"{delta.seconds} seconds"
 
 
 # Function to format the time of the last update
@@ -336,7 +336,7 @@ def time_info(updatedAt: str) -> str:
     delta = relativedelta(now, updated)
     # Format the output
     s = updated.strftime("%Y-%m-%d %H:%M")
-    return f"{s} ({format_delta(delta)})"
+    return f"{s} ({format_delta(delta)} ago)"
 
 
 # Basic information about a PR: does not contain the diff size, which is contained in pr_info.json instead.
