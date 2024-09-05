@@ -20,6 +20,7 @@ class PRList(Enum):
     # Note: the tables on the generated page are listed in the order of these variants.
     Queue = 0
     QueueNewContributor = auto()
+    QueueEasy = auto()
     StaleReadyToMerge = auto()
     StaleDelegated = auto()
     StaleMaintainerMerge = auto()
@@ -58,6 +59,7 @@ def short_description(kind : PRList) -> str:
     return {
         PRList.Queue : "PRs on the review queue",
         PRList.QueueNewContributor : "PRs by new mathlib contributors on the review queue",
+        PRList.QueueEasy : "PRs on the review queue which are labelled 'easy'",
         PRList.StaleMaintainerMerge : "stale PRs labelled maintainer merge",
         PRList.StaleDelegated : "stale delegated PRs",
         PRList.StaleReadyToMerge : "stale PRs labelled auto-merge-after-CI or ready-to-merge",
@@ -77,6 +79,7 @@ def long_description(kind : PRList) -> str:
     return {
         PRList.Queue : "all PRs which are ready for review: CI passes, no merge conflict and not blocked on other PRs",
         PRList.QueueNewContributor : "all PRs by new contributors which are ready for review",
+        PRList.QueueEasy : "all PRs labelled 'easy' which are ready for review",
         PRList.NeedsMerge : "all PRs which have a merge conflict, but otherwise fit the review queue",
         PRList.StaleDelegated : f"all PRs labelled 'delegated' {notupdated} 24 hours",
         PRList.StaleReadyToMerge : f"all PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
@@ -95,6 +98,7 @@ def getIdTitle(kind : PRList) -> Tuple[str, str]:
     return {
         PRList.Queue : ("queue", "Review queue"),
         PRList.QueueNewContributor : ("queue-new-contributors", "New contributors' PRs on the queue"),
+        PRList.QueueEasy : ("queue-easy", "PRs on the review queue labelled 'easy'"),
         PRList.StaleDelegated : ("stale-delegated", "Stale delegated PRs"),
         PRList.StaleNewContributor : ("stale-new-contributor", "Stale new contributor PRs"),
         PRList.StaleMaintainerMerge : ("stale-maintainer-merge", "Stale maintainer-merge'd PRs"),
@@ -142,7 +146,7 @@ def main() -> None:
         print_queue_boards(queue_data)
         # Process all data files for the same PR list together.
         for kind in PRList._member_map_.values():
-            if kind in [PRList.Queue, PRList.QueueNewContributor]:
+            if kind in [PRList.Queue, PRList.QueueNewContributor, PRList.QueueEasy]:
                 continue # These dashboards were just printed above.
             # For these kinds, we create a dashboard later (by filtering the list of all ready PRs instead).
             if kind in [PRList.Unlabelled, PRList.BadTitle, PRList.ContradictoryLabels]:
@@ -442,10 +446,12 @@ def print_dashboard(datae : List[dict], kind : PRList) -> None:
 def print_queue_boards(queue_data : List[dict]) -> None:
     queue_prs = _extract_prs(queue_data)
     newcontrib = [prinfo for prinfo in queue_prs if 'new-contributor' in [l.name for l in prinfo.labels]]
+    easy = [prinfo for prinfo in queue_prs if 'easy' in [l.name for l in prinfo.labels]]
     with open(sys.argv[1], 'r') as f:
         pr_infos = json.load(f)
         _print_dashboard(pr_infos, queue_prs, PRList.Queue, True)
         _print_dashboard(pr_infos, newcontrib, PRList.QueueNewContributor, True)
+        _print_dashboard(pr_infos, easy, PRList.QueueEasy, True)
 
 
 # Print dashboards of
