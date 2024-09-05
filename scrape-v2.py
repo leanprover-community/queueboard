@@ -28,27 +28,41 @@ def parse_datetime(rep: str) -> datetime:
 
 assert parse_datetime("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 51)
 
+
+# Canonicalise a label name to its current one.
+# Github's events data uses the label names at that time.
+def canonicalise_label(name: str) -> str:
+    return "awaiting-review-DONT-USE" if name == "awaiting-review" else name
+
+
 def parse_data(data: dict) -> Tuple[datetime, List[Event]]:
     creation_time = parse_datetime(data["data"]["repository"]["pullRequest"]["createdAt"])
     events = []
     events_data = data["data"]["repository"]["pullRequest"]["timelineItems"]["nodes"]
     for event in events_data:
         type = event["__typename"]
-        if type in ["PullRequestCommit", "IssueComment", "PullRequestReview", "RenamedTitleEvent", "AssignedEvent", "CrossReferencedEvent"]:
-            pass
-        elif type == "LabeledEvent":
-            ev = Event.add_label(parse_datetime(event["createdAt"]), event["label"]["name"])
+        if type == "LabeledEvent":
+            name = event["label"]["name"]
+            ev = Event.add_label(parse_datetime(event["createdAt"]), canonicalise_label(name))
             events.append(ev)
         elif type == "UnlabeledEvent":
-            ev = Event.remove_label(parse_datetime(event["createdAt"]), event["label"]["name"])
+            name = event["label"]["name"]
+            ev = Event.remove_label(parse_datetime(event["createdAt"]), canonicalise_label(name))
             events.append(ev)
         elif type == "ReadyForReviewEvent":
             ev = Event.undraft(parse_datetime(event["createdAt"]))
             events.append(ev)
-        # TODO: is there also an event for "marked draft"? there should be...
+        elif type == "ConvertToDraftEvent":
+            # XXX: this event does not contain a date in the json response,
+            # no matter whether this was the last event for this PR
+            time = datetime.now()  # parse_datetime(event["createdAt"]))
+            events.append(Event.draft(time))
+        elif type in ["ClosedEvent", "BaseRefChangedEvent", "HeadRefForcePushedEvent", "HeadRefDeletedEvent", "PullRequestCommit", "IssueComment", "PullRequestReview", "RenamedTitleEvent", "AssignedEvent", "ReferencedEvent", "CrossReferencedEvent", "MentionedEvent", "SubscribedEvent", "UnsubscribedEvent"]:
+            pass
         else:
             print(f"unhandled event kind: {type}")
     return (creation_time, events)
+
 
 # Determine a rough estimate how long PR 'number' was awaiting review.
 # 'data' is a JSON object containing all information about a PR.
