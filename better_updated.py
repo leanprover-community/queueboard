@@ -45,6 +45,21 @@ from classify_pr_state import (CIStatus, LabelKind, PRState, PRStatus,
                                label_to_prstatus)
 
 
+def format_delta(delta: relativedelta) -> str:
+    if delta.years > 0:
+        return f"{delta.years} years"
+    elif delta.months > 0:
+        return f"{delta.months} months"
+    elif delta.days > 0:
+        return f"{delta.days} days"
+    elif delta.hours > 0:
+        return f"{delta.hours} hours"
+    elif delta.minutes > 0:
+        return f"{delta.minutes} minutes"
+    else:
+        return f"{delta.seconds} seconds"
+
+
 # Something changed on a PR which we care about:
 # - a new label got added or removed
 # - the PR was (un)marked draft: omitting this for now
