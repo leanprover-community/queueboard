@@ -53,10 +53,7 @@ def parse_data(data: dict) -> Tuple[datetime, List[Event]]:
             ev = Event.undraft(parse_datetime(event["createdAt"]))
             events.append(ev)
         elif type == "ConvertToDraftEvent":
-            # XXX: this event does not contain a date in the json response,
-            # no matter whether this was the last event for this PR
-            time = datetime.now()  # parse_datetime(event["createdAt"]))
-            events.append(Event.draft(time))
+            events.append(Event.draft(parse_datetime(event["createdAt"])))
         elif type in ["ClosedEvent", "BaseRefChangedEvent", "HeadRefForcePushedEvent", "HeadRefDeletedEvent", "PullRequestCommit", "IssueComment", "PullRequestReview", "RenamedTitleEvent", "AssignedEvent", "ReferencedEvent", "CrossReferencedEvent", "MentionedEvent", "SubscribedEvent", "UnsubscribedEvent"]:
             pass
         else:
