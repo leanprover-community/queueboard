@@ -270,8 +270,8 @@ def print_html5_footer() -> None:
     <script>
     $(document).ready( function () {
         $('table').DataTable({
-                pageLength: 10,
-				"searching": false,
+            pageLength: 10,
+			"searching": true,
         });
     });
     </script>
