@@ -91,6 +91,7 @@ query($owner: String!, $repo: String!, $prNumber: Int!) {
       }
       milestone {
         title
+        dueOn
       }
       number
       potentialMergeCommit {
@@ -116,6 +117,9 @@ query($owner: String!, $repo: String!, $prNumber: Int!) {
             ... on User {
               login
             }
+            ... on Team {
+              name
+            }
           }
         }
       }
@@ -129,15 +133,44 @@ query($owner: String!, $repo: String!, $prNumber: Int!) {
           submittedAt
         }
       }
+      reviewThreads(first: 100) {
+        nodes {
+          comments(first: 100) {
+            nodes {
+              body
+              createdAt
+              author {
+                login
+              }
+            }
+          }
+        }
+      }
+      closingIssuesReferences(first: 100) {
+        nodes {
+          title
+          url
+        }
+      }
+      participants(first: 100) {
+        nodes {
+          login
+        }
+      }
       state
       statusCheckRollup {
         contexts(first: 100) {
           nodes {
-	    __typename
-	    ... on StatusContext {
+            __typename
+            ... on StatusContext {
               context
               state
-	    }
+            }
+            ... on CheckRun {
+              name
+              conclusion
+              status
+            }
           }
         }
       }
@@ -218,6 +251,33 @@ query($owner: String!, $repo: String!, $prNumber: Int!) {
           }
           ... on ConvertToDraftEvent {
             createdAt
+          }
+          ... on IssueComment {
+            createdAt
+            body
+            author {
+              login
+            }
+          }
+          ... on CrossReferencedEvent {
+            createdAt
+            source {
+              ... on PullRequest {
+                title
+                url
+              }
+              ... on Issue {
+                title
+                url
+              }
+            }
+          }
+          ... on PullRequestReview {
+            createdAt
+            body
+            author {
+              login
+            }
           }
         }
       }
