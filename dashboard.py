@@ -238,7 +238,7 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
     # Generate a simple pie chart showing the distribution of PR statusses.
     # Doing so requires knowing the cumulative sums, of all statusses so far.
     numbers = [number_prs[s] for s in statusses]
-    cumulative = [sum(numbers[:i]) for i in range(len(numbers))]
+    cumulative = [sum(numbers[:i+1]) for i in range(len(numbers))]
     piechart = ', '.join([f'{color[s]} 0 {cumulative[i] * 360 // number_all}deg' for (i, s) in enumerate(statusses)])
     piechart_style=f"width: 200px;height: 200px;border-radius: 50%;border: 1px solid black;background-image: conic-gradient( {piechart} );"
 
