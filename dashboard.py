@@ -468,7 +468,7 @@ def print_dashboard_bad_labels_title(data : dict) -> None:
     with_bad_title = [pr for pr in all_prs if not pr.title.startswith(("feat", "chore", "perf", "refactor", "style", "fix", "doc"))]
     # Whether a PR has a "topic" label.
     def has_topic_label(pr: BasicPRInformation) -> bool:
-        topic_labels = [l for l in pr.labels if l.name == 'CI' or l.name.startswith("t-")]
+        topic_labels = [l for l in pr.labels if l.name in ['CI', 'IMO'] or l.name.startswith("t-")]
         return len(topic_labels) >= 1
     prs_without_topic_label = [pr for pr in all_prs if pr.title.startswith("feat") and not has_topic_label(pr)]
 
