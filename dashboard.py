@@ -208,7 +208,7 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
         return f"<a href=\"#{getIdTitle(kind)[0]}\" target=\"_self\">{name}</a>"
     def number_percent(n: int , total: int, color: str = "") -> str:
         if color:
-            return f"{n} (<span style=\"color: {color}; text-shadow: black 1px 1px 2px;\">{n/total:.1%}</span>)"
+            return f"{n} (<span style=\"color: {color};\">{n/total:.1%}</span>)"
         else:
             return f"{n} (<span>{n/total:.1%}</span>)"
     instatus = {
@@ -225,14 +225,14 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
     }
     assert set(instatus.keys()) == set(statusses)
     color = {
-        PRStatus.AwaitingReview: "#33DBEC",
+        PRStatus.AwaitingReview: "#33b4ec",
         PRStatus.HelpWanted: "#cc317c",
-        PRStatus.AwaitingAuthor: "#f9d0c4",
-        PRStatus.AwaitingDecision: "#53A5FF",
+        PRStatus.AwaitingAuthor: "#f6ae9a",
+        PRStatus.AwaitingDecision: "#086ad4",
         PRStatus.Blocked: "#8A6A1C",
-        PRStatus.Delegated: "#bfd4f2",
-        PRStatus.AwaitingBors: "#06e039",
-        PRStatus.MergeConflict: "#f99094",
+        PRStatus.Delegated: "#689dea",
+        PRStatus.AwaitingBors: "#098306",
+        PRStatus.MergeConflict: "#f17075",
         PRStatus.Contradictory: "black",
         PRStatus.NotReady: "#e899cd",
     }
