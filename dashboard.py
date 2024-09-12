@@ -206,8 +206,11 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
     number_all = len(ready_prs) + len(draft_prs)
     def link_to(kind: PRList, name="these ones") -> str:
         return f"<a href=\"#{getIdTitle(kind)[0]}\" target=\"_self\">{name}</a>"
-    def number_percent(n: int , total: int) -> str:
-        return f"{n} ({n/total:.1%})"
+    def number_percent(n: int , total: int, color: str = "") -> str:
+        if color:
+            return f"{n} (<span style=\"color: {color};\">{n/total:.1%}</span>)"
+        else:
+            return f"{n} (<span>{n/total:.1%}</span>)"
     instatus = {
         PRStatus.AwaitingReview: f"are awaiting review ({link_to(PRList.Queue)})",
         PRStatus.HelpWanted: f"are labelled help-wanted or please-adopt ({link_to(PRList.NeedsHelp, 'roughly these')})",
@@ -222,19 +225,19 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, PRList]], all_ready
     }
     assert set(instatus.keys()) == set(statusses)
     color = {
-        PRStatus.AwaitingReview: "#33DBEC",
+        PRStatus.AwaitingReview: "#33b4ec",
         PRStatus.HelpWanted: "#cc317c",
-        PRStatus.AwaitingAuthor: "#f9d0c4",
-        PRStatus.AwaitingDecision: "#53A5FF",
+        PRStatus.AwaitingAuthor: "#f6ae9a",
+        PRStatus.AwaitingDecision: "#086ad4",
         PRStatus.Blocked: "#8A6A1C",
-        PRStatus.Delegated: "#bfd4f2",
-        PRStatus.AwaitingBors: "#06e039",
-        PRStatus.MergeConflict: "#f99094",
+        PRStatus.Delegated: "#689dea",
+        PRStatus.AwaitingBors: "#098306",
+        PRStatus.MergeConflict: "#f17075",
         PRStatus.Contradictory: "black",
         PRStatus.NotReady: "#e899cd",
     }
     assert set(color.keys()) == set(statusses)
-    details = '\n'.join([f"  <li><b>{number_percent(number_prs[s], number_all)}</b> {instatus[s]}</li>" for s in statusses])
+    details = '\n'.join([f"  <li><b>{number_percent(number_prs[s], number_all, color[s])}</b> {instatus[s]}</li>" for s in statusses])
     # Generate a simple pie chart showing the distribution of PR statusses.
     # Doing so requires knowing the cumulative sums, of all statusses so far.
     numbers = [number_prs[s] for s in statusses]
