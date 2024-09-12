@@ -49,7 +49,7 @@ QUERY_QUEUE=$(prepare_query "sort:updated-asc is:pr state:open -is:draft -status
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" | jq '{"output": .}' > queue.json
 
 # Query Github API for all pull requests with a merge conflict, that would be otherwise ready for review
-QUERY_QUEUE_BUT_MERGE_CONFLICT=$(prepare_query "sort:updated-asc is:pr state:open -is:draft -status:failure -label:blocked-by-other-PR -label:awaiting-CI -label:awaiting-author -label:WIP -label:delegated -label:auto-merge-after-CI label:merge-conflict")
+QUERY_QUEUE_BUT_MERGE_CONFLICT=$(prepare_query "sort:updated-asc is:pr state:open -is:draft -status:failure -label:blocked-by-other-PR -label:awaiting-CI -label:awaiting-author -label:WIP -label:delegated -label:auto-merge-after-CI label:merge-conflict -label:awaiting-zulip -label:please-adopt -label:help-wanted")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE_BUT_MERGE_CONFLICT" | jq '{"output": .}' > needs-merge.json
 
 # Query Github API for all pull requests that are labeled `ready-to-merge` and have not been updated in 24 hours.
