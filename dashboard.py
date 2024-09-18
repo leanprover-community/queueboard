@@ -24,6 +24,8 @@ class Dashboard(Enum):
     StaleReadyToMerge = auto()
     StaleDelegated = auto()
     StaleMaintainerMerge = auto()
+    # All ready PRs (not draft, not labelled WIP) labelled with "tech debt".
+    TechDebt = auto()
     # This PR is blocked on a zulip discussion or similar.
     NeedsDecision = auto()
     # PRs passes, but just has a merge conflict: same labels as for review, except we do require a merge conflict
@@ -41,7 +43,7 @@ class Dashboard(Enum):
     ContradictoryLabels = auto()
 
 
-# All input files this script expects. Needs to be kept in sync with dashboard.sh,
+# All input files this script expects. Needs to be kept in sync with `dashboard.sh`,
 # but this script will complain if something unexpected happens.
 EXPECTED_INPUT_FILES = {
     "queue.json" : Dashboard.Queue,
@@ -66,6 +68,7 @@ def short_description(kind : Dashboard) -> str:
         Dashboard.StaleMaintainerMerge : "stale PRs labelled maintainer merge",
         Dashboard.StaleDelegated : "stale delegated PRs",
         Dashboard.StaleReadyToMerge : "stale PRs labelled auto-merge-after-CI or ready-to-merge",
+        Dashboard.TechDebt : "ready PRs labelled with 'tech debt'",
         Dashboard.NeedsDecision : "PRs blocked on a zulip discussion or similar",
         Dashboard.NeedsMerge : "PRs which just have a merge conflict",
         Dashboard.StaleNewContributor : "stale PRs by new contributors",
@@ -87,6 +90,7 @@ def long_description(kind : Dashboard) -> str:
         Dashboard.NeedsMerge : "all PRs which have a merge conflict, but otherwise fit the review queue",
         Dashboard.StaleDelegated : f"all PRs labelled 'delegated' {notupdated} 24 hours",
         Dashboard.StaleReadyToMerge : f"all PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
+        Dashboard.TechDebt : "all ready PRs (not draft, not labelled WIP) labelled with 'tech debt'",
         Dashboard.NeedsDecision : "all PRs labelled 'awaiting-zulip': these are blocked on a zulip discussion or similar",
         Dashboard.StaleMaintainerMerge : f"all PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
         Dashboard.NeedsHelp : "all PRs which are labelled 'please-adopt' or 'help-wanted'",
@@ -108,6 +112,7 @@ def getIdTitle(kind : Dashboard) -> Tuple[str, str]:
         Dashboard.StaleNewContributor : ("stale-new-contributor", "Stale new contributor PRs"),
         Dashboard.StaleMaintainerMerge : ("stale-maintainer-merge", "Stale maintainer-merge'd PRs"),
         Dashboard.StaleReadyToMerge : ("stale-ready-to-merge", "Stale ready-to-merge'd PRs"),
+        Dashboard.TechDebt : ("tech-debt", "Ready PRs labelled technical debt"),
         Dashboard.NeedsDecision : ("needs-decision", "PRs blocked on a zulip discussion"),
         Dashboard.NeedsMerge : ("needs-merge", "PRs with just a merge conflict"),
         Dashboard.NeedsHelp : ("needs-owner", "PRs looking for help"),
@@ -173,6 +178,9 @@ def main() -> None:
         all_nondraft_prs = _extract_prs(json.load(ready_file))
         all_draft_prs = _extract_prs(json.load(draft_file))
         print(gather_pr_statistics(prs_to_list, all_nondraft_prs, all_draft_prs))
+        all_ready_prs = prs_without_label(all_nondraft_prs, 'WIP')
+        prs_to_list[Dashboard.TechDebt] = prs_with_label(all_ready_prs, 'tech debt')
+
         (bad_title, unlabelled, contradictory) = compute_dashboards_bad_labels_title(all_nondraft_prs)
         prs_to_list[Dashboard.BadTitle] = bad_title
         prs_to_list[Dashboard.Unlabelled] = unlabelled
