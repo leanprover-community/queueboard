@@ -84,6 +84,9 @@ gh api graphql --paginate --slurp -f query="$QUERY_HELP_WANTED" |	jq '{"output":
 QUERY_PLEASE_ADOPT=$(prepare_query "sort:updated-asc is:pr state:open label:please-adopt")
 gh api graphql --paginate --slurp -f query="$QUERY_PLEASE_ADOPT" | jq '{"output": .}' > please-adopt.json
 
+QUERY_OTHER_BASE_BRANCH=$(prepare_query "sort:updated-asc is:pr state:open -base:master -is:draft")
+gh api graphql --paginate --slurp -f query="$QUERY_OTHER_BASE_BRANCH" | jq '{"output": .}' > other-base-branch.json
+
 # Query Github API for all open pull requests which are marked as ready for review
 QUERY_NONDRAFT=$(prepare_query 'sort:updated-asc is:pr -is:draft state:open')
 gh api graphql --paginate --slurp -f query="$QUERY_NONDRAFT" | jq '{"output": .}' > all-nondraft-PRs.json
@@ -95,7 +98,7 @@ gh api graphql --paginate --slurp -f query="$QUERY_DRAFT" | jq '{"output": .}' >
 # List of JSON files: their order does not matter for the generated output.
 # NB: we purposefully do not add 'all-nondraft-PRs' or 'all-draft-PRs' to this list,
 # as each PR means an additional API call, and we don't need this specific information here
-json_files=("queue.json" "needs-merge.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "needs-decision.json" "delegated.json" "new-contributor.json" "help-wanted.json" "please-adopt.json")
+json_files=("queue.json" "needs-merge.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "needs-decision.json" "delegated.json" "new-contributor.json" "help-wanted.json" "please-adopt.json" "other-base-branch.json")
 
 # Output file
 pr_info="pr-info.json"

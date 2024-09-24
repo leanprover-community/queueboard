@@ -31,6 +31,8 @@ class PRList(Enum):
     StaleNewContributor = auto()
     # Labelled please-adopt or help-wanted
     NeedsHelp = auto()
+    # Non-draft PRs into some branch other than mathlib's master branch
+    OtherBase = auto()
     # "Ready" PRs without the CI or a t-something label.
     Unlabelled = auto()
     # "Ready" PRs whose title does not start with an abbreviation like 'feat' or 'style'
@@ -49,6 +51,7 @@ EXPECTED_INPUT_FILES = {
     "maintainer-merge.json" : PRList.StaleMaintainerMerge,
     "needs-decision.json" : PRList.NeedsDecision,
     "delegated.json" : PRList.StaleDelegated,
+    "other-base-branch.json" : PRList.OtherBase,
     "new-contributor.json" : PRList.StaleNewContributor,
     "please-adopt.json" : PRList.NeedsHelp,
     "help-wanted.json" : PRList.NeedsHelp,
@@ -67,6 +70,7 @@ def short_description(kind : PRList) -> str:
         PRList.NeedsMerge : "PRs which just have a merge conflict",
         PRList.StaleNewContributor : "stale PRs by new contributors",
         PRList.NeedsHelp : "PRs which are looking for a help",
+        PRList.OtherBase : "ready PRs into a non-master branch",
         PRList.Unlabelled : "ready PRs without a 'CI' or 't-something' label",
         PRList.BadTitle : "ready PRs whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
         PRList.ContradictoryLabels : "PRs with contradictory labels",
@@ -86,6 +90,7 @@ def long_description(kind : PRList) -> str:
         PRList.NeedsDecision : "all PRs labelled 'awaiting-zulip': these are blocked on a zulip discussion or similar",
         PRList.StaleMaintainerMerge : f"all PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
         PRList.NeedsHelp : "all PRs which are labelled 'please-adopt' or 'help-wanted'",
+        PRList.OtherBase : "all non-draft PRs into some branch other than mathlib's master branch",
         PRList.StaleNewContributor : f"all PR labelled 'new-contributor' {notupdated} 7 days",
         PRList.Unlabelled : "all PRs without draft status or 'WIP' label without a 'CI' or 't-something' label",
         PRList.BadTitle : "all PRs without draft status or 'WIP' label whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
@@ -106,6 +111,7 @@ def getIdTitle(kind : PRList) -> Tuple[str, str]:
         PRList.NeedsDecision : ("needs-decision", "PRs blocked on a zulip discussion"),
         PRList.NeedsMerge : ("needs-merge", "PRs with just a merge conflict"),
         PRList.NeedsHelp : ("needs-owner", "PRs looking for help"),
+        PRList.OtherBase : ("other-base", "PRs not into the master branch"),
         PRList.Unlabelled : ("unlabelled", "PRs without an area label"),
         PRList.BadTitle : ("bad-title", "PRs with non-conforming titles"),
         PRList.ContradictoryLabels : ("contradictory-labels", "PRs with contradictory labels"),
