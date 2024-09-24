@@ -45,12 +45,12 @@ query(\$endCursor: String) {
 # - has status:success (which excluded failing or in-progress CI)
 # - do not have any of the following labels: blocked-by-other-PR, merge-conflict, awaiting-CI, WIP, awaiting-author, delegated, auto-merge-after-CI, ready-to-merge
 queue_labels_but_merge="-label:blocked-by-other-PR -label:awaiting-CI -label:awaiting-author -label:awaiting-zulip -label:please-adopt -label:help-wanted -label:WIP -label:delegated -label:auto-merge-after-CI -label:ready-to-merge"
-QUERY_QUEUE=$(prepare_query "sort:updated-asc is:pr state:open -is:draft status:success $queue_labels_but_merge -label:merge-conflict")
+QUERY_QUEUE=$(prepare_query "sort:updated-asc is:pr state:open -is:draft status:success base:master $queue_labels_but_merge -label:merge-conflict")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" | jq '{"output": .}' > queue.json
 
 # Query Github API for all pull requests with a merge conflict, that would be otherwise ready for review,
 # excluding those which are awaiting zulip or labelled please-adopt or help-wanted.
-QUERY_QUEUE_BUT_MERGE_CONFLICT=$(prepare_query "sort:updated-asc is:pr state:open -is:draft status:success $queue_labels_but_merge label:merge-conflict")
+QUERY_QUEUE_BUT_MERGE_CONFLICT=$(prepare_query "sort:updated-asc is:pr state:open -is:draft status:success base:master $queue_labels_but_merge label:merge-conflict")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE_BUT_MERGE_CONFLICT" | jq '{"output": .}' > needs-merge.json
 
 # Query Github API for all pull requests that are labeled `ready-to-merge` and have not been updated in 24 hours.
