@@ -291,7 +291,10 @@ def print_html5_footer() -> None:
 
 # An HTML link to a mathlib PR from the PR number
 def pr_link(number: int, url: str) -> str:
-    return "<a href='{}'>#{}</a>".format(url, number)
+    # The PR number is intentionally not prefixed with a #, so it is correctly
+    # recognised and sorted as a number (with HTML formatting, a `html-num` type),
+    # and not sorted as a string.
+    return f"<a href='{url}'>{number}</a>"
 
 # An HTML link to a GitHub user profile
 def user_link(author: dict) -> str:
