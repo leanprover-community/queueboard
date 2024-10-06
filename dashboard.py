@@ -279,10 +279,10 @@ def print_html5_footer() -> None:
     print("""
     <script>
     $(document).ready( function () {
-        $('table').DataTable({
-            pageLength: 10,
-			"searching": true,
-        });
+      $('table').DataTable({
+        pageLength: 10,
+        "searching": true,
+      });
     });
     </script>
     </body>
