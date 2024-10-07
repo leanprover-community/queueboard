@@ -234,6 +234,7 @@ def test_determine_status() -> None:
     # One specific sanity check, which fails in the previous implementation.
     check([LabelKind.Blocked, LabelKind.Review], PRStatus.Blocked)
     check([LabelKind.Review, LabelKind.Blocked], PRStatus.Blocked)
+    print("test_determine_status: all tests pass")
 
 
 # test_determine_status()
