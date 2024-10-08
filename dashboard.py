@@ -240,15 +240,15 @@ def print_on_the_queue_page(outfile : str) -> None:
     </thead>
     {body}
     </table>"""
-    with open(outfile, "w") as outfile:
-        print(HTML_HEADER, file=outfile)
-        print("  <h1>Why is my PR not on the queue?</h1>", file=outfile)
+    with open(outfile, "w") as fi:
+        print(HTML_HEADER, file=fi)
+        print("  <h1>Why is my PR not on the queue?</h1>", file=fi)
         # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
         updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
-        print(f"  <small>This page was last updated on: {updated}<br>", file=outfile)
-        print(EXPLANATION, file=outfile)
-        print(table, file=outfile)
-        print(HTML_FOOTER, file=outfile)
+        print(f"  <small>This page was last updated on: {updated}<br>", file=fi)
+        print(EXPLANATION, file=fi)
+        print(table, file=fi)
+        print(HTML_FOOTER, file=fi)
 
 
 def main() -> None:
@@ -284,7 +284,7 @@ def main() -> None:
 
 # Compute the status of each PR in a given list. Return a dictionary keyed by the PR number.
 # (`BasicPRInformation` is not hashable, hence cannot be used as a dictionary key.)
-def compute_pr_statusses(prs: List[BasicPRInformation]) -> dict[int, List[PRStatus]]:
+def compute_pr_statusses(prs: List[BasicPRInformation]) -> dict[int, PRStatus]:
     def determine_status(info: BasicPRInformation, is_draft: bool) -> PRStatus:
         # Ignore all "other" labels, which are not relevant for this anyway.
         labels = [label_categorisation_rules[l.name] for l in info.labels if l.name in label_categorisation_rules]
