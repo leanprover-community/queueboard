@@ -24,7 +24,6 @@ These steps are repeated regularly, using a cronjob. Currently (as of October 8,
 
 **classify_pr_state.py** contains logic to classify a pull request as ready for review, awaiting action by the author, blocked on another PR, etc. This is used to generate a statistics section on the dashboard. It is called directly by `dashboard.py`.
 
-`pr_info.sh`, `pr_info.graphql`, `pr_reactions.sh` and `pr_reactions.graphql` are not yet used. There are part of the in-progress efforts to improve the dashboard.
 
 
 
