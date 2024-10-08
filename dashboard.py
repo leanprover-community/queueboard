@@ -197,9 +197,9 @@ The table below contains all open PRs against the `master` branch, with informat
 You can filter that list as you like, such as by entering the PR number or your github username.'''.lstrip()
 
 
-# Print a webpage "why is my PR not on the queue" to the file "on_the_queue?.html".
+# Print a webpage "why is my PR not on the queue" to a new file of name 'outfile'.
 # FIXME: can I avoid the hard-coding of the output file?
-def print_on_the_queue_page() -> None:
+def print_on_the_queue_page(outfile : str) -> None:
     def icon(state: bool) -> str:
         return '&#9989;' if state else '&#10060;'
     input_data = read_json_files()
@@ -240,7 +240,7 @@ def print_on_the_queue_page() -> None:
     </thead>
     {body}
     </table>"""
-    with open("on_the_queue?.html", "w") as outfile:
+    with open(outfile, "w") as outfile:
         print(HTML_HEADER, file=outfile)
         print("  <h1>Why is my PR not on the queue?</h1>", file=outfile)
         # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
@@ -253,7 +253,7 @@ def print_on_the_queue_page() -> None:
 
 def main() -> None:
     input_data = read_json_files()
-    print_on_the_queue_page()
+    print_on_the_queue_page("on_the_queue?.html")
 
     print_html5_header()
     # Print a quick table of contents.
