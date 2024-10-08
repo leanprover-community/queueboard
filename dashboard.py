@@ -166,8 +166,8 @@ def main() -> None:
             kind = EXPECTED_INPUT_FILES[filename]
             prs_to_list[kind] = prs_to_list.get(kind, []) + prs
     queue_prs = prs_to_list[Dashboard.Queue]
-    prs_to_list[Dashboard.QueueNewContributor] = filter_prs(queue_prs, 'new-contributor')
-    prs_to_list[Dashboard.QueueEasy] = filter_prs(queue_prs, 'easy')
+    prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
+    prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs, 'easy')
 
     with open(sys.argv[2]) as ready_file, open(sys.argv[3]) as draft_file:
         all_nondraft_prs = _extract_prs(json.load(ready_file))
@@ -454,8 +454,12 @@ def print_dashboard(pr_info: dict, prs : List[BasicPRInformation], kind : Dashbo
 
 
 # Extract all PRs from a given list which have a certain label.
-def filter_prs(prs: List[BasicPRInformation], label_name: str) -> List[BasicPRInformation]:
+def prs_with_label(prs: List[BasicPRInformation], label_name: str) -> List[BasicPRInformation]:
     return [prinfo for prinfo in prs if label_name in [l.name for l in prinfo.labels]]
+
+# Extract all PRs from a given list which do not have a certain label.
+def prs_without_label(prs: List[BasicPRInformation], label_name: str) -> List[BasicPRInformation]:
+    return [prinfo for prinfo in prs if label_name not in [l.name for l in prinfo.labels]]
 
 
 def has_contradictory_labels(pr: BasicPRInformation) -> bool:
@@ -486,7 +490,7 @@ def has_contradictory_labels(pr: BasicPRInformation) -> bool:
 # - have contradictory labels.
 def compute_dashboards_bad_labels_title(prs : List[BasicPRInformation]) -> Tuple[List[BasicPRInformation], List[BasicPRInformation], List[BasicPRInformation]]:
     # Filter out all PRs which have a WIP label.
-    nonwip_prs = [pr for pr in prs if not ('WIP' in [l.name for l in pr.labels])]
+    nonwip_prs = prs_without_label(prs, 'WIP')
     with_bad_title = [pr for pr in nonwip_prs if not pr.title.startswith(("feat", "chore", "perf", "refactor", "style", "fix", "doc"))]
     # Whether a PR has a "topic" label.
     def has_topic_label(pr: BasicPRInformation) -> bool:
