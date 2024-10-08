@@ -253,7 +253,7 @@ def print_on_the_queue_page(outfile : str) -> None:
 
 def main() -> None:
     input_data = read_json_files()
-    print_on_the_queue_page("on_the_queue?.html")
+    print_on_the_queue_page("on_the_queue.html")
 
     print_html5_header()
     # Print a quick table of contents.
