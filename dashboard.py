@@ -304,11 +304,11 @@ def pr_link(number: int, url: str) -> str:
 def user_link(author: dict) -> str:
     login = author["login"]
     url   = author["url"]
-    return "<a href='{}'>{}</a>".format(url, login)
+    return f"<a href='{url}'>{login}</a>"
 
 # An HTML link to a mathlib PR from the PR title
 def title_link(title: str, url: str) -> str:
-    return "<a href='{}'>{}</a>".format(url, title)
+    return f"<a href='{url}'>{title}</a>"
 
 
 # The information we need about each PR label: its name, background colour and URL
@@ -406,8 +406,8 @@ def _print_pr_entries(pr_infos: dict, prs : List[BasicPRInformation], print_deta
                 pr_info = pr_infos[str(pr.number)]
                 print("<td>{}/{}</td>".format(pr_info["additions"], pr_info["deletions"]))
                 print("<td>{}</td>".format(pr_info["changed_files"]))
-                comments = pr_info["comments"] + pr_info["review_comments"]
-                print("<td>{}</td>".format(comments))
+                number_comments = pr_info["comments"] + pr_info["review_comments"]
+                print(f"<td>{number_comments}</td>")
             except KeyError:
                 print("<td>-1/-1</td>\n<td>-1</td>\n<td>-1</td>")
                 print(f"PR #{pr.number} is wicked!", file=sys.stderr)
