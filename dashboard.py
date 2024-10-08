@@ -181,8 +181,79 @@ def read_json_files() -> JSONInputData:
     return JSONInputData(prs_to_list, all_nondraft_prs, all_draft_prs, pr_infos)
 
 
+EXPLANATION = '''
+To appear on the review queue, your open pull request must
+<ul>
+<li>be based on the <em>master</em> branch of mathlib</li>
+<li>pass mathlib's CI</li>
+<li>not be blocked by another PR (as marked by the labels <em>blocked-by-other-PR</em> and similar)</li>
+<li>have no merge conflict (as marked by the <em>merge-conflict</em>)</li>
+<li>not be in draft status, nor labelled with one of <em>WIP</em>, <em>help-wanted</em> or <em>please-adopt</em>: these mean the PR is not fully ready yet</li>
+<li>not be labelled <em>awaiting-CI</em>, <em>awaiting-author</em> or <em>awaiting-zulip</em></li>
+<li>not be labelled <em>delegated</em>, <em>auto-merge-after-CI</em> or <em>ready-to-merge</em>: these labels mean your PR is already approved</li>
+</ul>
+
+The table below contains all open PRs against the `master` branch, with information on these individual checks.
+You can filter that list as you like, such as by entering the PR number or your github username.'''.lstrip()
+
+
+# Print a webpage "why is my PR not on the queue" to the file "on_the_queue?.html".
+# FIXME: can I avoid the hard-coding of the output file?
+def print_on_the_queue_page() -> None:
+    def icon(state: bool) -> str:
+        return '&#9989;' if state else '&#10060;'
+    input_data = read_json_files()
+    prs = input_data.nondraft_prs
+    body = ""
+    for pr in prs:
+        result = ""
+        labels = "".join(label_link(label) for label in pr.labels)
+        result = (f"<tr>\n  <td>{pr_link(pr.number, pr.url)}</td>\n  <td>{user_link(pr.author)}</td>\n" +
+          f"  <td>{title_link(pr.title, pr.url)}</td>\n  <td>{labels}</td>""")
+        status = "pass" # TODO! need advanced file information for this...
+        result += f"  <td>{status}</td>\n"
+        is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
+        result += f"  <td>{icon(not is_blocked)}</td>\n"
+        has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.labels]
+        result += f"  <td>{icon(not has_merge_conflict)}</td>\n"
+        is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
+        result += f"  <td>{icon(is_ready)}</td>\n"
+        review = not (any(lab.name in ["awaiting-CI", "awaiting-author", "awaiting-zulip"] for lab in pr.labels))
+        result += f"  <td>{icon(review)}</td>\n"
+        overall = (not is_blocked) and (not has_merge_conflict) and is_ready and review
+        result += f"  <td>{icon(overall)}</td>\n"
+        body += result + "</tr>"
+    table = f"""<table>
+    <thead>
+    <tr>
+    <th>Number</th>
+    <th>Author</th>
+    <th>Title</th>
+    <th>Labels</th>
+    <th>CI status?</th>
+    <th><a title="not labelled with blocked-by-other-PR, blocked-by-batt-PR, blocked-by-core-PR, blocked-by-qq-PR">not blocked?</a></th>
+    <th>no merge conflict?</th>
+    <th><a title="not in draft state or labelled as in progress">ready?</a></th>
+    <th><a title="not labelled awaiting-author, awaiting-zulip, awaiting-CI">awaiting review?</a></th>
+    <th>On the review queue?</th>
+    </tr>
+    </thead>
+    {body}
+    </table>"""
+    with open("on_the_queue?.html", "w") as outfile:
+        print(HTML_HEADER, file=outfile)
+        print("  <h1>Why is my PR not on the queue?</h1>", file=outfile)
+        # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
+        updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
+        print(f"  <small>This page was last updated on: {updated}<br>", file=outfile)
+        print(EXPLANATION, file=outfile)
+        print(table, file=outfile)
+        print(HTML_FOOTER, file=outfile)
+
+
 def main() -> None:
     input_data = read_json_files()
+    print_on_the_queue_page()
 
     print_html5_header()
     # Print a quick table of contents.
@@ -318,7 +389,7 @@ HTML_HEADER = '''
 
 def print_html5_header() -> None:
     print(HTML_HEADER)
-    print("    <h1>Mathlib review and triage dashboard</h1>")
+    print("  <h1>Mathlib review and triage dashboard</h1>")
     # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
     print(f"""  <small>This dashboard was last updated on: {updated}<br>
