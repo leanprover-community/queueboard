@@ -193,20 +193,22 @@ def main() -> None:
     print(HTML_FOOTER)
 
 
-def gather_pr_statistics(prs: dict[Dashboard, List[BasicPRInformation]], all_ready_prs: List[BasicPRInformation], all_draft_prs: List[BasicPRInformation]) -> str:
+# Compute the status of each PR in a given list. Return a dictionary keyed by the PR number.
+# (`BasicPRInformation` is not hashable, hence cannot be used as a dictionary key.)
+def compute_pr_statusses(prs: List[BasicPRInformation]) -> dict[int, List[PRStatus]]:
     def determine_status(info: BasicPRInformation, is_draft: bool) -> PRStatus:
         # Ignore all "other" labels, which are not relevant for this anyway.
         labels = [label_categorisation_rules[l.name] for l in info.labels if l.name in label_categorisation_rules]
         state = PRState(labels, CIStatus.Pass, is_draft)
         return determine_PR_status(datetime.now(), state)
-
-    # Collect the status of every ready PR.
-    # FIXME: we assume every PR is passing CI, which is too optimistic
-    # We would like to choose the `BasicPRInformation` as the key; as these are not hashable,
-    # we index by the PR number instead.
-    ready_pr_status : dict[int, PRStatus] = {
-       info.number: determine_status(info, False) for info in all_ready_prs
+    # FIXME: we assume every PR is passing CI, which is too optimistic.
+    return {
+       info.number: determine_status(info, False) for info in prs
     }
+
+
+def gather_pr_statistics(prs: dict[Dashboard, List[BasicPRInformation]], all_ready_prs: List[BasicPRInformation], all_draft_prs: List[BasicPRInformation]) -> str:
+    ready_pr_status = compute_pr_statusses(all_ready_prs)
     queue_prs = prs[Dashboard.Queue]
     justmerge_prs = prs[Dashboard.NeedsMerge]
 
