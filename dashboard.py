@@ -536,7 +536,7 @@ def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: Dashb
     <th>Labels</th>
     <th><a title="number of added/deleted lines">+/-</a></th>
     <th><a title="number of files modified">&#128221;</a></th>
-    <th><a title="number of review comments on this PR">&#128172;</a></th>
+    <th><a title="number of standard or review comments on this PR">&#128172;</a></th>
     <th>Updated</th>
     </tr>
     </thead>""")
