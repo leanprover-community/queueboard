@@ -398,10 +398,20 @@ def print_html5_header() -> None:
 
 HTML_FOOTER = '''
 <script>
+  let diff_stat = DataTable.type('diff_stat', {
+    detect: function (data) { return false; },
+    order: {
+      pre: function (data) {
+        let parts = data.split('/', 2);
+        return Number(parts[0]) + Number(parts[1]);
+      }
+    },
+  });
 $(document).ready( function () {
   $('table').DataTable({
     pageLength: 10,
     "searching": true,
+    columnDefs: [{ type: 'diff_stat', targets: 4}],
   });
 });
 </script>
