@@ -182,7 +182,7 @@ def read_json_files() -> JSONInputData:
 
 
 EXPLANATION = '''
-To appear on the review queue, your open pull request must
+<p>To appear on the review queue, your open pull request must
 <ul>
 <li>be based on the <em>master</em> branch of mathlib</li>
 <li>pass mathlib's CI</li>
@@ -192,9 +192,9 @@ To appear on the review queue, your open pull request must
 <li>not be labelled <em>awaiting-CI</em>, <em>awaiting-author</em> or <em>awaiting-zulip</em></li>
 <li>not be labelled <em>delegated</em>, <em>auto-merge-after-CI</em> or <em>ready-to-merge</em>: these labels mean your PR is already approved</li>
 </ul>
-
+</p><p>
 The table below contains all open PRs against the `master` branch, with information on these individual checks.
-You can filter that list as you like, such as by entering the PR number or your github username.'''.lstrip()
+You can filter that list as you like, such as by entering the PR number or your github username.</p>'''.lstrip()
 
 
 # Print a webpage "why is my PR not on the queue" to a new file of name 'outfile'.
@@ -208,22 +208,22 @@ def print_on_the_queue_page(outfile : str) -> None:
     for pr in prs:
         result = ""
         labels = "".join(label_link(label) for label in pr.labels)
-        result = (f"<tr>\n  <td>{pr_link(pr.number, pr.url)}</td>\n  <td>{user_link(pr.author)}</td>\n" +
-          f"  <td>{title_link(pr.title, pr.url)}</td>\n  <td>{labels}</td>""")
+        result = (f"<tr>\n      <td>{pr_link(pr.number, pr.url)}</td>\n      <td>{user_link(pr.author)}</td>\n" +
+          f"      <td>{title_link(pr.title, pr.url)}</td>\n      <td>{labels}</td>""")
         status = "pass" # TODO! need advanced file information for this...
-        result += f"  <td>{status}</td>\n"
+        result += f"      <td>{status}</td>\n"
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
-        result += f"  <td>{icon(not is_blocked)}</td>\n"
+        result += f"      <td>{icon(not is_blocked)}</td>\n"
         has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.labels]
-        result += f"  <td>{icon(not has_merge_conflict)}</td>\n"
+        result += f"      <td>{icon(not has_merge_conflict)}</td>\n"
         is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
-        result += f"  <td>{icon(is_ready)}</td>\n"
+        result += f"      <td>{icon(is_ready)}</td>\n"
         review = not (any(lab.name in ["awaiting-CI", "awaiting-author", "awaiting-zulip"] for lab in pr.labels))
-        result += f"  <td>{icon(review)}</td>\n"
+        result += f"      <td>{icon(review)}</td>\n"
         overall = (not is_blocked) and (not has_merge_conflict) and is_ready and review
-        result += f"  <td>{icon(overall)}</td>\n"
-        body += result + "</tr>"
-    table = f"""<table>
+        result += f"      <td>{icon(overall)}</td>\n"
+        body += result + "    </tr>"
+    table = f"""  <table>
     <thead>
     <tr>
     <th>Number</th>
