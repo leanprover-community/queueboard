@@ -33,10 +33,10 @@ class Dashboard(Enum):
     NeedsHelp = auto()
     # Non-draft PRs into some branch other than mathlib's master branch
     OtherBase = auto()
-    # "Ready" PRs without the CI or a t-something label.
-    Unlabelled = auto()
     # "Ready" PRs whose title does not start with an abbreviation like 'feat' or 'style'
     BadTitle = auto()
+    # "Ready" PRs without the CI or a t-something label.
+    Unlabelled = auto()
     # This PR carries inconsistent labels, such as "WIP" and "ready-to-merge".
     ContradictoryLabels = auto()
 
@@ -117,6 +117,26 @@ def getIdTitle(kind : Dashboard) -> Tuple[str, str]:
         Dashboard.ContradictoryLabels : ("contradictory-labels", "PRs with contradictory labels"),
     }[kind]
 
+
+# The information we need about each PR label: its name, background colour and URL
+class Label(NamedTuple):
+    name : str
+    '''This label's background colour, as a six-digit hexadecimal code'''
+    color : str
+    url : str
+
+
+# Basic information about a PR: does not contain the diff size, which is contained in pr_info.json instead.
+class BasicPRInformation(NamedTuple):
+    number : int # PR number, non-negative
+    author : dict
+    title : str
+    url : str
+    labels : List[Label]
+    # Github's answer to "last updated at"
+    updatedAt : str
+
+
 def main() -> None:
     # Check if the user has provided the correct number of arguments
     if len(sys.argv) < 4:
@@ -132,57 +152,54 @@ def main() -> None:
         links.append(f"<a href=\"#{id}\" title=\"{short_description(kind)}\" target=\"_self\">{id}</a>")
     print(f"<br><p>\n<b>Quick links:</b> <a href=\"#statistics\" target=\"_self\">PR statistics</a> | {str.join(' | ', links)}</p>")
 
+    # Dictionary of all PRs to include in a given dashboard.
+    # This data is given by the json files provided by the user.
+    prs_to_list : dict[Dashboard, List[BasicPRInformation]] = dict()
     # Iterate over the json files provided by the user
-    dataFilesWithKind = []
     for i in range(4, len(sys.argv)):
         filename = sys.argv[i]
         if filename not in EXPECTED_INPUT_FILES:
             print(f"bad argument: file {filename} is not recognised; did you mean one of these?\n{', '.join(EXPECTED_INPUT_FILES.keys())}")
             sys.exit(1)
         with open(filename) as f:
-            data = json.load(f)
-            dataFilesWithKind.append((data, EXPECTED_INPUT_FILES[filename]))
+            prs = _extract_prs(json.load(f))
+            kind = EXPECTED_INPUT_FILES[filename]
+            prs_to_list[kind] = prs_to_list.get(kind, []) + prs
+    queue_prs = prs_to_list[Dashboard.Queue]
+    prs_to_list[Dashboard.QueueNewContributor] = filter_prs(queue_prs, 'new-contributor')
+    prs_to_list[Dashboard.QueueEasy] = filter_prs(queue_prs, 'easy')
 
     with open(sys.argv[2]) as ready_file, open(sys.argv[3]) as draft_file:
-        all_nondraft_prs = json.load(ready_file)
-        all_draft_prs = json.load(draft_file)
-        print(gather_pr_statistics(dataFilesWithKind, all_nondraft_prs, all_draft_prs))
+        all_nondraft_prs = _extract_prs(json.load(ready_file))
+        all_draft_prs = _extract_prs(json.load(draft_file))
+        print(gather_pr_statistics(prs_to_list, all_nondraft_prs, all_draft_prs))
+        (bad_title, unlabelled, contradictory) = compute_dashboards_bad_labels_title(all_nondraft_prs)
+        prs_to_list[Dashboard.BadTitle] = bad_title
+        prs_to_list[Dashboard.Unlabelled] = unlabelled
+        prs_to_list[Dashboard.ContradictoryLabels] = contradictory
 
-        queue_data = [d for (d, k) in dataFilesWithKind if k == Dashboard.Queue]
-        print_queue_boards(queue_data)
-        # Process all data files for the same dashboard together.
-        for kind in Dashboard._member_map_.values():
-            if kind in [Dashboard.Queue, Dashboard.QueueNewContributor, Dashboard.QueueEasy]:
-                continue # These dashboards were just printed above.
-            # For these kinds, we create a dashboard later (by filtering the list of all ready PRs instead).
-            if kind in [Dashboard.Unlabelled, Dashboard.BadTitle, Dashboard.ContradictoryLabels]:
-                continue
-            datae = [d for (d, k) in dataFilesWithKind if k == kind]
-            print_dashboard(datae, kind)
-
-        print_dashboard_bad_labels_title(all_nondraft_prs)
+    for kind in Dashboard._member_map_.values():
+        print_dashboard(prs_to_list.get(kind, []), kind)
 
     print(HTML_FOOTER)
 
 
-def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, Dashboard]], all_ready_prs: dict, all_draft_prs: dict) -> str:
+def gather_pr_statistics(prs: dict[Dashboard, List[BasicPRInformation]], all_ready_prs: List[BasicPRInformation], all_draft_prs: List[BasicPRInformation]) -> str:
     def determine_status(info: BasicPRInformation, is_draft: bool) -> PRStatus:
         # Ignore all "other" labels, which are not relevant for this anyway.
         labels = [label_categorisation_rules[l.name] for l in info.labels if l.name in label_categorisation_rules]
         state = PRState(labels, CIStatus.Pass, is_draft)
         return determine_PR_status(datetime.now(), state)
 
-    ready_prs : List[BasicPRInformation] = _extract_prs([all_ready_prs])
     # Collect the status of every ready PR.
     # FIXME: we assume every PR is passing CI, which is too optimistic
     # We would like to choose the `BasicPRInformation` as the key; as these are not hashable,
     # we index by the PR number instead.
     ready_pr_status : dict[int, PRStatus] = {
-       info.number: determine_status(info, False) for info in ready_prs
+       info.number: determine_status(info, False) for info in all_ready_prs
     }
-    draft_prs = _extract_prs([all_draft_prs])
-    queue_prs = _extract_prs([d for (d, k) in dataFilesWithKind if k == Dashboard.Queue])
-    justmerge_prs = _extract_prs([d for (d, k) in dataFilesWithKind if k == Dashboard.NeedsMerge])
+    queue_prs = prs[Dashboard.Queue]
+    justmerge_prs = prs[Dashboard.NeedsMerge]
 
     # Collect the number of PRs in each possible status.
     # NB. The order of these statusses is meaningful; the statistics are shown in the order of these items.
@@ -196,7 +213,7 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, Dashboard]], all_re
     number_prs : dict[PRStatus, int] = {
         status : len([number for number in ready_pr_status if ready_pr_status[number] == status]) for status in statusses
     }
-    number_prs[PRStatus.NotReady] += len(draft_prs)
+    number_prs[PRStatus.NotReady] += len(all_draft_prs)
     # Check that we did not miss any variant above
     for status in PRStatus._member_map_.values():
         assert status == PRStatus.Closed or status in number_prs.keys()
@@ -209,7 +226,7 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, Dashboard]], all_re
         print(f"warning: the review queue and the classification differ: found {len(right)} PRs {right} on the former, but the {len(queue_prs_numbers)} PRs {queue_prs_numbers} on the latter!", file=sys.stderr)
     # TODO: also cross-check the data for merge conflicts
 
-    number_all = len(ready_prs) + len(draft_prs)
+    number_all = len(all_ready_prs) + len(all_draft_prs)
     def link_to(kind: Dashboard, name="these ones") -> str:
         return f"<a href=\"#{getIdTitle(kind)[0]}\" target=\"_self\">{name}</a>"
     def number_percent(n: int , total: int, color: str = "") -> str:
@@ -311,14 +328,6 @@ def title_link(title: str, url: str) -> str:
     return f"<a href='{url}'>{title}</a>"
 
 
-# The information we need about each PR label: its name, background colour and URL
-class Label(NamedTuple):
-    name : str
-    '''This label's background colour, as a six-digit hexadecimal code'''
-    color : str
-    url : str
-
-
 # An HTML link to a Github label in the mathlib repo
 def label_link(label:Label) -> str:
     # Function to check if the colour of the label is light or dark
@@ -363,27 +372,15 @@ def time_info(updatedAt: str) -> str:
     return f"{s} ({format_delta(delta)} ago)"
 
 
-# Basic information about a PR: does not contain the diff size, which is contained in pr_info.json instead.
-class BasicPRInformation(NamedTuple):
-    number : int # PR number, non-negative
-    author : dict
-    title : str
-    url : str
-    labels : List[Label]
-    # Github's answer to "last updated at"
-    updatedAt : str
-
-
-# Extract all PRs mentioned in a list of data files.
-def _extract_prs(datae: List[dict]) -> List[BasicPRInformation]:
+# Extract all PRs mentioned in a data file.
+def _extract_prs(data: dict) -> List[BasicPRInformation]:
     prs = []
-    for data in datae:
-        for page in data["output"]:
-            for entry in page["data"]["search"]["nodes"]:
-                labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
-                prs.append(BasicPRInformation(
-                    entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
-                ))
+    for page in data["output"]:
+        for entry in page["data"]["search"]["nodes"]:
+            labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
+            prs.append(BasicPRInformation(
+                entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
+            ))
     return prs
 
 
@@ -450,30 +447,16 @@ def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: Dashb
     print("</table>")
 
 
-def print_dashboard(datae : List[dict], kind : Dashboard) -> None:
-    '''`datae` is a list of parsed data files to process'''
-    # Print all PRs in all the data files. We use the PR info file to provide additional information.
+def print_dashboard(prs : List[BasicPRInformation], kind : Dashboard) -> None:
+    # We use the PR info file to provide additional information.
     with open(sys.argv[1], 'r') as f:
         pr_infos = json.load(f)
-        _print_dashboard(pr_infos, _extract_prs(datae), kind, True)
+        _print_dashboard(pr_infos, prs, kind, True)
 
 
 # Extract all PRs from a given list which have a certain label.
 def filter_prs(prs: List[BasicPRInformation], label_name: str) -> List[BasicPRInformation]:
     return [prinfo for prinfo in prs if label_name in [l.name for l in prinfo.labels]]
-
-
-# Print the list of PRs in the review queue, as well as two sub-lists of these:
-# all PRs by new contributors, and all PRs labelled 'easy'.
-def print_queue_boards(queue_data : List[dict]) -> None:
-    queue_prs = _extract_prs(queue_data)
-    newcontrib = filter_prs(queue_prs, 'new-contributor')
-    easy = filter_prs(queue_prs, 'easy')
-    with open(sys.argv[1], 'r') as f:
-        pr_infos = json.load(f)
-        _print_dashboard(pr_infos, queue_prs, Dashboard.Queue, True)
-        _print_dashboard(pr_infos, newcontrib, Dashboard.QueueNewContributor, True)
-        _print_dashboard(pr_infos, easy, Dashboard.QueueEasy, True)
 
 
 def has_contradictory_labels(pr: BasicPRInformation) -> bool:
@@ -498,30 +481,20 @@ def has_contradictory_labels(pr: BasicPRInformation) -> bool:
         return True
     return False
 
-# Print dashboards of
-# - all feature PRs without a topic label,
-# - all PRs with a badly formatted title,
-# - all PRs with contradictory labels
-# among those given in `data` that are not labelled as work in progress.
-def print_dashboard_bad_labels_title(data : dict) -> None:
-    all_prs = _extract_prs([data])
-    # Filter out all PRs with have a WIP label.
-    all_prs = [pr for pr in all_prs if not ('WIP' in [l.name for l in pr.labels])]
-
-    with_bad_title = [pr for pr in all_prs if not pr.title.startswith(("feat", "chore", "perf", "refactor", "style", "fix", "doc"))]
+# Determine all PRs in `prs` which are not labelled `WIP` and
+# - are feature PRs without a topic label,
+# - have a badly formatted title (we currently only check some of the conditions in the guidelines),
+# - have contradictory labels.
+def compute_dashboards_bad_labels_title(prs : List[BasicPRInformation]) -> Tuple[List[BasicPRInformation], List[BasicPRInformation], List[BasicPRInformation]]:
+    # Filter out all PRs which have a WIP label.
+    nonwip_prs = [pr for pr in prs if not ('WIP' in [l.name for l in pr.labels])]
+    with_bad_title = [pr for pr in nonwip_prs if not pr.title.startswith(("feat", "chore", "perf", "refactor", "style", "fix", "doc"))]
     # Whether a PR has a "topic" label.
     def has_topic_label(pr: BasicPRInformation) -> bool:
         topic_labels = [l for l in pr.labels if l.name in ['CI', 'IMO'] or l.name.startswith("t-")]
         return len(topic_labels) >= 1
-    prs_without_topic_label = [pr for pr in all_prs if pr.title.startswith("feat") and not has_topic_label(pr)]
-    prs_with_contradictory_labels = [pr for pr in all_prs if has_contradictory_labels(pr)]
-
-    # Open the file containing the PR info.
-    with open(sys.argv[1], 'r') as f:
-        pr_infos = json.load(f)
-        _print_dashboard(pr_infos, with_bad_title, Dashboard.BadTitle, False)
-        _print_dashboard(pr_infos, prs_without_topic_label, Dashboard.Unlabelled, False)
-        _print_dashboard(pr_infos, prs_with_contradictory_labels, Dashboard.ContradictoryLabels, False)
-
+    prs_without_topic_label = [pr for pr in nonwip_prs if pr.title.startswith("feat") and not has_topic_label(pr)]
+    prs_with_contradictory_labels = [pr for pr in nonwip_prs if has_contradictory_labels(pr)]
+    return (with_bad_title, prs_without_topic_label, prs_with_contradictory_labels)
 
 main()
