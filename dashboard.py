@@ -162,7 +162,7 @@ def main() -> None:
 
         print_dashboard_bad_labels_title(all_nondraft_prs)
 
-    print_html5_footer()
+    print(HTML_FOOTER)
 
 
 def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, Dashboard]], all_ready_prs: dict, all_draft_prs: dict) -> str:
@@ -254,40 +254,44 @@ def gather_pr_statistics(dataFilesWithKind: List[Tuple[dict, Dashboard]], all_re
     return f"\n<h2 id=\"statistics\"><a href=\"#statistics\">Overall statistics</a></h2>\nFound <b>{number_all}</b> open PRs overall. Disregarding their CI state, of these PRs\n<ul>\n{details}\n</ul><div class=\"piechart\" style=\"{piechart_style}\"></div>\n"
 
 
+HTML_HEADER = '''
+<!DOCTYPE html>
+<html>
+<head>
+<title>Mathlib review and triage dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
+    integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg=="
+	crossorigin="anonymous"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.22/css/jquery.dataTables.css">
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.js"></script>
+<link rel='stylesheet' href='style.css'>
+<base target="_blank">
+</head>
+<body>
+    <h1>Mathlib review and triage dashboard</h1>
+'''.strip()
+
 def print_html5_header() -> None:
-    print("""
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <title>Mathlib review and triage dashboard</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
-			integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg=="
-			crossorigin="anonymous"></script>
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.22/css/jquery.dataTables.css">
-    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.js"></script>
-    <link rel='stylesheet' href='style.css'>
-    <base target="_blank">
-    </head>
-    <body>
-    <h1>Mathlib review and triage dashboard</h1>""")
+    print(HTML_HEADER)
     # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
-    print(f"""<small>This dashboard was last updated on: {updated}<br>
-        Feedback on this dashboard is welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.</small>""")
+    print(f"""  <small>This dashboard was last updated on: {updated}<br>
+    Feedback on this dashboard is welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.</small>""")
 
-def print_html5_footer() -> None:
-    print("""
-    <script>
-    $(document).ready( function () {
-      $('table').DataTable({
-        pageLength: 10,
-        "searching": true,
-      });
-    });
-    </script>
-    </body>
-    </html>
-    """)
+
+HTML_FOOTER = '''
+<script>
+$(document).ready( function () {
+  $('table').DataTable({
+    pageLength: 10,
+    "searching": true,
+  });
+});
+</script>
+</body>
+</html>
+'''.strip()
+
 
 # An HTML link to a mathlib PR from the PR number
 def pr_link(number: int, url: str) -> str:
