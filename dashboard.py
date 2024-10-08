@@ -177,9 +177,10 @@ def main() -> None:
         prs_to_list[Dashboard.BadTitle] = bad_title
         prs_to_list[Dashboard.Unlabelled] = unlabelled
         prs_to_list[Dashboard.ContradictoryLabels] = contradictory
-
-    for kind in Dashboard._member_map_.values():
-        print_dashboard(prs_to_list.get(kind, []), kind)
+    with open(sys.argv[1], 'r') as f:
+        pr_infos = json.load(f)
+        for kind in Dashboard._member_map_.values():
+            print_dashboard(pr_infos, prs_to_list.get(kind, []), kind)
 
     print(HTML_FOOTER)
 
@@ -447,11 +448,9 @@ def _print_dashboard(pr_infos: dict, prs : List[BasicPRInformation], kind: Dashb
     print("</table>")
 
 
-def print_dashboard(prs : List[BasicPRInformation], kind : Dashboard) -> None:
+def print_dashboard(pr_info: dict, prs : List[BasicPRInformation], kind : Dashboard) -> None:
     # We use the PR info file to provide additional information.
-    with open(sys.argv[1], 'r') as f:
-        pr_infos = json.load(f)
-        _print_dashboard(pr_infos, prs, kind, True)
+    _print_dashboard(pr_info, prs, kind, True)
 
 
 # Extract all PRs from a given list which have a certain label.
