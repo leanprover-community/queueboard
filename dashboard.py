@@ -471,6 +471,28 @@ def print_queue_boards(queue_data : List[dict]) -> None:
         _print_dashboard(pr_infos, easy, Dashboard.QueueEasy, True)
 
 
+def has_contradictory_labels(pr: BasicPRInformation) -> bool:
+    # Combine common labels.
+    canonicalise = {
+        "ready-to-merge": "bors", "auto-merge-after-CI": "bors",
+        "blocked-by-other-PR": "blocked", "blocked-by-core-PR": "blocked", "blocked-by-batt-PR": "blocked", "blocked-by-qq-PR": "blocked",
+    }
+    normalised_labels = [(canonicalise[l.name] if l.name in canonicalise else l.name) for l in pr.labels]
+    # Test for contradictory label combinations.
+    if 'awaiting-review-DONT-USE' in normalised_labels:
+        return True
+    # Waiting for a decision contradicts most other labels.
+    elif "awaiting-zulip" in normalised_labels and any(
+            [l for l in normalised_labels if l in ["awaiting-author", "delegated", "bors", "WIP"]]):
+        return True
+    elif "WIP" in normalised_labels and ("awaiting-review" in normalised_labels or "bors" in normalised_labels):
+        return True
+    elif "awaiting-author" in normalised_labels and "awaiting-zulip" in normalised_labels:
+        return True
+    elif "bors" in normalised_labels and "WIP" in normalised_labels:
+        return True
+    return False
+
 # Print dashboards of
 # - all feature PRs without a topic label,
 # - all PRs with a badly formatted title,
@@ -487,28 +509,6 @@ def print_dashboard_bad_labels_title(data : dict) -> None:
         topic_labels = [l for l in pr.labels if l.name in ['CI', 'IMO'] or l.name.startswith("t-")]
         return len(topic_labels) >= 1
     prs_without_topic_label = [pr for pr in all_prs if pr.title.startswith("feat") and not has_topic_label(pr)]
-
-    def has_contradictory_labels(pr: BasicPRInformation) -> bool:
-        # Combine common labels.
-        canonicalise = {
-            "ready-to-merge": "bors", "auto-merge-after-CI": "bors",
-            "blocked-by-other-PR": "blocked", "blocked-by-core-PR": "blocked", "blocked-by-batt-PR": "blocked", "blocked-by-qq-PR": "blocked",
-        }
-        normalised_labels = [(canonicalise[l.name] if l.name in canonicalise else l.name) for l in pr.labels]
-        # Test for contradictory label combinations.
-        if 'awaiting-review-DONT-USE' in normalised_labels:
-            return True
-        # Waiting for a decision contradicts most other labels.
-        elif "awaiting-zulip" in normalised_labels and any(
-                [l for l in normalised_labels if l in ["awaiting-author", "delegated", "bors", "WIP"]]):
-            return True
-        elif "WIP" in normalised_labels and ("awaiting-review" in normalised_labels or "bors" in normalised_labels):
-            return True
-        elif "awaiting-author" in normalised_labels and "awaiting-zulip" in normalised_labels:
-            return True
-        elif "bors" in normalised_labels and "WIP" in normalised_labels:
-            return True
-        return False
     prs_with_contradictory_labels = [pr for pr in all_prs if has_contradictory_labels(pr)]
 
     # Open the file containing the PR info.
