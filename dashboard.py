@@ -458,12 +458,17 @@ def print_dashboard(datae : List[dict], kind : Dashboard) -> None:
         _print_dashboard(pr_infos, _extract_prs(datae), kind, True)
 
 
+# Extract all PRs from a given list which have a certain label.
+def filter_prs(prs: List[BasicPRInformation], label_name: str) -> List[BasicPRInformation]:
+    return [prinfo for prinfo in prs if label_name in [l.name for l in prinfo.labels]]
+
+
 # Print the list of PRs in the review queue, as well as two sub-lists of these:
 # all PRs by new contributors, and all PRs labelled 'easy'.
 def print_queue_boards(queue_data : List[dict]) -> None:
     queue_prs = _extract_prs(queue_data)
-    newcontrib = [prinfo for prinfo in queue_prs if 'new-contributor' in [l.name for l in prinfo.labels]]
-    easy = [prinfo for prinfo in queue_prs if 'easy' in [l.name for l in prinfo.labels]]
+    newcontrib = filter_prs(queue_prs, 'new-contributor')
+    easy = filter_prs(queue_prs, 'easy')
     with open(sys.argv[1], 'r') as f:
         pr_infos = json.load(f)
         _print_dashboard(pr_infos, queue_prs, Dashboard.Queue, True)
