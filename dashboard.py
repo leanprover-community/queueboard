@@ -142,21 +142,24 @@ class BasicPRInformation(NamedTuple):
     updatedAt : str
 
 
-def main() -> None:
+# Information passed to this script, via various JSON files.
+class JSONInputData(NamedTuple):
+    # Not every dashboard need be covered!
+    prs_on_boards : dict[Dashboard, List[BasicPRInformation]]
+    # Information about all non-draft PRs
+    nondraft_prs: List[BasicPRInformation]
+    # Information about all PRs marked as draft
+    draft_prs: List[BasicPRInformation]
+    # Detailed information about a number of PRs (need to cover all of them)
+    detailed_pr_info: dict
+
+
+# Validate the command-line arguments and try to read all data passed in via JSON files.
+def read_json_files() -> JSONInputData:
     # Check if the user has provided the correct number of arguments
     if len(sys.argv) < 4:
         print("Usage: python3 dashboard.py <pr-info.json> <all-nondraft-prs.json> <all-draft-PRs.json> <json_file1> <json_file2> ...")
         sys.exit(1)
-
-    print_html5_header()
-
-    # Print a quick table of contents.
-    links = []
-    for kind in Dashboard._member_map_.values():
-        (id, _title) = getIdTitle(kind)
-        links.append(f"<a href=\"#{id}\" title=\"{short_description(kind)}\" target=\"_self\">{id}</a>")
-    print(f"<br><p>\n<b>Quick links:</b> <a href=\"#statistics\" target=\"_self\">PR statistics</a> | {str.join(' | ', links)}</p>")
-
     # Dictionary of all PRs to include in a given dashboard.
     # This data is given by the json files provided by the user.
     prs_to_list : dict[Dashboard, List[BasicPRInformation]] = dict()
@@ -170,25 +173,40 @@ def main() -> None:
             prs = _extract_prs(json.load(f))
             kind = EXPECTED_INPUT_FILES[filename]
             prs_to_list[kind] = prs_to_list.get(kind, []) + prs
+    with open(sys.argv[2]) as ready_file, open(sys.argv[3]) as draft_file:
+        all_nondraft_prs = _extract_prs(json.load(ready_file))
+        all_draft_prs = _extract_prs(json.load(draft_file))
+    with open(sys.argv[1], 'r') as f:
+        pr_infos = json.load(f)
+    return JSONInputData(prs_to_list, all_nondraft_prs, all_draft_prs, pr_infos)
+
+
+def main() -> None:
+    input_data = read_json_files()
+
+    print_html5_header()
+    # Print a quick table of contents.
+    links = []
+    for kind in Dashboard._member_map_.values():
+        (id, _title) = getIdTitle(kind)
+        links.append(f"<a href=\"#{id}\" title=\"{short_description(kind)}\" target=\"_self\">{id}</a>")
+    print(f"<br><p>\n<b>Quick links:</b> <a href=\"#statistics\" target=\"_self\">PR statistics</a> | {str.join(' | ', links)}</p>")
+
+    prs_to_list : dict[Dashboard, List[BasicPRInformation]] = input_data.prs_on_boards
     queue_prs = prs_to_list[Dashboard.Queue]
     prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
     prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs, 'easy')
 
-    with open(sys.argv[2]) as ready_file, open(sys.argv[3]) as draft_file:
-        all_nondraft_prs = _extract_prs(json.load(ready_file))
-        all_draft_prs = _extract_prs(json.load(draft_file))
-        print(gather_pr_statistics(prs_to_list, all_nondraft_prs, all_draft_prs))
-        all_ready_prs = prs_without_label(all_nondraft_prs, 'WIP')
-        prs_to_list[Dashboard.TechDebt] = prs_with_label(all_ready_prs, 'tech debt')
+    print(gather_pr_statistics(prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
+    all_ready_prs = prs_without_label(input_data.nondraft_prs, 'WIP')
+    prs_to_list[Dashboard.TechDebt] = prs_with_label(all_ready_prs, 'tech debt')
 
-        (bad_title, unlabelled, contradictory) = compute_dashboards_bad_labels_title(all_nondraft_prs)
-        prs_to_list[Dashboard.BadTitle] = bad_title
-        prs_to_list[Dashboard.Unlabelled] = unlabelled
-        prs_to_list[Dashboard.ContradictoryLabels] = contradictory
-    with open(sys.argv[1], 'r') as f:
-        pr_infos = json.load(f)
-        for kind in Dashboard._member_map_.values():
-            print_dashboard(pr_infos, prs_to_list.get(kind, []), kind)
+    (bad_title, unlabelled, contradictory) = compute_dashboards_bad_labels_title(input_data.nondraft_prs)
+    prs_to_list[Dashboard.BadTitle] = bad_title
+    prs_to_list[Dashboard.Unlabelled] = unlabelled
+    prs_to_list[Dashboard.ContradictoryLabels] = contradictory
+    for kind in Dashboard._member_map_.values():
+        print_dashboard(input_data.detailed_pr_info, prs_to_list.get(kind, []), kind)
 
     print(HTML_FOOTER)
 
