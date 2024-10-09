@@ -38,4 +38,4 @@ Run the following, *inside* the `test` directory:
 `python3 ../dashboard.py pr-info.json all-nondraft-PRs.json all-draft-PRs.json queue.json ready-to-merge.json please-adopt.json new-contributor.json needs-merge.json needs-decision.json maintainer-merge.json help-wanted.json delegated.json automerge.json > ../expected.html`,
 once (before the changes) to create a file `../expected.html`, and again afterwards for a file `../actual.html`.
 You can then use `diff` to look for any changes to the generated output.
-(It is important that the output file be in the top-level directory.)
+(The output file needs to be in the top-level directory in order for the styling to work.)
