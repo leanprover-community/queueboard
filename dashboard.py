@@ -198,9 +198,9 @@ You can filter that list as you like, such as by entering the PR number or your 
 
 
 # Print a webpage "why is my PR not on the queue" to a new file of name 'outfile'.
-# FIXME: can I avoid the hard-coding of the output file?
 def print_on_the_queue_page(outfile : str) -> None:
     def icon(state: bool) -> str:
+        '''Return a green checkmark emoji if `state` is true, and a red cross emoji otherwise.'''
         return '&#9989;' if state else '&#10060;'
     input_data = read_json_files()
     prs = input_data.nondraft_prs
@@ -210,7 +210,7 @@ def print_on_the_queue_page(outfile : str) -> None:
         labels = "".join(label_link(label) for label in pr.labels)
         result = (f"<tr>\n      <td>{pr_link(pr.number, pr.url)}</td>\n      <td>{user_link(pr.author)}</td>\n" +
           f"      <td>{title_link(pr.title, pr.url)}</td>\n      <td>{labels}</td>""")
-        status = "pass" # TODO! need advanced file information for this...
+        status = "??" # TODO: implement this; need to query detailed information for this...
         result += f"      <td>{status}</td>\n"
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
         result += f"      <td>{icon(not is_blocked)}</td>\n"
