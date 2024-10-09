@@ -20,16 +20,16 @@ query(\$endCursor: String) {
     nodes {
       ... on PullRequest {
         number
-	url
-	author { ... on User { login url } }
-	title
+	      url
+	      author { ... on User { login url } }
+	      title
         state
-	updatedAt
+	      updatedAt
         labels(first: 10, orderBy: {direction: DESC, field: CREATED_AT}) {
           nodes {
             name
-	    color
-	    url
+	          color
+	          url
           }
         }
       }
