@@ -182,7 +182,7 @@ def read_json_files() -> JSONInputData:
         aggregate_info = json.load(f)
         ci_info = dict()
         for pr in aggregate_info:
-            ci_info[int(pr["number"])] = pr["ci_status"]
+            ci_info[pr["number"]] = pr["CI_passes"]
         print(ci_info)
     with open(sys.argv[2], 'r') as f:
         pr_infos = json.load(f)
