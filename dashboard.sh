@@ -135,7 +135,10 @@ do
   #   '.[$pr_number] = {additions: $additions, deletions: $deletions, changed_files: $changed_files}' $pr_info > temp.json && mv temp.json $pr_info
 done
 
-python3 ./dashboard.py $pr_info "all-nondraft-PRs.json" "all-draft-PRs.json" ${json_files[*]} > ./index.html
+# Download a file with aggregate info, e.g. the CI status of each open PR.
+curl -o aggregate_info.json https://github.com/jcommelin/gh-mathlib-metadata/blob/master/processed_data/aggregate_pr_data.json
+
+python3 ./dashboard.py aggregate_info.json $pr_info "all-nondraft-PRs.json" "all-draft-PRs.json" ${json_files[*]} > ./index.html
 
 rm *.json
 
