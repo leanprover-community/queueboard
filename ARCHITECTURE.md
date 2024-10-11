@@ -35,7 +35,7 @@ There are several levels at which this project can be tested. Currently, there a
 - `classify_pr_state.py` has unit tests: to run them, use e.g. `nose` (which will pick them up automatically), or uncomment all methods named `test_xxx` and run `python3 classify_pr_state.py`
 - changes to just `dashboard.py` can be tested using the JSON files in `test`, as follows.
 Run the following, *inside* the `test` directory:
-`python3 ../dashboard.py pr-info.json all-nondraft-PRs.json all-draft-PRs.json queue.json ready-to-merge.json please-adopt.json new-contributor.json needs-merge.json needs-decision.json maintainer-merge.json help-wanted.json delegated.json automerge.json > ../expected.html`,
+`python3 ../dashboard.py aggregate_info.json pr-info.json all-nondraft-PRs.json all-draft-PRs.json queue.json ready-to-merge.json please-adopt.json new-contributor.json needs-merge.json needs-decision.json maintainer-merge.json help-wanted.json delegated.json automerge.json > ../expected.html`,
 once (before the changes) to create a file `../expected.html`, and again afterwards for a file `../actual.html`.
 You can then use `diff` to look for any changes to the generated output.
 (The output file needs to be in the top-level directory in order for the styling to work.)

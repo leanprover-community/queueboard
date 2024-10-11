@@ -175,7 +175,7 @@ def read_json_files() -> JSONInputData:
             prs = _extract_prs(json.load(f))
             kind = EXPECTED_INPUT_FILES[filename]
             prs_to_list[kind] = prs_to_list.get(kind, []) + prs
-    with open(sys.argv[3]) as ready_file, open(sys.argv[2]) as draft_file:
+    with open(sys.argv[4]) as ready_file, open(sys.argv[3]) as draft_file:
         all_nondraft_prs = _extract_prs(json.load(ready_file))
         all_draft_prs = _extract_prs(json.load(draft_file))
     with open(sys.argv[1], 'r') as f:
