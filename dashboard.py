@@ -210,6 +210,7 @@ def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
     def icon(state: bool) -> str:
         '''Return a green checkmark emoji if `state` is true, and a red cross emoji otherwise.'''
         return '&#9989;' if state else '&#10060;'
+    ci_status = input_data.CI_passes
     prs = input_data.nondraft_prs
     body = ""
     for pr in prs:
@@ -217,7 +218,7 @@ def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
         labels = "".join(label_link(label) for label in pr.labels)
         result = (f"<tr>\n      <td>{pr_link(pr.number, pr.url)}</td>\n      <td>{user_link(pr.author)}</td>\n" +
           f"      <td>{title_link(pr.title, pr.url)}</td>\n      <td>{labels}</td>""")
-        status = "??" # TODO: implement this; need to query detailed information for this...
+        status = icon(ci_status[pr.number])
         result += f"      <td>{status}</td>\n"
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
         result += f"      <td>{icon(not is_blocked)}</td>\n"
