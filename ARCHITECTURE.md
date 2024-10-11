@@ -20,7 +20,7 @@ This section talks briefly about various important directories and data structur
 
 **Architecture invariant.** All network requests happen in this script. `dashboard.py` makes no connections to the network.
 
-`dashboard.py` is where the core logic of creating the dashboard lives. It is a Python script, taking the JSON files from the previous step as input. It prints the HTML code for the dashboard page.
+`dashboard.py` is where the core logic of creating the dashboard lives. It is a Python script, taking the JSON files from the previous step as input. It prints the HTML code for the dashboard page. It also writes the HTML code for a page "is my PR on the queue" to a separate file `on_the_queue.html`.
 
 **Architecture invariant.** The output of `dashboard.py` only depends on its command line arguments and its current time: with both fixed, it is deterministic. In particular, it makes no network request.
 All I/O in that file is constrained to one method `read_user_data` in the beginning.
@@ -32,6 +32,7 @@ All I/O in that file is constrained to one method `read_user_data` in the beginn
 
 `classify_pr_state.py` contains logic to classify a pull request as ready for review, awaiting action by the author, blocked on another PR, etc. This is used to generate a statistics section on the dashboard. It is called directly by `dashboard.py`.
 
+`test` contains versions of all input files to this script, at some point in time. These can be used for locally testing `dashboard.py`.
 
 # Cross-cutting concerns
 
