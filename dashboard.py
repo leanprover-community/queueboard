@@ -175,15 +175,14 @@ def read_json_files() -> JSONInputData:
             prs = _extract_prs(json.load(f))
             kind = EXPECTED_INPUT_FILES[filename]
             prs_to_list[kind] = prs_to_list.get(kind, []) + prs
-    with open(sys.argv[4]) as ready_file, open(sys.argv[3]) as draft_file:
+    with open(sys.argv[3]) as ready_file, open(sys.argv[4]) as draft_file:
         all_nondraft_prs = _extract_prs(json.load(ready_file))
         all_draft_prs = _extract_prs(json.load(draft_file))
     with open(sys.argv[1], 'r') as f:
         aggregate_info = json.load(f)
         ci_info = dict()
-        for pr in aggregate_info:
+        for pr in aggregate_info["pr_statusses"]:
             ci_info[pr["number"]] = pr["CI_passes"]
-        print(ci_info)
     with open(sys.argv[2], 'r') as f:
         pr_infos = json.load(f)
     return JSONInputData(prs_to_list, ci_info, all_nondraft_prs, all_draft_prs, pr_infos)
@@ -218,7 +217,7 @@ def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
         labels = "".join(label_link(label) for label in pr.labels)
         result = (f"<tr>\n      <td>{pr_link(pr.number, pr.url)}</td>\n      <td>{user_link(pr.author)}</td>\n" +
           f"      <td>{title_link(pr.title, pr.url)}</td>\n      <td>{labels}</td>""")
-        status = icon(ci_status[pr.number])
+        status = icon(ci_status[pr.number] if pr.number in ci_status else False)
         result += f"      <td>{status}</td>\n"
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
         result += f"      <td>{icon(not is_blocked)}</td>\n"
