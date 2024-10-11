@@ -198,11 +198,10 @@ You can filter that list as you like, such as by entering the PR number or your 
 
 
 # Print a webpage "why is my PR not on the queue" to a new file of name 'outfile'.
-def print_on_the_queue_page(outfile : str) -> None:
+def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
     def icon(state: bool) -> str:
         '''Return a green checkmark emoji if `state` is true, and a red cross emoji otherwise.'''
         return '&#9989;' if state else '&#10060;'
-    input_data = read_json_files()
     prs = input_data.nondraft_prs
     body = ""
     for pr in prs:
@@ -253,7 +252,7 @@ def print_on_the_queue_page(outfile : str) -> None:
 
 def main() -> None:
     input_data = read_json_files()
-    print_on_the_queue_page("on_the_queue.html")
+    print_on_the_queue_page(input_data, "on_the_queue.html")
 
     print_html5_header()
     # Print a quick table of contents.
