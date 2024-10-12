@@ -188,7 +188,7 @@ def read_json_files() -> JSONInputData:
 
 
 EXPLANATION = '''
-<p>To appear on the review queue, your open pull request must
+<p>To appear on the review queue, your open pull request must...</p>
 <ul>
 <li>be based on the <em>master</em> branch of mathlib</li>
 <li>pass mathlib's CI</li>
@@ -198,7 +198,7 @@ EXPLANATION = '''
 <li>not be labelled <em>awaiting-CI</em>, <em>awaiting-author</em> or <em>awaiting-zulip</em></li>
 <li>not be labelled <em>delegated</em>, <em>auto-merge-after-CI</em> or <em>ready-to-merge</em>: these labels mean your PR is already approved</li>
 </ul>
-</p><p>
+<p>
 The table below contains all open PRs against the `master` branch, with information on these individual checks.
 You can filter that list as you like, such as by entering the PR number or your github username.</p>'''.lstrip()
 
@@ -248,16 +248,14 @@ def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
         "On the review queue?",
     ]
     head = _write_table_header(headings, "    ")
-    table = f"  <table>\n{head}{body}\n  </table>"
+    table = f"  <table>\n{head}{body}  </table>"
     with open(outfile, "w") as fi:
-        print(HTML_HEADER, file=fi)
-        print("  <h1>Why is my PR not on the queue?</h1>", file=fi)
         # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
         updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
-        print(f"  <small>This page was last updated on: {updated}<br>", file=fi)
-        print(EXPLANATION, file=fi)
-        print(table, file=fi)
-        print(HTML_FOOTER, file=fi)
+        print(f"{HTML_HEADER}\n"
+            "  <h1>Why is my PR not on the queue?</h1>\n"
+           f"  <small>This page was last updated on: {updated}</small>\n"
+           f"{EXPLANATION}\n{table}\n{HTML_FOOTER}", file=fi)
 
 
 def main() -> None:
