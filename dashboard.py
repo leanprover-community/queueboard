@@ -202,6 +202,19 @@ EXPLANATION = '''
 The table below contains all open PRs against the `master` branch, with information on these individual checks.
 You can filter that list as you like, such as by entering the PR number or your github username.</p>'''.lstrip()
 
+# Determine HTML code for writing a table header with entries 'entries'.
+# base_indent is the indentation of the <table> tag; we add two additional space per additional level.
+def _write_table_header(entries: List[str], base_indent: str) -> str:
+    indent = base_indent + "  "
+    body = f'\n{indent}'.join([f"<th>{entry}</th>" for entry in entries])
+    return f"{base_indent}<thead>\n{base_indent}<tr>\n{base_indent}{body}\n{base_indent}</tr>\n{base_indent}</thead>\n"
+
+# Determine HTML code for writing a single table row with entries 'entries' and indentation 'indent'.
+# four spaces for the table itself are hard-coded, for now
+def _write_table_row(entries: List[str], base_indent: str) -> str:
+    indent = base_indent + "  "
+    body = f'\n{indent}'.join([f"<td>{entry}</td>" for entry in entries])
+    return f"{base_indent}<tr>\n{indent}{body}\n{base_indent}</tr>\n"
 
 # Print a webpage "why is my PR not on the queue" to a new file of name 'outfile'.
 def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
@@ -212,42 +225,30 @@ def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
     prs = input_data.nondraft_prs
     body = ""
     for pr in prs:
-        result = ""
-        labels = "".join(label_link(label) for label in pr.labels)
-        result = (f"<tr>\n      <td>{pr_link(pr.number, pr.url)}</td>\n      <td>{user_link(pr.author)}</td>\n" +
-          f"      <td>{title_link(pr.title, pr.url)}</td>\n      <td>{labels}</td>""")
+        labels = "\n        ".join(label_link(label) for label in pr.labels)
         if pr.number not in ci_status:
             print(f"'on the queue' page: found no PR info for PR {pr.number}", file=sys.stderr)
         status = icon(ci_status[pr.number]) if pr.number in ci_status else "???"
-        result += f"      <td>{status}</td>\n"
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
-        result += f"      <td>{icon(not is_blocked)}</td>\n"
         has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.labels]
-        result += f"      <td>{icon(not has_merge_conflict)}</td>\n"
         is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
-        result += f"      <td>{icon(is_ready)}</td>\n"
         review = not (any(lab.name in ["awaiting-CI", "awaiting-author", "awaiting-zulip"] for lab in pr.labels))
-        result += f"      <td>{icon(review)}</td>\n"
         overall = (not is_blocked) and (not has_merge_conflict) and is_ready and review
-        result += f"      <td>{icon(overall)}</td>\n"
-        body += result + "    </tr>"
-    table = f"""  <table>
-    <thead>
-    <tr>
-    <th>Number</th>
-    <th>Author</th>
-    <th>Title</th>
-    <th>Labels</th>
-    <th>CI status?</th>
-    <th><a title="not labelled with blocked-by-other-PR, blocked-by-batt-PR, blocked-by-core-PR, blocked-by-qq-PR">not blocked?</a></th>
-    <th>no merge conflict?</th>
-    <th><a title="not in draft state or labelled as in progress">ready?</a></th>
-    <th><a title="not labelled awaiting-author, awaiting-zulip, awaiting-CI">awaiting review?</a></th>
-    <th>On the review queue?</th>
-    </tr>
-    </thead>
-    {body}
-    </table>"""
+        entries = [pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url),
+            f"\n        {labels}\n      ",
+            status, icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall)]
+        result = _write_table_row(entries, "    ")
+        body += result
+    headings = [
+        "Number", "Author", "Title", "Labels", "CI status?",
+        '<a title="not labelled with blocked-by-other-PR, blocked-by-batt-PR, blocked-by-core-PR, blocked-by-qq-PR">not blocked?</a>,',
+        "no merge conflict?",
+        '<a title="not in draft state or labelled as in progress">ready?</a>',
+        '<a title="not labelled awaiting-author, awaiting-zulip, awaiting-CI">awaiting review?</a>',
+        "On the review queue?",
+    ]
+    head = _write_table_header(headings, "    ")
+    table = f"  <table>\n{head}{body}\n  </table>"
     with open(outfile, "w") as fi:
         print(HTML_HEADER, file=fi)
         print("  <h1>Why is my PR not on the queue?</h1>", file=fi)
