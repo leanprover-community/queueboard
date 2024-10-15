@@ -59,5 +59,31 @@ for pr in $prs; do
   echo "$CURRENT_TIME" > "$dir/timestamp.txt"
 done
 
+# In case there are PRs which got "missed" somehow, backfill
+# data for up to two of them.
+i=0
+for pr in $(cat "missing_prs.txt"); do
+  # Check if the directory exists
+  if [ -d "data/$pr" ]; then
+    echo "[skip] Data exists for #$pr: $CURRENT_TIME"
+    continue
+  fi
+  echo "Attempting to backfill data for PR $pr"
+  # Create the directory for the PR
+  dir="data/$pr"
+  mkdir -p "$dir"
+  # Run pr_info.sh and save the output
+  ./pr_info.sh "$pr" | jq '.' > "$dir/pr_info.json"
+  # Run pr_reactions.sh and save the output
+  ./pr_reactions.sh "$pr" | jq '.' > "$dir/pr_reactions.json"
+  # Save the current timestamp
+  echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+  i=$((i+1))
+  if [ $i -eq 2 ]; then
+    echo "Backfilled two PRs successfully, exiting"
+    break;
+  fi
+done
+
 # Write a file with aggregate PR data, to "processed_data/aggregate_pr_data.json".
 python3 process.py
