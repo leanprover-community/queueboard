@@ -160,14 +160,14 @@ class JSONInputData(NamedTuple):
 # Validate the command-line arguments and try to read all data passed in via JSON files.
 def read_json_files() -> JSONInputData:
     # Check if the user has provided the correct number of arguments
-    if len(sys.argv) < 4:
-        print("Usage: python3 dashboard.py <aggregate_pr_info.json> <all-nondraft-prs.json> <all-draft-PRs.json> <json_file1> <json_file2> ...")
+    if len(sys.argv) < 3:
+        print("Usage: python3 dashboard.py <all-nondraft-prs.json> <all-draft-PRs.json> <json_file1> <json_file2> ...")
         sys.exit(1)
     # Dictionary of all PRs to include in a given dashboard.
     # This data is given by the json files provided by the user.
     prs_to_list : dict[Dashboard, List[BasicPRInformation]] = dict()
     # Iterate over the json files provided by the user
-    for i in range(4, len(sys.argv)):
+    for i in range(3, len(sys.argv)):
         filename = sys.argv[i]
         if filename not in EXPECTED_INPUT_FILES:
             print(f"bad argument: file {filename} is not recognised; did you mean one of these?\n{', '.join(EXPECTED_INPUT_FILES.keys())}")
@@ -176,10 +176,10 @@ def read_json_files() -> JSONInputData:
             prs = _extract_prs(json.load(f))
             kind = EXPECTED_INPUT_FILES[filename]
             prs_to_list[kind] = prs_to_list.get(kind, []) + prs
-    with open(sys.argv[2]) as ready_file, open(sys.argv[3]) as draft_file:
+    with open(sys.argv[1]) as ready_file, open(sys.argv[2]) as draft_file:
         all_nondraft_prs = _extract_prs(json.load(ready_file))
         all_draft_prs = _extract_prs(json.load(draft_file))
-    with open(sys.argv[1], 'r') as f:
+    with open(path.join("processed_data", "aggregate_pr_data.json"), 'r') as f:
         aggregate_info = json.load(f)
         ci_info = dict()
         for pr in aggregate_info["pr_statusses"]:
@@ -261,6 +261,7 @@ def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
 def main() -> None:
     input_data = read_json_files()
     print_on_the_queue_page(input_data, "on_the_queue.html")
+    return
 
     print_html5_header()
     # Print a quick table of contents.

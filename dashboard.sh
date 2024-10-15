@@ -99,10 +99,7 @@ gh api graphql --paginate --slurp -f query="$QUERY_DRAFT" | jq '{"output": .}' >
 # as they do not correspond to a dashboard to be generated.
 json_files=("queue.json" "needs-merge.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "needs-decision.json" "delegated.json" "new-contributor.json" "help-wanted.json" "please-adopt.json" "other-base-branch.json")
 
-# Download a file with aggregate info, e.g. the CI status of each open PR.
-curl --silent --output aggregate_info.json https://raw.githubusercontent.com/jcommelin/gh-mathlib-metadata/refs/heads/master/processed_data/aggregate_pr_data.json
-
-python3 ./dashboard.py aggregate_info.json "all-nondraft-PRs.json" "all-draft-PRs.json" ${json_files[*]} > ./index.html
+python3 ./dashboard.py "all-nondraft-PRs.json" "all-draft-PRs.json" ${json_files[*]} > ./index.html
 
 rm *.json
 
