@@ -199,7 +199,7 @@ EXPLANATION = '''
 <li>not be labelled <em>delegated</em>, <em>auto-merge-after-CI</em> or <em>ready-to-merge</em>: these labels mean your PR is already approved</li>
 </ul>
 <p>
-The table below contains all open PRs against the `master` branch, with information on these individual checks.
+The table below contains all open PRs against the <em>master</em> branch which are not in draft mode, with information on these individual checks.
 You can filter that list as you like, such as by entering the PR number or your github username.</p>'''.lstrip()
 
 # Determine HTML code for writing a table header with entries 'entries'.
