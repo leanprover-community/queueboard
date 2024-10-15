@@ -520,9 +520,10 @@ def _print_pr_entries(prs : List[BasicPRInformation]) -> None:
         filename = f"{pr.number}.json"
 
         if path.exists(filename):
-            with open(f"data/{pr.number}.json", "r") as file:
+            with open(f"data/{pr.number}/pr_info.json", "r") as file:
                 pr_info = json.load(file)
         if pr_info is None:
+            print(f"Found no PR info for PR {pr.number}", file=sys.stderr)
             print("<td>-1/-1</td>\n<td>-1</td>\n<td>-1</td>")
         else:
             inner = pr_info["data"]["repository"]["pullRequest"]
