@@ -278,7 +278,7 @@ def main() -> None:
     prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
     prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs, 'easy')
 
-    print(gather_pr_statistics(prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
+    print(gather_pr_statistics(input_data.CI_passes, prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
     all_ready_prs = prs_without_label(input_data.nondraft_prs, 'WIP')
     prs_to_list[Dashboard.TechDebt] = prs_with_label(all_ready_prs, 'tech debt')
 
@@ -294,20 +294,24 @@ def main() -> None:
 
 # Compute the status of each PR in a given list. Return a dictionary keyed by the PR number.
 # (`BasicPRInformation` is not hashable, hence cannot be used as a dictionary key.)
-def compute_pr_statusses(prs: List[BasicPRInformation]) -> dict[int, PRStatus]:
-    def determine_status(info: BasicPRInformation, is_draft: bool) -> PRStatus:
+def compute_pr_statusses(CI_passes: dict[int, bool], prs: List[BasicPRInformation]) -> dict[int, PRStatus]:
+    def determine_status(CI_passes: dict[int, bool], info: BasicPRInformation, is_draft: bool) -> PRStatus:
         # Ignore all "other" labels, which are not relevant for this anyway.
         labels = [label_categorisation_rules[l.name] for l in info.labels if l.name in label_categorisation_rules]
-        state = PRState(labels, CIStatus.Pass, is_draft)
+        # If information about a PR's CI status is missing, we treat is as failing.
+        ci_status = CIStatus.Fail
+        if info.number in CI_passes:
+            if CI_passes[info.number]:
+                ci_status = CIStatus.Pass
+        state = PRState(labels, ci_status, is_draft)
         return determine_PR_status(datetime.now(), state)
-    # FIXME: we assume every PR is passing CI, which is too optimistic.
     return {
-       info.number: determine_status(info, False) for info in prs
+       info.number: determine_status(CI_passes, info, False) for info in prs
     }
 
 
-def gather_pr_statistics(prs: dict[Dashboard, List[BasicPRInformation]], all_ready_prs: List[BasicPRInformation], all_draft_prs: List[BasicPRInformation]) -> str:
-    ready_pr_status = compute_pr_statusses(all_ready_prs)
+def gather_pr_statistics(CI_passes: dict[int, bool], prs: dict[Dashboard, List[BasicPRInformation]], all_ready_prs: List[BasicPRInformation], all_draft_prs: List[BasicPRInformation]) -> str:
+    ready_pr_status = compute_pr_statusses(CI_passes, all_ready_prs)
     queue_prs = prs[Dashboard.Queue]
     justmerge_prs = prs[Dashboard.NeedsMerge]
 
@@ -378,7 +382,7 @@ def gather_pr_statistics(prs: dict[Dashboard, List[BasicPRInformation]], all_rea
     piechart = ', '.join([f'{color[s]} 0 {cumulative[i] * 360 // number_all}deg' for (i, s) in enumerate(statusses)])
     piechart_style=f"width: 200px;height: 200px;border-radius: 50%;border: 1px solid black;background-image: conic-gradient( {piechart} );"
 
-    return f"\n<h2 id=\"statistics\"><a href=\"#statistics\">Overall statistics</a></h2>\nFound <b>{number_all}</b> open PRs overall. Disregarding their CI state, of these PRs\n<ul>\n{details}\n</ul><div class=\"piechart\" style=\"{piechart_style}\"></div>\n"
+    return f"\n<h2 id=\"statistics\"><a href=\"#statistics\">Overall statistics</a></h2>\nFound <b>{number_all}</b> open PRs overall. Among these PRs\n<ul>\n{details}\n</ul><div class=\"piechart\" style=\"{piechart_style}\"></div>\n"
 
 
 HTML_HEADER = '''
