@@ -520,7 +520,7 @@ def _print_pr_entries(prs : List[BasicPRInformation]) -> None:
         filename = f"{pr.number}.json"
 
         if path.exists(filename):
-            with open(f"{pr.number}.json", "r") as file:
+            with open(f"data/{pr.number}.json", "r") as file:
                 pr_info = json.load(file)
         if pr_info is None:
             print("<td>-1/-1</td>\n<td>-1</td>\n<td>-1</td>")
