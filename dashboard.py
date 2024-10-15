@@ -216,6 +216,8 @@ def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
         labels = "".join(label_link(label) for label in pr.labels)
         result = (f"<tr>\n      <td>{pr_link(pr.number, pr.url)}</td>\n      <td>{user_link(pr.author)}</td>\n" +
           f"      <td>{title_link(pr.title, pr.url)}</td>\n      <td>{labels}</td>""")
+        if pr.number not in ci_status:
+            print(f"'on the queue' page: found no PR info for PR {pr.number}", file=sys.stderr)
         status = icon(ci_status[pr.number]) if pr.number in ci_status else "???"
         result += f"      <td>{status}</td>\n"
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
@@ -329,7 +331,7 @@ def gather_pr_statistics(prs: dict[Dashboard, List[BasicPRInformation]], all_rea
     queue_prs_numbers = [pr for pr in ready_pr_status if ready_pr_status[pr] == PRStatus.AwaitingReview]
     if queue_prs_numbers != [i.number for i in queue_prs]:
         right = [i.number for i in queue_prs]
-        print(f"warning: the review queue and the classification differ: found {len(right)} PRs {right} on the former, but the {len(queue_prs_numbers)} PRs {queue_prs_numbers} on the latter!", file=sys.stderr)
+        #print(f"warning: the review queue and the classification differ: found {len(right)} PRs {right} on the former, but the {len(queue_prs_numbers)} PRs {queue_prs_numbers} on the latter!", file=sys.stderr)
     # TODO: also cross-check the data for merge conflicts
 
     number_all = len(all_ready_prs) + len(all_draft_prs)
@@ -522,7 +524,7 @@ def _print_pr_entries(prs : List[BasicPRInformation]) -> None:
             with open(filename, "r") as file:
                 pr_info = json.load(file)
         if pr_info is None:
-            print(f"Found no PR info for PR {pr.number}", file=sys.stderr)
+            print(f"main dashboard: found no PR info for PR {pr.number}", file=sys.stderr)
             print("<td>-1/-1</td>\n<td>-1</td>\n<td>-1</td>")
         else:
             inner = pr_info["data"]["repository"]["pullRequest"]
