@@ -228,15 +228,18 @@ def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
         labels = "\n        ".join(label_link(label) for label in pr.labels)
         if pr.number not in ci_status:
             print(f"'on the queue' page: found no PR info for PR {pr.number}", file=sys.stderr)
-        status = icon(ci_status[pr.number]) if pr.number in ci_status else "???"
+        ci_passes = ci_status[pr.number] if pr.number in ci_status else None
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
         has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.labels]
         is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
         review = not (any(lab.name in ["awaiting-CI", "awaiting-author", "awaiting-zulip"] for lab in pr.labels))
-        overall = (not is_blocked) and (not has_merge_conflict) and is_ready and review
-        entries = [pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url),
+        overall = ci_passes and (not is_blocked) and (not has_merge_conflict) and is_ready and review
+        entries = [
+            pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url),
             f"\n        {labels}\n      ",
-            status, icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall)]
+            '???' if ci_passes is None else icon(ci_passes),
+            icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall)
+        ]
         result = _write_table_row(entries, "    ")
         body += result
     headings = [
