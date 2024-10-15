@@ -46,3 +46,9 @@ Run the following, *inside* the `test` directory:
 once (before the changes) to create a file `../expected.html`, and again afterwards for a file `../actual.html`.
 You can then use `diff` to look for any changes to the generated output.
 (The output file needs to be in the top-level directory in order for the styling to work.)
+
+## TODO document
+- `data` directory, metadata updating via `gather_stats.sh` (and the other workflow)
+data integrity check (once written)
+
+- additional tools for testing `mypy`, `ruff`, `isort`, (black)

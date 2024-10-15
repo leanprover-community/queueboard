@@ -1,0 +1,42 @@
+name: Gather Stats
+
+on:
+  schedule:
+    - cron: '*/10 * * * *' # Runs every 10 minutes
+  workflow_dispatch:       # Allows manual execution
+
+permissions:
+  contents: write
+
+jobs:
+  gather-stats:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        ref: master
+
+    - name: "Run gather_stats.sh"
+      id: "gather_stats"
+      shell: bash -euo pipefail {0}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        ./gather_stats.sh 12 2>&1 | tee gather_stats.log  # Log output to gather_stats.log
+
+    - name: Commit changes
+      if: ${{ !cancelled() }}
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add data
+        git add processed_data/aggregate_pr_data.json
+        git commit -m 'Update data/'
+
+    - name: Push changes
+      uses: ad-m/github-push-action@v0.8.0
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: master
