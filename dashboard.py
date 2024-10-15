@@ -505,17 +505,13 @@ def _extract_prs(data: dict) -> List[BasicPRInformation]:
     return prs
 
 
-# Print table entries about a sequence of PRs.
-def _print_pr_entries(prs : List[BasicPRInformation]) -> None:
+# Compute the table entries about a sequence of PRs.
+def _compute_pr_entries(prs : List[BasicPRInformation]) -> str:
+    result = ""
     for pr in prs:
-        print("<tr>")
-        print("<td>{}</td>".format(pr_link(pr.number, pr.url)))
-        print("<td>{}</td>".format(user_link(pr.author)))
-        print("<td>{}</td>".format(title_link(pr.title, pr.url)))
-        print("<td>")
-        for label in pr.labels:
-            print(label_link(label))
-        print("</td>")
+        labels = "\n        ".join(label_link(label) for label in pr.labels)
+        labels = f"\n        {labels}\n      "
+        entries = [pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url), labels]
         # Detailed information about the current PR.
         pr_info = None
         filename = f"data/{pr.number}/pr_info.json"
@@ -524,20 +520,22 @@ def _print_pr_entries(prs : List[BasicPRInformation]) -> None:
                 pr_info = json.load(file)
         if pr_info is None:
             print(f"main dashboard: found no PR info for PR {pr.number}", file=sys.stderr)
-            print("<td>-1/-1</td>\n<td>-1</td>\n<td>-1</td>")
+            entries.extend(["-1/-1", "-1", "-1"])
         else:
             inner = pr_info["data"]["repository"]["pullRequest"]
-            print(f'<td>{inner["additions"]}/{inner["deletions"]}</td>')
-            print(f'<td>{inner["changedFiles"]}</td>')
+            entries.extend([
+                "{}/{}".format(inner["additions"], inner["deletions"]), inner["changedFiles"]
+            ])
             # Add the number of normal and review comments.
             number_comments = len(inner["comments"]["nodes"])
             number_review_comments = 0
             review_threads = inner["reviewThreads"]["nodes"]
             for t in review_threads:
                 number_review_comments += len(t["comments"]["nodes"])
-            print(f"<td>{number_comments + number_review_comments}</td>")
-        print("<td>{}</td>".format(time_info(pr.updatedAt)))
-        print("</tr>")
+            entries.append(f"{number_comments + number_review_comments}")
+        entries.append(time_info(pr.updatedAt))
+        result += _write_table_row(entries, "    ")
+    return result
 
 
 # Print a dashboard of a given list of PRs.
@@ -552,24 +550,17 @@ def print_dashboard(prs : List[BasicPRInformation], kind: Dashboard) -> None:
         print(f'There are currently <b>no</b> {short_description(kind)}. Congratulations!\n')
         return
 
-    print("""<table>
-    <thead>
-    <tr>
-    <th>Number</th>
-    <th>Author</th>
-    <th>Title</th>
-    <th>Labels</th>
-    <th><a title="number of added/deleted lines">+/-</a></th>
-    <th><a title="number of files modified">&#128221;</a></th>
-    <th><a title="number of standard or review comments on this PR">&#128172;</a></th>
-    <th>Updated</th>
-    </tr>
-    </thead>""")
-
-    _print_pr_entries(prs)
-
-    # Print the footer
-    print("</table>")
+    headings = [
+        "Number", "Author", "Title", "Labels",
+        '<a title="number of added/deleted lines">+/-</a>',
+        '<a title="number of files modified">&#128221;</a>',
+        '<a title="number of standard or review comments on this PR">&#128172;</a>',
+        'Updated'
+    ]
+    head = _write_table_header(headings, "    ")
+    body = _compute_pr_entries(prs)
+    table = f"  <table>\n{head}{body}  </table>"
+    print(table)
 
 
 # Extract all PRs from a given list which have a certain label.
