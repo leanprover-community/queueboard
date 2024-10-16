@@ -56,7 +56,6 @@ EXPECTED_INPUT_FILES = {
     "maintainer-merge.json" : Dashboard.StaleMaintainerMerge,
     "needs-decision.json" : Dashboard.NeedsDecision,
     "delegated.json" : Dashboard.StaleDelegated,
-    "other-base-branch.json" : Dashboard.OtherBase,
     "new-contributor.json" : Dashboard.StaleNewContributor,
     "please-adopt.json" : Dashboard.NeedsHelp,
     "help-wanted.json" : Dashboard.NeedsHelp,
@@ -287,6 +286,15 @@ def main() -> None:
     CI_passes = dict()
     for number in input_data.aggregate_info:
         CI_passes[number] = input_data.aggregate_info[number].CI_passes
+    # Extract the base branch for each PR: by default, assume PRs are against master.
+    base_branch = dict()
+    for pr in input_data.nondraft_prs:
+        data = input_data.aggregate_info.get(pr.number)
+        if data is None:
+            base_branch[pr.number] = 'master'
+        else:
+            base_branch[pr.number] = data.base_branch
+
     print_on_the_queue_page(input_data.nondraft_prs, CI_passes, "on_the_queue.html")
 
     print_html5_header()
@@ -302,9 +310,12 @@ def main() -> None:
     prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
     prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs, 'easy')
 
-    print(gather_pr_statistics(CI_passes, prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
+    # The 'tech debt' and 'other base' boards are obtained from filtering list of non-draft PRs.
     all_ready_prs = prs_without_label(input_data.nondraft_prs, 'WIP')
     prs_to_list[Dashboard.TechDebt] = prs_with_any_label(all_ready_prs, ['tech debt', 'longest-pole'])
+    prs_to_list[Dashboard.OtherBase] = [pr for pr in input_data.nondraft_prs if base_branch[pr.number] != 'master']
+
+    print(gather_pr_statistics(CI_passes, prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
 
     (bad_title, unlabelled, contradictory) = compute_dashboards_bad_labels_title(input_data.nondraft_prs)
     prs_to_list[Dashboard.BadTitle] = bad_title
