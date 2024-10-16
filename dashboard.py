@@ -93,7 +93,7 @@ def long_description(kind : Dashboard) -> str:
         Dashboard.NeedsMerge : "all PRs which have a merge conflict, but otherwise fit the review queue",
         Dashboard.StaleDelegated : f"all PRs labelled 'delegated' {notupdated} 24 hours",
         Dashboard.StaleReadyToMerge : f"all PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
-        Dashboard.TechDebt : "all ready PRs (not draft, not labelled WIP) labelled with 'tech debt'",
+        Dashboard.TechDebt : "all 'ready' PRs (not draft, not labelled WIP) labelled with 'tech debt' or 'longest-pole'",
         Dashboard.NeedsDecision : "all PRs labelled 'awaiting-zulip': these are blocked on a zulip discussion or similar",
         Dashboard.StaleMaintainerMerge : f"all PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
         Dashboard.NeedsHelp : "all PRs which are labelled 'please-adopt' or 'help-wanted'",
@@ -115,7 +115,7 @@ def getIdTitle(kind : Dashboard) -> Tuple[str, str]:
         Dashboard.StaleNewContributor : ("stale-new-contributor", "Stale new contributor PRs"),
         Dashboard.StaleMaintainerMerge : ("stale-maintainer-merge", "Stale maintainer-merge'd PRs"),
         Dashboard.StaleReadyToMerge : ("stale-ready-to-merge", "Stale ready-to-merge'd PRs"),
-        Dashboard.TechDebt : ("tech-debt", "Ready PRs labelled technical debt"),
+        Dashboard.TechDebt : ("tech-debt", "PRs addressing technical debt"),
         Dashboard.NeedsDecision : ("needs-decision", "PRs blocked on a zulip discussion"),
         Dashboard.NeedsMerge : ("needs-merge", "PRs with just a merge conflict"),
         Dashboard.NeedsHelp : ("needs-owner", "PRs looking for help"),
@@ -289,7 +289,7 @@ def main() -> None:
 
     print(gather_pr_statistics(input_data.CI_passes, prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
     all_ready_prs = prs_without_label(input_data.nondraft_prs, 'WIP')
-    prs_to_list[Dashboard.TechDebt] = prs_with_label(all_ready_prs, 'tech debt')
+    prs_to_list[Dashboard.TechDebt] = prs_with_any_label(all_ready_prs, ['tech debt', 'longest-pole'])
 
     (bad_title, unlabelled, contradictory) = compute_dashboards_bad_labels_title(input_data.nondraft_prs)
     prs_to_list[Dashboard.BadTitle] = bad_title
