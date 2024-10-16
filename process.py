@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-'''
+"""
 This script looks at all files in the `data` directory and creates a JSON file,
 containing information about all PRs described in that directory. For each PR,
 we list
 - whether it's in draft stage (as opposed being marked as "ready for review")
 - whether mathlib's CI passes on it
 - the branch it is based on (usually "master")
-'''
+"""
 
 import json
 import os
@@ -22,7 +22,7 @@ def main():
     output["timestamp"] = updated
     pr_data = []
     # Read all pr info files in the data directory.
-    pr_names : List[str] = sorted(os.listdir("data"))
+    pr_names: List[str] = sorted(os.listdir("data"))
     for pr_number in pr_names:
         with open(f"data/{pr_number}/pr_info.json", "r") as fi:
             data = None
@@ -64,5 +64,6 @@ def main():
     output["pr_statusses"] = pr_data
     with open("processed_data/aggregate_pr_data.json", "w") as f:
         print(json.dumps(output, indent=4), file=f)
+
 
 main()

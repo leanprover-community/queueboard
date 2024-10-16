@@ -13,13 +13,19 @@ from typing import List, NamedTuple, Tuple
 
 from dateutil.relativedelta import relativedelta
 
-from classify_pr_state import (CIStatus, PRState, PRStatus,
-                               determine_PR_status, label_categorisation_rules)
+from classify_pr_state import (
+    CIStatus,
+    PRState,
+    PRStatus,
+    determine_PR_status,
+    label_categorisation_rules,
+)
 
 
 @unique
 class Dashboard(Enum):
-    '''The different kind of dashboards on the created triage webpage'''
+    """The different kind of dashboards on the created triage webpage"""
+
     # Note: the tables on the generated page are listed in the order of these variants.
     Queue = 0
     QueueNewContributor = auto()
@@ -49,92 +55,113 @@ class Dashboard(Enum):
 # All input files this script expects. Needs to be kept in sync with `dashboard.sh`,
 # but this script will complain if something unexpected happens.
 EXPECTED_INPUT_FILES = {
-    "queue.json" : Dashboard.Queue,
-    "needs-merge.json" : Dashboard.NeedsMerge,
-    "new-contributor.json" : Dashboard.StaleNewContributor,
+    "queue.json": Dashboard.Queue,
+    "needs-merge.json": Dashboard.NeedsMerge,
+    "new-contributor.json": Dashboard.StaleNewContributor,
 }
 
-def short_description(kind : Dashboard) -> str:
-    '''Describe what the table 'kind' contains, for use in a "there are no such PRs" message.'''
+
+def short_description(kind: Dashboard) -> str:
+    """Describe what the table 'kind' contains, for use in a "there are no such PRs" message."""
     return {
-        Dashboard.Queue : "PRs on the review queue",
-        Dashboard.QueueNewContributor : "PRs by new mathlib contributors on the review queue",
-        Dashboard.QueueEasy : "PRs on the review queue which are labelled 'easy'",
-        Dashboard.StaleMaintainerMerge : "stale PRs labelled maintainer merge",
-        Dashboard.StaleDelegated : "stale delegated PRs",
-        Dashboard.StaleReadyToMerge : "stale PRs labelled auto-merge-after-CI or ready-to-merge",
-        Dashboard.TechDebt : "ready PRs labelled with 'tech debt'",
-        Dashboard.NeedsDecision : "PRs blocked on a zulip discussion or similar",
-        Dashboard.NeedsMerge : "PRs which just have a merge conflict",
-        Dashboard.StaleNewContributor : "stale PRs by new contributors",
-        Dashboard.NeedsHelp : "PRs which are looking for a help",
-        Dashboard.OtherBase : "ready PRs into a non-master branch",
-        Dashboard.Unlabelled : "ready PRs without a 'CI' or 't-something' label",
-        Dashboard.BadTitle : "ready PRs whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
-        Dashboard.ContradictoryLabels : "PRs with contradictory labels",
+        Dashboard.Queue: "PRs on the review queue",
+        Dashboard.QueueNewContributor: "PRs by new mathlib contributors on the review queue",
+        Dashboard.QueueEasy: "PRs on the review queue which are labelled 'easy'",
+        Dashboard.StaleMaintainerMerge: "stale PRs labelled maintainer merge",
+        Dashboard.StaleDelegated: "stale delegated PRs",
+        Dashboard.StaleReadyToMerge: "stale PRs labelled auto-merge-after-CI or ready-to-merge",
+        Dashboard.TechDebt: "ready PRs labelled with 'tech debt'",
+        Dashboard.NeedsDecision: "PRs blocked on a zulip discussion or similar",
+        Dashboard.NeedsMerge: "PRs which just have a merge conflict",
+        Dashboard.StaleNewContributor: "stale PRs by new contributors",
+        Dashboard.NeedsHelp: "PRs which are looking for a help",
+        Dashboard.OtherBase: "ready PRs into a non-master branch",
+        Dashboard.Unlabelled: "ready PRs without a 'CI' or 't-something' label",
+        Dashboard.BadTitle: "ready PRs whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
+        Dashboard.ContradictoryLabels: "PRs with contradictory labels",
     }[kind]
 
-def long_description(kind : Dashboard) -> str:
-    '''Explain what each dashboard contains: full description, for the purposes of a sub-title
-    to the full PR table. This description should not be capitalised.'''
+
+def long_description(kind: Dashboard) -> str:
+    """Explain what each dashboard contains: full description, for the purposes of a sub-title
+    to the full PR table. This description should not be capitalised."""
     notupdated = "which have not been updated in the past"
     return {
-        Dashboard.Queue : "all PRs which are ready for review: CI passes, no merge conflict and not blocked on other PRs",
-        Dashboard.QueueNewContributor : "all PRs by new contributors which are ready for review",
-        Dashboard.QueueEasy : "all PRs labelled 'easy' which are ready for review",
-        Dashboard.NeedsMerge : "all PRs which have a merge conflict, but otherwise fit the review queue",
-        Dashboard.StaleDelegated : f"all PRs labelled 'delegated' {notupdated} 24 hours",
-        Dashboard.StaleReadyToMerge : f"all PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
-        Dashboard.TechDebt : "all 'ready' PRs (not draft, not labelled WIP) labelled with 'tech debt' or 'longest-pole'",
-        Dashboard.NeedsDecision : "all PRs labelled 'awaiting-zulip': these are blocked on a zulip discussion or similar",
-        Dashboard.StaleMaintainerMerge : f"all PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
-        Dashboard.NeedsHelp : "all PRs which are labelled 'please-adopt' or 'help-wanted'",
-        Dashboard.OtherBase : "all non-draft PRs into some branch other than mathlib's master branch",
-        Dashboard.StaleNewContributor : f"all PR labelled 'new-contributor' {notupdated} 7 days",
-        Dashboard.Unlabelled : "all PRs without draft status or 'WIP' label without a 'CI' or 't-something' label",
-        Dashboard.BadTitle : "all PRs without draft status or 'WIP' label whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
-        Dashboard.ContradictoryLabels : "PRs whose labels are contradictory, such as 'WIP' and 'ready-to-merge'",
+        Dashboard.Queue: "all PRs which are ready for review: CI passes, no merge conflict and not blocked on other PRs",
+        Dashboard.QueueNewContributor: "all PRs by new contributors which are ready for review",
+        Dashboard.QueueEasy: "all PRs labelled 'easy' which are ready for review",
+        Dashboard.NeedsMerge: "all PRs which have a merge conflict, but otherwise fit the review queue",
+        Dashboard.StaleDelegated: f"all PRs labelled 'delegated' {notupdated} 24 hours",
+        Dashboard.StaleReadyToMerge: f"all PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
+        Dashboard.TechDebt: "all 'ready' PRs (not draft, not labelled WIP) labelled with 'tech debt' or 'longest-pole'",
+        Dashboard.NeedsDecision: "all PRs labelled 'awaiting-zulip': these are blocked on a zulip discussion or similar",
+        Dashboard.StaleMaintainerMerge: f"all PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
+        Dashboard.NeedsHelp: "all PRs which are labelled 'please-adopt' or 'help-wanted'",
+        Dashboard.OtherBase: "all non-draft PRs into some branch other than mathlib's master branch",
+        Dashboard.StaleNewContributor: f"all PR labelled 'new-contributor' {notupdated} 7 days",
+        Dashboard.Unlabelled: "all PRs without draft status or 'WIP' label without a 'CI' or 't-something' label",
+        Dashboard.BadTitle: "all PRs without draft status or 'WIP' label whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
+        Dashboard.ContradictoryLabels: "PRs whose labels are contradictory, such as 'WIP' and 'ready-to-merge'",
     }[kind]
 
-def getIdTitle(kind : Dashboard) -> Tuple[str, str]:
-    '''Return a tuple (id, title) of the HTML anchor ID and a section name for the table
-    describing this PR kind.'''
+
+def getIdTitle(kind: Dashboard) -> Tuple[str, str]:
+    """Return a tuple (id, title) of the HTML anchor ID and a section name for the table
+    describing this PR kind."""
     return {
-        Dashboard.Queue : ("queue", "Review queue"),
-        Dashboard.QueueNewContributor : ("queue-new-contributors", "New contributors' PRs on the queue"),
-        Dashboard.QueueEasy : ("queue-easy", "PRs on the review queue labelled 'easy'"),
-        Dashboard.StaleDelegated : ("stale-delegated", "Stale delegated PRs"),
-        Dashboard.StaleNewContributor : ("stale-new-contributor", "Stale new contributor PRs"),
-        Dashboard.StaleMaintainerMerge : ("stale-maintainer-merge", "Stale maintainer-merge'd PRs"),
-        Dashboard.StaleReadyToMerge : ("stale-ready-to-merge", "Stale ready-to-merge'd PRs"),
-        Dashboard.TechDebt : ("tech-debt", "PRs addressing technical debt"),
-        Dashboard.NeedsDecision : ("needs-decision", "PRs blocked on a zulip discussion"),
-        Dashboard.NeedsMerge : ("needs-merge", "PRs with just a merge conflict"),
-        Dashboard.NeedsHelp : ("needs-owner", "PRs looking for help"),
-        Dashboard.OtherBase : ("other-base", "PRs not into the master branch"),
-        Dashboard.Unlabelled : ("unlabelled", "PRs without an area label"),
-        Dashboard.BadTitle : ("bad-title", "PRs with non-conforming titles"),
-        Dashboard.ContradictoryLabels : ("contradictory-labels", "PRs with contradictory labels"),
+        Dashboard.Queue: ("queue", "Review queue"),
+        Dashboard.QueueNewContributor: (
+            "queue-new-contributors",
+            "New contributors' PRs on the queue",
+        ),
+        Dashboard.QueueEasy: ("queue-easy", "PRs on the review queue labelled 'easy'"),
+        Dashboard.StaleDelegated: ("stale-delegated", "Stale delegated PRs"),
+        Dashboard.StaleNewContributor: (
+            "stale-new-contributor",
+            "Stale new contributor PRs",
+        ),
+        Dashboard.StaleMaintainerMerge: (
+            "stale-maintainer-merge",
+            "Stale maintainer-merge'd PRs",
+        ),
+        Dashboard.StaleReadyToMerge: (
+            "stale-ready-to-merge",
+            "Stale ready-to-merge'd PRs",
+        ),
+        Dashboard.TechDebt: ("tech-debt", "PRs addressing technical debt"),
+        Dashboard.NeedsDecision: (
+            "needs-decision",
+            "PRs blocked on a zulip discussion",
+        ),
+        Dashboard.NeedsMerge: ("needs-merge", "PRs with just a merge conflict"),
+        Dashboard.NeedsHelp: ("needs-owner", "PRs looking for help"),
+        Dashboard.OtherBase: ("other-base", "PRs not into the master branch"),
+        Dashboard.Unlabelled: ("unlabelled", "PRs without an area label"),
+        Dashboard.BadTitle: ("bad-title", "PRs with non-conforming titles"),
+        Dashboard.ContradictoryLabels: (
+            "contradictory-labels",
+            "PRs with contradictory labels",
+        ),
     }[kind]
 
 
 # The information we need about each PR label: its name, background colour and URL
 class Label(NamedTuple):
-    name : str
-    '''This label's background colour, as a six-digit hexadecimal code'''
-    color : str
-    url : str
+    name: str
+    """This label's background colour, as a six-digit hexadecimal code"""
+    color: str
+    url: str
 
 
 # Basic information about a PR: does not contain the diff size, which is contained in pr_info.json instead.
 class BasicPRInformation(NamedTuple):
-    number : int # PR number, non-negative
-    author : dict
-    title : str
-    url : str
-    labels : List[Label]
+    number: int  # PR number, non-negative
+    author: dict
+    title: str
+    url: str
+    labels: List[Label]
     # Github's answer to "last updated at"
-    updatedAt : str
+    updatedAt: str
 
 
 # All information about a single PR contained in `aggregate_pr_info.json`.
@@ -151,7 +178,7 @@ class AggregatePRInfo(NamedTuple):
 # Information passed to this script, via various JSON files.
 class JSONInputData(NamedTuple):
     # Not every dashboard need be covered!
-    prs_on_boards : dict[Dashboard, List[BasicPRInformation]]
+    prs_on_boards: dict[Dashboard, List[BasicPRInformation]]
     # All aggregate information stored for every open PR.
     aggregate_info: dict[int, AggregatePRInfo]
     # Information about all non-draft PRs
@@ -171,7 +198,7 @@ def read_json_files() -> JSONInputData:
         sys.exit(1)
     # Dictionary of all PRs to include in a given dashboard.
     # This data is given by the json files provided by the user.
-    prs_to_list : dict[Dashboard, List[BasicPRInformation]] = dict()
+    prs_to_list: dict[Dashboard, List[BasicPRInformation]] = dict()
     # Iterate over the json files provided by the user
     for i in range(4, len(sys.argv)):
         filename = sys.argv[i]
@@ -187,16 +214,20 @@ def read_json_files() -> JSONInputData:
         all_draft_prs = _extract_prs(json.load(draft_file))
     with open(sys.argv[3]) as stale_pr_file:
         stale_prs = json.load(stale_pr_file)
-    with open(path.join("processed_data", "aggregate_pr_data.json"), 'r') as f:
+    with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as f:
         aggregate_info = json.load(f)
         ci_info = dict()
         for pr in aggregate_info["pr_statusses"]:
-            info = AggregatePRInfo(pr["is_draft"], pr["CI_passes"], pr["base_branch"], pr["state"])
+            info = AggregatePRInfo(
+                pr["is_draft"], pr["CI_passes"], pr["base_branch"], pr["state"]
+            )
             ci_info[pr["number"]] = info
-    return JSONInputData(prs_to_list, ci_info, all_nondraft_prs, all_draft_prs, stale_prs)
+    return JSONInputData(
+        prs_to_list, ci_info, all_nondraft_prs, all_draft_prs, stale_prs
+    )
 
 
-EXPLANATION = '''
+EXPLANATION = """
 <p>To appear on the review queue, your open pull request must...</p>
 <ul>
 <li>be based on the <em>master</em> branch of mathlib</li>
@@ -209,21 +240,24 @@ EXPLANATION = '''
 </ul>
 <p>
 The table below contains all open PRs against the <em>master</em> branch which are not in draft mode, with information on these individual checks.
-You can filter that list as you like, such as by entering the PR number or your github username.</p>'''.lstrip()
+You can filter that list as you like, such as by entering the PR number or your github username.</p>""".lstrip()
+
 
 # Determine HTML code for writing a table header with entries 'entries'.
 # base_indent is the indentation of the <table> tag; we add two additional space per additional level.
 def _write_table_header(entries: List[str], base_indent: str) -> str:
     indent = base_indent + "  "
-    body = f'\n{indent}'.join([f"<th>{entry}</th>" for entry in entries])
+    body = f"\n{indent}".join([f"<th>{entry}</th>" for entry in entries])
     return f"{base_indent}<thead>\n{base_indent}<tr>\n{base_indent}{body}\n{base_indent}</tr>\n{base_indent}</thead>\n"
+
 
 # Determine HTML code for writing a single table row with entries 'entries' and indentation 'indent'.
 # four spaces for the table itself are hard-coded, for now
 def _write_table_row(entries: List[str], base_indent: str) -> str:
     indent = base_indent + "  "
-    body = f'\n{indent}'.join([f"<td>{entry}</td>" for entry in entries])
+    body = f"\n{indent}".join([f"<td>{entry}</td>" for entry in entries])
     return f"{base_indent}<tr>\n{indent}{body}\n{base_indent}</tr>\n"
+
 
 def _write_labels(labels: List[Label]) -> str:
     if len(labels) == 0:
@@ -238,10 +272,13 @@ def _write_labels(labels: List[Label]) -> str:
 # Print a webpage "why is my PR not on the queue" to a new file of name 'outfile'.
 # 'prs' is the list of PRs on which to print information;
 # 'CI_passes' states whether CI passes for each PR.
-def print_on_the_queue_page(prs: List[BasicPRInformation], CI_passes: dict[int, bool], outfile : str) -> None:
+def print_on_the_queue_page(
+    prs: List[BasicPRInformation], CI_passes: dict[int, bool], outfile: str
+) -> None:
     def icon(state: bool | None) -> str:
-        '''Return a green checkmark emoji if `state` is true, and a red cross emoji otherwise.'''
-        return '&#9989;' if state else '&#10060;'
+        """Return a green checkmark emoji if `state` is true, and a red cross emoji otherwise."""
+        return "&#9989;" if state else "&#10060;"
+
     body = ""
     for pr in prs:
         if pr.number not in CI_passes:
@@ -289,7 +326,7 @@ def main() -> None:
     for pr in input_data.nondraft_prs:
         data = input_data.aggregate_info.get(pr.number)
         if data is None:
-            base_branch[pr.number] = 'master'
+            base_branch[pr.number] = "master"
         else:
             base_branch[pr.number] = data.base_branch
 
@@ -347,12 +384,16 @@ def compute_pr_statusses(CI_passes: dict[int, bool], prs: List[BasicPRInformatio
                 ci_status = CIStatus.Pass
         state = PRState(labels, ci_status, is_draft)
         return determine_PR_status(datetime.now(), state)
-    return {
-       info.number: determine_status(CI_passes, info, False) for info in prs
-    }
+
+    return {info.number: determine_status(CI_passes, info, False) for info in prs}
 
 
-def gather_pr_statistics(CI_passes: dict[int, bool], prs: dict[Dashboard, List[BasicPRInformation]], all_ready_prs: List[BasicPRInformation], all_draft_prs: List[BasicPRInformation]) -> str:
+def gather_pr_statistics(
+    CI_passes: dict[int, bool],
+    prs: dict[Dashboard, List[BasicPRInformation]],
+    all_ready_prs: List[BasicPRInformation],
+    all_draft_prs: List[BasicPRInformation],
+) -> str:
     ready_pr_status = compute_pr_statusses(CI_passes, all_ready_prs)
     queue_prs = prs[Dashboard.Queue]
     justmerge_prs = prs[Dashboard.NeedsMerge]
@@ -378,18 +419,22 @@ def gather_pr_statistics(CI_passes: dict[int, bool], prs: dict[Dashboard, List[B
     # Let us compare with the classification logic.
     queue_prs_numbers = [pr for pr in ready_pr_status if ready_pr_status[pr] == PRStatus.AwaitingReview]
     if queue_prs_numbers != [i.number for i in queue_prs]:
-        right = [i.number for i in queue_prs]
-        #print(f"warning: the review queue and the classification differ: found {len(right)} PRs {right} on the former, but the {len(queue_prs_numbers)} PRs {queue_prs_numbers} on the latter!", file=sys.stderr)
+        pass
+        # right = [i.number for i in queue_prs]
+        # print(f"warning: the review queue and the classification differ: found {len(right)} PRs {right} on the former, but the {len(queue_prs_numbers)} PRs {queue_prs_numbers} on the latter!", file=sys.stderr)
     # TODO: also cross-check the data for merge conflicts
 
     number_all = len(all_ready_prs) + len(all_draft_prs)
+
     def link_to(kind: Dashboard, name="these ones") -> str:
-        return f"<a href=\"#{getIdTitle(kind)[0]}\" target=\"_self\">{name}</a>"
-    def number_percent(n: int , total: int, color: str = "") -> str:
+        return f'<a href="#{getIdTitle(kind)[0]}" target="_self">{name}</a>'
+
+    def number_percent(n: int, total: int, color: str = "") -> str:
         if color:
-            return f"{n} (<span style=\"color: {color};\">{n/total:.1%}</span>)"
+            return f'{n} (<span style="color: {color};">{n/total:.1%}</span>)'
         else:
             return f"{n} (<span>{n/total:.1%}</span>)"
+
     instatus = {
         PRStatus.AwaitingReview: f"are awaiting review ({link_to(Dashboard.Queue)})",
         PRStatus.HelpWanted: f"are labelled help-wanted or please-adopt ({link_to(Dashboard.NeedsHelp, 'roughly these')})",
@@ -424,10 +469,10 @@ def gather_pr_statistics(CI_passes: dict[int, bool], prs: dict[Dashboard, List[B
     piechart = ', '.join([f'{color[s]} 0 {cumulative[i] * 360 // number_all}deg' for (i, s) in enumerate(statusses)])
     piechart_style=f"width: 200px;height: 200px;border-radius: 50%;border: 1px solid black;background-image: conic-gradient( {piechart} );"
 
-    return f"\n<h2 id=\"statistics\"><a href=\"#statistics\">Overall statistics</a></h2>\nFound <b>{number_all}</b> open PRs overall. Among these PRs\n<ul>\n{details}\n</ul><div class=\"piechart\" style=\"{piechart_style}\"></div>\n"
+    return f'\n<h2 id="statistics"><a href="#statistics">Overall statistics</a></h2>\nFound <b>{number_all}</b> open PRs overall. Among these PRs\n<ul>\n{details}\n</ul><div class="piechart" style="{piechart_style}"></div>\n'
 
 
-HTML_HEADER = '''
+HTML_HEADER = """
 <!DOCTYPE html>
 <html>
 <head>
@@ -445,19 +490,22 @@ HTML_HEADER = '''
 <base target="_blank">
 </head>
 <body>
-'''.strip()
+""".strip()
+
 
 def print_html5_header() -> None:
     print(HTML_HEADER)
     print("  <h1>Mathlib review and triage dashboard</h1>")
     welcome = '<p>Welcome to the mathlib review and triage dashboard. This is a prototype for better exposing the currently open PRs to mathlib. Feedback (including bug reports and ideas for improvements) on this dashboard is very welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.<br>'
-    'You can hover over any section header (and some table headings) to find out what they show. The same works for the table of contents below.</p>'
+    "You can hover over any section header (and some table headings) to find out what they show. The same works for the table of contents below.</p>"
     # FUTURE: can this time be displayed in the local time zone of  the user viewing this page?
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
-    print(f"""  {welcome}  <small>This dashboard was last updated on: {updated}</small>""")
+    print(
+        f"""  {welcome}  <small>This dashboard was last updated on: {updated}</small>"""
+    )
 
 
-HTML_FOOTER = '''
+HTML_FOOTER = """
 <script>
   let diff_stat = DataTable.type('diff_stat', {
     detect: function (data) { return false; },
@@ -478,7 +526,7 @@ $(document).ready( function () {
 </script>
 </body>
 </html>
-'''.strip()
+""".strip()
 
 
 # An HTML link to a mathlib PR from the PR number
@@ -488,11 +536,13 @@ def pr_link(number: int, url: str) -> str:
     # and not sorted as a string.
     return f"<a href='{url}'>{number}</a>"
 
+
 # An HTML link to a GitHub user profile
 def user_link(author: dict) -> str:
     login = author["login"]
-    url   = author["url"]
+    url = author["url"]
     return f"<a href='{url}'>{login}</a>"
+
 
 # An HTML link to a mathlib PR from the PR title
 def title_link(title: str, url: str) -> str:
@@ -500,15 +550,15 @@ def title_link(title: str, url: str) -> str:
 
 
 # An HTML link to a Github label in the mathlib repo
-def label_link(label:Label) -> str:
+def label_link(label: Label) -> str:
     # Function to check if the colour of the label is light or dark
     # adapted from https://codepen.io/WebSeed/pen/pvgqEq
     # r, g and b are integers between 0 and 255.
-    def isLight(r : int, g: int, b: int) -> bool:
+    def isLight(r: int, g: int, b: int) -> bool:
         # Counting the perceptive luminance
         # human eye favors green color...
         a = 1 - (0.299 * r + 0.587 * g + 0.114 * b) / 255
-        return (a < 0.5)
+        return a < 0.5
 
     bgcolor = label.color
     fgcolor = "000000" if isLight(int(bgcolor[:2], 16), int(bgcolor[2:4], 16), int(bgcolor[4:], 16)) else "FFFFFF"
@@ -556,7 +606,7 @@ def _extract_prs(data: dict) -> List[BasicPRInformation]:
 
 
 # Compute the table entries about a sequence of PRs.
-def _compute_pr_entries(prs : List[BasicPRInformation]) -> str:
+def _compute_pr_entries(prs: List[BasicPRInformation]) -> str:
     result = ""
     for pr in prs:
         entries = [pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url), _write_labels(pr.labels)]
