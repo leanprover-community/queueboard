@@ -173,6 +173,8 @@ class AggregatePRInfo(NamedTuple):
     base_branch: str
     # 'open' for open PRs, 'closed' for closed PRs
     state: str
+    # Github's time when the PR was "last updated"
+    last_updated: datetime
 
 
 # Information passed to this script, via various JSON files.
@@ -188,6 +190,14 @@ class JSONInputData(NamedTuple):
     # All PRs which have not been updated in a day.
     # FIXME: filter this from the list of all open PRs, using the aggregate information!
     stale_prs: List[BasicPRInformation]
+
+
+# Parse input of the form "2024-04-29T18:53:51Z" into a datetime.
+# The "Z" suffix means it's a time in UTC.
+def parse_datetime(rep: str) -> datetime:
+    return datetime.strptime(rep, "%Y-%m-%dT%H:%M:%SZ")
+
+assert parse_datetime("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 51)
 
 
 # Validate the command-line arguments and try to read all data passed in via JSON files.
@@ -219,8 +229,9 @@ def read_json_files() -> JSONInputData:
         aggregate_info = json.load(f)
         ci_info = dict()
         for pr in aggregate_info["pr_statusses"]:
+            date = parse_datetime(pr["last_updated"])
             info = AggregatePRInfo(
-                pr["is_draft"], pr["CI_passes"], pr["base_branch"], pr["state"]
+                pr["is_draft"], pr["CI_passes"], pr["base_branch"], pr["state"], date
             )
             ci_info[pr["number"]] = info
     return JSONInputData(
