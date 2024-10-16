@@ -51,7 +51,6 @@ class Dashboard(Enum):
 EXPECTED_INPUT_FILES = {
     "queue.json" : Dashboard.Queue,
     "needs-merge.json" : Dashboard.NeedsMerge,
-    "maintainer-merge.json" : Dashboard.StaleMaintainerMerge,
     "new-contributor.json" : Dashboard.StaleNewContributor,
 }
 
@@ -318,6 +317,8 @@ def main() -> None:
     prs_to_list[Dashboard.NeedsDecision] = prs_with_label(input_data.nondraft_prs, 'awaiting-zulip')
     prs_to_list[Dashboard.StaleReadyToMerge] = prs_with_any_label(input_data.stale_prs, ['ready-to-merge', 'auto-merge-after-CI'])
     prs_to_list[Dashboard.StaleDelegated] = prs_with_label(input_data.stale_prs, 'delegated')
+    mm_prs = prs_with_label(input_data.stale_prs, 'maintainer-merge')
+    prs_to_list[Dashboard.StaleMaintainerMerge] = prs_without_label(mm_prs, 'ready-to-merge')
 
     print(gather_pr_statistics(CI_passes, prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
 
