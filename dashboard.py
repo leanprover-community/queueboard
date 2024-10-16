@@ -6,6 +6,7 @@
 
 import json
 import sys
+from collections import OrderedDict
 from datetime import datetime, timezone
 from enum import Enum, auto, unique
 from os import path
@@ -287,7 +288,9 @@ def main() -> None:
     prs_to_list[Dashboard.Unlabelled] = unlabelled
     prs_to_list[Dashboard.ContradictoryLabels] = contradictory
     for kind in Dashboard._member_map_.values():
-        print_dashboard(prs_to_list.get(kind, []), kind)
+        # If a PR is listed in to data files, make sure to only list it once.
+        prs = prs_to_list.get(kind, [])
+        print_dashboard(list(OrderedDict.fromkeys(prs)), kind)
 
     print(HTML_FOOTER)
 
