@@ -187,9 +187,6 @@ class JSONInputData(NamedTuple):
     nondraft_prs: List[BasicPRInformation]
     # Information about all PRs marked as draft
     draft_prs: List[BasicPRInformation]
-    # All PRs which have not been updated in a day.
-    # FIXME: filter this from the list of all open PRs, using the aggregate information!
-    stale_prs: List[BasicPRInformation]
 
 
 # Parse input of the form "2024-04-29T18:53:51Z" into a datetime.
@@ -203,14 +200,14 @@ assert parse_datetime("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 5
 # Validate the command-line arguments and try to read all data passed in via JSON files.
 def read_json_files() -> JSONInputData:
     # Check if the user has provided the correct number of arguments
-    if len(sys.argv) < 4:
-        print("Usage: python3 dashboard.py <all-nondraft-prs.json> <all-draft-PRs.json> <one-day-stale.json> <json_file1> <json_file2> ...")
+    if len(sys.argv) < 3:
+        print("Usage: python3 dashboard.py <all-nondraft-prs.json> <all-draft-PRs.json> <json_file1> <json_file2> ...")
         sys.exit(1)
     # Dictionary of all PRs to include in a given dashboard.
     # This data is given by the json files provided by the user.
     prs_to_list: dict[Dashboard, List[BasicPRInformation]] = dict()
     # Iterate over the json files provided by the user
-    for i in range(4, len(sys.argv)):
+    for i in range(3, len(sys.argv)):
         filepath = sys.argv[i]
         name = filepath.split("/")[-1]
         if name not in EXPECTED_INPUT_FILES:
@@ -223,8 +220,6 @@ def read_json_files() -> JSONInputData:
     with open(sys.argv[1]) as ready_file, open(sys.argv[2]) as draft_file:
         all_nondraft_prs = _extract_prs(json.load(ready_file))
         all_draft_prs = _extract_prs(json.load(draft_file))
-    with open(sys.argv[3]) as stale_pr_file:
-        stale_prs = _extract_prs(json.load(stale_pr_file))
     with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as f:
         aggregate_info = json.load(f)
         ci_info = dict()
@@ -235,7 +230,7 @@ def read_json_files() -> JSONInputData:
             )
             ci_info[pr["number"]] = info
     return JSONInputData(
-        prs_to_list, ci_info, all_nondraft_prs, all_draft_prs, stale_prs
+        prs_to_list, ci_info, all_nondraft_prs, all_draft_prs
     )
 
 
@@ -364,9 +359,13 @@ def main() -> None:
     prs_to_list[Dashboard.OtherBase] = [pr for pr in input_data.nondraft_prs if base_branch[pr.number] != 'master']
     prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(input_data.nondraft_prs, ['help-wanted', 'please_adopt'])
     prs_to_list[Dashboard.NeedsDecision] = prs_with_label(input_data.nondraft_prs, 'awaiting-zulip')
-    prs_to_list[Dashboard.StaleReadyToMerge] = prs_with_any_label(input_data.stale_prs, ['ready-to-merge', 'auto-merge-after-CI'])
-    prs_to_list[Dashboard.StaleDelegated] = prs_with_label(input_data.stale_prs, 'delegated')
-    mm_prs = prs_with_label(input_data.stale_prs, 'maintainer-merge')
+
+    a_day_ago = datetime.now() - datetime.timedelta(days=1)
+    one_day_stale = [pr for pr in input_data.nondraft_prs if input_data.aggregate_info[pr].last_updated < a_day_ago]
+
+    prs_to_list[Dashboard.StaleReadyToMerge] = prs_with_any_label(one_day_stale, ['ready-to-merge', 'auto-merge-after-CI'])
+    prs_to_list[Dashboard.StaleDelegated] = prs_with_label(one_day_stale, 'delegated')
+    mm_prs = prs_with_label(one_day_stale, 'maintainer-merge')
     prs_to_list[Dashboard.StaleMaintainerMerge] = prs_without_label(mm_prs, 'ready-to-merge')
 
     print(gather_pr_statistics(CI_passes, prs_to_list, input_data.nondraft_prs, input_data.draft_prs))

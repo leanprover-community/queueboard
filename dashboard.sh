@@ -52,10 +52,6 @@ gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" | jq '{"output": .}' >
 QUERY_QUEUE_BUT_MERGE_CONFLICT=$(prepare_query "sort:updated-asc is:pr state:open -is:draft status:success base:master $queue_labels_but_merge label:merge-conflict")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE_BUT_MERGE_CONFLICT" | jq '{"output": .}' > needs-merge.json
 
-# Query Github API for all pull requests that have not been updated in 24 hours.
-QUERY_ONEDAYSTALE=$(prepare_query "sort:updated-asc is:pr state:open updated:<$yesterday")
-gh api graphql --paginate --slurp -f query="$QUERY_ONEDAYSTALE" | jq '{"output": . }' > one-day-stale.json
-
 # Query Github API for all pull requests that are labeled `new-contributor` and have not been updated in seven days.
 # Sadly, this includes all PRs which are in the review queue...
 QUERY_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:new-contributor updated:<$aweekago")
@@ -74,7 +70,7 @@ gh api graphql --paginate --slurp -f query="$QUERY_DRAFT" | jq '{"output": .}' >
 # as they do not correspond to a dashboard to be generated.
 json_files=("queue.json" "needs-merge.json" "new-contributor.json")
 
-python3 ./dashboard.py "all-nondraft-PRs.json" "all-draft-PRs.json" "one-day-stale.json" ${json_files[*]} > ./index.html
+python3 ./dashboard.py "all-nondraft-PRs.json" "all-draft-PRs.json" ${json_files[*]} > ./index.html
 
 rm *.json
 
