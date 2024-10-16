@@ -83,7 +83,7 @@ gh api graphql --paginate --slurp -f query="$QUERY_DRAFT" | jq '{"output": .}' >
 # List of JSON files: their order does not matter for the generated output.
 # NB: we purposefully do not add 'all-nondraft-PRs' or 'all-draft-PRs' to this list,
 # as they do not correspond to a dashboard to be generated.
-json_files=("queue.json" "needs-merge.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "needs-decision.json" "delegated.json" "new-contributor.json" "help-wanted.json" "please-adopt.json")
+json_files=("queue.json" "needs-merge.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "delegated.json" "new-contributor.json")
 
 python3 ./dashboard.py "all-nondraft-PRs.json" "all-draft-PRs.json" ${json_files[*]} > ./index.html
 
