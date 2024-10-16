@@ -57,8 +57,6 @@ EXPECTED_INPUT_FILES = {
     "needs-decision.json" : Dashboard.NeedsDecision,
     "delegated.json" : Dashboard.StaleDelegated,
     "new-contributor.json" : Dashboard.StaleNewContributor,
-    "please-adopt.json" : Dashboard.NeedsHelp,
-    "help-wanted.json" : Dashboard.NeedsHelp,
 }
 
 def short_description(kind : Dashboard) -> str:
@@ -313,7 +311,9 @@ def main() -> None:
     # The 'tech debt' and 'other base' boards are obtained from filtering list of non-draft PRs.
     all_ready_prs = prs_without_label(input_data.nondraft_prs, 'WIP')
     prs_to_list[Dashboard.TechDebt] = prs_with_any_label(all_ready_prs, ['tech debt', 'longest-pole'])
+
     prs_to_list[Dashboard.OtherBase] = [pr for pr in input_data.nondraft_prs if base_branch[pr.number] != 'master']
+    prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(input_data.nondraft_prs, ['help-wanted', 'please_adopt'])
 
     print(gather_pr_statistics(CI_passes, prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
 

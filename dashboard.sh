@@ -76,13 +76,6 @@ gh api graphql --paginate --slurp -f query="$QUERY_DELEGATED" | jq '{"output": .
 QUERY_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:new-contributor updated:<$aweekago")
 gh api graphql --paginate --slurp -f query="$QUERY_NEWCONTRIBUTOR" | jq '{"output": .}' > new-contributor.json
 
-# Query Github API for all pull requests that are labeled `help-wanted`.
-QUERY_HELP_WANTED=$(prepare_query "sort:updated-asc is:pr state:open label:help-wanted")
-gh api graphql --paginate --slurp -f query="$QUERY_HELP_WANTED" |	jq '{"output": .}' > help-wanted.json
-# Query Github API for all pull requests that are labeled `please-adopt`.
-QUERY_PLEASE_ADOPT=$(prepare_query "sort:updated-asc is:pr state:open label:please-adopt")
-gh api graphql --paginate --slurp -f query="$QUERY_PLEASE_ADOPT" | jq '{"output": .}' > please-adopt.json
-
 # Query Github API for all open pull requests which are marked as ready for review
 QUERY_NONDRAFT=$(prepare_query 'sort:updated-asc is:pr -is:draft state:open')
 gh api graphql --paginate --slurp -f query="$QUERY_NONDRAFT" | jq '{"output": .}' > all-nondraft-PRs.json
