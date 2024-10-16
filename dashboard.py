@@ -201,13 +201,14 @@ def read_json_files() -> JSONInputData:
     prs_to_list: dict[Dashboard, List[BasicPRInformation]] = dict()
     # Iterate over the json files provided by the user
     for i in range(4, len(sys.argv)):
-        filename = sys.argv[i]
-        if filename not in EXPECTED_INPUT_FILES:
-            print(f"bad argument: file {filename} is not recognised; did you mean one of these?\n{', '.join(EXPECTED_INPUT_FILES.keys())}")
+        filepath = sys.argv[i]
+        name = filepath.split("/")[-1]
+        if name not in EXPECTED_INPUT_FILES:
+            print(f"bad argument: file name {name} is not recognised; did you mean one of these?\n{', '.join(EXPECTED_INPUT_FILES.keys())}")
             sys.exit(1)
-        with open(filename) as f:
+        with open(filepath) as f:
             prs = _extract_prs(json.load(f))
-            kind = EXPECTED_INPUT_FILES[filename]
+            kind = EXPECTED_INPUT_FILES[name]
             prs_to_list[kind] = prs_to_list.get(kind, []) + prs
     with open(sys.argv[1]) as ready_file, open(sys.argv[2]) as draft_file:
         all_nondraft_prs = _extract_prs(json.load(ready_file))

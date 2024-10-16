@@ -52,10 +52,9 @@ In particular, each query for each dashboard takes one second: if easily possibl
 There are several levels at which this project can be tested. Currently, there are no *automated* tests, but an effort is made that the dashboard logic can easily be tested manually.
 
 - `classify_pr_state.py` has unit tests: to run them, use e.g. `nose` (which will pick them up automatically), or uncomment all methods named `test_xxx` and run `python3 classify_pr_state.py`
-- changes to just `dashboard.py` can be tested using the JSON files in `test`, as follows.
-Run the following, *inside* the `test` directory:
-`python3 ../dashboard.py all-nondraft-PRs.json all-draft-PRs.json one-day-stale.json queue.json new-contributor.json needs-merge.json > ../expected.html`,
-once (before the changes) to create a file `../expected.html`, and again afterwards for a file `../actual.html`.
+- changes to just `dashboard.py` can be tested using the JSON files in `test`: run the following from the top-level directory.
+`python3 dashboard.py test/all-nondraft-PRs.json test/all-draft-PRs.json test/one-day-stale.json test/queue.json test/new-contributor.json test/needs-merge.json > expected.html`,
+once (before the changes) to create a file `expected.html`, and again afterwards for a file `actual.html`.
 You can then use `diff` to look for any changes to the generated output.
 (The output file needs to be in the top-level directory in order for the styling to work.)
 
