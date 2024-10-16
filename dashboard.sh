@@ -52,12 +52,9 @@ gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" | jq '{"output": .}' >
 QUERY_QUEUE_BUT_MERGE_CONFLICT=$(prepare_query "sort:updated-asc is:pr state:open -is:draft status:success base:master $queue_labels_but_merge label:merge-conflict")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE_BUT_MERGE_CONFLICT" | jq '{"output": .}' > needs-merge.json
 
-# Query Github API for all pull requests that are labeled `ready-to-merge` and have not been updated in 24 hours.
-QUERY_READYTOMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:ready-to-merge updated:<$yesterday")
-gh api graphql --paginate --slurp -f query="$QUERY_READYTOMERGE" | jq '{"output": . }' > ready-to-merge.json
-# Query Github API for all pull requests that are labeled `auto-merge-after-CI` and have not been updated in 24 hours.
-QUERY_AUTOMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:auto-merge-after-CI updated:<$yesterday")
-gh api graphql --paginate --slurp -f query="$QUERY_AUTOMERGE" | jq '{"output": . }' > automerge.json
+# Query Github API for all pull requests that have not been updated in 24 hours.
+QUERY_ONEDAYSTALE=$(prepare_query "sort:updated-asc is:pr state:open updated:<$yesterday")
+gh api graphql --paginate --slurp -f query="$QUERY_ONEDAYSTALE" | jq '{"output": . }' > one-day-stale.json
 
 # Query Github API for all pull requests that are labeled `maintainer-merge` but not `ready-to-merge` and have not been updated in 24 hours.
 QUERY_MAINTAINERMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:maintainer-merge -label:ready-to-merge updated:<$yesterday")
@@ -83,9 +80,9 @@ gh api graphql --paginate --slurp -f query="$QUERY_DRAFT" | jq '{"output": .}' >
 # List of JSON files: their order does not matter for the generated output.
 # NB: we purposefully do not add 'all-nondraft-PRs' or 'all-draft-PRs' to this list,
 # as they do not correspond to a dashboard to be generated.
-json_files=("queue.json" "needs-merge.json" "ready-to-merge.json" "automerge.json" "maintainer-merge.json" "delegated.json" "new-contributor.json")
+json_files=("queue.json" "needs-merge.json" "maintainer-merge.json" "delegated.json" "new-contributor.json")
 
-python3 ./dashboard.py "all-nondraft-PRs.json" "all-draft-PRs.json" ${json_files[*]} > ./index.html
+python3 ./dashboard.py "all-nondraft-PRs.json" "all-draft-PRs.json" "one-day-stale.json" ${json_files[*]} > ./index.html
 
 rm *.json
 

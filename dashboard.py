@@ -50,8 +50,6 @@ class Dashboard(Enum):
 # but this script will complain if something unexpected happens.
 EXPECTED_INPUT_FILES = {
     "queue.json" : Dashboard.Queue,
-    "ready-to-merge.json" : Dashboard.StaleReadyToMerge,
-    "automerge.json" : Dashboard.StaleReadyToMerge,
     "needs-merge.json" : Dashboard.NeedsMerge,
     "maintainer-merge.json" : Dashboard.StaleMaintainerMerge,
     "delegated.json" : Dashboard.StaleDelegated,
@@ -162,19 +160,22 @@ class JSONInputData(NamedTuple):
     nondraft_prs: List[BasicPRInformation]
     # Information about all PRs marked as draft
     draft_prs: List[BasicPRInformation]
+    # All PRs which have not been updated in a day.
+    # FIXME: filter this from the list of all open PRs, using the aggregate information!
+    stale_prs: List[BasicPRInformation]
 
 
 # Validate the command-line arguments and try to read all data passed in via JSON files.
 def read_json_files() -> JSONInputData:
     # Check if the user has provided the correct number of arguments
-    if len(sys.argv) < 3:
-        print("Usage: python3 dashboard.py <all-nondraft-prs.json> <all-draft-PRs.json> <json_file1> <json_file2> ...")
+    if len(sys.argv) < 4:
+        print("Usage: python3 dashboard.py <all-nondraft-prs.json> <all-draft-PRs.json> <one-day-stale.json> <json_file1> <json_file2> ...")
         sys.exit(1)
     # Dictionary of all PRs to include in a given dashboard.
     # This data is given by the json files provided by the user.
     prs_to_list : dict[Dashboard, List[BasicPRInformation]] = dict()
     # Iterate over the json files provided by the user
-    for i in range(3, len(sys.argv)):
+    for i in range(4, len(sys.argv)):
         filename = sys.argv[i]
         if filename not in EXPECTED_INPUT_FILES:
             print(f"bad argument: file {filename} is not recognised; did you mean one of these?\n{', '.join(EXPECTED_INPUT_FILES.keys())}")
@@ -186,13 +187,15 @@ def read_json_files() -> JSONInputData:
     with open(sys.argv[1]) as ready_file, open(sys.argv[2]) as draft_file:
         all_nondraft_prs = _extract_prs(json.load(ready_file))
         all_draft_prs = _extract_prs(json.load(draft_file))
+    with open(sys.argv[3]) as stale_pr_file:
+        stale_prs = json.load(stale_pr_file)
     with open(path.join("processed_data", "aggregate_pr_data.json"), 'r') as f:
         aggregate_info = json.load(f)
         ci_info = dict()
         for pr in aggregate_info["pr_statusses"]:
             info = AggregatePRInfo(pr["is_draft"], pr["CI_passes"], pr["base_branch"], pr["state"])
             ci_info[pr["number"]] = info
-    return JSONInputData(prs_to_list, ci_info, all_nondraft_prs, all_draft_prs)
+    return JSONInputData(prs_to_list, ci_info, all_nondraft_prs, all_draft_prs, stale_prs)
 
 
 EXPLANATION = '''
@@ -314,6 +317,7 @@ def main() -> None:
     prs_to_list[Dashboard.OtherBase] = [pr for pr in input_data.nondraft_prs if base_branch[pr.number] != 'master']
     prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(input_data.nondraft_prs, ['help-wanted', 'please_adopt'])
     prs_to_list[Dashboard.NeedsDecision] = prs_with_label(input_data.nondraft_prs, ['awaiting-zulip'])
+    prs_to_list[Dashboard.StaleReadyToMerge] = prs_with_any_label(input_data.stale_prs, ['ready-to-merge', 'auto-merge-after-CI'])
 
     print(gather_pr_statistics(CI_passes, prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
 
