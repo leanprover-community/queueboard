@@ -182,10 +182,8 @@ class JSONInputData(NamedTuple):
     prs_on_boards: dict[Dashboard, List[BasicPRInformation]]
     # All aggregate information stored for every open PR.
     aggregate_info: dict[int, AggregatePRInfo]
-    # Information about all non-draft PRs
-    nondraft_prs: List[BasicPRInformation]
-    # Information about all PRs marked as draft
-    draft_prs: List[BasicPRInformation]
+    # Information about all open PRs
+    all_open_prs: List[BasicPRInformation]
 
 
 # Parse input of the form "2024-04-29T18:53:51Z" into a datetime.
@@ -199,14 +197,14 @@ assert parse_datetime("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 5
 # Validate the command-line arguments and try to read all data passed in via JSON files.
 def read_json_files() -> JSONInputData:
     # Check if the user has provided the correct number of arguments
-    if len(sys.argv) < 3:
-        print("Usage: python3 dashboard.py <all-nondraft-prs.json> <all-draft-PRs.json> <json_file1> <json_file2> ...")
+    if len(sys.argv) < 2:
+        print("Usage: python3 dashboard.py <all-open-prs.json> <json_file1> <json_file2> ...")
         sys.exit(1)
     # Dictionary of all PRs to include in a given dashboard.
     # This data is given by the json files provided by the user.
     prs_to_list: dict[Dashboard, List[BasicPRInformation]] = dict()
     # Iterate over the json files provided by the user
-    for i in range(3, len(sys.argv)):
+    for i in range(2, len(sys.argv)):
         filepath = sys.argv[i]
         name = filepath.split("/")[-1]
         if name not in EXPECTED_INPUT_FILES:
@@ -216,21 +214,18 @@ def read_json_files() -> JSONInputData:
             prs = _extract_prs(json.load(f))
             kind = EXPECTED_INPUT_FILES[name]
             prs_to_list[kind] = prs_to_list.get(kind, []) + prs
-    with open(sys.argv[1]) as ready_file, open(sys.argv[2]) as draft_file:
-        all_nondraft_prs = _extract_prs(json.load(ready_file))
-        all_draft_prs = _extract_prs(json.load(draft_file))
+    with open(sys.argv[1]) as all_prs_file:
+        all_open_prs = _extract_prs(json.load(all_prs_file))
     with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as f:
-        aggregate_info = json.load(f)
-        ci_info = dict()
-        for pr in aggregate_info["pr_statusses"]:
+        data = json.load(f)
+        aggregate_info = dict()
+        for pr in data["pr_statusses"]:
             date = parse_datetime(pr["last_updated"])
             info = AggregatePRInfo(
                 pr["is_draft"], pr["CI_passes"], pr["base_branch"], pr["state"], date
             )
-            ci_info[pr["number"]] = info
-    return JSONInputData(
-        prs_to_list, ci_info, all_nondraft_prs, all_draft_prs
-    )
+            aggregate_info[pr["number"]] = info
+    return JSONInputData(prs_to_list, aggregate_info, all_open_prs)
 
 
 EXPLANATION = """
@@ -324,19 +319,27 @@ def print_on_the_queue_page(
 
 def main() -> None:
     input_data = read_json_files()
+    # Populate basic information from the input data: splitting into draft and non-draft PRs
+    # (mostly, we only use the latter); extract separate dictionaries for CI status and base branch.
+    # FIXME: uniform handling of bad data; assert all input data have the same keys
+    # or deal with deviations here!
+    draft_PRs = [pr for pr in input_data.all_open_prs if input_data.aggregate_info[pr.number].is_draft]
+    nondraft_PRs = [pr for pr in input_data.all_open_prs if not input_data.aggregate_info[pr.number].is_draft]
+    assert len(draft_PRs) + len(nondraft_PRs) == len(input_data.all_open_prs)
+
     CI_passes = dict()
     for number in input_data.aggregate_info:
         CI_passes[number] = input_data.aggregate_info[number].CI_passes
     # Extract the base branch for each PR: by default, assume PRs are against master.
     base_branch = dict()
-    for pr in input_data.nondraft_prs:
+    for pr in nondraft_PRs:
         data = input_data.aggregate_info.get(pr.number)
         if data is None:
             base_branch[pr.number] = "master"
         else:
             base_branch[pr.number] = data.base_branch
 
-    print_on_the_queue_page(input_data.nondraft_prs, CI_passes, "on_the_queue.html")
+    print_on_the_queue_page(nondraft_PRs, CI_passes, "on_the_queue.html")
 
     print_html5_header()
     # Print a quick table of contents.
@@ -352,18 +355,18 @@ def main() -> None:
     prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs, 'easy')
 
     # The 'tech debt' and 'other base' boards are obtained from filtering list of non-draft PRs.
-    all_ready_prs = prs_without_label(input_data.nondraft_prs, 'WIP')
+    all_ready_prs = prs_without_label(nondraft_PRs, 'WIP')
     prs_to_list[Dashboard.TechDebt] = prs_with_any_label(all_ready_prs, ['tech debt', 'longest-pole'])
 
-    prs_to_list[Dashboard.OtherBase] = [pr for pr in input_data.nondraft_prs if base_branch[pr.number] != 'master']
-    prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(input_data.nondraft_prs, ['help-wanted', 'please_adopt'])
-    prs_to_list[Dashboard.NeedsDecision] = prs_with_label(input_data.nondraft_prs, 'awaiting-zulip')
+    prs_to_list[Dashboard.OtherBase] = [pr for pr in nondraft_PRs if base_branch[pr.number] != 'master']
+    prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(nondraft_PRs, ['help-wanted', 'please_adopt'])
+    prs_to_list[Dashboard.NeedsDecision] = prs_with_label(nondraft_PRs, 'awaiting-zulip')
 
     a_day_ago = datetime.now() - timedelta(days=1)
     a_week_ago = datetime.now() - timedelta(days=7)
     one_day_stale = []
     one_week_stale = []
-    for pr in input_data.nondraft_prs:
+    for pr in nondraft_PRs:
         if pr.number in input_data.aggregate_info:
             upd = input_data.aggregate_info[pr.number].last_updated
             if upd < a_day_ago:
@@ -376,9 +379,9 @@ def main() -> None:
     prs_to_list[Dashboard.StaleMaintainerMerge] = prs_without_label(mm_prs, 'ready-to-merge')
     prs_to_list[Dashboard.StaleNewContributor] = prs_with_label(one_week_stale, 'new-contributor')
 
-    print(gather_pr_statistics(CI_passes, prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
+    print(gather_pr_statistics(CI_passes, prs_to_list, nondraft_PRs, draft_PRs))
 
-    (bad_title, unlabelled, contradictory) = compute_dashboards_bad_labels_title(input_data.nondraft_prs)
+    (bad_title, unlabelled, contradictory) = compute_dashboards_bad_labels_title(nondraft_PRs)
     prs_to_list[Dashboard.BadTitle] = bad_title
     prs_to_list[Dashboard.Unlabelled] = unlabelled
     prs_to_list[Dashboard.ContradictoryLabels] = contradictory

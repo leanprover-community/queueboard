@@ -52,15 +52,11 @@ gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" | jq '{"output": .}' >
 QUERY_QUEUE_BUT_MERGE_CONFLICT=$(prepare_query "sort:updated-asc is:pr state:open -is:draft status:success base:master $queue_labels_but_merge label:merge-conflict")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE_BUT_MERGE_CONFLICT" | jq '{"output": .}' > needs-merge.json
 
-# Query Github API for all open pull requests which are marked as ready for review
-QUERY_NONDRAFT=$(prepare_query 'sort:updated-asc is:pr -is:draft state:open')
-gh api graphql --paginate --slurp -f query="$QUERY_NONDRAFT" | jq '{"output": .}' > all-nondraft-PRs.json
+# Query Github API for all open pull requests
+QUERY_ALLOPEN=$(prepare_query 'sort:updated-asc is:pr state:open')
+gh api graphql --paginate --slurp -f query="$QUERY_ALLOPEN" | jq '{"output": .}' > all-open-PRs.json
 
-# Query Github API for all open pull requests which are in draft stage
-QUERY_DRAFT=$(prepare_query 'sort:updated-asc is:pr is:draft state:open')
-gh api graphql --paginate --slurp -f query="$QUERY_DRAFT" | jq '{"output": .}' > all-draft-PRs.json
-
-python3 ./dashboard.py "all-nondraft-PRs.json" "all-draft-PRs.json" "queue.json" "needs-merge.json" > ./index.html
+python3 ./dashboard.py "all-open-prs.json" "queue.json" "needs-merge.json" > ./index.html
 
 rm *.json
 
