@@ -145,12 +145,23 @@ class BasicPRInformation(NamedTuple):
     updatedAt : str
 
 
+# All information about a single PR contained in `aggregate_pr_info.json`.
+# Keep this in sync with the actual file, extending this once new data is added!
+class AggregatePRInfo(NamedTuple):
+    is_draft: bool
+    CI_passes: bool
+    # 'master' for most PRs
+    base_branch: str
+    # 'open' for open PRs, 'closed' for closed PRs
+    state: str
+
+
 # Information passed to this script, via various JSON files.
 class JSONInputData(NamedTuple):
     # Not every dashboard need be covered!
     prs_on_boards : dict[Dashboard, List[BasicPRInformation]]
-    # The CI status for every open PR
-    CI_passes: dict[int, bool]
+    # All aggregate information stored for every open PR.
+    aggregate_info: dict[int, AggregatePRInfo]
     # Information about all non-draft PRs
     nondraft_prs: List[BasicPRInformation]
     # Information about all PRs marked as draft
@@ -183,7 +194,8 @@ def read_json_files() -> JSONInputData:
         aggregate_info = json.load(f)
         ci_info = dict()
         for pr in aggregate_info["pr_statusses"]:
-            ci_info[pr["number"]] = pr["CI_passes"]
+            info = AggregatePRInfo(pr["is_draft"], pr["CI_passes"], pr["base_branch"], pr["state"])
+            ci_info[pr["number"]] = info
     return JSONInputData(prs_to_list, ci_info, all_nondraft_prs, all_draft_prs)
 
 
@@ -227,17 +239,17 @@ def _write_labels(labels: List[Label]) -> str:
 
 
 # Print a webpage "why is my PR not on the queue" to a new file of name 'outfile'.
-def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
+# 'prs' is the list of PRs on which to print information;
+# 'CI_passes' states whether CI passes for each PR.
+def print_on_the_queue_page(prs: List[BasicPRInformation], CI_passes: dict[int, bool], outfile : str) -> None:
     def icon(state: bool | None) -> str:
         '''Return a green checkmark emoji if `state` is true, and a red cross emoji otherwise.'''
         return '&#9989;' if state else '&#10060;'
-    ci_status = input_data.CI_passes
-    prs = input_data.nondraft_prs
     body = ""
     for pr in prs:
-        if pr.number not in ci_status:
+        if pr.number not in CI_passes:
             print(f"'on the queue' page: found no PR info for PR {pr.number}", file=sys.stderr)
-        ci_passes = ci_status[pr.number] if pr.number in ci_status else None
+        ci_passes = CI_passes[pr.number] if pr.number in CI_passes else None
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
         has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.labels]
         is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
@@ -272,7 +284,10 @@ def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
 
 def main() -> None:
     input_data = read_json_files()
-    print_on_the_queue_page(input_data, "on_the_queue.html")
+    CI_passes = dict()
+    for number in input_data.aggregate_info:
+        CI_passes[number] = input_data.aggregate_info[number].CI_passes
+    print_on_the_queue_page(input_data.nondraft_prs, CI_passes, "on_the_queue.html")
 
     print_html5_header()
     # Print a quick table of contents.
@@ -287,7 +302,7 @@ def main() -> None:
     prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
     prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs, 'easy')
 
-    print(gather_pr_statistics(input_data.CI_passes, prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
+    print(gather_pr_statistics(CI_passes, prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
     all_ready_prs = prs_without_label(input_data.nondraft_prs, 'WIP')
     prs_to_list[Dashboard.TechDebt] = prs_with_any_label(all_ready_prs, ['tech debt', 'longest-pole'])
 
