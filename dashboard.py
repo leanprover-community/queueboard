@@ -620,6 +620,11 @@ def _compute_pr_entries(prs: List[BasicPRInformation]) -> str:
             print(f"main dashboard: found no PR info for PR {pr.number}", file=sys.stderr)
             entries.extend(["-1/-1", "-1", "-1"])
         else:
+            # We treat non-well-formed data as missing.
+            # FUTURE: unify and centralise all these checks for bad/missing data (also for CI status)
+            if "data" not in pr_info or "errors" in pr_info:
+                entries.extend(["-1/-1", "-1", "-1"])
+                continue
             inner = pr_info["data"]["repository"]["pullRequest"]
             entries.extend([
                 "{}/{}".format(inner["additions"], inner["deletions"]), inner["changedFiles"]
