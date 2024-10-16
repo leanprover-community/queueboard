@@ -52,11 +52,6 @@ gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" | jq '{"output": .}' >
 QUERY_QUEUE_BUT_MERGE_CONFLICT=$(prepare_query "sort:updated-asc is:pr state:open -is:draft status:success base:master $queue_labels_but_merge label:merge-conflict")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE_BUT_MERGE_CONFLICT" | jq '{"output": .}' > needs-merge.json
 
-# Query Github API for all pull requests that are labeled `new-contributor` and have not been updated in seven days.
-# Sadly, this includes all PRs which are in the review queue...
-QUERY_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:new-contributor updated:<$aweekago")
-gh api graphql --paginate --slurp -f query="$QUERY_NEWCONTRIBUTOR" | jq '{"output": .}' > new-contributor.json
-
 # Query Github API for all open pull requests which are marked as ready for review
 QUERY_NONDRAFT=$(prepare_query 'sort:updated-asc is:pr -is:draft state:open')
 gh api graphql --paginate --slurp -f query="$QUERY_NONDRAFT" | jq '{"output": .}' > all-nondraft-PRs.json
@@ -65,12 +60,7 @@ gh api graphql --paginate --slurp -f query="$QUERY_NONDRAFT" | jq '{"output": .}
 QUERY_DRAFT=$(prepare_query 'sort:updated-asc is:pr is:draft state:open')
 gh api graphql --paginate --slurp -f query="$QUERY_DRAFT" | jq '{"output": .}' > all-draft-PRs.json
 
-# List of JSON files: their order does not matter for the generated output.
-# NB: we purposefully do not add 'all-nondraft-PRs' or 'all-draft-PRs' to this list,
-# as they do not correspond to a dashboard to be generated.
-json_files=("queue.json" "needs-merge.json" "new-contributor.json")
-
-python3 ./dashboard.py "all-nondraft-PRs.json" "all-draft-PRs.json" ${json_files[*]} > ./index.html
+python3 ./dashboard.py "all-nondraft-PRs.json" "all-draft-PRs.json" "queue.json" "needs-merge.json" > ./index.html
 
 rm *.json
 

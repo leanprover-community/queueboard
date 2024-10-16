@@ -57,7 +57,6 @@ class Dashboard(Enum):
 EXPECTED_INPUT_FILES = {
     "queue.json": Dashboard.Queue,
     "needs-merge.json": Dashboard.NeedsMerge,
-    "new-contributor.json": Dashboard.StaleNewContributor,
 }
 
 
@@ -361,12 +360,14 @@ def main() -> None:
     prs_to_list[Dashboard.NeedsDecision] = prs_with_label(input_data.nondraft_prs, 'awaiting-zulip')
 
     a_day_ago = datetime.now() - datetime.timedelta(days=1)
+    a_week_ago = datetime.now() - datetime.timedelta(days=7)
     one_day_stale = [pr for pr in input_data.nondraft_prs if input_data.aggregate_info[pr].last_updated < a_day_ago]
-
+    one_week_stale = [pr for pr in input_data.nondraft_prs if input_data.aggregate_info[pr].last_updated < a_week_ago]
     prs_to_list[Dashboard.StaleReadyToMerge] = prs_with_any_label(one_day_stale, ['ready-to-merge', 'auto-merge-after-CI'])
     prs_to_list[Dashboard.StaleDelegated] = prs_with_label(one_day_stale, 'delegated')
     mm_prs = prs_with_label(one_day_stale, 'maintainer-merge')
     prs_to_list[Dashboard.StaleMaintainerMerge] = prs_without_label(mm_prs, 'ready-to-merge')
+    prs_to_list[Dashboard.StaleNewContributor] = prs_with_label(one_week_stale, 'new-contributor')
 
     print(gather_pr_statistics(CI_passes, prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
 
