@@ -316,7 +316,7 @@ def main() -> None:
 
     prs_to_list[Dashboard.OtherBase] = [pr for pr in input_data.nondraft_prs if base_branch[pr.number] != 'master']
     prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(input_data.nondraft_prs, ['help-wanted', 'please_adopt'])
-    prs_to_list[Dashboard.NeedsDecision] = prs_with_label(input_data.nondraft_prs, ['awaiting-zulip'])
+    prs_to_list[Dashboard.NeedsDecision] = prs_with_label(input_data.nondraft_prs, 'awaiting-zulip')
     prs_to_list[Dashboard.StaleReadyToMerge] = prs_with_any_label(input_data.stale_prs, ['ready-to-merge', 'auto-merge-after-CI'])
 
     print(gather_pr_statistics(CI_passes, prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
