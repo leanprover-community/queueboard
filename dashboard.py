@@ -419,10 +419,11 @@ HTML_HEADER = '''
 def print_html5_header() -> None:
     print(HTML_HEADER)
     print("  <h1>Mathlib review and triage dashboard</h1>")
-    # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
+    welcome = '<p>Welcome to the mathlib review and triage dashboard. This is a prototype for better exposing the currently open PRs to mathlib. Feedback (including bug reports and ideas for improvements) on this dashboard is very welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.<br>'
+    'You can hover over any section header (and some table headings) to find out what they show. The same works for the table of contents below.</p>'
+    # FUTURE: can this time be displayed in the local time zone of  the user viewing this page?
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
-    print(f"""  <small>This dashboard was last updated on: {updated}<br>
-    Feedback on this dashboard is welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.</small>""")
+    print(f"""  {welcome}  <small>This dashboard was last updated on: {updated}</small>""")
 
 
 HTML_FOOTER = '''
