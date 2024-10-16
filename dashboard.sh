@@ -60,10 +60,6 @@ gh api graphql --paginate --slurp -f query="$QUERY_ONEDAYSTALE" | jq '{"output":
 QUERY_MAINTAINERMERGE=$(prepare_query "sort:updated-asc is:pr state:open label:maintainer-merge -label:ready-to-merge updated:<$yesterday")
 gh api graphql --paginate --slurp -f query="$QUERY_MAINTAINERMERGE" | jq '{"output": .}' > maintainer-merge.json
 
-# Query Github API for all pull requests that are labeled `delegated` and have not been updated in 24 hours.
-QUERY_DELEGATED=$(prepare_query "sort:updated-asc is:pr state:open label:delegated updated:<$yesterday")
-gh api graphql --paginate --slurp -f query="$QUERY_DELEGATED" | jq '{"output": .}' > delegated.json
-
 # Query Github API for all pull requests that are labeled `new-contributor` and have not been updated in seven days.
 # Sadly, this includes all PRs which are in the review queue...
 QUERY_NEWCONTRIBUTOR=$(prepare_query "sort:updated-asc is:pr state:open label:new-contributor updated:<$aweekago")
@@ -80,7 +76,7 @@ gh api graphql --paginate --slurp -f query="$QUERY_DRAFT" | jq '{"output": .}' >
 # List of JSON files: their order does not matter for the generated output.
 # NB: we purposefully do not add 'all-nondraft-PRs' or 'all-draft-PRs' to this list,
 # as they do not correspond to a dashboard to be generated.
-json_files=("queue.json" "needs-merge.json" "maintainer-merge.json" "delegated.json" "new-contributor.json")
+json_files=("queue.json" "needs-merge.json" "maintainer-merge.json" "new-contributor.json")
 
 python3 ./dashboard.py "all-nondraft-PRs.json" "all-draft-PRs.json" "one-day-stale.json" ${json_files[*]} > ./index.html
 
