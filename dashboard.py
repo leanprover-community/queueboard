@@ -620,7 +620,7 @@ def prs_with_label(prs: List[BasicPRInformation], label_name: str) -> List[Basic
 
 # Extract all PRs from a given list which have any label in a certain list.
 def prs_with_any_label(prs: List[BasicPRInformation], label_names: List[str]) -> List[BasicPRInformation]:
-    return [prinfo for prinfo in prs if any(_has_label(prinfo, name) for name in label_names)]
+    return [prinfo for prinfo in prs if any([_has_label(prinfo, name) for name in label_names])]
 
 # Extract all PRs from a given list which do not have a certain label.
 def prs_without_label(prs: List[BasicPRInformation], label_name: str) -> List[BasicPRInformation]:
