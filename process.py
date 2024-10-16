@@ -11,6 +11,7 @@ we list
 
 import json
 import os
+import sys
 from datetime import datetime, timezone
 from typing import List
 
@@ -24,15 +25,18 @@ def main():
     pr_names : List[str] = sorted(os.listdir("data"))
     for pr_number in pr_names:
         with open(f"data/{pr_number}/pr_info.json", "r") as fi:
-            data = json.load(fi)
+            data = None
             # Handle data with errors gracefully: warn, but do not fail the script.
+            try:
+                data = json.load(fi)
+            except json.decoder.JSONDecodeError:
+                print(f"error: the pr_info file for PR {pr_number} is invalid JSON, ignoring", file=sys.stderr)
+                continue
             if "errors" in data:
-                import sys
-                print(f"warning: the data for PR {pr_number} is erronerous, ignoring", file=sys.stderr)
+                print(f"warning: the data for PR {pr_number} is incomplete, ignoring", file=sys.stderr)
                 continue
             elif "data" not in data:
-                import sys
-                print(f"warning: the data for PR {pr_number} is erronerous (perhaps a time out downloading it), ignoring", file=sys.stderr)
+                print(f"warning: the data for PR {pr_number} is incomplete (perhaps a time out downloading it), ignoring", file=sys.stderr)
                 continue
             inner = data["data"]["repository"]["pullRequest"]
             number = inner["number"]
