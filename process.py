@@ -30,6 +30,10 @@ def main():
                 import sys
                 print(f"warning: the data for PR {pr_number} is erronerous, ignoring", file=sys.stderr)
                 continue
+            elif "data" not in data:
+                import sys
+                print(f"warning: the data for PR {pr_number} is erronerous (perhaps a time out downloading it), ignoring", file=sys.stderr)
+                continue
             inner = data["data"]["repository"]["pullRequest"]
             number = inner["number"]
             base_branch = inner["baseRefName"]
