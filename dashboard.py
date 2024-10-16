@@ -54,7 +54,6 @@ EXPECTED_INPUT_FILES = {
     "automerge.json" : Dashboard.StaleReadyToMerge,
     "needs-merge.json" : Dashboard.NeedsMerge,
     "maintainer-merge.json" : Dashboard.StaleMaintainerMerge,
-    "needs-decision.json" : Dashboard.NeedsDecision,
     "delegated.json" : Dashboard.StaleDelegated,
     "new-contributor.json" : Dashboard.StaleNewContributor,
 }
@@ -314,6 +313,7 @@ def main() -> None:
 
     prs_to_list[Dashboard.OtherBase] = [pr for pr in input_data.nondraft_prs if base_branch[pr.number] != 'master']
     prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(input_data.nondraft_prs, ['help-wanted', 'please_adopt'])
+    prs_to_list[Dashboard.NeedsDecision] = prs_with_label(input_data.nondraft_prs, ['awaiting-zulip'])
 
     print(gather_pr_statistics(CI_passes, prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
 
