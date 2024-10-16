@@ -579,14 +579,21 @@ def print_dashboard(prs : List[BasicPRInformation], kind: Dashboard) -> None:
     table = f"  <table>\n{head}{body}  </table>"
     print(table)
 
+# Does a PR have a given label?
+def _has_label(pr: BasicPRInformation, name: str) -> bool:
+    return name in [l.name for l in pr.labels]
 
 # Extract all PRs from a given list which have a certain label.
 def prs_with_label(prs: List[BasicPRInformation], label_name: str) -> List[BasicPRInformation]:
-    return [prinfo for prinfo in prs if label_name in [l.name for l in prinfo.labels]]
+    return [prinfo for prinfo in prs if _has_label(prinfo, label_name)]
+
+# Extract all PRs from a given list which have any label in a certain list.
+def prs_with_any_label(prs: List[BasicPRInformation], label_names: List[str]) -> List[BasicPRInformation]:
+    return [prinfo for prinfo in prs if any(_has_label(name) for name in label_names)]
 
 # Extract all PRs from a given list which do not have a certain label.
 def prs_without_label(prs: List[BasicPRInformation], label_name: str) -> List[BasicPRInformation]:
-    return [prinfo for prinfo in prs if label_name not in [l.name for l in prinfo.labels]]
+    return [prinfo for prinfo in prs if not _has_label(prinfo, label_name)]
 
 
 def has_contradictory_labels(pr: BasicPRInformation) -> bool:
