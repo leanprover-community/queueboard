@@ -318,7 +318,9 @@ def print_on_the_queue_page(
 
 
 def main() -> None:
+    start = datetime.now()
     input_data = read_json_files()
+    print(f"timing: {datetime.now() - start}, finished reading json files", file=sys.stderr)
     CI_passes = dict()
     for number in input_data.aggregate_info:
         CI_passes[number] = input_data.aggregate_info[number].CI_passes
@@ -330,8 +332,10 @@ def main() -> None:
             base_branch[pr.number] = "master"
         else:
             base_branch[pr.number] = data.base_branch
+    print(f"timing: {datetime.now() - start}, finished populating dictionaries", file=sys.stderr)
 
     print_on_the_queue_page(input_data.nondraft_prs, CI_passes, "on_the_queue.html")
+    print(f"timing: {datetime.now() - start}, finished printing queue page", file=sys.stderr)
 
     print_html5_header()
     # Print a quick table of contents.
@@ -341,6 +345,7 @@ def main() -> None:
         links.append(f"<a href=\"#{id}\" title=\"{short_description(kind)}\" target=\"_self\">{id}</a>")
     print(f"<br><p>\n<b>Quick links:</b> <a href=\"#statistics\" target=\"_self\">PR statistics</a> | {str.join(' | ', links)}</p>")
 
+    print(f"timing: {datetime.now() - start}, finished printing TOC", file=sys.stderr)
     prs_to_list : dict[Dashboard, List[BasicPRInformation]] = input_data.prs_on_boards
     queue_prs = prs_to_list[Dashboard.Queue]
     prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
@@ -357,18 +362,21 @@ def main() -> None:
     prs_to_list[Dashboard.StaleDelegated] = prs_with_label(input_data.stale_prs, 'delegated')
     mm_prs = prs_with_label(input_data.stale_prs, 'maintainer-merge')
     prs_to_list[Dashboard.StaleMaintainerMerge] = prs_without_label(mm_prs, 'ready-to-merge')
+    print(f"timing: {datetime.now() - start}, manually filtered new PRs", file=sys.stderr)
 
     print(gather_pr_statistics(CI_passes, prs_to_list, input_data.nondraft_prs, input_data.draft_prs))
-
+    print(f"timing: {datetime.now() - start}, computed PR stats", file=sys.stderr)
     (bad_title, unlabelled, contradictory) = compute_dashboards_bad_labels_title(input_data.nondraft_prs)
     prs_to_list[Dashboard.BadTitle] = bad_title
     prs_to_list[Dashboard.Unlabelled] = unlabelled
     prs_to_list[Dashboard.ContradictoryLabels] = contradictory
+    print(f"timing: {datetime.now() - start}, computed bad titles, unlabelled + contradictory PRs", file=sys.stderr)
     for kind in Dashboard._member_map_.values():
         # TODO: if a PR is listed in to data files, make sure to only list it once.
         # This will be fixed by refactoring the dashboard generation to filter one large
         # list of PRs instead, removing the remaining calls to github's API.
         print_dashboard(prs_to_list.get(kind, []), kind)
+    print(f"timing: {datetime.now() - start}, all dashboards printed", file=sys.stderr)
     print(HTML_FOOTER)
 
 
