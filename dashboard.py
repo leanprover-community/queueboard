@@ -213,7 +213,7 @@ def read_json_files() -> JSONInputData:
         all_nondraft_prs = _extract_prs(json.load(ready_file))
         all_draft_prs = _extract_prs(json.load(draft_file))
     with open(sys.argv[3]) as stale_pr_file:
-        stale_prs = json.load(stale_pr_file)
+        stale_prs = _extract_prs(json.load(stale_pr_file))
     with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as f:
         aggregate_info = json.load(f)
         ci_info = dict()
