@@ -216,6 +216,16 @@ def _write_table_row(entries: List[str], base_indent: str) -> str:
     body = f'\n{indent}'.join([f"<td>{entry}</td>" for entry in entries])
     return f"{base_indent}<tr>\n{indent}{body}\n{base_indent}</tr>\n"
 
+def _write_labels(labels: List[Label]) -> str:
+    if len(labels) == 0:
+        return ""
+    elif len(labels) == 1:
+        return label_link(labels[0])
+    else:
+        labels = "\n        ".join(label_link(label) for label in labels)
+        return f"\n        {labels}\n      "
+
+
 # Print a webpage "why is my PR not on the queue" to a new file of name 'outfile'.
 def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
     def icon(state: bool) -> str:
@@ -225,7 +235,6 @@ def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
     prs = input_data.nondraft_prs
     body = ""
     for pr in prs:
-        labels = "\n        ".join(label_link(label) for label in pr.labels)
         if pr.number not in ci_status:
             print(f"'on the queue' page: found no PR info for PR {pr.number}", file=sys.stderr)
         ci_passes = ci_status[pr.number] if pr.number in ci_status else None
@@ -236,7 +245,7 @@ def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
         overall = ci_passes and (not is_blocked) and (not has_merge_conflict) and is_ready and review
         entries = [
             pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url),
-            f"\n        {labels}\n      ",
+            _write_labels(pr.labels),
             '???' if ci_passes is None else icon(ci_passes),
             icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall)
         ]
@@ -518,9 +527,7 @@ def _extract_prs(data: dict) -> List[BasicPRInformation]:
 def _compute_pr_entries(prs : List[BasicPRInformation]) -> str:
     result = ""
     for pr in prs:
-        labels = "\n        ".join(label_link(label) for label in pr.labels)
-        labels = f"\n        {labels}\n      "
-        entries = [pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url), labels]
+        entries = [pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url), _write_labels(pr.labels)]
         # Detailed information about the current PR.
         pr_info = None
         filename = f"data/{pr.number}/pr_info.json"
