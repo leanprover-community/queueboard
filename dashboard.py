@@ -222,13 +222,13 @@ def _write_labels(labels: List[Label]) -> str:
     elif len(labels) == 1:
         return label_link(labels[0])
     else:
-        labels = "\n        ".join(label_link(label) for label in labels)
-        return f"\n        {labels}\n      "
+        label_part = "\n        ".join(label_link(label) for label in labels)
+        return f"\n        {label_part}\n      "
 
 
 # Print a webpage "why is my PR not on the queue" to a new file of name 'outfile'.
 def print_on_the_queue_page(input_data: JSONInputData, outfile : str) -> None:
-    def icon(state: bool) -> str:
+    def icon(state: bool | None) -> str:
         '''Return a green checkmark emoji if `state` is true, and a red cross emoji otherwise.'''
         return '&#9989;' if state else '&#10060;'
     ci_status = input_data.CI_passes
@@ -589,7 +589,7 @@ def prs_with_label(prs: List[BasicPRInformation], label_name: str) -> List[Basic
 
 # Extract all PRs from a given list which have any label in a certain list.
 def prs_with_any_label(prs: List[BasicPRInformation], label_names: List[str]) -> List[BasicPRInformation]:
-    return [prinfo for prinfo in prs if any(_has_label(name) for name in label_names)]
+    return [prinfo for prinfo in prs if any(_has_label(prinfo, name) for name in label_names)]
 
 # Extract all PRs from a given list which do not have a certain label.
 def prs_without_label(prs: List[BasicPRInformation], label_name: str) -> List[BasicPRInformation]:
