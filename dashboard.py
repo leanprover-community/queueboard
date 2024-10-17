@@ -438,8 +438,8 @@ def gather_pr_statistics(
             print(f"assertion failure: left PRs are {left}, right PRs are {right}", file=sys.stderr)
             left_sans_right = set(left) - set(right)
             right_sans_left = set(right) - set(left)
-            print(f"the following {len(left_sans_right)} PRs are contains in left, but not right: {left_sans_right}", file=sys.stderr)
-            print(f"the following {len(right_sans_left)} PRs are contains in right, but not left: {right_sans_left}", file=sys.stderr)
+            print(f"the following {len(left_sans_right)} PRs are contained in left, but not right: {left_sans_right}", file=sys.stderr)
+            print(f"the following {len(right_sans_left)} PRs are contained in right, but not left: {right_sans_left}", file=sys.stderr)
             return False
         return True
 
