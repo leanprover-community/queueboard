@@ -155,6 +155,61 @@ class BasicPRInformation(NamedTuple):
     updatedAt: str
 
 
+# Determine a label's background colour from its name.
+# TODO: this function shouldn't be needed: can one add this to the pr-info files,
+# or ask github for all information on all the labels instead?
+def get_label_colour(label_name: str) -> str:
+    if label_name.startswith('t-'):
+        return "33DBEC"
+    elif label_name in ["blocked-by-other-PR", "blocked-by-batt-PR", "blocked-by-core-PR", "blocked-by-qq-PR"]:
+        return "8A6A1C"
+    others = {
+        # TODO: add missing colours (marked with TODO); list updated as of October 18, 2024
+        "auto-merge-after-CI": "TODOOO",
+        "awaiting-author": "F9D0C4",
+        "awaiting-bench": "TODOOO",
+        "awaiting-CI": "E96E5B",
+        "awaiting-zulip": "53A5FF",
+        "blocked-by-core-release": "TODOO", # not relevant in practice!
+        "bug": "TODOOO", # rare
+        "closed-due-to-inactivity": "TODO", # rare
+        "CI": "006B75",
+        "delegated": "BFD4F2",
+        "dependency-bump": "FBCA04",
+        "documentation": "2CBBD9",
+        "easy": "ACFF3F",
+        "enhancement": "84B6EB",
+        "FLT": "TODOOO",
+        "good first issue": "1FC6A4",
+        "help-wanted": "CC317C",
+        "IMO": "D4C5F9",
+        "large-import": "TODO!", # automatically applied -> needed!
+        # lean4-change-in-behaviour
+        # lftcm2024
+        # longest-pole
+        "maintainer-merge": "6BEB7E",
+        # mathlib3-pair, mathlib-port
+        "merge-conflict": "f99094",
+        "modifies-tactic-syntax": "DA6D43",
+        "new-contributor": "8BBA68",
+        # performance-hack
+        "porting-notes": "D6C278",
+        "please-adopt": "C5C5C5",
+        "ready-to-merge": "06E039",
+        "RFC": "E2AF78",
+        "slow-typeclass-synthesis": "D93F0B",
+        "tech debt": "0EFB96",
+        # test-ci
+        # v4.6.0, v4.7.0 are never used in practice
+        "WIP": "E899CD",
+        'workshop-AIM-AG-2024': 'D4C5F9',
+    }
+    if label_name not in others:
+        print(f"error: found no background colour for label {label_name}")
+        return "ffffff"
+    return others[label_name]
+
+
 # All information about a single PR contained in `aggregate_pr_info.json`.
 # Keep this in sync with the actual file, extending this once new data is added!
 class AggregatePRInfo(NamedTuple):
@@ -170,8 +225,7 @@ class AggregatePRInfo(NamedTuple):
     author: str
     title: str
     # All names of labels assigned to this PR.
-    # FIXME: upgrade this to the full label data
-    label_names: List[str]
+    labels: List[Label]
     additions: int
     deletions: int
     number_modified_files: int
@@ -210,11 +264,14 @@ def read_json_files() -> JSONInputData:
     with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as f:
         data = json.load(f)
         aggregate_info = dict()
+        def label_url(name: str) -> str:
+            return f"https://github.com/leanprover-community/mathlib4/labels/{name}"
         for pr in data["pr_statusses"]:
             date = parse_datetime(pr["last_updated"])
+            labels = [Label(name, get_label_colour(name), label_url(name)) for name in pr["label_names"]]
             info = AggregatePRInfo(
                 pr["is_draft"], pr["CI_passes"], pr["base_branch"], pr["state"], date,
-                pr["author"], pr["title"], pr["label_names"], pr["additions"], pr["deletions"],
+                pr["author"], pr["title"], labels, pr["additions"], pr["deletions"],
                 pr["num_files"], pr["assignees"]
             )
             aggregate_info[pr["number"]] = info
