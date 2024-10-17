@@ -287,7 +287,7 @@ def print_on_the_queue_page(
     for pr in prs:
         if CI_passes[pr.number] is None:
             print(f"'on the queue' page: found no PR info for PR {pr.number}", file=sys.stderr)
-        ci_passes = CI_passes[pr.number] if pr.number in CI_passes else None
+        ci_passes = CI_passes[pr.number]
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
         has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.labels]
         is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
