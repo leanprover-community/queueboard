@@ -220,7 +220,7 @@ def read_json_files() -> JSONInputData:
         all_open_prs = _extract_prs(json.load(all_prs_file1))
         prs2 = _extract_prs(json.load(all_prs_file2))
         print(f"reading user data: would expect {len(prs2)} draft PRs eventually", file=sys.stderr)
-        all_open_prs += all_prs_file2
+        all_open_prs += prs2
     with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as f:
         data = json.load(f)
         aggregate_info = dict()
@@ -333,7 +333,7 @@ def main() -> None:
     aggregate_info = input_data.aggregate_info.copy()
     for pr in input_data.all_open_prs:
         if pr.number not in input_data.aggregate_info:
-            print(f"main: found no aggregate info for PR {pr.number}")
+            print(f"main: found no aggregate info for PR {pr.number}", file=sys.stderr)
             aggregate_info[pr.number] = PLACEHOLDER_AGGREGATE_INFO
     draft_PRs = [pr for pr in input_data.all_open_prs if aggregate_info[pr.number].is_draft]
     nondraft_PRs = [pr for pr in input_data.all_open_prs if not aggregate_info[pr.number].is_draft]
