@@ -374,6 +374,24 @@ def main() -> None:
     prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(nondraft_PRs, ['help-wanted', 'please_adopt'])
     prs_to_list[Dashboard.NeedsDecision] = prs_with_label(nondraft_PRs, 'awaiting-zulip')
 
+    # Compute the queue also by filtering and report on whether these agree.
+    # All PRs against master, with passing CI that are not draft, and not labelled in any way indicating otherwise.
+    queue_or_merge_conflict = prs_to_list[Dashboard.OtherBase]
+    queue_or_merge_conflict = [pr for pr in queue_or_merge_conflict if CI_passes[pr.number]]
+    other_labels = [
+        # XXX: does the #queue check for all of these labels?
+        "blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR",
+        "awaiting-CI", "awaiting-author", "awaiting-zulip", "please-adopt", "help-wanted", "WIP",
+        "delegated", "auto-merge-after-CI", "ready-to-merge"]
+    queue_or_merge_conflict = prs_without_any_label(queue_or_merge_conflict, other_labels)
+    justmerge2 = prs_with_label(queue_or_merge_conflict, "merge-conflict")
+    queue2 = prs_without_label(queue_or_merge_conflict, "merge-conflict")
+    def my_assert_eq(left, right):
+        if left != right:
+            print(f"assertion failure: left is {left}, right is {right}", file=sys.stderr)
+    my_assert_eq(sorted(prs_to_list[Dashboard.Queue]), sorted(queue2))
+    my_assert_eq(sorted(prs_to_list[Dashboard.NeedsMerge]), sorted(justmerge2))
+
     a_day_ago = datetime.now() - timedelta(days=1)
     a_week_ago = datetime.now() - timedelta(days=7)
     one_day_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_day_ago]
@@ -707,6 +725,9 @@ def prs_with_any_label(prs: List[BasicPRInformation], label_names: List[str]) ->
 def prs_without_label(prs: List[BasicPRInformation], label_name: str) -> List[BasicPRInformation]:
     return [prinfo for prinfo in prs if not _has_label(prinfo, label_name)]
 
+# Extract all PRs from a given list which do not have any label among a given list.
+def prs_without_any_label(prs: List[BasicPRInformation], label_names: List[str]) -> List[BasicPRInformation]:
+    return [prinfo for prinfo in prs if all([not _has_label(prinfo, name) for name in label_names])]
 
 def has_contradictory_labels(pr: BasicPRInformation) -> bool:
     # Combine common labels.
