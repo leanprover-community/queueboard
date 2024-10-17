@@ -393,8 +393,8 @@ def main() -> None:
             print(f"assertion failure: left PRs are {left_prs}, right PRs are {right_prs}", file=sys.stderr)
             left_sans_right = set(left_prs) - set(right_prs)
             right_sans_left = set(right_prs) - set(left_prs)
-            print(f"the following {len(left_sans_right)} PRs are contains in left, but not right: {left_sans_right}")
-            print(f"the following {len(right_sans_left)} PRs are contains in right, but not left: {right_sans_left}")
+            print(f"the following {len(left_sans_right)} PRs are contains in left, but not right: {left_sans_right}", file=sys.stderr)
+            print(f"the following {len(right_sans_left)} PRs are contains in right, but not left: {right_sans_left}", file=sys.stderr)
     my_assert_eq(sorted(prs_to_list[Dashboard.Queue]), sorted(queue2))
     my_assert_eq(sorted(prs_to_list[Dashboard.NeedsMerge]), sorted(justmerge2))
 
