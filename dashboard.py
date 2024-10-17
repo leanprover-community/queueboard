@@ -264,7 +264,7 @@ def print_on_the_queue_page(
     body = ""
     for pr in prs:
         if CI_passes[pr.number] is None:
-            print(f"'on the queue' page: found no PR info for PR {pr.number}", file=sys.stderr)
+            print(f"'on the queue' page: found no aggregate info for PR {pr.number}", file=sys.stderr)
         ci_passes = CI_passes[pr.number]
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
         has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.labels]
@@ -643,7 +643,7 @@ def _compute_pr_entries(prs: List[BasicPRInformation]) -> str:
             with open(filename, "r") as file:
                 pr_info = json.load(file)
         if pr_info is None:
-            # print(f"main dashboard: found no PR info for PR {pr.number}", file=sys.stderr)
+            print(f"main dashboard: found no PR info for PR {pr.number}", file=sys.stderr)
             entries.extend(["-1/-1", "-1", "-1"])
         else:
             # We treat non-well-formed data as missing.
