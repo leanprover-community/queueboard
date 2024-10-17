@@ -1,0 +1,1578 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 967,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "hrmacbeth"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "This PR contributes two new tactics `match_scalars` and `module`.\r\n\r\nGiven a goal which is an equality in a type `M` (with `M` an `AddCommMonoid`), the `match_scalars` tactic parses the LHS and RHS of the goal as linear combinations of `M`-atoms over some semiring `R`, and reduces the goal to the respective equalities of the `R`-coefficients of each atom.\r\n\r\nFor example, this produces the goal `⊢ a * 1 + b * 1 = (b + a) * 1`:\r\n```lean\r\nexample [AddCommMonoid M] [Semiring R] [Module R M] (a b : R) (x : M) :\r\n    a • x + b • x = (b + a) • x := by\r\n  match_scalars\r\n```\r\nThis produces the two goals `⊢ a * (a * 1) + b * (b * 1) = 1` (from the `x` atom) and\r\n`⊢ a * -(b * 1) + b * (a * 1) = 0` (from the `y` atom):\r\n```lean\r\nexample [AddCommGroup M] [Ring R] [Module R M] (a b : R) (x : M) :\r\n    a • (a • x - b • y) + (b • a • y + b • b • x) = x := by\r\n  match_scalars\r\n```\r\n\r\nThe `module` tactic runs the `match_scalars` tactic and then runs the `ring` tactic on each of the coefficient-wise equalities which are created, failing if this does not resolve them.  For example, it solves the following goals:\r\n```lean\r\nexample [AddCommMonoid M] [CommSemiring R] [Module R M] (a b : R) (x : M) :\r\n    a • x + b • x = (b + a) • x := by\r\n  module\r\n\r\nexample [AddCommMonoid M] [Field K] [CharZero K] [Module K M] (x : M) :\r\n    (2:K)⁻¹ • x + (3:K)⁻¹ • x + (6:K)⁻¹ • x = x := by\r\n  module\r\n\r\nexample [AddCommGroup M] [CommRing R] [Module R M] (a : R) (v w : M) :\r\n    (1 + a ^ 2) • (v + w) - a • (a • v - w) = v + (1 + a + a ^ 2) • w := by\r\n  module\r\n```\r\nThe scalar type `R` in these tactics is not pre-determined: instead it starts as `ℕ` (when each atom is initially given a scalar `(1:ℕ)`) and gets bumped up into bigger semirings when such semirings are encountered.  However, to permit this, it is assumed that there is a \"linear order\" on all the semirings which appear in the expression: for any two semirings `R` and `S` which occur, we have either `Algebra R S` or `Algebra S R`).\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nFor details on the \"pull request lifecycle\" in mathlib, please see:\r\nhttps://leanprover-community.github.io/contribute/index.html\r\n\r\nIn particular, note that most reviewers will only notice your PR\r\nif it passes the continuous integration checks.\r\nPlease ask for help on https://leanprover.zulipchat.com if needed.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nIf you are moving or deleting declarations, please include these lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nMoves:\r\n- Vector.* -> Mathlib.Vector.*\r\n- ...\r\n\r\nDeletions:\r\n- Nat.bit1_add_bit1\r\n- ...\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 5,
+        "closed": true,
+        "closedAt": "2024-09-25T09:39:46Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c6LQ8o4",
+              "body": "### PR summary [a291fb391a](https://github.com/leanprover-community/mathlib4/pull/16593/commits/a291fb391a57e7057b0a96e6983deb64c3b7a14b)\n\n#### Import changes for modified files\n\nNo significant changes to the import graph\n\n\n<details><summary>Import changes for all files</summary>\n\n|Files|Import difference|\n|-|-|\n| `Mathlib.Tactic`|1|\n| `Mathlib.Tactic.Module`|794|\n\n</details>\n\n---\n\n<details><summary>\n\n#### Declarations diff\n\n</summary>\n\n`+ NF`\n`+ add`\n`+ add_eq_eval`\n`+ add_eq_eval₁`\n`+ add_eq_eval₂`\n`+ add_eq_eval₃`\n`+ algebraMap`\n`+ algebraMapThms`\n`+ atom_eq_eval`\n`+ cons`\n`+ eq_cons_cons`\n`+ eq_cons_const`\n`+ eq_const_cons`\n`+ eq_of_eval_eq_eval`\n`+ eval`\n`+ eval_algebraMap`\n`+ eval_cons`\n`+ eval_neg`\n`+ eval_smul`\n`+ instance [Mul R] : SMul R (NF R M)`\n`+ instance [Neg R] : Neg (NF R M)`\n`+ matchRings`\n`+ matchScalars`\n`+ matchScalarsAux`\n`+ mkAddProof`\n`+ mkSubProof`\n`+ neg_eq_eval`\n`+ onScalar`\n`+ postprocess`\n`+ qNF`\n`+ smul_apply`\n`+ smul_eq_eval`\n`+ sub`\n`+ sub_eq_eval`\n`+ sub_eq_eval₁`\n`+ sub_eq_eval₂`\n`+ sub_eq_eval₃`\n`+ toNF`\n`+ zero_eq_eval`\n`+ zero_sub_eq_eval`\n<details>\n  <summary>You can run this locally as follows</summary>\n\n\n```bash\n## summary with just the declaration names:\n./scripts/declarations_diff.sh <optional_commit>\n\n## more verbose report:\n./scripts/declarations_diff.sh long <optional_commit>\n```\n</details>\n\nThe doc-module for `script/declarations_diff.sh` contains some details about this script.\n\n</details>",
+              "createdAt": "2024-09-07T23:05:36Z",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6LT0du",
+              "body": "I did not closely read the meta code, but the structure looks great. If you become impatient for a merge, please ping me and I am happy to merge.",
+              "createdAt": "2024-09-09T06:25:03Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6NKmw4",
+              "body": "Above it was mentioned that we should perhaps remove the `1`s using `mul_one`, and using `Option Q($R)` instead of `Q($R)` was suggested by Heather. Here is a different reason to consider that:\r\n\r\nWhile it is *not* something I'm proposing for this PR, at some point, perhaps far in the future, it would be nice if `match_scalars` allowed for non-unital scalar rings (as would be the case, for instance, in a Hilbert C⋆-module over a non-unital C⋆-algebra). I realize this is a rather niche use case, and we're not even at the point that we need it yet. To be clear, this would add significant complexity to the implementation in order to be useful, and it almost certainly requires #16984 as a prerequisite.",
+              "createdAt": "2024-09-23T14:02:48Z",
+              "author": {
+                "login": "j-loreaux"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6Nc-qi",
+              "body": "bors merge",
+              "createdAt": "2024-09-25T06:53:32Z",
+              "author": {
+                "login": "PatrickMassot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6NdVmx",
+              "body": "Build failed:\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/11027863061/job/30626942506)",
+              "createdAt": "2024-09-25T07:29:26Z",
+              "author": {
+                "login": "mathlib-bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6NeG11",
+              "body": "bors merge",
+              "createdAt": "2024-09-25T08:57:44Z",
+              "author": {
+                "login": "PatrickMassot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6NefSa",
+              "body": "Pull request successfully merged into master.\n\nBuild succeeded:\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/11029743150/job/30632839193)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/11029743150/job/30632838704)",
+              "createdAt": "2024-09-25T09:39:46Z",
+              "author": {
+                "login": "mathlib-bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "41821e947a7dd2c7a4cce5f00295b44fabcd7b08",
+                "additions": 950,
+                "deletions": 1,
+                "committedDate": "2024-09-25T08:47:45Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6bd0536ad323a7464f6fed21045daeb6914d29d1",
+                "additions": 12,
+                "deletions": 10,
+                "committedDate": "2024-09-25T08:47:46Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8278801bb8b3b9227a6784e31cd85c363ee52484",
+                "additions": 9,
+                "deletions": 9,
+                "committedDate": "2024-09-25T08:47:46Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "222ec5d38a68fed882174f57c5f48e2f39a60a90",
+                "additions": 2,
+                "deletions": 3,
+                "committedDate": "2024-09-25T08:47:46Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "10c68d8e528e06970286225724106badf4e85c87",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2024-09-25T08:47:46Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8d53e968fff7372720f5584ec914ab9d5cff1e71",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2024-09-25T08:47:46Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c57b3df6930bfa42b692201b4bbc7207020a0334",
+                "additions": 6,
+                "deletions": 6,
+                "committedDate": "2024-09-25T08:47:46Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b4f7cbd59e17e5ac6bb713d25f5b436b4f65d39d",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2024-09-25T08:47:46Z",
+                "author": {
+                  "name": "Eric Wieser",
+                  "email": "wieser.eric@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "83e22add5bf713ed0e0b7ebb2127db656e1b36d7",
+                "additions": 19,
+                "deletions": 18,
+                "committedDate": "2024-09-25T08:47:46Z",
+                "author": {
+                  "name": "Eric Wieser",
+                  "email": "wieser.eric@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a44b751d3f247c11f98aca5c7348867fdd8934f2",
+                "additions": 3,
+                "deletions": 1,
+                "committedDate": "2024-09-25T08:47:46Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6d9fe9ecdf8b16778dafd6e0d1ecafe28ee2ce98",
+                "additions": 5,
+                "deletions": 4,
+                "committedDate": "2024-09-25T08:47:46Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a2b557a2f7c875908a015baabf3555ab20aa285f",
+                "additions": 6,
+                "deletions": 2,
+                "committedDate": "2024-09-25T08:47:46Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c1e8426677e2ffa1e5fd7b3aa916162096fac553",
+                "additions": 8,
+                "deletions": 0,
+                "committedDate": "2024-09-25T08:47:46Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a291fb391a57e7057b0a96e6983deb64c3b7a14b",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2024-09-25T08:57:04Z",
+                "author": {
+                  "name": "Patrick Massot",
+                  "email": "patrickmassot@free.fr"
+                },
+                "statusCheckRollup": {
+                  "contexts": {
+                    "nodes": [
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHIdtO4g",
+                        "name": "label-and-report-new-contributor",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029729222/job/30632791778"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHIdtPBw",
+                        "name": "build",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029729223/job/30632791815"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHIdtIHg",
+                        "name": "Cancel Previous Runs (CI)",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728690/job/30632790046"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHIdtIAw",
+                        "name": "Cancel Previous Runs (CI)",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728691/job/30632790019"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHIdtRVg",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029729228/job/30632792406"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHIdtLaQ",
+                        "name": "Lint style (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728690/job/30632790889"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHIdtLNg",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728691/job/30632790838"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHIdtPwQ",
+                        "name": "Check all files imported",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029729228/job/30632792001"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHIdtKAg",
+                        "name": "Build (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728690/job/30632790530"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHIdtKAw",
+                        "name": "Build",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728691/job/30632790531"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHIdtMkA",
+                        "name": "Post-CI job (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728690/job/30632791184"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHIfxZ3g",
+                        "name": "Post-CI job",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728691/job/30634957278"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHIdtsKw",
+                        "name": "New Contributor Check",
+                        "conclusion": "NEUTRAL",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/runs/30632799275"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHIduutg",
+                        "name": "Summary",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=16593&login=leanprover-community&repository=mathlib4"
+                      },
+                      {
+                        "__typename": "StatusContext",
+                        "id": "SC_kwDOFcwZ1c8AAAAHWvlWYg",
+                        "context": "bors",
+                        "state": "SUCCESS",
+                        "targetUrl": "https://mathlib-bors-ca18eefec4cb.herokuapp.com/batches/6020",
+                        "description": "Build succeeded"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "createdAt": "2024-09-07T23:04:54Z",
+        "deletions": 1,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic/Module.lean",
+              "additions": 656,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic/Ring/RingNF.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "test/module.lean",
+              "additions": 308,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "HM-module-PR",
+        "headRefOid": "a291fb391a57e7057b0a96e6983deb64c3b7a14b",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c56wXVD",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "name": "ready-to-merge"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+              "name": "t-meta"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c6JbYOW",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2024-09-16T00:45:01Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6Ka8f-",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "j-loreaux"
+              },
+              "submittedAt": "2024-09-23T13:52:12Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KX9cj",
+              "body": "Thanks!",
+              "state": "APPROVED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2024-09-23T08:57:39Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 16593,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": [
+                {
+                  "login": "j-loreaux"
+                },
+                {
+                  "login": "PatrickMassot"
+                },
+                {
+                  "login": "kim-em"
+                }
+              ]
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": "APPROVED",
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c6IbcKL",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2024-09-09T06:08:39Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6IbeV3",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2024-09-09T06:15:02Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6IbfTX",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2024-09-09T06:17:53Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6IbgCd",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2024-09-09T06:19:17Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6IbgVJ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2024-09-09T06:20:06Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6IbgZN",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2024-09-09T06:20:17Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6Ibhbn",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2024-09-09T06:23:13Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6Ikc5h",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2024-09-10T02:41:02Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6Ikdrg",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2024-09-10T02:45:19Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6IkhOv",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2024-09-10T03:04:25Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6JbOj6",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2024-09-15T21:24:38Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6JbYOW",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2024-09-16T00:45:01Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6Jbs0g",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2024-09-16T04:49:37Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6Js5oY",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2024-09-17T16:27:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KHi26",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2024-09-20T04:32:04Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KHkc2",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2024-09-20T04:33:44Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KHmv7",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2024-09-20T04:38:27Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KJ_np",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2024-09-20T10:29:18Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KKhEG",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2024-09-20T11:37:42Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KMpw0",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2024-09-20T15:09:05Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KNFZV",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2024-09-20T15:56:25Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KNJe_",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2024-09-20T16:05:22Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KNK1f",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2024-09-20T16:08:20Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KNrXE",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2024-09-20T17:23:18Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KOGeB",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2024-09-20T18:05:53Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KOGgz",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2024-09-20T18:06:00Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KX9cj",
+              "body": "Thanks!",
+              "state": "APPROVED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2024-09-23T08:57:39Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KaxZC",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "j-loreaux"
+              },
+              "submittedAt": "2024-09-23T13:37:37Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6Ka7kg",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "j-loreaux"
+              },
+              "submittedAt": "2024-09-23T13:50:57Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6Ka8f-",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "j-loreaux"
+              },
+              "submittedAt": "2024-09-23T13:52:12Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6KsjLu",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2024-09-25T04:18:47Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5oSQmq",
+                    "body": "Could you add another sentence explaining this comment?",
+                    "createdAt": "2024-09-09T06:08:38Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5oYMGw",
+                    "body": "I did this here (just once, not in all the similar places -- let me know if you would like the change throughout).",
+                    "createdAt": "2024-09-10T02:45:19Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5oSSGX",
+                    "body": "Just noting that we found with `omega` that the `AtomM` monad can result in bad performance on large problems. Leo wrote `Lean.Meta.Canonicalizer.canon` to solve this problem.\r\n\r\n",
+                    "createdAt": "2024-09-09T06:15:02Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5oSSyH",
+                    "body": "#16621 for future discoverability!\r\n\r\nNot expecting you to change anything here. (Although perhaps add a TODO in case someone runs into this issue?)",
+                    "createdAt": "2024-09-09T06:17:53Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5oYLct",
+                    "body": "As far as I can tell, `CanonM` is not a drop-in replacement for `AtomM`, for questions I have now brought up on that PR.  However, one observation from reading the [`CanonM` file](https://github.com/leanprover/lean4/blob/master/src/Lean/Meta/Canonicalizer.lean) is that Leo writes,\r\n> The definitionally equality tests are performed using the given transparency mode. We claim `TransparencyMode.instances` is a good setting for most applications.\r\n\r\nI'd be happy to downgrade from `.default` to `.instances` in this tactic, do you think that would be a good change?  Honestly I sometimes find `ring`'s unwrapping ability (at `.default`) to be a little surprising.",
+                    "createdAt": "2024-09-10T02:41:02Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5o7eYl",
+                    "body": "After canonicalizing via `CanonM`, it suffices to just use a `HashMap Expr Nat` to keep track of previously seen atoms.\r\n\r\nThis is strictly weaker than using AtomM (equality after canonicalization is not the same as defeq), but it is much faster on large problems. For `omega` this was a clear win.",
+                    "createdAt": "2024-09-16T00:45:01Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5o74ai",
+                    "body": "@semorrison Thanks, I believe I understand the `CanonM` paradigm now!\r\n\r\nSticking to `AtomM` now for simplicity: above I started to suspect that I should be working in this tactic at `.instances` rather than `.default` -- do you have an opinion?\r\n\r\n(Edit: I have now done this.)",
+                    "createdAt": "2024-09-16T04:49:37Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5pllwB",
+                    "body": "@hrmacbeth how would you feel about adding a note in the code (not the docstring) like this: \"if poor performance on large problems is witnessed, consider switching the implementation to `CanonM` rather than `AtomM`, per this discussion: https://github.com/leanprover-community/mathlib4/pull/16593/files#r1749623191\"",
+                    "createdAt": "2024-09-23T13:37:37Z",
+                    "author": {
+                      "login": "j-loreaux"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5oSTIC",
+                    "body": "```suggestion\r\nand a natural number), recursively construct a proof that in the `$R`-module `$M`, the sum\r\n```",
+                    "createdAt": "2024-09-09T06:19:16Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5oSTUY",
+                    "body": "```suggestion\r\n`$R`-module `$M`, the difference of the \"linear combinations\" represented by `l₁` and `l₂` is\r\n```",
+                    "createdAt": "2024-09-09T06:20:06Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5oSTXT",
+                    "body": "and more below.",
+                    "createdAt": "2024-09-09T06:20:17Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5oSUDl",
+                    "body": "Could post processing also use `mul_one`, to clean up the awkward looking `x * 1` that `match_scalars` produces? (I appreciate that `ring` doesn't care.)",
+                    "createdAt": "2024-09-09T06:23:13Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5oYO9Y",
+                    "body": "Still thinking about this one -- my mild hesitation is that it would also mean that any `* 1`s in the original also get cleared, e.g. `match_scalars (2 * 1 * 1) • x = a • x` produces a goal `2 = a` rather than `2 * 1 * 1 = a`.  This is probably not a big deal, but I'm going to test how painful it is to carry around an `Option Q($R)` rather than a `Q($R)` in order to distinguish between these two cases.",
+                    "createdAt": "2024-09-10T03:04:25Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5o7J68",
+                    "body": "```suggestion\r\n/-- Basic \"Normal Form\" object of the `match_scalars` and `module` tactics: a type synonym for a list\r\n```\r\nI think `NF` should be expanded to \"Normal Form\" somewhere in the first sentence.",
+                    "createdAt": "2024-09-15T21:19:24Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5o7KRB",
+                    "body": "Can you extract this toa  helper function, since you call it in both the `try` and the `catch`?",
+                    "createdAt": "2024-09-15T21:23:10Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5pYRzp",
+                    "body": "There's an asymmetry which makes it just more trouble than it's worth, in my opinion -- do you mind leaving as is?",
+                    "createdAt": "2024-09-20T04:38:27Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5paGU5",
+                    "body": "I had a look myself; I agree this is too much trouble.",
+                    "createdAt": "2024-09-20T11:37:42Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5o7KTf",
+                    "body": "This might need `withReducible` to avoid identifying `R` with `WithLp 2 R` or similar",
+                    "createdAt": "2024-09-15T21:23:36Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5pHYNm",
+                    "body": "Good idea, done.",
+                    "createdAt": "2024-09-17T16:27:15Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5o7KX9",
+                    "body": "Can you add a TODO comment here about supporting pairings like:\r\n* `Int` and `NNRat` -> `Rat\r\n* `Rat` and `NNReal` -> `Real`",
+                    "createdAt": "2024-09-15T21:24:23Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5pYPVA",
+                    "body": "@eric-wieser I wanted to mention that, although on Zulip you suggested \"hard coding those two latter cases and their permutations is probably enough in the medium term\", I think the temptation to hard code these should be avoided, even as a stop-gap.  It's not hard to do it in proper generality -- [here](https://github.com/leanprover-community/mathlib4/commit/d86c54569e0d36e1bccf2db1915e50c10d9d8f7a) is an implementation, which I am not adding to this PR because it would need some deduplication of code before being mathlib-ready.  But it can serve as a basis for a PR, if someone later needs this extension of scope.",
+                    "createdAt": "2024-09-20T04:32:04Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5pYQY_",
+                    "body": "As you can see from that implementation, I don't think the TODO really belongs on this function (`matchRings`).  Rather, it belongs on the `parse` function, which already has a TODO comment along these lines.",
+                    "createdAt": "2024-09-20T04:33:44Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5pZzdV",
+                    "body": "That PR looks like a great follow up, but the feature I was requesting here was automatically choosing the base ring in the examples above, in the cases where the user doesn't specify it.",
+                    "createdAt": "2024-09-20T10:29:18Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5pbaiL",
+                    "body": "TODOs invite PRs, so we should put a TODO only if we are sure a change would be wise.  What algorithm did you have in mind to automatically choose the base ring in general?",
+                    "createdAt": "2024-09-20T15:09:04Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5pbqbs",
+                    "body": "I was imagining registering the \"union\" types globally with a typeclass `SmallestCommonAlgebra R1 R2 (outParam A) extends SMulCommClass R1 R2 A` or an environment extension.\r\n\r\nI'd settle for \"hard-code the union type to use in the error message\" in your follow-up PR (or a follow-up to it), if you feel strongly that any kind of heuristic for picking the union type is worse than forcing the user to choose.",
+                    "createdAt": "2024-09-20T15:56:25Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5pbs2e",
+                    "body": "I see.  Your method would work, but it's a lot of overhead (and increase in difficulty of maintenance/improvement), and my guess is that this use case is very rare.  I'd prefer to do \"user provides the union type\" for a while -- say, at least a year -- until we get a sense of how often this case turns up.\r\n\r\nI should say frankly that (unless you consider it a condition of merging this PR) turning ~~fe6b39553f566347e0c70b63a033c036c53e2058~~ d86c54569e0d36e1bccf2db1915e50c10d9d8f7a into a follow-up PR will also be fairly low on my priority list, so it will be a while before we can make that experiment.",
+                    "createdAt": "2024-09-20T16:05:22Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5pbtrz",
+                    "body": "By the way, I'm not sure what you mean by \"hard-code the union type to use in the error message\"?  The approach in ~~fe6b39553f566347e0c70b63a033c036c53e2058~~ d86c54569e0d36e1bccf2db1915e50c10d9d8f7a is to get the *user* to provide the union type (and the error message only mentions the types the tactic already encountered).",
+                    "createdAt": "2024-09-20T16:08:20Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5pcA1N",
+                    "body": "> (and the error message only mentions the types the tactic already encountered).\r\n\r\nI'm suggesting that the error message could suggest to the user what union type they should provide.\r\n\r\n> I should say frankly that (unless you consider it a condition of merging this PR) turning https://github.com/leanprover-community/mathlib4/commit/fe6b39553f566347e0c70b63a033c036c53e2058 into a follow-up PR will also be fairly low on my priority list,\r\n\r\nThat's fine, thanks for making the commit!\r\n\r\nSince you've done the work, I would suggest you create a draft PR from the change, and reference it in a TODO. That way, if anyone needs the feature, they find your version without accidentally implementing it from scratch!",
+                    "createdAt": "2024-09-20T17:23:18Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5pcOIF",
+                    "body": "> Since you've done the work, I would suggest you create a draft PR from the change, and reference it in a TODO. That way, if anyone needs the feature, they find your version without accidentally implementing it from scratch!\r\n\r\n#16984!\r\n\r\n",
+                    "createdAt": "2024-09-20T18:05:53Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5pcOJj",
+                    "body": "> I'm suggesting that the error message could suggest to the user what union type they should provide.\r\n\r\nI think I still don't understand here, sorry -- you're suggesting doing this:\r\n\r\n> I was imagining registering the \"union\" types globally with a typeclass `SmallestCommonAlgebra R1 R2 (outParam A) extends SMulCommClass R1 R2 A` or an environment extension.\r\n\r\nbut using the \"union-type lookup\" *only* for error messages?\r\n\r\n(I guess we can defer this error message discussion to #16984, since it only becomes relevant if/when that is on the verge of being merged.)",
+                    "createdAt": "2024-09-20T18:06:00Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5plryd",
+                    "body": "Can you provide type ascriptions to the numerals in the goal produced? It's not clear in which ring those `2`s are interpreted. Also, please add a brief explanation (e.g., if they are both in `R`, maybe there should be some comment about how numerals always end up in the largest scalar ring needed).",
+                    "createdAt": "2024-09-23T13:50:57Z",
+                    "author": {
+                      "login": "j-loreaux"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5pww9h",
+                    "body": "I added an explanation about the \"largest scalar ring\".\r\n\r\nIf you don't mind, I'd rather not provide type ascription here.  This docstring will most often be encountered as a pop-up when a user has her cursor over a usage of the tactic, so brevity is key: I believe that sometimes we should omit \"guessable\" information from tactic docstrings, to improve the discoverability of more important information.\r\n\r\nIn this case, the absence of `↑` in `⊢ -2 * (a * 1) = a * (-2 * 1)` will inform the attentive reader that the numerals are all in `R`.",
+                    "createdAt": "2024-09-25T04:18:47Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5plsY2",
+                    "body": "Personally, I would put this comment *before* the examples, just so that it's easier for the user to find.",
+                    "createdAt": "2024-09-23T13:52:12Z",
+                    "author": {
+                      "login": "j-loreaux"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjI1MzE2MTYy",
+              "login": "hrmacbeth"
+            },
+            {
+              "id": "MDQ6VXNlcjQ3Nzk1Ng==",
+              "login": "kim-em"
+            },
+            {
+              "id": "MDQ6VXNlcjg5MjA1OTg=",
+              "login": "j-loreaux"
+            },
+            {
+              "id": "MDQ6VXNlcjE0MDYwODgz",
+              "login": "PatrickMassot"
+            },
+            {
+              "id": "MDQ6VXNlcjQyNTI2MA==",
+              "login": "eric-wieser"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": {
+          "contexts": {
+            "nodes": [
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHIdtO4g",
+                "name": "label-and-report-new-contributor",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029729222/job/30632791778"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHIdtPBw",
+                "name": "build",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029729223/job/30632791815"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHIdtIHg",
+                "name": "Cancel Previous Runs (CI)",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728690/job/30632790046"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHIdtIAw",
+                "name": "Cancel Previous Runs (CI)",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728691/job/30632790019"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHIdtRVg",
+                "name": "Lint style",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029729228/job/30632792406"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHIdtLaQ",
+                "name": "Lint style (fork)",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728690/job/30632790889"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHIdtLNg",
+                "name": "Lint style",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728691/job/30632790838"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHIdtPwQ",
+                "name": "Check all files imported",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029729228/job/30632792001"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHIdtKAg",
+                "name": "Build (fork)",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728690/job/30632790530"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHIdtKAw",
+                "name": "Build",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728691/job/30632790531"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHIdtMkA",
+                "name": "Post-CI job (fork)",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728690/job/30632791184"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHIfxZ3g",
+                "name": "Post-CI job",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11029728691/job/30634957278"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHIdtsKw",
+                "name": "New Contributor Check",
+                "conclusion": "NEUTRAL",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/runs/30632799275"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHIduutg",
+                "name": "Summary",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=16593&login=leanprover-community&repository=mathlib4"
+              },
+              {
+                "__typename": "StatusContext",
+                "id": "SC_kwDOFcwZ1c8AAAAHWvlWYg",
+                "context": "bors",
+                "state": "SUCCESS",
+                "targetUrl": "https://mathlib-bors-ca18eefec4cb.herokuapp.com/batches/6020",
+                "description": "Build succeeded"
+              }
+            ]
+          }
+        },
+        "title": "[Merged by Bors] - feat: `match_scalars` and `module` tactics",
+        "updatedAt": "2024-09-25T09:39:50Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/16593",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c6Vu72AzwAAAANMw-Fn",
+              "createdAt": "2024-09-07T23:05:01Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+                "name": "t-meta"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6LQ8o4",
+              "createdAt": "2024-09-07T23:05:36Z",
+              "body": "### PR summary [a291fb391a](https://github.com/leanprover-community/mathlib4/pull/16593/commits/a291fb391a57e7057b0a96e6983deb64c3b7a14b)\n\n#### Import changes for modified files\n\nNo significant changes to the import graph\n\n\n<details><summary>Import changes for all files</summary>\n\n|Files|Import difference|\n|-|-|\n| `Mathlib.Tactic`|1|\n| `Mathlib.Tactic.Module`|794|\n\n</details>\n\n---\n\n<details><summary>\n\n#### Declarations diff\n\n</summary>\n\n`+ NF`\n`+ add`\n`+ add_eq_eval`\n`+ add_eq_eval₁`\n`+ add_eq_eval₂`\n`+ add_eq_eval₃`\n`+ algebraMap`\n`+ algebraMapThms`\n`+ atom_eq_eval`\n`+ cons`\n`+ eq_cons_cons`\n`+ eq_cons_const`\n`+ eq_const_cons`\n`+ eq_of_eval_eq_eval`\n`+ eval`\n`+ eval_algebraMap`\n`+ eval_cons`\n`+ eval_neg`\n`+ eval_smul`\n`+ instance [Mul R] : SMul R (NF R M)`\n`+ instance [Neg R] : Neg (NF R M)`\n`+ matchRings`\n`+ matchScalars`\n`+ matchScalarsAux`\n`+ mkAddProof`\n`+ mkSubProof`\n`+ neg_eq_eval`\n`+ onScalar`\n`+ postprocess`\n`+ qNF`\n`+ smul_apply`\n`+ smul_eq_eval`\n`+ sub`\n`+ sub_eq_eval`\n`+ sub_eq_eval₁`\n`+ sub_eq_eval₂`\n`+ sub_eq_eval₃`\n`+ toNF`\n`+ zero_eq_eval`\n`+ zero_sub_eq_eval`\n<details>\n  <summary>You can run this locally as follows</summary>\n\n\n```bash\n## summary with just the declaration names:\n./scripts/declarations_diff.sh <optional_commit>\n\n## more verbose report:\n./scripts/declarations_diff.sh long <optional_commit>\n```\n</details>\n\nThe doc-module for `script/declarations_diff.sh` contains some details about this script.\n\n</details>",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6IbcKL",
+              "createdAt": "2024-09-09T06:08:38Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6IbeV3",
+              "createdAt": "2024-09-09T06:15:02Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6IbgCd",
+              "createdAt": "2024-09-09T06:19:16Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6IbgVJ",
+              "createdAt": "2024-09-09T06:20:06Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6Ibhbn",
+              "createdAt": "2024-09-09T06:23:12Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6LT0du",
+              "createdAt": "2024-09-09T06:25:03Z",
+              "body": "I did not closely read the meta code, but the structure looks great. If you become impatient for a merge, please ping me and I am happy to merge.",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6JbOj6",
+              "createdAt": "2024-09-15T21:19:24Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6KX9cj",
+              "createdAt": "2024-09-23T08:57:40Z",
+              "body": "Thanks!",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6Ka7kg",
+              "createdAt": "2024-09-23T13:50:57Z",
+              "body": "",
+              "author": {
+                "login": "j-loreaux"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6Ka8f-",
+              "createdAt": "2024-09-23T13:52:12Z",
+              "body": "",
+              "author": {
+                "login": "j-loreaux"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6NKmw4",
+              "createdAt": "2024-09-23T14:02:48Z",
+              "body": "Above it was mentioned that we should perhaps remove the `1`s using `mul_one`, and using `Option Q($R)` instead of `Q($R)` was suggested by Heather. Here is a different reason to consider that:\r\n\r\nWhile it is *not* something I'm proposing for this PR, at some point, perhaps far in the future, it would be nice if `match_scalars` allowed for non-unital scalar rings (as would be the case, for instance, in a Hilbert C⋆-module over a non-unital C⋆-algebra). I realize this is a rather niche use case, and we're not even at the point that we need it yet. To be clear, this would add significant complexity to the implementation in order to be useful, and it almost certainly requires #16984 as a prerequisite.",
+              "author": {
+                "login": "j-loreaux"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6Nc-qi",
+              "createdAt": "2024-09-25T06:53:32Z",
+              "body": "bors merge",
+              "author": {
+                "login": "PatrickMassot"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c6Vu72AzwAAAANZ7CEA",
+              "createdAt": "2024-09-25T06:53:42Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6NdVmx",
+              "createdAt": "2024-09-25T07:29:26Z",
+              "body": "Build failed:\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/11027863061/job/30626942506)",
+              "author": {
+                "login": "mathlib-bors"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c6Vu72AzwAAAANaCJ5g",
+              "createdAt": "2024-09-25T08:57:29Z"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6NeG11",
+              "createdAt": "2024-09-25T08:57:44Z",
+              "body": "bors merge",
+              "author": {
+                "login": "PatrickMassot"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6NefSa",
+              "createdAt": "2024-09-25T09:39:46Z",
+              "body": "Pull request successfully merged into master.\n\nBuild succeeded:\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/11029743150/job/30632839193)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/11029743150/job/30632838704)",
+              "author": {
+                "login": "mathlib-bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c6Vu72AzwAAAANaEmzK",
+              "createdAt": "2024-09-25T09:39:46Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c6Vu72AzwAAAANaEnCu",
+              "createdAt": "2024-09-25T09:39:50Z"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5aW-xY",
+              "createdAt": "2024-10-02T21:55:59Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c59bhG5",
+                "title": "[Merged by Bors] - feat: golf using `module`/`match_scalars` throughout the library",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/17365"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
