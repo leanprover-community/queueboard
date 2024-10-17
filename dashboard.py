@@ -387,9 +387,9 @@ def main() -> None:
     justmerge2 = prs_with_label(queue_or_merge_conflict, "merge-conflict")
     queue2 = prs_without_label(queue_or_merge_conflict, "merge-conflict")
     def my_assert_eq(left, right):
-        if left != right:
-            left_prs = [pr.number for pr in left]
-            right_prs = [pr.number for pr in left]
+        left_prs = [pr.number for pr in left]
+        right_prs = [pr.number for pr in left]
+        if left_prs != right_prs:
             print(f"assertion failure: left PRs are {left_prs}, right PRs are {right_prs}", file=sys.stderr)
             left_sans_right = set(left_prs) - set(right_prs)
             right_sans_left = set(right_prs) - set(left_prs)
