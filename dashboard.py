@@ -235,12 +235,18 @@ class AggregatePRInfo(NamedTuple):
 # Missing aggregate information will be replaced by this default item.
 PLACEHOLDER_AGGREGATE_INFO = AggregatePRInfo(False, False, "master", "open", datetime.now(), "unknown", "unknown title", [], -1, -1, -1, [])
 
-# Information passed to this script, via various JSON files.
-class JSONInputData(NamedTuple):
+# Basic input data to this script: a list of all open PRs, with detailed information about them.
+class InputData(NamedTuple):
+    all_open_prs: List[BasicPRInformation]
     # All aggregate information stored for every open PR.
     aggregate_info: dict[int, AggregatePRInfo]
-    # Information about all open PRs
-    all_open_prs: List[BasicPRInformation]
+
+
+# Construct basic information about a PR from its number and aggregate info.
+def _make_info(number: int, info: AggregatePRInfo) -> BasicPRInformation:
+    author = { "name": info.author, "url": f"https://github.com/{info.author}" }
+    url = f"https://github.com/leanprover-community/mathlib4/pull/{number}"
+    return BasicPRInformation(number, author, info.title, url, info.labels, info.last_updated)
 
 
 # Parse input of the form "2024-04-29T18:53:51Z" into a datetime.
@@ -251,16 +257,10 @@ def parse_datetime(rep: str) -> datetime:
 assert parse_datetime("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 51)
 
 
-# Validate the command-line arguments and try to read all data passed in via JSON files.
-# Any number of JSON files passed in is fine; we interpret them all as containing open PRs.
-def read_json_files() -> JSONInputData:
-    all_open_prs = []
-    for i in range(1, len(sys.argv)):
-        with open(sys.argv[i]) as prfile:
-            open_prs = _extract_prs(json.load(prfile))
-            all_open_prs.extend(open_prs)
-            if i == 2:
-                print(f"reading user data: would expect {len(open_prs)} draft PRs eventually", file=sys.stderr)
+# Parse the file with aggregate PR information; determine all open PRs
+# and return some basic information for each of them.
+def determine_input_data() -> InputData:
+    aggregate_info = []
     with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as f:
         data = json.load(f)
         aggregate_info = dict()
@@ -275,7 +275,12 @@ def read_json_files() -> JSONInputData:
                 pr["num_files"], pr["assignees"]
             )
             aggregate_info[pr["number"]] = info
-    return JSONInputData(aggregate_info, all_open_prs)
+    all_open_prs = []
+    for pr_number in aggregate_info:
+        info = aggregate_info[pr_number]
+        if info.state == "open":
+            all_open_prs.append(_make_info(pr_number, info))
+    return InputData(aggregate_info, all_open_prs)
 
 
 EXPLANATION = """
@@ -369,7 +374,7 @@ def print_on_the_queue_page(
 
 
 def main() -> None:
-    input_data = read_json_files()
+    input_data = determine_input_data()
     # Populate basic information from the input data: splitting into draft and non-draft PRs
     # (mostly, we only use the latter); extract separate dictionaries for CI status and base branch.
 
@@ -687,18 +692,6 @@ def time_info(updatedAt: str) -> str:
     # Format the output
     s = updated.strftime("%Y-%m-%d %H:%M")
     return f"{s} ({format_delta(delta)} ago)"
-
-
-# Extract all PRs mentioned in a data file.
-def _extract_prs(data: dict) -> List[BasicPRInformation]:
-    prs = []
-    for page in data["output"]:
-        for entry in page["data"]["search"]["nodes"]:
-            labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
-            prs.append(BasicPRInformation(
-                entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
-            ))
-    return prs
 
 
 # Compute the table entries about a sequence of PRs.
