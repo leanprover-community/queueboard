@@ -337,23 +337,6 @@ def main() -> None:
     print(f"<br><p>\n<b>Quick links:</b> <a href=\"#statistics\" target=\"_self\">PR statistics</a> | {str.join(' | ', links)}</p>")
 
     prs_to_list : dict[Dashboard, List[BasicPRInformation]] = dict()
-    # Compute the queue also by filtering and report on whether these agree.
-    # The review queue consists of all PRs against the master branch, with passing CI,
-    # that are not in draft state and not labelled WIP, help-wanted or please-adopt,
-    # and have none of the other labels below.
-    queue_or_merge_conflict = [pr for pr in queue_or_merge_conflict if CI_passes[pr.number]]
-    other_labels = [
-        # XXX: does the #queue check for all of these labels?
-        "blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR",
-        "awaiting-CI", "awaiting-author", "awaiting-zulip", "please-adopt", "help-wanted", "WIP",
-        "delegated", "auto-merge-after-CI", "ready-to-merge"]
-    queue_or_merge_conflict = prs_without_any_label(queue_or_merge_conflict, other_labels)
-    prs_to_list[Dashboard.NeedsMerge] = prs_with_label(queue_or_merge_conflict, "merge-conflict")
-    queue_prs = prs_without_label(queue_or_merge_conflict, "merge-conflict")
-    prs_to_list[Dashboard.Queue] = queue_prs
-    prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
-    prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs, 'easy')
-
     # The 'tech debt' and 'other base' boards are obtained from filtering list of non-draft PRs.
     all_ready_prs = prs_without_label(nondraft_PRs, 'WIP')
     prs_to_list[Dashboard.TechDebt] = prs_with_any_label(all_ready_prs, ['tech debt', 'longest-pole'])
@@ -361,6 +344,23 @@ def main() -> None:
     prs_to_list[Dashboard.OtherBase] = [pr for pr in nondraft_PRs if base_branch[pr.number] != 'master']
     prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(nondraft_PRs, ['help-wanted', 'please_adopt'])
     prs_to_list[Dashboard.NeedsDecision] = prs_with_label(nondraft_PRs, 'awaiting-zulip')
+
+    # Compute all PRs on the review queue (and well as several sub-filters).
+    # The review queue consists of all PRs against the master branch, with passing CI,
+    # that are not in draft state and not labelled WIP, help-wanted or please-adopt,
+    # and have none of the other labels below.
+    master_prs_with_CI = [pr for pr in nondraft_PRs if base_branch[pr.number] == 'master' and CI_passes[pr.number]]
+    other_labels = [
+        # XXX: does the #queue check for all of these labels?
+        "blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR",
+        "awaiting-CI", "awaiting-author", "awaiting-zulip", "please-adopt", "help-wanted", "WIP",
+        "delegated", "auto-merge-after-CI", "ready-to-merge"]
+    queue_or_merge_conflict = prs_without_any_label(master_prs_with_CI, other_labels)
+    prs_to_list[Dashboard.NeedsMerge] = prs_with_label(queue_or_merge_conflict, "merge-conflict")
+    queue_prs = prs_without_label(queue_or_merge_conflict, "merge-conflict")
+    prs_to_list[Dashboard.Queue] = queue_prs
+    prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
+    prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs, 'easy')
 
     a_day_ago = datetime.now() - timedelta(days=1)
     a_week_ago = datetime.now() - timedelta(days=7)
@@ -481,7 +481,7 @@ def gather_pr_statistics(
     cumulative = [sum(numbers[:i+1]) for i in range(len(numbers))]
     piechart = ', '.join([f'{color[s]} 0 {cumulative[i] * 360 // number_all}deg' for (i, s) in enumerate(statusses)])
     piechart_style=f"width: 200px;height: 200px;border-radius: 50%;border: 1px solid black;background-image: conic-gradient( {piechart} );"
-    assert(cumulative[-1] == number_all)
+    assert cumulative[-1] == number_all, "error: statistics calculation is inconsistent, all PR kinds do not add up!"
 
     return f'\n<h2 id="statistics"><a href="#statistics">Overall statistics</a></h2>\nFound <b>{number_all}</b> open PRs overall. Among these PRs\n<ul>\n{details}\n</ul><div class="piechart" style="{piechart_style}"></div>\n'
 
