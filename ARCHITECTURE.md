@@ -9,11 +9,12 @@ Generating a dashboard requires several steps.
 This happens asynchronously from the remaining tasks.
 - step 2: generate a static webpage from this information
 - step 3: publish this webpage using github pages
-These steps are repeated regularly, using a cronjob. Step 1 happens asynchronously of steps 2 and 3. Currently (as of October 8, 2024), a workflow run takes about 5 minutes, and a new job starts eight minutes after the previous run. All in all, this means the data on the dashboard has a latency of 12--15 minutes.
+These steps are repeated regularly, using a cronjob on github actions. Step 1 happens asynchronously of steps 2 and 3. Currently (as of October 8, 2024), a workflow run takes about 40 seconds, and a new job starts about eight minutes after the previous run. All in all, this means the data on the dashboard has a latency of around 10 minutes.
 
 ## Relevant files
 This section talks briefly about various important directories and data structures. Pay attention to the Architecture Invariant sections. They often talk about things which are deliberately absent in the source code.
 
+TODO: this is very outdated now; dashboard.py is the main entry point now!
 `dashboard.sh` (a shell script) is the main entry point:
 - it queries github's API for the data above and creates a number of JSON files containing the relevant data
 - it then calls `dashboard.py` (with the JSON files passed as explicit arguments) to create a dashboard.
@@ -53,7 +54,7 @@ There are several levels at which this project can be tested. Currently, there a
 
 - `classify_pr_state.py` has unit tests: to run them, use e.g. `nose` (which will pick them up automatically), or uncomment all methods named `test_xxx` and run `python3 classify_pr_state.py`
 - changes to just `dashboard.py` can be tested using the JSON files in `test`: run the following from the top-level directory.
-`python3 dashboard.py test/all-open-PRs-1.json test/all-open-PRs-2.json > expected.html`,
+`python3 dashboard.py > expected.html`,
 once (before the changes) to create a file `expected.html`, and again afterwards for a file `actual.html`.
 You can then use `diff` to look for any changes to the generated output.
 (The output file needs to be in the top-level directory in order for the styling to work.)
