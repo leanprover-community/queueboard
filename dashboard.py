@@ -6,7 +6,7 @@
 
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum, auto, unique
 from os import path
 from typing import List, NamedTuple, Tuple
@@ -318,7 +318,7 @@ def print_on_the_queue_page(
 
 
 def main() -> None:
-    def formatd(delta: datetime.timedelta) -> str:
+    def formatd(delta: timedelta) -> str:
         if delta.days > 0:
             return f"{delta.days} days"
         elif delta.hours > 0:
