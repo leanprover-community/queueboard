@@ -19,16 +19,22 @@ jobs:
         ref: master
 
     - name: "Run gather_stats.sh"
-      id: "gather_stats"
       shell: bash -euo pipefail {0}
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         ./gather_stats.sh 8 2>&1 | tee gather_stats.log  # Log output to gather_stats.log
 
+    - name: "Update aggregate data file"
+      id: "aggregate-file"
+      if: ${{ !cancelled() }}
+      run: |
+        # Write a file with aggregate PR data, to "processed_data/aggregate_pr_data.json".
+        python3 process.py
+
     - name: Commit changes
       id: "commit"
-      if: ${{ !cancelled() }}
+      if: ${{ !cancelled() }} && steps.aggregate-file.outcome == 'success'
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'

@@ -84,6 +84,3 @@ for pr in $(cat "missing_prs.txt"); do
     break;
   fi
 done
-
-# Write a file with aggregate PR data, to "processed_data/aggregate_pr_data.json".
-python3 process.py
