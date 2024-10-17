@@ -384,7 +384,7 @@ def main() -> None:
     prs_to_list[Dashboard.StaleMaintainerMerge] = prs_without_label(mm_prs, 'ready-to-merge')
     prs_to_list[Dashboard.StaleNewContributor] = prs_with_label(one_week_stale, 'new-contributor')
 
-    print(gather_pr_statistics(CI_passes, prs_to_list, nondraft_PRs, draft_PRs))
+    print(gather_pr_statistics(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs))
 
     (bad_title, unlabelled, contradictory) = compute_dashboards_bad_labels_title(nondraft_PRs)
     prs_to_list[Dashboard.BadTitle] = bad_title
@@ -397,27 +397,29 @@ def main() -> None:
 
 # Compute the status of each PR in a given list. Return a dictionary keyed by the PR number.
 # (`BasicPRInformation` is not hashable, hence cannot be used as a dictionary key.)
-def compute_pr_statusses(CI_passes: dict[int, bool | None], prs: List[BasicPRInformation]) -> dict[int, PRStatus]:
-    def determine_status(CI_passes: dict[int, bool | None], info: BasicPRInformation, is_draft: bool) -> PRStatus:
+# 'aggregate_info' contains aggregate information about each PR's CI state,
+# draft status and base branch (and more, which we do not use).
+# If no detailed information was available for a given PR number, 'None' is returned.
+def compute_pr_statusses(aggregate_info: dict[int, AggregatePRInfo], prs: List[BasicPRInformation]) -> dict[int, PRStatus]:
+    def determine_status(aggregate_info: AggregatePRInfo, info: BasicPRInformation) -> PRStatus:
         # Ignore all "other" labels, which are not relevant for this anyway.
         labels = [label_categorisation_rules[l.name] for l in info.labels if l.name in label_categorisation_rules]
-        # If information about a PR's CI status is missing, we treat is as failing.
-        # If there was no aggregate information about PR 'info.number', 'CI_passes' has value None,
-        # which is treated as False: this works!
-        ci_status = CIStatus.Pass if CI_passes[info.number] else CIStatus.Fail
-        state = PRState(labels, ci_status, is_draft)
+        ci_status = CIStatus.Pass if aggregate_info.CI_passes else CIStatus.Fail
+        state = PRState(labels, ci_status, aggregate_info.is_draft)
         return determine_PR_status(datetime.now(), state)
+    return {info.number: determine_status(aggregate_info[info.number] or PLACEHOLDER_AGGREGATE_INFO, info) for info in prs}
 
-    return {info.number: determine_status(CI_passes, info, False) for info in prs}
 
-
+# If aggregate information about a PR is missing, we treat it as non-draft, failing CI and against 'master'.
+# (Though, in fact, we assume that 'aggregate_info' is complete, by prior normalisation.)
 def gather_pr_statistics(
-    CI_passes: dict[int, bool | None],
+    aggregate_info: dict[int, AggregatePRInfo],
     prs: dict[Dashboard, List[BasicPRInformation]],
     all_ready_prs: List[BasicPRInformation],
     all_draft_prs: List[BasicPRInformation],
 ) -> str:
-    ready_pr_status = compute_pr_statusses(CI_passes, all_ready_prs)
+    # We only need to check the status of all non-draft PRs: this is purely an optimisation.
+    ready_pr_status = compute_pr_statusses(aggregate_info, all_ready_prs)
     queue_prs = prs[Dashboard.Queue]
     justmerge_prs = prs[Dashboard.NeedsMerge]
 
@@ -491,6 +493,7 @@ def gather_pr_statistics(
     cumulative = [sum(numbers[:i+1]) for i in range(len(numbers))]
     piechart = ', '.join([f'{color[s]} 0 {cumulative[i] * 360 // number_all}deg' for (i, s) in enumerate(statusses)])
     piechart_style=f"width: 200px;height: 200px;border-radius: 50%;border: 1px solid black;background-image: conic-gradient( {piechart} );"
+    assert(cumulative[-1] == number_all)
 
     return f'\n<h2 id="statistics"><a href="#statistics">Overall statistics</a></h2>\nFound <b>{number_all}</b> open PRs overall. Among these PRs\n<ul>\n{details}\n</ul><div class="piechart" style="{piechart_style}"></div>\n'
 
