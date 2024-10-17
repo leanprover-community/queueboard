@@ -47,10 +47,13 @@ gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" | jq '{"output": .}' >
 QUERY_QUEUE_BUT_MERGE_CONFLICT=$(prepare_query "sort:updated-asc is:pr state:open -is:draft status:success base:master $queue_labels_but_merge label:merge-conflict")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE_BUT_MERGE_CONFLICT" | jq '{"output": .}' > needs-merge.json
 
-# Query Github API for all open pull requests
-QUERY_ALLOPEN=$(prepare_query 'sort:updated-asc is:pr state:open')
-gh api graphql --paginate --slurp -f query="$QUERY_ALLOPEN" | jq '{"output": .}' > all-open-PRs.json
+# Query Github API for all open pull requests:
+# split in two as the REST-based API only returns up to 1000 items.
+QUERY_ALLOPEN1=$(prepare_query 'sort:updated-asc is:pr state:open -is:draft')
+QUERY_ALLOPEN1=$(prepare_query 'sort:updated-asc is:pr state:open is:draft')
+gh api graphql --paginate --slurp -f query="$QUERY_ALLOPEN1" | jq '{"output": .}' > all-open-PRs-1.json
+gh api graphql --paginate --slurp -f query="$QUERY_ALLOPEN2" | jq '{"output": .}' > all-open-PRs-2.json
 
-python3 ./dashboard.py "all-open-PRs.json" "queue.json" "needs-merge.json" > ./index.html
+python3 ./dashboard.py "all-open-PRs-1.json" "all-open-PRs-2.json" "queue.json" "needs-merge.json" > ./index.html
 
 rm *.json

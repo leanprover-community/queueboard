@@ -199,14 +199,14 @@ assert parse_datetime("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 5
 # Validate the command-line arguments and try to read all data passed in via JSON files.
 def read_json_files() -> JSONInputData:
     # Check if the user has provided the correct number of arguments
-    if len(sys.argv) < 2:
-        print("Usage: python3 dashboard.py <all-open-prs.json> <json_file1> <json_file2> ...")
+    if len(sys.argv) < 3:
+        print("Usage: python3 dashboard.py <all-open-prs1.json> <all-open-prs2.json> <json_file1> <json_file2> ...")
         sys.exit(1)
     # Dictionary of all PRs to include in a given dashboard.
     # This data is given by the json files provided by the user.
     prs_to_list: dict[Dashboard, List[BasicPRInformation]] = dict()
     # Iterate over the json files provided by the user
-    for i in range(2, len(sys.argv)):
+    for i in range(3, len(sys.argv)):
         filepath = sys.argv[i]
         name = filepath.split("/")[-1]
         if name not in EXPECTED_INPUT_FILES:
@@ -216,8 +216,9 @@ def read_json_files() -> JSONInputData:
             prs = _extract_prs(json.load(f))
             kind = EXPECTED_INPUT_FILES[name]
             prs_to_list[kind] = prs_to_list.get(kind, []) + prs
-    with open(sys.argv[1]) as all_prs_file:
-        all_open_prs = _extract_prs(json.load(all_prs_file))
+    with open(sys.argv[1]) as all_prs_file1, open(sys.argv[2]) as all_prs_file2:
+        all_open_prs = _extract_prs(json.load(all_prs_file1))
+        all_open_prs += _extract_prs(json.load(all_prs_file2))
     with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as f:
         data = json.load(f)
         aggregate_info = dict()
