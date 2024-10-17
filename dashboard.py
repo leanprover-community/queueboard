@@ -334,6 +334,7 @@ def main() -> None:
     draft_PRs = [pr for pr in input_data.all_open_prs if aggregate_info[pr.number].is_draft]
     nondraft_PRs = [pr for pr in input_data.all_open_prs if not aggregate_info[pr.number].is_draft]
     assert len(draft_PRs) + len(nondraft_PRs) == len(input_data.all_open_prs)
+    print(f"PR lengths: {len(input_data.all_open_prs)} overall, {len(draft_PRs)} draft ones, {len(nondraft_PRs)} non-draft ones", file=sys.stderr)
 
     # The only exception is for the "on the queue" page,
     # which points out missing information explicitly, hence is passed the non-filled in data.
