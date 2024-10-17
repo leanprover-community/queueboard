@@ -386,7 +386,7 @@ def main() -> None:
     queue_or_merge_conflict = prs_without_any_label(queue_or_merge_conflict, other_labels)
     justmerge2 = prs_with_label(queue_or_merge_conflict, "merge-conflict")
     queue2 = prs_without_label(queue_or_merge_conflict, "merge-conflict")
-    def my_assert_eq(left, right):
+    def my_assert_eq(left, right) -> bool:
         left_prs = [pr.number for pr in left]
         right_prs = [pr.number for pr in left]
         if left_prs != right_prs:
@@ -395,8 +395,13 @@ def main() -> None:
             right_sans_left = set(right_prs) - set(left_prs)
             print(f"the following {len(left_sans_right)} PRs are contains in left, but not right: {left_sans_right}", file=sys.stderr)
             print(f"the following {len(right_sans_left)} PRs are contains in right, but not left: {right_sans_left}", file=sys.stderr)
-    my_assert_eq(sorted(prs_to_list[Dashboard.Queue]), sorted(queue2))
-    my_assert_eq(sorted(prs_to_list[Dashboard.NeedsMerge]), sorted(justmerge2))
+            return False
+        return True
+
+    if my_assert_eq(sorted(prs_to_list[Dashboard.Queue]), sorted(queue2)):
+        print("queue definitions matches, hooray!", file=sys.stderr)
+    if my_assert_eq(sorted(prs_to_list[Dashboard.NeedsMerge]), sorted(justmerge2)):
+        print("justmerge definitions matches, hooray!", file=sys.stderr)
 
     a_day_ago = datetime.now() - timedelta(days=1)
     a_week_ago = datetime.now() - timedelta(days=7)
