@@ -166,9 +166,20 @@ class AggregatePRInfo(NamedTuple):
     state: str
     # Github's time when the PR was "last updated"
     last_updated: datetime
+    # The PR author's github handle
+    author: str
+    title: str
+    # All names of labels assigned to this PR.
+    # FIXME: upgrade this to the full label data
+    label_names: List[str]
+    additions: int
+    deletions: int
+    number_modified_files: int
+    # The github handles of all users (if any) assigned to this PR
+    assignees: List[str]
 
 # Missing aggregate information will be replaced by this default item.
-PLACEHOLDER_AGGREGATE_INFO = AggregatePRInfo(False, False, "master", "open", datetime.now())
+PLACEHOLDER_AGGREGATE_INFO = AggregatePRInfo(False, False, "master", "open", datetime.now(), "unknown", "unknown title", [], -1, -1, -1, [])
 
 # Information passed to this script, via various JSON files.
 class JSONInputData(NamedTuple):
@@ -202,7 +213,9 @@ def read_json_files() -> JSONInputData:
         for pr in data["pr_statusses"]:
             date = parse_datetime(pr["last_updated"])
             info = AggregatePRInfo(
-                pr["is_draft"], pr["CI_passes"], pr["base_branch"], pr["state"], date
+                pr["is_draft"], pr["CI_passes"], pr["base_branch"], pr["state"], date,
+                pr["author"], pr["title"], pr["label_names"], pr["additions"], pr["deletions"],
+                pr["num_files"], pr["assignees"]
             )
             aggregate_info[pr["number"]] = info
     return JSONInputData(aggregate_info, all_open_prs)
