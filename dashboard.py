@@ -327,7 +327,7 @@ def main() -> None:
 
     # NB. We handle missing metadata by adding "default" values for its aggregate data
     # (ready for review, open, against master, failing CI and just updated now).
-    aggregate_info = input_data.aggregate_info
+    aggregate_info = input_data.aggregate_info.copy()
     for pr in input_data.all_open_prs:
         if pr.number not in input_data.aggregate_info:
             aggregate_info[pr.number] = PLACEHOLDER_AGGREGATE_INFO
