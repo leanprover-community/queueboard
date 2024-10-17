@@ -359,10 +359,17 @@ def main() -> None:
     prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(input_data.nondraft_prs, ['help-wanted', 'please_adopt'])
     prs_to_list[Dashboard.NeedsDecision] = prs_with_label(input_data.nondraft_prs, 'awaiting-zulip')
 
-    a_day_ago = datetime.now() - datetime.timedelta(days=1)
-    a_week_ago = datetime.now() - datetime.timedelta(days=7)
-    one_day_stale = [pr for pr in input_data.nondraft_prs if input_data.aggregate_info[pr].last_updated < a_day_ago]
-    one_week_stale = [pr for pr in input_data.nondraft_prs if input_data.aggregate_info[pr].last_updated < a_week_ago]
+    a_day_ago = datetime.now() - timedelta(days=1)
+    a_week_ago = datetime.now() - timedelta(days=7)
+    one_day_stale = []
+    one_week_stale = []
+    for pr in input_data.nondraft_prs:
+        if pr.number in input_data.aggregate_info:
+            upd = input_data.aggregate_info[pr.number].last_updated
+            if upd < a_day_ago:
+                one_day_stale.append(pr)
+            if upd < a_week_ago:
+                one_week_stale.append(pr)
     prs_to_list[Dashboard.StaleReadyToMerge] = prs_with_any_label(one_day_stale, ['ready-to-merge', 'auto-merge-after-CI'])
     prs_to_list[Dashboard.StaleDelegated] = prs_with_label(one_day_stale, 'delegated')
     mm_prs = prs_with_label(one_day_stale, 'maintainer-merge')
