@@ -56,7 +56,6 @@ gh api graphql --paginate --slurp -f query="$QUERY_QUEUE_BUT_MERGE_CONFLICT" | j
 QUERY_ALLOPEN=$(prepare_query 'sort:updated-asc is:pr state:open')
 gh api graphql --paginate --slurp -f query="$QUERY_ALLOPEN" | jq '{"output": .}' > all-open-PRs.json
 
-python3 ./dashboard.py "all-open-prs.json" "queue.json" "needs-merge.json" > ./index.html
+python3 ./dashboard.py "all-open-PRs.json" "queue.json" "needs-merge.json" > ./index.html
 
 rm *.json
-
