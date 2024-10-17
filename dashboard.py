@@ -388,7 +388,13 @@ def main() -> None:
     queue2 = prs_without_label(queue_or_merge_conflict, "merge-conflict")
     def my_assert_eq(left, right):
         if left != right:
-            print(f"assertion failure: left is {left}, right is {right}", file=sys.stderr)
+            left_prs = [pr.number for pr in left]
+            right_prs = [pr.number for pr in left]
+            print(f"assertion failure: left PRs are {left_prs}, right PRs are {right_prs}", file=sys.stderr)
+            left_sans_right = set(left_prs) - set(right_prs)
+            right_sans_left = set(right_prs) - set(left_prs)
+            print(f"the following {len(left_sans_right)} PRs are contains in left, but not right: {left_sans_right}")
+            print(f"the following {len(right_sans_left)} PRs are contains in right, but not left: {right_sans_left}")
     my_assert_eq(sorted(prs_to_list[Dashboard.Queue]), sorted(queue2))
     my_assert_eq(sorted(prs_to_list[Dashboard.NeedsMerge]), sorted(justmerge2))
 
