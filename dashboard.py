@@ -153,6 +153,9 @@ class BasicPRInformation(NamedTuple):
     labels: List[Label]
     # Github's answer to "last updated at"
     updatedAt: str
+    additions: int
+    deletions: int
+    files_changed: int
 
 
 # Determine a label's background colour from its name.
@@ -246,7 +249,9 @@ class InputData(NamedTuple):
 def _make_info(number: int, info: AggregatePRInfo) -> BasicPRInformation:
     author = { "name": info.author, "url": f"https://github.com/{info.author}" }
     url = f"https://github.com/leanprover-community/mathlib4/pull/{number}"
-    return BasicPRInformation(number, author, info.title, url, info.labels, info.last_updated)
+    return BasicPRInformation(
+        number, author, info.title, url, info.labels, info.last_updated, info.additions, info.deletions, info.number_modified_files
+    )
 
 
 # Parse input of the form "2024-04-29T18:53:51Z" into a datetime.
@@ -698,7 +703,10 @@ def time_info(updatedAt: str) -> str:
 def _compute_pr_entries(prs: List[BasicPRInformation]) -> str:
     result = ""
     for pr in prs:
-        entries = [pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url), _write_labels(pr.labels)]
+        entries = [
+            pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url),
+             _write_labels(pr.labels), f"{pr.additions}/{pr.deletions}", f"{pr.files_changed}"
+        ]
         # Detailed information about the current PR.
         pr_info = None
         filename = f"data/{pr.number}/pr_info.json"
@@ -707,17 +715,14 @@ def _compute_pr_entries(prs: List[BasicPRInformation]) -> str:
                 pr_info = json.load(file)
         if pr_info is None:
             print(f"main dashboard: found no PR info for PR {pr.number}", file=sys.stderr)
-            entries.extend(["-1/-1", "-1", "-1"])
+            entries.append("-1")
         else:
             # We treat non-well-formed data as missing.
             # FUTURE: unify and centralise all these checks for bad/missing data (also for CI status)
             if "data" not in pr_info or "errors" in pr_info:
-                entries.extend(["-1/-1", "-1", "-1"])
+                entries.append("-1")
                 continue
             inner = pr_info["data"]["repository"]["pullRequest"]
-            entries.extend([
-                "{}/{}".format(inner["additions"], inner["deletions"]), inner["changedFiles"]
-            ])
             # Add the number of normal and review comments.
             number_comments = len(inner["comments"]["nodes"])
             number_review_comments = 0
