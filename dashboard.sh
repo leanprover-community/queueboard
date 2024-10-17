@@ -34,19 +34,6 @@ query(\$endCursor: String) {
 	";
 }
 
-# Query Github API for all pull requests that are on the #queue.
-# So we want to list all pull requests that are
-# - open, not draft and filed against the 'master' branch
-# - has status:success (which excludes failing or in-progress CI)
-# - do not have any of the following labels: blocked-by-other-PR, merge-conflict, awaiting-CI, WIP, awaiting-author, awaiting-zulip, help-wanted, please-adopt delegated, auto-merge-after-CI, ready-to-merge
-queue_labels_but_merge="-label:blocked-by-other-PR -label:awaiting-CI -label:awaiting-author -label:awaiting-zulip -label:please-adopt -label:help-wanted -label:WIP -label:delegated -label:auto-merge-after-CI -label:ready-to-merge"
-QUERY_QUEUE=$(prepare_query "sort:updated-asc is:pr state:open -is:draft status:success base:master $queue_labels_but_merge -label:merge-conflict")
-gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" | jq '{"output": .}' > queue.json
-
-# Query Github API for all pull requests with a merge conflict, that would be otherwise ready for review.
-QUERY_QUEUE_BUT_MERGE_CONFLICT=$(prepare_query "sort:updated-asc is:pr state:open -is:draft status:success base:master $queue_labels_but_merge label:merge-conflict")
-gh api graphql --paginate --slurp -f query="$QUERY_QUEUE_BUT_MERGE_CONFLICT" | jq '{"output": .}' > needs-merge.json
-
 # Query Github API for all open pull requests:
 # split in two as the REST-based API only returns up to 1000 items.
 QUERY_ALLOPEN1=$(prepare_query 'sort:updated-asc is:pr state:open -is:draft')
@@ -54,6 +41,6 @@ QUERY_ALLOPEN2=$(prepare_query 'sort:updated-asc is:pr state:open is:draft')
 gh api graphql --paginate --slurp -f query="$QUERY_ALLOPEN1" | jq '{"output": .}' > all-open-PRs-1.json
 gh api graphql --paginate --slurp -f query="$QUERY_ALLOPEN2" | jq '{"output": .}' > all-open-PRs-2.json
 
-python3 ./dashboard.py "all-open-PRs-1.json" "all-open-PRs-2.json" "queue.json" "needs-merge.json" > ./index.html
+python3 ./dashboard.py "all-open-PRs-1.json" "all-open-PRs-2.json" > ./index.html
 
 rm *.json

@@ -52,14 +52,6 @@ class Dashboard(Enum):
     ContradictoryLabels = auto()
 
 
-# All input files this script expects. Needs to be kept in sync with `dashboard.sh`,
-# but this script will complain if something unexpected happens.
-EXPECTED_INPUT_FILES = {
-    "queue.json": Dashboard.Queue,
-    "needs-merge.json": Dashboard.NeedsMerge,
-}
-
-
 def short_description(kind: Dashboard) -> str:
     """Describe what the table 'kind' contains, for use in a "there are no such PRs" message."""
     return {
@@ -180,8 +172,6 @@ PLACEHOLDER_AGGREGATE_INFO = AggregatePRInfo(False, False, "master", "open", dat
 
 # Information passed to this script, via various JSON files.
 class JSONInputData(NamedTuple):
-    # Not every dashboard need be covered!
-    prs_on_boards: dict[Dashboard, List[BasicPRInformation]]
     # All aggregate information stored for every open PR.
     aggregate_info: dict[int, AggregatePRInfo]
     # Information about all open PRs
@@ -197,30 +187,15 @@ assert parse_datetime("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 5
 
 
 # Validate the command-line arguments and try to read all data passed in via JSON files.
+# Any number of JSON files passed in is fine; we interpret them all as containing open PRs.
 def read_json_files() -> JSONInputData:
-    # Check if the user has provided the correct number of arguments
-    if len(sys.argv) < 3:
-        print("Usage: python3 dashboard.py <all-open-prs1.json> <all-open-prs2.json> <json_file1> <json_file2> ...")
-        sys.exit(1)
-    # Dictionary of all PRs to include in a given dashboard.
-    # This data is given by the json files provided by the user.
-    prs_to_list: dict[Dashboard, List[BasicPRInformation]] = dict()
-    # Iterate over the json files provided by the user
-    for i in range(3, len(sys.argv)):
-        filepath = sys.argv[i]
-        name = filepath.split("/")[-1]
-        if name not in EXPECTED_INPUT_FILES:
-            print(f"bad argument: file name {name} is not recognised; did you mean one of these?\n{', '.join(EXPECTED_INPUT_FILES.keys())}")
-            sys.exit(1)
-        with open(filepath) as f:
-            prs = _extract_prs(json.load(f))
-            kind = EXPECTED_INPUT_FILES[name]
-            prs_to_list[kind] = prs_to_list.get(kind, []) + prs
-    with open(sys.argv[1]) as all_prs_file1, open(sys.argv[2]) as all_prs_file2:
-        all_open_prs = _extract_prs(json.load(all_prs_file1))
-        prs2 = _extract_prs(json.load(all_prs_file2))
-        print(f"reading user data: would expect {len(prs2)} draft PRs eventually", file=sys.stderr)
-        all_open_prs += prs2
+    all_open_prs = []
+    for i in range(1, len(sys.argv)):
+        with open(sys.argv[i]) as prfile:
+            open_prs = _extract_prs(json.load(prfile))
+            all_open_prs.extend(open_prs)
+            if i == 2:
+                print(f"reading user data: would expect {len(open_prs)} draft PRs eventually", file=sys.stderr)
     with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as f:
         data = json.load(f)
         aggregate_info = dict()
@@ -230,7 +205,7 @@ def read_json_files() -> JSONInputData:
                 pr["is_draft"], pr["CI_passes"], pr["base_branch"], pr["state"], date
             )
             aggregate_info[pr["number"]] = info
-    return JSONInputData(prs_to_list, aggregate_info, all_open_prs)
+    return JSONInputData(aggregate_info, all_open_prs)
 
 
 EXPLANATION = """
@@ -348,7 +323,7 @@ def main() -> None:
             CI_passes[pr.number] = input_data.aggregate_info[pr.number].CI_passes
         else:
             CI_passes[pr.number] = None
-    base_branch = dict()
+    base_branch: dict[int, str] = dict()
     for pr in nondraft_PRs:
         base_branch[pr.number] = aggregate_info[pr.number].base_branch
     print_on_the_queue_page(nondraft_PRs, CI_passes, "on_the_queue.html")
@@ -361,8 +336,21 @@ def main() -> None:
         links.append(f"<a href=\"#{id}\" title=\"{short_description(kind)}\" target=\"_self\">{id}</a>")
     print(f"<br><p>\n<b>Quick links:</b> <a href=\"#statistics\" target=\"_self\">PR statistics</a> | {str.join(' | ', links)}</p>")
 
-    prs_to_list : dict[Dashboard, List[BasicPRInformation]] = input_data.prs_on_boards
-    queue_prs = prs_to_list[Dashboard.Queue]
+    prs_to_list : dict[Dashboard, List[BasicPRInformation]] = dict()
+    # Compute the queue also by filtering and report on whether these agree.
+    # The review queue consists of all PRs against the master branch, with passing CI,
+    # that are not in draft state and not labelled WIP, help-wanted or please-adopt,
+    # and have none of the other labels below.
+    queue_or_merge_conflict = [pr for pr in queue_or_merge_conflict if CI_passes[pr.number]]
+    other_labels = [
+        # XXX: does the #queue check for all of these labels?
+        "blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR",
+        "awaiting-CI", "awaiting-author", "awaiting-zulip", "please-adopt", "help-wanted", "WIP",
+        "delegated", "auto-merge-after-CI", "ready-to-merge"]
+    queue_or_merge_conflict = prs_without_any_label(queue_or_merge_conflict, other_labels)
+    prs_to_list[Dashboard.NeedsMerge] = prs_with_label(queue_or_merge_conflict, "merge-conflict")
+    queue_prs = prs_without_label(queue_or_merge_conflict, "merge-conflict")
+    prs_to_list[Dashboard.Queue] = queue_prs
     prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
     prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs, 'easy')
 
@@ -374,35 +362,6 @@ def main() -> None:
     prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(nondraft_PRs, ['help-wanted', 'please_adopt'])
     prs_to_list[Dashboard.NeedsDecision] = prs_with_label(nondraft_PRs, 'awaiting-zulip')
 
-    # Compute the queue also by filtering and report on whether these agree.
-    # All PRs against master, with passing CI that are not draft, and not labelled in any way indicating otherwise.
-    queue_or_merge_conflict = prs_to_list[Dashboard.OtherBase]
-    queue_or_merge_conflict = [pr for pr in queue_or_merge_conflict if CI_passes[pr.number]]
-    other_labels = [
-        # XXX: does the #queue check for all of these labels?
-        "blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR",
-        "awaiting-CI", "awaiting-author", "awaiting-zulip", "please-adopt", "help-wanted", "WIP",
-        "delegated", "auto-merge-after-CI", "ready-to-merge"]
-    queue_or_merge_conflict = prs_without_any_label(queue_or_merge_conflict, other_labels)
-    justmerge2 = prs_with_label(queue_or_merge_conflict, "merge-conflict")
-    queue2 = prs_without_label(queue_or_merge_conflict, "merge-conflict")
-    def my_assert_eq(left, right) -> bool:
-        left_prs = [pr.number for pr in left]
-        right_prs = [pr.number for pr in left]
-        if left_prs != right_prs:
-            print(f"assertion failure: left PRs are {left_prs}, right PRs are {right_prs}", file=sys.stderr)
-            left_sans_right = set(left_prs) - set(right_prs)
-            right_sans_left = set(right_prs) - set(left_prs)
-            print(f"the following {len(left_sans_right)} PRs are contains in left, but not right: {left_sans_right}", file=sys.stderr)
-            print(f"the following {len(right_sans_left)} PRs are contains in right, but not left: {right_sans_left}", file=sys.stderr)
-            return False
-        return True
-
-    if my_assert_eq(sorted(prs_to_list[Dashboard.Queue]), sorted(queue2)):
-        print("queue definitions matches, hooray!", file=sys.stderr)
-    if my_assert_eq(sorted(prs_to_list[Dashboard.NeedsMerge]), sorted(justmerge2)):
-        print("justmerge definitions matches, hooray!", file=sys.stderr)
-
     a_day_ago = datetime.now() - timedelta(days=1)
     a_week_ago = datetime.now() - timedelta(days=7)
     one_day_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_day_ago]
@@ -413,12 +372,12 @@ def main() -> None:
     prs_to_list[Dashboard.StaleMaintainerMerge] = prs_without_label(mm_prs, 'ready-to-merge')
     prs_to_list[Dashboard.StaleNewContributor] = prs_with_label(one_week_stale, 'new-contributor')
 
-    print(gather_pr_statistics(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs))
-
     (bad_title, unlabelled, contradictory) = compute_dashboards_bad_labels_title(nondraft_PRs)
     prs_to_list[Dashboard.BadTitle] = bad_title
     prs_to_list[Dashboard.Unlabelled] = unlabelled
     prs_to_list[Dashboard.ContradictoryLabels] = contradictory
+
+    print(gather_pr_statistics(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs))
     for kind in Dashboard._member_map_.values():
         print_dashboard(prs_to_list.get(kind, []), kind)
     print(HTML_FOOTER)
