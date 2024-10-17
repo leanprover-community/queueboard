@@ -379,7 +379,10 @@ def main() -> None:
 
     print(gather_pr_statistics(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs))
     for kind in Dashboard._member_map_.values():
-        print_dashboard(prs_to_list.get(kind, []), kind)
+        if kind not in prs_to_list:
+            print(f"error: forgot to include data for dashboard kind {kind}", file=sys.stderr)
+        else:
+            print_dashboard(prs_to_list[kind], kind)
     print(HTML_FOOTER)
 
 
