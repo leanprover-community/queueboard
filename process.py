@@ -44,6 +44,16 @@ def main():
             is_draft = inner["isDraft"]
             state = inner["state"].lower()
             last_updated = inner["updatedAt"]
+            # We assume the author URL is determined by the github handle: in practice, it is.
+            author = inner["author"]["login"]
+            title = inner["title"]
+            additions = inner["additions"]
+            deletions = inner["deletions"]
+            # Number of files modified by this PR.
+            files = len(inner["files"]["nodes"])
+            # Names of all labels applied to this PR: missing the background colour!
+            labels = [lab["name"] for lab in inner["labels"]["nodes"]]
+            assignees = [ass["login"] for ass in inner["assignees"]["nodes"]]
             CI_passes = False
             # Get information about the latest CI run. We just look at the "summary job".
             CI_runs = inner["statusCheckRollup"]["contexts"]["nodes"]
@@ -60,6 +70,13 @@ def main():
                 "base_branch": base_branch,
                 "state": state,
                 "last_updated": last_updated,
+                "author": author,
+                "title": title,
+                "additions": additions,
+                "deletions": deletions,
+                "num_files": files,
+                "label_names": labels,
+                "assignees": assignees,
             }
             pr_data.append(d)
     output["pr_statusses"] = pr_data
