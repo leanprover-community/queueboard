@@ -60,7 +60,7 @@ for pr in $prs; do
 done
 
 # In case there are PRs which got "missed" somehow, backfill
-# data for up to one of them.
+# data for up to two of them.
 i=0
 for pr in $(cat "missing_prs.txt"); do
   # Check if the directory exists
@@ -79,7 +79,7 @@ for pr in $(cat "missing_prs.txt"); do
   # Save the current timestamp
   echo "$CURRENT_TIME" > "$dir/timestamp.txt"
   i=$((i+1))
-  if [ $i -eq 1 ]; then
+  if [ $i -eq 2 ]; then
     echo "Backfilled one PR successfully, exiting"
     break;
   fi
