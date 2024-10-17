@@ -433,10 +433,19 @@ def gather_pr_statistics(
 
     # For some kinds, we have this data already: the review queue and the "not merged" kinds come to mind.
     # Let us compare with the classification logic.
+    def my_assert_eq(left: List[int], right: List[int]) -> bool:
+        if left != right:
+            print(f"assertion failure: left PRs are {left}, right PRs are {right}", file=sys.stderr)
+            left_sans_right = set(left) - set(right)
+            right_sans_left = set(right) - set(left)
+            print(f"the following {len(left_sans_right)} PRs are contains in left, but not right: {left_sans_right}", file=sys.stderr)
+            print(f"the following {len(right_sans_left)} PRs are contains in right, but not left: {right_sans_left}", file=sys.stderr)
+            return False
+        return True
+
     queue_prs_numbers = [pr for pr in ready_pr_status if ready_pr_status[pr] == PRStatus.AwaitingReview]
-    if queue_prs_numbers != [i.number for i in queue_prs]:
-        pass
-        # right = [i.number for i in queue_prs]
+    if my_assert_eq(queue_prs_numbers, [i.number for i in queue_prs]):
+        print("review queue: two computations match, hooray", file=sys.stderr)
         # print(f"warning: the review queue and the classification differ: found {len(right)} PRs {right} on the former, but the {len(queue_prs_numbers)} PRs {queue_prs_numbers} on the latter!", file=sys.stderr)
     # TODO: also cross-check the data for merge conflicts
 
