@@ -80,7 +80,7 @@ for pr in $(cat "missing_prs.txt"); do
   echo "$CURRENT_TIME" > "$dir/timestamp.txt"
   i=$((i+1))
   if [ $i -eq 2 ]; then
-    echo "Backfilled one PR successfully, exiting"
+    echo "Backfilled two PRs successfully, exiting"
     break;
   fi
 done
