@@ -175,6 +175,8 @@ class AggregatePRInfo(NamedTuple):
     # Github's time when the PR was "last updated"
     last_updated: datetime
 
+# Missing aggregate information will be replaced by this default item.
+PLACEHOLDER_AGGREGATE_INFO = AggregatePRInfo(False, False, "master", "open", datetime.now())
 
 # Information passed to this script, via various JSON files.
 class JSONInputData(NamedTuple):
@@ -272,9 +274,10 @@ def _write_labels(labels: List[Label]) -> str:
 
 # Print a webpage "why is my PR not on the queue" to a new file of name 'outfile'.
 # 'prs' is the list of PRs on which to print information;
-# 'CI_passes' states whether CI passes for each PR.
+# 'CI_passes' states whether CI passes for each PR. If no detailed information was available
+# for a given value, 'None' is returned.
 def print_on_the_queue_page(
-    prs: List[BasicPRInformation], CI_passes: dict[int, bool], outfile: str
+    prs: List[BasicPRInformation], CI_passes: dict[int, bool | None], outfile: str
 ) -> None:
     def icon(state: bool | None) -> str:
         """Return a green checkmark emoji if `state` is true, and a red cross emoji otherwise."""
@@ -282,7 +285,7 @@ def print_on_the_queue_page(
 
     body = ""
     for pr in prs:
-        if pr.number not in CI_passes:
+        if CI_passes[pr.number] is None:
             print(f"'on the queue' page: found no PR info for PR {pr.number}", file=sys.stderr)
         ci_passes = CI_passes[pr.number] if pr.number in CI_passes else None
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
@@ -321,24 +324,28 @@ def main() -> None:
     input_data = read_json_files()
     # Populate basic information from the input data: splitting into draft and non-draft PRs
     # (mostly, we only use the latter); extract separate dictionaries for CI status and base branch.
-    # FIXME: uniform handling of bad data; assert all input data have the same keys
-    # or deal with deviations here!
-    draft_PRs = [pr for pr in input_data.all_open_prs if input_data.aggregate_info[pr.number].is_draft]
-    nondraft_PRs = [pr for pr in input_data.all_open_prs if not input_data.aggregate_info[pr.number].is_draft]
+
+    # NB. We handle missing metadata by adding "default" values for its aggregate data
+    # (ready for review, open, against master, failing CI and just updated now).
+    aggregate_info = input_data.aggregate_info
+    for pr in input_data.all_open_prs:
+        if pr.number not in input_data.aggregate_info:
+            aggregate_info[pr.number] = PLACEHOLDER_AGGREGATE_INFO
+    draft_PRs = [pr for pr in input_data.all_open_prs if aggregate_info[pr.number].is_draft]
+    nondraft_PRs = [pr for pr in input_data.all_open_prs if not aggregate_info[pr.number].is_draft]
     assert len(draft_PRs) + len(nondraft_PRs) == len(input_data.all_open_prs)
 
-    CI_passes = dict()
-    for number in input_data.aggregate_info:
-        CI_passes[number] = input_data.aggregate_info[number].CI_passes
-    # Extract the base branch for each PR: by default, assume PRs are against master.
+    # The only exception is for the "on the queue" page,
+    # which points out missing information explicitly, hence is passed the non-filled in data.
+    CI_passes : dict[int, bool | None] = dict()
+    for pr in nondraft_PRs:
+        if pr.number in input_data.aggregate_info:
+            CI_passes[pr.number] = input_data.aggregate_info[pr.number].CI_passes
+        else:
+            CI_passes[pr.number] = None
     base_branch = dict()
     for pr in nondraft_PRs:
-        data = input_data.aggregate_info.get(pr.number)
-        if data is None:
-            base_branch[pr.number] = "master"
-        else:
-            base_branch[pr.number] = data.base_branch
-
+        base_branch[pr.number] = aggregate_info[pr.number].base_branch
     print_on_the_queue_page(nondraft_PRs, CI_passes, "on_the_queue.html")
 
     print_html5_header()
@@ -364,15 +371,8 @@ def main() -> None:
 
     a_day_ago = datetime.now() - timedelta(days=1)
     a_week_ago = datetime.now() - timedelta(days=7)
-    one_day_stale = []
-    one_week_stale = []
-    for pr in nondraft_PRs:
-        if pr.number in input_data.aggregate_info:
-            upd = input_data.aggregate_info[pr.number].last_updated
-            if upd < a_day_ago:
-                one_day_stale.append(pr)
-            if upd < a_week_ago:
-                one_week_stale.append(pr)
+    one_day_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_day_ago]
+    one_week_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_week_ago]
     prs_to_list[Dashboard.StaleReadyToMerge] = prs_with_any_label(one_day_stale, ['ready-to-merge', 'auto-merge-after-CI'])
     prs_to_list[Dashboard.StaleDelegated] = prs_with_label(one_day_stale, 'delegated')
     mm_prs = prs_with_label(one_day_stale, 'maintainer-merge')
@@ -392,15 +392,14 @@ def main() -> None:
 
 # Compute the status of each PR in a given list. Return a dictionary keyed by the PR number.
 # (`BasicPRInformation` is not hashable, hence cannot be used as a dictionary key.)
-def compute_pr_statusses(CI_passes: dict[int, bool], prs: List[BasicPRInformation]) -> dict[int, PRStatus]:
-    def determine_status(CI_passes: dict[int, bool], info: BasicPRInformation, is_draft: bool) -> PRStatus:
+def compute_pr_statusses(CI_passes: dict[int, bool | None], prs: List[BasicPRInformation]) -> dict[int, PRStatus]:
+    def determine_status(CI_passes: dict[int, bool | None], info: BasicPRInformation, is_draft: bool) -> PRStatus:
         # Ignore all "other" labels, which are not relevant for this anyway.
         labels = [label_categorisation_rules[l.name] for l in info.labels if l.name in label_categorisation_rules]
         # If information about a PR's CI status is missing, we treat is as failing.
-        ci_status = CIStatus.Fail
-        if info.number in CI_passes:
-            if CI_passes[info.number]:
-                ci_status = CIStatus.Pass
+        # If there was no aggregate information about PR 'info.number', 'CI_passes' has value None,
+        # which is treated as False: this works!
+        ci_status = CIStatus.Pass if CI_passes[info.number] else CIStatus.Fail
         state = PRState(labels, ci_status, is_draft)
         return determine_PR_status(datetime.now(), state)
 
@@ -408,7 +407,7 @@ def compute_pr_statusses(CI_passes: dict[int, bool], prs: List[BasicPRInformatio
 
 
 def gather_pr_statistics(
-    CI_passes: dict[int, bool],
+    CI_passes: dict[int, bool | None],
     prs: dict[Dashboard, List[BasicPRInformation]],
     all_ready_prs: List[BasicPRInformation],
     all_draft_prs: List[BasicPRInformation],
