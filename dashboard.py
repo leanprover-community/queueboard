@@ -218,7 +218,9 @@ def read_json_files() -> JSONInputData:
             prs_to_list[kind] = prs_to_list.get(kind, []) + prs
     with open(sys.argv[1]) as all_prs_file1, open(sys.argv[2]) as all_prs_file2:
         all_open_prs = _extract_prs(json.load(all_prs_file1))
-        all_open_prs += _extract_prs(json.load(all_prs_file2))
+        prs2 = _extract_prs(json.load(all_prs_file2))
+        print(f"reading user data: would expect {len(prs2)} draft PRs eventually", file=sys.stderr)
+        all_open_prs += all_prs_file2
     with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as f:
         data = json.load(f)
         aggregate_info = dict()
@@ -331,6 +333,7 @@ def main() -> None:
     aggregate_info = input_data.aggregate_info.copy()
     for pr in input_data.all_open_prs:
         if pr.number not in input_data.aggregate_info:
+            print(f"main: found no aggregate info for PR {pr.number}")
             aggregate_info[pr.number] = PLACEHOLDER_AGGREGATE_INFO
     draft_PRs = [pr for pr in input_data.all_open_prs if aggregate_info[pr.number].is_draft]
     nondraft_PRs = [pr for pr in input_data.all_open_prs if not aggregate_info[pr.number].is_draft]
@@ -637,7 +640,7 @@ def _compute_pr_entries(prs: List[BasicPRInformation]) -> str:
             with open(filename, "r") as file:
                 pr_info = json.load(file)
         if pr_info is None:
-            print(f"main dashboard: found no PR info for PR {pr.number}", file=sys.stderr)
+            # print(f"main dashboard: found no PR info for PR {pr.number}", file=sys.stderr)
             entries.extend(["-1/-1", "-1", "-1"])
         else:
             # We treat non-well-formed data as missing.
