@@ -386,9 +386,6 @@ def main() -> None:
     prs_to_list[Dashboard.Unlabelled] = unlabelled
     prs_to_list[Dashboard.ContradictoryLabels] = contradictory
     for kind in Dashboard._member_map_.values():
-        # TODO: if a PR is listed in to data files, make sure to only list it once.
-        # This will be fixed by refactoring the dashboard generation to filter one large
-        # list of PRs instead, removing the remaining calls to github's API.
         print_dashboard(prs_to_list.get(kind, []), kind)
     print(HTML_FOOTER)
 
