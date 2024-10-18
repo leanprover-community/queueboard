@@ -277,10 +277,12 @@ def _write_labels(labels: List[Label]) -> str:
 
 # Print a webpage "why is my PR not on the queue" to a new file of name 'outfile'.
 # 'prs' is the list of PRs on which to print information;
+# 'prs_from_fork' is the list of such PRs which are opened from a fork of mathlib,
 # 'CI_passes' states whether CI passes for each PR. If no detailed information was available
 # for a given value, 'None' is returned.
+# 'base_branch' returns the pase branch of each PR.
 def print_on_the_queue_page(
-    prs: List[BasicPRInformation], CI_passes: dict[int, bool | None], outfile: str
+    prs: List[BasicPRInformation], prs_from_fork: List[BasicPRInformation], CI_passes: dict[int, bool | None], base_branch: dict[int, str], outfile: str
 ) -> None:
     def icon(state: bool | None) -> str:
         """Return a green checkmark emoji if `state` is true, and a red cross emoji otherwise."""
@@ -288,6 +290,9 @@ def print_on_the_queue_page(
 
     body = ""
     for pr in prs:
+        if base_branch[pr.number] != "master":
+            continue
+        from_fork = pr in prs_from_fork
         ci_passes = CI_passes[pr.number]
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
         has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.labels]
@@ -296,15 +301,15 @@ def print_on_the_queue_page(
         overall = ci_passes and (not is_blocked) and (not has_merge_conflict) and is_ready and review
         entries = [
             pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url),
-            _write_labels(pr.labels),
+            _write_labels(pr.labels), icon(not from_fork),
             '???' if ci_passes is None else icon(ci_passes),
             icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall)
         ]
         result = _write_table_row(entries, "    ")
         body += result
     headings = [
-        "Number", "Author", "Title", "Labels", "CI status?",
-        '<a title="not labelled with blocked-by-other-PR, blocked-by-batt-PR, blocked-by-core-PR, blocked-by-qq-PR">not blocked?</a>,',
+        "Number", "Author", "Title", "Labels", "not from a fork?", "CI status?",
+        '<a title="not labelled with blocked-by-other-PR, blocked-by-batt-PR, blocked-by-core-PR, blocked-by-qq-PR">not blocked?</a>',
         "no merge conflict?",
         '<a title="not in draft state or labelled as in progress">ready?</a>',
         '<a title="not labelled awaiting-author, awaiting-zulip, awaiting-CI">awaiting review?</a>',
@@ -349,7 +354,8 @@ def main() -> None:
     base_branch: dict[int, str] = dict()
     for pr in nondraft_PRs:
         base_branch[pr.number] = aggregate_info[pr.number].base_branch
-    print_on_the_queue_page(nondraft_PRs, CI_passes, "on_the_queue.html")
+    prs_from_fork = [pr for pr in nondraft_PRs if aggregate_info[pr.number].head_repo != "leanprover-community"]
+    print_on_the_queue_page(nondraft_PRs, prs_from_fork, CI_passes, base_branch, "on_the_queue.html")
 
     print_html5_header()
     # Print a quick table of contents.
@@ -365,7 +371,6 @@ def main() -> None:
     all_ready_prs = prs_without_label(nondraft_PRs, 'WIP')
     prs_to_list[Dashboard.TechDebt] = prs_with_any_label(all_ready_prs, ['tech debt', 'longest-pole'])
     prs_to_list[Dashboard.OtherBase] = [pr for pr in nondraft_PRs if base_branch[pr.number] != 'master']
-    prs_from_fork = [pr for pr in nondraft_PRs if aggregate_info[pr.number].head_repo != "leanprover-community"]
     prs_to_list[Dashboard.FromFork] = prs_from_fork
 
     prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(nondraft_PRs, ['help-wanted', 'please_adopt'])
