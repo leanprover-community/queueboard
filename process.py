@@ -56,6 +56,7 @@ def determine_ci_status(number, CI_check_nodes: dict) -> bool:
 def get_aggregate_data(pr_data: dict, _only_basic_info: bool) -> dict:
     inner = pr_data["data"]["repository"]["pullRequest"]
     number = inner["number"]
+    head_repo = inner["headRepositoryOwner"]
     base_branch = inner["baseRefName"]
     is_draft = inner["isDraft"]
     state = inner["state"].lower()
@@ -79,6 +80,7 @@ def get_aggregate_data(pr_data: dict, _only_basic_info: bool) -> dict:
         "number": number,
         "is_draft": is_draft,
         "CI_passes": CI_passes,
+        "head_repo": head_repo,
         "base_branch": base_branch,
         "state": state,
         "last_updated": last_updated,
