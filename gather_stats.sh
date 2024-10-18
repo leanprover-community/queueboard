@@ -37,23 +37,26 @@ prs=$(echo "$response" | jq -r --arg PAST_TIME "$PAST_TIME" --arg CURRENT_TIME "
   .number
 ')
 
+# Parse the list of all stubborn PRs. This is newline-separated,
+# but for our purposes, that is fine.
+stubborn_prs=$(cat stubborn_prs.txt | grep --invert-match "^-")
+
 # Iterate over each PR number.
-# TODO: treat stubborn PRs differently: not sure how to do so nicely!
-# I can certainly hard-code them here and hope nothing fails...
-# and if these are rarely updated, that could work well enough...
 for pr in $prs; do
-  # Create the directory for the PR
-  dir="data/$pr"
-  mkdir -p "$dir"
-
-  # Run pr_info.sh and save the output
-  ./pr_info.sh "$pr" | jq '.' > "$dir/pr_info.json"
-
-  # Run pr_reactions.sh and save the output
-  ./pr_reactions.sh "$pr" | jq '.' > "$dir/pr_reactions.json"
-
-  # Save the current timestamp
-  echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+  if [[ $stubborn_prs == *$pr* ]]; then
+    dir="data/$pr-basic"
+    mkdir -p "$dir"
+    ./basic_pr_info.sh "$pr" | jq '.' > "$dir/basic_pr_info.json"
+    echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+  else
+    dir="data/$pr"
+    mkdir -p "$dir"
+    # Run pr_info.sh and pr_reactions.sh and save the output.
+    ./pr_info.sh "$pr" | jq '.' > "$dir/pr_info.json"
+    ./pr_reactions.sh "$pr" | jq '.' > "$dir/pr_reactions.json"
+    # Save the current timestamp.
+    echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+  fi
 done
 
 # In case there are PRs which got "missed" somehow, backfill
@@ -66,14 +69,12 @@ for pr in $(cat "missing_prs.txt"); do
     continue
   fi
   echo "Attempting to backfill data for PR $pr"
-  # Create the directory for the PR
   dir="data/$pr"
   mkdir -p "$dir"
-  # Run pr_info.sh and save the output
+  # Run pr_info.sh and pr_reactions.sh and save the output.
   ./pr_info.sh "$pr" | jq '.' > "$dir/pr_info.json"
-  # Run pr_reactions.sh and save the output
   ./pr_reactions.sh "$pr" | jq '.' > "$dir/pr_reactions.json"
-  # Save the current timestamp
+  # Save the current timestamp.
   echo "$CURRENT_TIME" > "$dir/timestamp.txt"
   i=$((i+1))
   if [ $i -eq 1 ]; then
@@ -82,34 +83,22 @@ for pr in $(cat "missing_prs.txt"); do
   fi
 done
 
-# TODO: parse the list of 'stubborn' PRs instead of hard-coding this here.
-# something like the following should work...
-# declare -a stubborn_prs
-# while IFS= read -r line; do
-#   if ! [[ $line == --* ]]; then
-#     stubborn_prs+=($line)
-#   fi
-# done < "stubborn_prs.txt"
-# TODO: each right line is filtered, but 'stubborn_prs' is populated wrong!
-
 # Do the same for at most one stubborn PR.
 j=0
-stubborn="4197 5901 6718 9353 9651 9675 9819 11975 11976 15254 15412 15925 16577 16596"
-for pr in $stubborn; do
+for pr in $stubborn_prs; do
   dir="data/$pr-basic"
-  # Check if the directory exists
+  # Check if the directory exists.
   if [ -d $dir ]; then
-    echo "[skip] Data exists for stubborn PR #$pr: $CURRENT_TIME"
+    echo "[skip] Data exists for 'stubborn' PR #$pr: $CURRENT_TIME"
     continue
   fi
-  echo "Attempting to backfill data for stubborn PR $pr"
-  # Create the directory for the PR
+  echo "Attempting to backfill data for 'stubborn' PR $pr"
   mkdir -p "$dir"
   ./basic_pr_info.sh "$pr" | jq '.' > "$dir/basic_pr_info.json"
   echo "$CURRENT_TIME" > "$dir/timestamp.txt"
   j=$((j+1))
   if [ $j -eq 1 ]; then
-    echo "Backfilled one stubborn PR successfully, exiting"
+    echo "Backfilled one 'stubborn' PR successfully, exiting"
     break;
   fi
 done
