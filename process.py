@@ -32,8 +32,7 @@ def parse_json_file(name: str, pr_number: str) -> dict | str:
     return data
 
 
-def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
-    # TODO: take 'only_basic_info' into account!
+def get_aggregate_data(pr_data: dict, _only_basic_info: bool) -> dict:
     inner = pr_data["data"]["repository"]["pullRequest"]
     number = inner["number"]
     base_branch = inner["baseRefName"]
@@ -59,6 +58,8 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
             pass
         elif r["name"] == "Summary":
             CI_passes = True if r["conclusion"] == "SUCCESS" else False
+    # NB. When adding future fields, pay attention to whether the 'basic' info files
+    # also contain this information --- otherwise, it is fine to omit it!
     return {
         "number": number,
         "is_draft": is_draft,
