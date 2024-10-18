@@ -53,7 +53,8 @@ def main():
         # current_updated should be at least as new,
         # aggregate_updated is allowed to lag behind by at most 10 minutes.
         if aggregate_updated < current_updated - timedelta(minutes=10):
-            print(f'mismatch: the aggregate file for PR {pr_number} is outdated, please re-download!')
+            delta = current_updated - aggregate_updated
+            print(f'mismatch: the aggregate file for PR {pr_number} is outdated by {delta}, please re-download!')
             print(f"aggregate file says {aggregate_updated}, current last update is {current_updated}")
 
     # TODO: do something with this result automatically --- e.g., schedule PRs as
