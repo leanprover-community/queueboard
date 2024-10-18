@@ -41,7 +41,7 @@ prs=$(echo "$response" | jq -r --arg PAST_TIME "$PAST_TIME" --arg CURRENT_TIME "
 # but for our purposes, that is fine.
 stubborn_prs=$(cat stubborn_prs.txt | grep --invert-match "^-")
 
-# Iterate over each PR number.
+# Download data for all updated PRs, overwriting existing data if needed.
 for pr in $prs; do
   if [[ $stubborn_prs == *$pr* ]]; then
     dir="data/$pr-basic"
@@ -58,6 +58,26 @@ for pr in $prs; do
     echo "$CURRENT_TIME" > "$dir/timestamp.txt"
   fi
 done
+
+# Re-download data if missing. Take care to not ask for too much at once!
+# (If chunking, make sure to not run into a loop of re-re-downloading in a loop!)
+for pr in $(cat "redownload.txt"); do
+  if [[ $stubborn_prs == *$pr* ]]; then
+    dir="data/$pr-basic"
+    mkdir -p "$dir"
+    ./basic_pr_info.sh "$pr" | jq '.' > "$dir/basic_pr_info.json"
+    echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+  else
+    dir="data/$pr"
+    mkdir -p "$dir"
+    # Run pr_info.sh and pr_reactions.sh and save the output.
+    ./pr_info.sh "$pr" | jq '.' > "$dir/pr_info.json"
+    ./pr_reactions.sh "$pr" | jq '.' > "$dir/pr_reactions.json"
+    # Save the current timestamp.
+    echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+  fi
+done
+echo "" > redownload.txt
 
 # In case there are PRs which got "missed" somehow, backfill
 # data for up to one of them.
