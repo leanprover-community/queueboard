@@ -366,13 +366,15 @@ def main() -> None:
     # The review queue consists of all PRs against the master branch, with passing CI,
     # that are not in draft state and not labelled WIP, help-wanted or please-adopt,
     # and have none of the other labels below.
+    prs_from_fork = [pr for pr in nondraft_PRs if input_data.aggregate_info[pr.number].head_repo != "leanprover-community"]
     master_prs_with_CI = [pr for pr in nondraft_PRs if base_branch[pr.number] == 'master' and CI_passes[pr.number]]
+    master_CI_notfork = [pr for pr in master_prs_with_CI if pr not in prs_from_fork]
     other_labels = [
         # XXX: does the #queue check for all of these labels?
         "blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR",
         "awaiting-CI", "awaiting-author", "awaiting-zulip", "please-adopt", "help-wanted", "WIP",
         "delegated", "auto-merge-after-CI", "ready-to-merge"]
-    queue_or_merge_conflict = prs_without_any_label(master_prs_with_CI, other_labels)
+    queue_or_merge_conflict = prs_without_any_label(master_CI_notfork, other_labels)
     prs_to_list[Dashboard.NeedsMerge] = prs_with_label(queue_or_merge_conflict, "merge-conflict")
     queue_prs = prs_without_label(queue_or_merge_conflict, "merge-conflict")
     prs_to_list[Dashboard.Queue] = queue_prs
