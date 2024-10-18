@@ -9,7 +9,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto, unique
 from os import path
-from typing import List, NamedTuple, Tuple
+from typing import Dict, List, NamedTuple, Tuple
 
 from dateutil.relativedelta import relativedelta
 
@@ -434,7 +434,7 @@ def gather_pr_statistics(
         PRStatus.Contradictory,
         PRStatus.Delegated, PRStatus.AwaitingBors,
     ]
-    number_prs : dict[PRStatus, int] = {
+    number_prs : Dict[PRStatus, int] = {
         status : len([number for number in ready_pr_status if ready_pr_status[number] == status]) for status in statusses
     }
     number_prs[PRStatus.NotReady] += len(all_draft_prs)
