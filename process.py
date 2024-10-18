@@ -21,23 +21,40 @@ def main():
     updated = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     output["timestamp"] = updated
     pr_data = []
+    # A few files are known to have broken detailed information.
+    # They can be found in the file "stubborn_prs.txt".
+    known_erronerous: List[str] = []
+    with open("stubborn_prs.txt", "r") as error_prs:
+        for line in error_prs:
+            if not line.startswith("--"):
+                known_erronerous.append(line.rstrip())
     # Read all pr info files in the data directory.
     pr_names: List[str] = sorted(os.listdir("data"))
     for pr_number in pr_names:
         with open(f"data/{pr_number}/pr_info.json", "r") as fi:
             data = None
             # Handle data with errors gracefully: warn, but do not fail the script.
+            has_error = False
+            data = None
             try:
                 data = json.load(fi)
             except json.decoder.JSONDecodeError:
-                print(f"error: the pr_info file for PR {pr_number} is invalid JSON, ignoring", file=sys.stderr)
+                if pr_number not in known_erronerous:
+                    print("attention: found an unexpected error!")
+                    print(f"error: the pr_info file for PR {pr_number} is invalid JSON, ignoring", file=sys.stderr)
                 continue
             if "errors" in data:
-                print(f"warning: the data for PR {pr_number} is incomplete, ignoring", file=sys.stderr)
+                if pr_number not in known_erronerous:
+                    print("attention: found an unexpected error!")
+                    print(f"warning: the data for PR {pr_number} is incomplete, ignoring", file=sys.stderr)
                 continue
             elif "data" not in data:
-                print(f"warning: the data for PR {pr_number} is incomplete (perhaps a time out downloading it), ignoring", file=sys.stderr)
+                if pr_number not in known_erronerous:
+                    print("attention: found an unexpected error!")
+                    print(f"warning: the data for PR {pr_number} is incomplete (perhaps a time out downloading it), ignoring", file=sys.stderr)
                 continue
+            if pr_number in known_erronerous:
+                print(f"warning: PR {pr_number} had fine data, but was listed as erronerous: please remove it from that list")
             inner = data["data"]["repository"]["pullRequest"]
             number = inner["number"]
             base_branch = inner["baseRefName"]
