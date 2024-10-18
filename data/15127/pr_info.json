@@ -19,7 +19,7 @@
           "nodes": [
             {
               "id": "IC_kwDOFcwZ1c6GHSnI",
-              "body": "### PR summary [a4fc80525d](https://github.com/leanprover-community/mathlib4/pull/15127/commits/a4fc80525d2c8bb5d4932c16eb413b61497f6747)\n\n#### Import changes for modified files\n\nNo significant changes to the import graph\n\n\n<details><summary>Import changes for all files</summary>\n\n|Files|Import difference|\n|-|-|\n\n</details>\n\n---\n\n#### Declarations diff\n\n`+ congr_liftFun`\n`+ congr_liftFun₂`\n<details>\n  <summary>You can run this locally as follows</summary>\n\n\n```bash\n## summary with just the declaration names:\n./scripts/declarations_diff.sh <optional_commit>\n\n## more verbose report:\n./scripts/declarations_diff.sh long <optional_commit>\n```\n</details>",
+              "body": "### PR summary [11f1217294](https://github.com/leanprover-community/mathlib4/pull/15127/commits/11f1217294b0d35bbf45481a88559d770f94bc7a)\n\n#### Import changes for modified files\n\nNo significant changes to the import graph\n\n\n<details><summary>Import changes for all files</summary>\n\n|Files|Import difference|\n|-|-|\n\n</details>\n\n---\n\n#### Declarations diff\n\n`+ congr_liftFun`\n`+ congr_liftFun₂`\n<details>\n  <summary>You can run this locally as follows</summary>\n\n\n```bash\n## summary with just the declaration names:\n./scripts/declarations_diff.sh <optional_commit>\n\n## more verbose report:\n./scripts/declarations_diff.sh long <optional_commit>\n```\n</details>\n\nThe doc-module for `script/declarations_diff.sh` contains some details about this script.",
               "createdAt": "2024-07-25T11:02:28Z",
               "author": {
                 "login": "github-actions"
@@ -31,6 +31,86 @@
               "createdAt": "2024-08-08T13:46:24Z",
               "author": {
                 "login": "urkud"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6Prjmr",
+              "body": "Maybe this is correct, maybe proofs would be shorter, but not necessarily more readable. The point of this is that congruence is very often not phrased in terms of `⇒` and thus this makes things more readable, in my opinion.\r\n\r\nUnfortunately also the classical definition of congruence (used here) does not seem to be reduce to `⇒` so that just passing the proofs of congruence to `map` would not work without these lemmas.",
+              "createdAt": "2024-10-14T09:20:52Z",
+              "author": {
+                "login": "goens"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6Prw_e",
+              "body": "> Unfortunately also the classical definition of congruence (used here) does not seem to be reduce to `⇒` \r\n\r\nI would claim that classically, the order of universal quantifiers doesn't really exist, and that is just a concern than appears in formalization.\r\n\r\n> so that just passing the proofs of congruence to `map` would not work without these lemmas.\r\n\r\nAll you have to do is replace `intro x₁ x₂ y₁ y₂ hx hy` in your proof with `intro x₁ x₂ hx y₁ y₂ hy`",
+              "createdAt": "2024-10-14T09:40:59Z",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6Pv7KF",
+              "body": "> All you have to do is replace intro x₁ x₂ y₁ y₂ hx hy in your proof with intro x₁ x₂ hx y₁ y₂ hy\r\n\r\nIn my opinion the point here is not about proofs, it's about defining quotients with `Quotient.map`. You can't pass a proof of congruence to it because it takes in a `(h : ((· ≈ ·) ⇒ (· ≈ ·)) f f)` instead of something of type `: (h : ∀ a b, a ≈ b → f a = f b)` or its generalization `(h : ∀ x y, R x y → S (f x) (f y))`, which is why I used this lemmas.\r\n\r\nMaybe the reasonable thing instead would be defining a  `map'` that takes in an `(h : ∀ x y, R x y → S (f x) (f y))`, and similarly for `map₂`? ",
+              "createdAt": "2024-10-14T16:16:59Z",
+              "author": {
+                "login": "goens"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6Py00F",
+              "body": "Could you give an example of the type of code that you're claiming doesn't currently work? I suspect the fix for the example you give is as simple as adding an `@` somewhere.",
+              "createdAt": "2024-10-14T22:46:27Z",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6Py1vw",
+              "body": "Here's what I think is a direct refutation of your claim:\r\n```lean\r\nimport Mathlib\r\n\r\nvariable\r\n  {α β}\r\n  [sα : Setoid α] [sβ : Setoid β]\r\n  (f : α → β)\r\n  (hf : ∀ a b, a ≈ b → f a ≈ f b) -- this does not use `⇒`, but it works fine anyway\r\n\r\ndef foo : Quotient sα → Quotient sβ := Quotient.map f hf\r\n```",
+              "createdAt": "2024-10-14T22:50:22Z",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6Py14E",
+              "body": "`(h : ∀ a b, a ≈ b → f a = f b)` is the argument type taken by `Quotient.lift`, not `Quotient.map`.",
+              "createdAt": "2024-10-14T22:50:58Z",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6QHfFK",
+              "body": "Sorry, it took me a bit to get around back to writing this example properly. This works:\r\n```lean\r\nimport Mathlib\r\nvariable (n : ℕ)\r\ninstance instEq : Equivalence (Nat.ModEq n) := ⟨refl, Nat.ModEq.symm, Nat.ModEq.trans⟩\r\ninstance instS : Setoid ℕ := ⟨(Nat.ModEq n), instEq n⟩\r\ntheorem add_congr : ∀ (a b c d : ℕ), (h₁ : a ≡ b [MOD n]) → (h₂ : c ≡ d [MOD n]) → (a+c) ≡ b+d [MOD n] :=\r\n  fun _ _ _ _ h₁ h₂ => h₁.add h₂\r\n\r\ndef setoid_add {n}: Quotient (instS n) → Quotient (instS n) → Quotient (instS n) :=\r\n  Quotient.map₂  Nat.add (congr_liftFun₂ (add_congr n))\r\n    (sa := instS n) (sb := instS n) (sc := instS n)\r\n```\r\n\r\nbut if I change it to \r\n\r\n```lean\r\ndef setoid_add {n}: Quotient (instS n) → Quotient (instS n) → Quotient (instS n) :=\r\n  Quotient.map₂  Nat.add (add_congr n)\r\n    (sa := instS n) (sb := instS n) (sc := instS n)\r\n ```\r\n    \r\nI get the error:\r\n```lean\r\napplication type mismatch\r\n  Quotient.map₂ Nat.add ⋯\r\nargument\r\n  add_congr n\r\nhas type\r\n  ∀ (a b c d : ℕ), a ≡ b [MOD n] → c ≡ d [MOD n] → a + c ≡ b + d [MOD n] : Prop\r\nbut is expected to have type\r\n  ((fun x x_1 ↦ x ≈ x_1) ⇒ (fun x x_1 ↦ x ≈ x_1) ⇒ fun x x_1 ↦ x ≈ x_1) Nat.add Nat.add : Prop\r\n```\r\n\r\nI think the problem is on the `map₂` case Lean doesn't manage to see through the definition. An example more or less along these lines was my original motivation. I should have described this with the PR originally, sorry for that (and thanks for the reviews, I appreciate you taking the time to discuss this with me!)",
+              "createdAt": "2024-10-16T20:25:09Z",
+              "author": {
+                "login": "goens"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6QHf29",
+              "body": "> `(h : ∀ a b, a ≈ b → f a = f b)` is the argument type taken by `Quotient.lift`, not `Quotient.map`.\r\n\r\nright, but I don't see why map wouldn't take the same to be honest, that's the point. Of course we can use lift, but then what's the point of map. I think map is convenient, but it's not convenient if it doesn't accept a congruence proof but rather only this `⇒` generalization that doesn't unify with a congruence proof.",
+              "createdAt": "2024-10-16T20:27:05Z",
+              "author": {
+                "login": "goens"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6QH16E",
+              "body": "In this case the spelling I'd advocate is:\r\n```lean\r\nimport Mathlib\r\nvariable (n : ℕ)\r\ninstance instEq : Equivalence (Nat.ModEq n) := ⟨refl, Nat.ModEq.symm, Nat.ModEq.trans⟩\r\ninstance instS' : Setoid ℕ := ⟨(Nat.ModEq n), instEq n⟩\r\ntheorem add_congr : ∀ {a b c d : ℕ}, (h₁ : a ≡ b [MOD n]) → (h₂ : c ≡ d [MOD n]) → (a+c) ≡ b+d [MOD n] :=\r\n  fun h₁ h₂ => h₁.add h₂\r\n\r\ndef setoid_add {n}: Quotient (instS' n) → Quotient (instS' n) → Quotient (instS' n) :=\r\n  Quotient.map₂  Nat.add fun _ _ h₁ _ _ h₂ => add_congr _ h₁ h₂\r\n```\r\nwhere `fun` does the work of adjusting the argument order",
+              "createdAt": "2024-10-16T21:12:51Z",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6QKCEK",
+              "body": "Yeah, that works, but then you need to see under the definitions/implementation details to reorder those arguments. I think it's good design to have abstractions that are familiar to people. In my opinion, `map₂` (or at least some `map₂'`) should take these congruence proofs, not an inline anonymous function rearranging the arguments to make it fit some other generalization. I'm happy to adapt the PR to provide that `map₂ '`, but if you think this abstraction is not useful or helpful, feel free to close this PR.",
+              "createdAt": "2024-10-17T05:42:12Z",
+              "author": {
+                "login": "goens"
               }
             }
           ]
@@ -681,6 +761,144 @@
                   }
                 }
               }
+            },
+            {
+              "commit": {
+                "oid": "11f1217294b0d35bbf45481a88559d770f94bc7a",
+                "additions": 158827,
+                "deletions": 74326,
+                "committedDate": "2024-10-14T09:25:58Z",
+                "author": {
+                  "name": "Andrés Goens",
+                  "email": "andres@goens.org"
+                },
+                "statusCheckRollup": {
+                  "contexts": {
+                    "nodes": [
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHVPVzJA",
+                        "name": "Add topic label",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731603/job/31490143012"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHVPVWVA",
+                        "name": "label-and-report-new-contributor",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324729123/job/31490135636"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHVPVWsQ",
+                        "name": "build",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324729118/job/31490135729"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHVPVzfQ",
+                        "name": "Cancel Previous Runs (CI)",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731615/job/31490143101"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHVPV0bw",
+                        "name": "Cancel Previous Runs (CI)",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731604/job/31490143343"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHVPVX5w",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324729114/job/31490136039"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHVPV14Q",
+                        "name": "Lint style (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731615/job/31490143713"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHVPV1hg",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731604/job/31490143622"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHVPVWlw",
+                        "name": "Check all files imported",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324729114/job/31490135703"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHVPV0mQ",
+                        "name": "Build (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731615/job/31490143385"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHVPVzZg",
+                        "name": "Build",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731604/job/31490143078"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHVPV3Hg",
+                        "name": "Post-CI job (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731615/job/31490144030"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHVSCF5g",
+                        "name": "Post-CI job",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731604/job/31492965862"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHVPVrQw",
+                        "name": "New Contributor Check",
+                        "conclusion": "NEUTRAL",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/runs/31490140995"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHVPXRxg",
+                        "name": "Summary",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=15127&login=leanprover-community&repository=mathlib4"
+                      }
+                    ]
+                  }
+                }
+              }
             }
           ]
         },
@@ -696,7 +914,7 @@
           ]
         },
         "headRefName": "quot_congr_lifts",
-        "headRefOid": "a4fc80525d2c8bb5d4932c16eb413b61497f6747",
+        "headRefOid": "11f1217294b0d35bbf45481a88559d770f94bc7a",
         "headRepository": {
           "name": "mathlib4",
           "owner": {
@@ -711,10 +929,6 @@
         "isDraft": false,
         "labels": {
           "nodes": [
-            {
-              "id": "LA_kwDOFcwZ1c7P265b",
-              "name": "awaiting-author"
-            },
             {
               "id": "LA_kwDOFcwZ1c8AAAABb5aSCQ",
               "name": "new-contributor"
@@ -747,7 +961,7 @@
         "milestone": null,
         "number": 15127,
         "potentialMergeCommit": {
-          "oid": "c21612c08a6658d1725f5bee23d15ae5fa48f1c2"
+          "oid": "6cd6cb33f1295e1240358b985aeb1f4743d668de"
         },
         "projectCards": {
           "nodes": []
@@ -875,127 +1089,119 @@
             "nodes": [
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgtp1FQ",
+                "id": "CR_kwDOFcwZ1c8AAAAHVPVzJA",
+                "name": "Add topic label",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731603/job/31490143012"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHVPVWVA",
                 "name": "label-and-report-new-contributor",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/10112017124/job/27965158677"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324729123/job/31490135636"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgtp0GQ",
+                "id": "CR_kwDOFcwZ1c8AAAAHVPVWsQ",
                 "name": "build",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/10112017117/job/27965158425"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324729118/job/31490135729"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgtpzqw",
+                "id": "CR_kwDOFcwZ1c8AAAAHVPVzfQ",
                 "name": "Cancel Previous Runs (CI)",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/10112017036/job/27965158315"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731615/job/31490143101"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgtp1_w",
+                "id": "CR_kwDOFcwZ1c8AAAAHVPV0bw",
                 "name": "Cancel Previous Runs (CI)",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/10112017040/job/27965158911"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731604/job/31490143343"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgtp2Lw",
+                "id": "CR_kwDOFcwZ1c8AAAAHVPVX5w",
                 "name": "Lint style",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/10112017120/job/27965158959"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324729114/job/31490136039"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgtp29g",
+                "id": "CR_kwDOFcwZ1c8AAAAHVPV14Q",
                 "name": "Lint style (fork)",
                 "conclusion": "SKIPPED",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/10112017036/job/27965159158"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731615/job/31490143713"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgtp3zA",
+                "id": "CR_kwDOFcwZ1c8AAAAHVPV1hg",
                 "name": "Lint style",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/10112017040/job/27965159372"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731604/job/31490143622"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgtp0pg",
+                "id": "CR_kwDOFcwZ1c8AAAAHVPVWlw",
                 "name": "Check all files imported",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/10112017120/job/27965158566"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324729114/job/31490135703"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgtp13g",
-                "name": "check workflows (fork)",
-                "conclusion": "SKIPPED",
-                "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/10112017036/job/27965158878"
-              },
-              {
-                "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgtp25Q",
-                "name": "check workflows",
-                "conclusion": "SUCCESS",
-                "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/10112017040/job/27965159141"
-              },
-              {
-                "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgtp4Fw",
+                "id": "CR_kwDOFcwZ1c8AAAAHVPV0mQ",
                 "name": "Build (fork)",
                 "conclusion": "SKIPPED",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/10112017036/job/27965159447"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731615/job/31490143385"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgtp0Kw",
+                "id": "CR_kwDOFcwZ1c8AAAAHVPVzZg",
                 "name": "Build",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/10112017040/job/27965158443"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731604/job/31490143078"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgtp5OA",
+                "id": "CR_kwDOFcwZ1c8AAAAHVPV3Hg",
                 "name": "Post-CI job (fork)",
                 "conclusion": "SKIPPED",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/10112017036/job/27965159736"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731615/job/31490144030"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgwY8mQ",
+                "id": "CR_kwDOFcwZ1c8AAAAHVSCF5g",
                 "name": "Post-CI job",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/10112017040/job/27968027801"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11324731604/job/31492965862"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgtqRPQ",
+                "id": "CR_kwDOFcwZ1c8AAAAHVPVrQw",
                 "name": "New Contributor Check",
                 "conclusion": "NEUTRAL",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/runs/27965165885"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/runs/31490140995"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAGgtrIiw",
+                "id": "CR_kwDOFcwZ1c8AAAAHVPXRxg",
                 "name": "Summary",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
@@ -1005,7 +1211,7 @@
           }
         },
         "title": "feat(Quot): add simple lemmas on function congruence",
-        "updatedAt": "2024-08-15T10:57:55Z",
+        "updatedAt": "2024-10-17T05:43:04Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/15127",
         "timelineItems": {
           "nodes": [
@@ -1025,7 +1231,7 @@
               "__typename": "IssueComment",
               "id": "IC_kwDOFcwZ1c6GHSnI",
               "createdAt": "2024-07-25T11:02:28Z",
-              "body": "### PR summary [a4fc80525d](https://github.com/leanprover-community/mathlib4/pull/15127/commits/a4fc80525d2c8bb5d4932c16eb413b61497f6747)\n\n#### Import changes for modified files\n\nNo significant changes to the import graph\n\n\n<details><summary>Import changes for all files</summary>\n\n|Files|Import difference|\n|-|-|\n\n</details>\n\n---\n\n#### Declarations diff\n\n`+ congr_liftFun`\n`+ congr_liftFun₂`\n<details>\n  <summary>You can run this locally as follows</summary>\n\n\n```bash\n## summary with just the declaration names:\n./scripts/declarations_diff.sh <optional_commit>\n\n## more verbose report:\n./scripts/declarations_diff.sh long <optional_commit>\n```\n</details>",
+              "body": "### PR summary [11f1217294](https://github.com/leanprover-community/mathlib4/pull/15127/commits/11f1217294b0d35bbf45481a88559d770f94bc7a)\n\n#### Import changes for modified files\n\nNo significant changes to the import graph\n\n\n<details><summary>Import changes for all files</summary>\n\n|Files|Import difference|\n|-|-|\n\n</details>\n\n---\n\n#### Declarations diff\n\n`+ congr_liftFun`\n`+ congr_liftFun₂`\n<details>\n  <summary>You can run this locally as follows</summary>\n\n\n```bash\n## summary with just the declaration names:\n./scripts/declarations_diff.sh <optional_commit>\n\n## more verbose report:\n./scripts/declarations_diff.sh long <optional_commit>\n```\n</details>\n\nThe doc-module for `script/declarations_diff.sh` contains some details about this script.",
               "author": {
                 "login": "github-actions"
               }
@@ -1085,6 +1291,108 @@
               "label": {
                 "id": "LA_kwDOFcwZ1c8AAAABtNO8rw",
                 "name": "t-data"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6Prjmr",
+              "createdAt": "2024-10-14T09:20:52Z",
+              "body": "Maybe this is correct, maybe proofs would be shorter, but not necessarily more readable. The point of this is that congruence is very often not phrased in terms of `⇒` and thus this makes things more readable, in my opinion.\r\n\r\nUnfortunately also the classical definition of congruence (used here) does not seem to be reduce to `⇒` so that just passing the proofs of congruence to `map` would not work without these lemmas.",
+              "author": {
+                "login": "goens"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c6Q0eICzwAAAANn_hl-",
+              "createdAt": "2024-10-14T09:21:22Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6Prw_e",
+              "createdAt": "2024-10-14T09:40:59Z",
+              "body": "> Unfortunately also the classical definition of congruence (used here) does not seem to be reduce to `⇒` \r\n\r\nI would claim that classically, the order of universal quantifiers doesn't really exist, and that is just a concern than appears in formalization.\r\n\r\n> so that just passing the proofs of congruence to `map` would not work without these lemmas.\r\n\r\nAll you have to do is replace `intro x₁ x₂ y₁ y₂ hx hy` in your proof with `intro x₁ x₂ hx y₁ y₂ hy`",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6Pv7KF",
+              "createdAt": "2024-10-14T16:16:59Z",
+              "body": "> All you have to do is replace intro x₁ x₂ y₁ y₂ hx hy in your proof with intro x₁ x₂ hx y₁ y₂ hy\r\n\r\nIn my opinion the point here is not about proofs, it's about defining quotients with `Quotient.map`. You can't pass a proof of congruence to it because it takes in a `(h : ((· ≈ ·) ⇒ (· ≈ ·)) f f)` instead of something of type `: (h : ∀ a b, a ≈ b → f a = f b)` or its generalization `(h : ∀ x y, R x y → S (f x) (f y))`, which is why I used this lemmas.\r\n\r\nMaybe the reasonable thing instead would be defining a  `map'` that takes in an `(h : ∀ x y, R x y → S (f x) (f y))`, and similarly for `map₂`? ",
+              "author": {
+                "login": "goens"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6Py00F",
+              "createdAt": "2024-10-14T22:46:27Z",
+              "body": "Could you give an example of the type of code that you're claiming doesn't currently work? I suspect the fix for the example you give is as simple as adding an `@` somewhere.",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6Py1vw",
+              "createdAt": "2024-10-14T22:50:22Z",
+              "body": "Here's what I think is a direct refutation of your claim:\r\n```lean\r\nimport Mathlib\r\n\r\nvariable\r\n  {α β}\r\n  [sα : Setoid α] [sβ : Setoid β]\r\n  (f : α → β)\r\n  (hf : ∀ a b, a ≈ b → f a ≈ f b) -- this does not use `⇒`, but it works fine anyway\r\n\r\ndef foo : Quotient sα → Quotient sβ := Quotient.map f hf\r\n```",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6Py14E",
+              "createdAt": "2024-10-14T22:50:58Z",
+              "body": "`(h : ∀ a b, a ≈ b → f a = f b)` is the argument type taken by `Quotient.lift`, not `Quotient.map`.",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6QHfFK",
+              "createdAt": "2024-10-16T20:25:09Z",
+              "body": "Sorry, it took me a bit to get around back to writing this example properly. This works:\r\n```lean\r\nimport Mathlib\r\nvariable (n : ℕ)\r\ninstance instEq : Equivalence (Nat.ModEq n) := ⟨refl, Nat.ModEq.symm, Nat.ModEq.trans⟩\r\ninstance instS : Setoid ℕ := ⟨(Nat.ModEq n), instEq n⟩\r\ntheorem add_congr : ∀ (a b c d : ℕ), (h₁ : a ≡ b [MOD n]) → (h₂ : c ≡ d [MOD n]) → (a+c) ≡ b+d [MOD n] :=\r\n  fun _ _ _ _ h₁ h₂ => h₁.add h₂\r\n\r\ndef setoid_add {n}: Quotient (instS n) → Quotient (instS n) → Quotient (instS n) :=\r\n  Quotient.map₂  Nat.add (congr_liftFun₂ (add_congr n))\r\n    (sa := instS n) (sb := instS n) (sc := instS n)\r\n```\r\n\r\nbut if I change it to \r\n\r\n```lean\r\ndef setoid_add {n}: Quotient (instS n) → Quotient (instS n) → Quotient (instS n) :=\r\n  Quotient.map₂  Nat.add (add_congr n)\r\n    (sa := instS n) (sb := instS n) (sc := instS n)\r\n ```\r\n    \r\nI get the error:\r\n```lean\r\napplication type mismatch\r\n  Quotient.map₂ Nat.add ⋯\r\nargument\r\n  add_congr n\r\nhas type\r\n  ∀ (a b c d : ℕ), a ≡ b [MOD n] → c ≡ d [MOD n] → a + c ≡ b + d [MOD n] : Prop\r\nbut is expected to have type\r\n  ((fun x x_1 ↦ x ≈ x_1) ⇒ (fun x x_1 ↦ x ≈ x_1) ⇒ fun x x_1 ↦ x ≈ x_1) Nat.add Nat.add : Prop\r\n```\r\n\r\nI think the problem is on the `map₂` case Lean doesn't manage to see through the definition. An example more or less along these lines was my original motivation. I should have described this with the PR originally, sorry for that (and thanks for the reviews, I appreciate you taking the time to discuss this with me!)",
+              "author": {
+                "login": "goens"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6QHf29",
+              "createdAt": "2024-10-16T20:27:05Z",
+              "body": "> `(h : ∀ a b, a ≈ b → f a = f b)` is the argument type taken by `Quotient.lift`, not `Quotient.map`.\r\n\r\nright, but I don't see why map wouldn't take the same to be honest, that's the point. Of course we can use lift, but then what's the point of map. I think map is convenient, but it's not convenient if it doesn't accept a congruence proof but rather only this `⇒` generalization that doesn't unify with a congruence proof.",
+              "author": {
+                "login": "goens"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6QH16E",
+              "createdAt": "2024-10-16T21:12:51Z",
+              "body": "In this case the spelling I'd advocate is:\r\n```lean\r\nimport Mathlib\r\nvariable (n : ℕ)\r\ninstance instEq : Equivalence (Nat.ModEq n) := ⟨refl, Nat.ModEq.symm, Nat.ModEq.trans⟩\r\ninstance instS' : Setoid ℕ := ⟨(Nat.ModEq n), instEq n⟩\r\ntheorem add_congr : ∀ {a b c d : ℕ}, (h₁ : a ≡ b [MOD n]) → (h₂ : c ≡ d [MOD n]) → (a+c) ≡ b+d [MOD n] :=\r\n  fun h₁ h₂ => h₁.add h₂\r\n\r\ndef setoid_add {n}: Quotient (instS' n) → Quotient (instS' n) → Quotient (instS' n) :=\r\n  Quotient.map₂  Nat.add fun _ _ h₁ _ _ h₂ => add_congr _ h₁ h₂\r\n```\r\nwhere `fun` does the work of adjusting the argument order",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6QKCEK",
+              "createdAt": "2024-10-17T05:42:12Z",
+              "body": "Yeah, that works, but then you need to see under the definitions/implementation details to reorder those arguments. I think it's good design to have abstractions that are familiar to people. In my opinion, `map₂` (or at least some `map₂'`) should take these congruence proofs, not an inline anonymous function rearranging the arguments to make it fit some other generalization. I'm happy to adapt the PR to provide that `map₂ '`, but if you think this abstraction is not useful or helpful, feel free to close this PR.",
+              "author": {
+                "login": "goens"
               }
             }
           ]
