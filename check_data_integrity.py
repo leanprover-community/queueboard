@@ -50,6 +50,8 @@ def main():
     # Note that both "last updated" fields have the same format.
     for pr_number in current_last_updated:
         current_updated = parse_datetime(current_last_updated[pr_number])
+        if pr_number not in aggregate_last_updated:
+            continue # skip 'missing' PRs for now; backfilling so far works well
         aggregate_updated = parse_datetime(aggregate_last_updated[pr_number])
 
         # current_updated should be at least as new,
