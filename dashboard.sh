@@ -43,4 +43,6 @@ gh api graphql --paginate --slurp -f query="$QUERY_ALLOPEN2" | jq '{"output": .}
 
 python3 ./dashboard.py "all-open-PRs-1.json" "all-open-PRs-2.json" > ./index.html
 
+python check_data_integrity.py
+
 rm *.json
