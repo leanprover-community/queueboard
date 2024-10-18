@@ -101,7 +101,7 @@ def main():
                 if pr_number not in known_erronerous:
                     print(f"attention: found an unexpected error!\n{err}", file=sys.stderr)
             case dict(data):
-                if pr_number in known_erronerous:
+                if (pr_number in known_erronerous) and not only_basic_info:
                     print(f"warning: PR {pr_number} had fine data, but was listed as erronerous: please remove it from that list", file=sys.stderr)
                 pr_data.append(get_aggregate_data(data, only_basic_info))
     output["pr_statusses"] = pr_data
