@@ -46,6 +46,7 @@ def main():
             aggregate_last_updated[pr["number"]] = pr["last_updated"]
 
     outdated_prs = []
+    very_outdated = [] # larger than 30 days, currently
     # Note that both "last updated" fields have the same format.
     for pr_number in current_last_updated:
         current_updated = parse_datetime(current_last_updated[pr_number])
@@ -56,10 +57,13 @@ def main():
         if aggregate_updated < current_updated - timedelta(minutes=10):
             delta = current_updated - aggregate_updated
             print(f'mismatch: the aggregate file for PR {pr_number} is outdated by {delta}, please re-download!')
-            print(f"aggregate file says {aggregate_updated}, current last update is {current_updated}")
+            print(f"  the aggregate file says {aggregate_updated}, current last update is {current_updated}")
             outdated_prs.append(pr_number)
+            if delta > timedelta(days=30):
+                very_outdated.append(pr_number)
     if outdated_prs:
         print(f"data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{outdated_prs}")
+        print(f"Out of these, {len(very_outdated)} PRs are lagging behind by more than 30 days: {very_outdated}")
     else:
         print("All PR aggregate data appears up to date, congratulations!")
     # FIXME: automatically add these PRs as requiring a re-download
