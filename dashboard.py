@@ -235,17 +235,18 @@ def read_json_files() -> JSONInputData:
 EXPLANATION = """
 <p>To appear on the review queue, your open pull request must...</p>
 <ul>
-<li>be based on the <em>master</em> branch of mathlib</li>
-<li>pass mathlib's CI</li>
+<li>be opened from the mathlib repository itself (not from a fork),</li>
+<li>be based on the <em>master</em> branch of mathlib,</li>
+<li>pass mathlib's CI,</li>
 <li>not be blocked by another PR (as marked by the labels <em>blocked-by-other-PR</em> and similar)</li>
-<li>have no merge conflict (as marked by the <em>merge-conflict</em>)</li>
-<li>not be in draft status, nor labelled with one of <em>WIP</em>, <em>help-wanted</em> or <em>please-adopt</em>: these mean the PR is not fully ready yet</li>
-<li>not be labelled <em>awaiting-CI</em>, <em>awaiting-author</em> or <em>awaiting-zulip</em></li>
-<li>not be labelled <em>delegated</em>, <em>auto-merge-after-CI</em> or <em>ready-to-merge</em>: these labels mean your PR is already approved</li>
+<li>have no merge conflict (as marked by the <em>merge-conflict</em>),</li>
+<li>not be in draft status, nor labelled with one of <em>WIP</em>, <em>help-wanted</em> or <em>please-adopt</em>: these mean the PR is not fully ready yet;</li>
+<li>not be labelled <em>awaiting-CI</em>, <em>awaiting-author</em> or <em>awaiting-zulip</em>,</li>
+<li>not be labelled <em>delegated</em>, <em>auto-merge-after-CI</em> or <em>ready-to-merge</em>: these labels mean your PR is already approved.</li>
 </ul>
 <p>
-The table below contains all open PRs against the <em>master</em> branch which are not in draft mode, with information on these individual checks.
-You can filter that list as you like, such as by entering the PR number or your github username.</p>""".lstrip()
+The table below contains all open PRs against the <em>master</em> branch which are not in draft mode. For each PR, it shows whether the checks above are satisfied.
+You can filter that list by entering terms into the search box, such as the PR number or your github username.</p>""".lstrip()
 
 
 # Determine HTML code for writing a table header with entries 'entries'.
