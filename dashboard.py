@@ -276,8 +276,6 @@ def print_on_the_queue_page(
 
     body = ""
     for pr in prs:
-        if CI_passes[pr.number] is None:
-            print(f"'on the queue' page: found no aggregate info for PR {pr.number}", file=sys.stderr)
         ci_passes = CI_passes[pr.number]
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
         has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.labels]
@@ -321,7 +319,7 @@ def main() -> None:
     aggregate_info = input_data.aggregate_info.copy()
     for pr in input_data.all_open_prs:
         if pr.number not in input_data.aggregate_info:
-            print(f"main: found no aggregate info for PR {pr.number}", file=sys.stderr)
+            print(f"warning: found no aggregate info for PR {pr.number}; filling in default info", file=sys.stderr)
             aggregate_info[pr.number] = PLACEHOLDER_AGGREGATE_INFO
     draft_PRs = [pr for pr in input_data.all_open_prs if aggregate_info[pr.number].is_draft]
     nondraft_PRs = [pr for pr in input_data.all_open_prs if not aggregate_info[pr.number].is_draft]
@@ -663,7 +661,7 @@ def _compute_pr_entries(prs: List[BasicPRInformation]) -> str:
             with open(filename, "r") as file:
                 pr_info = json.load(file)
         if pr_info is None:
-            print(f"main dashboard: found no PR info for PR {pr.number}", file=sys.stderr)
+            print(f"main dashboard: found no aggregate info for PR {pr.number}", file=sys.stderr)
             entries.extend(["-1/-1", "-1", "-1"])
         else:
             # We treat non-well-formed data as missing.
