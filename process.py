@@ -32,6 +32,17 @@ def parse_json_file(name: str, pr_number: str) -> dict | str:
     return data
 
 
+# commit_nodes is an array of all checks for all the commits
+def determine_ci_status(CI_check_nodes: dict) -> bool:
+    for r in CI_check_nodes:
+        # Ignore bors runs: these don't have a job name (and are not interesting for us).
+        if "context" in r:
+            pass
+        elif r["name"] == "Summary":
+            return True if r["conclusion"] == "SUCCESS" else False
+    return False
+
+
 def get_aggregate_data(pr_data: dict, _only_basic_info: bool) -> dict:
     inner = pr_data["data"]["repository"]["pullRequest"]
     number = inner["number"]
@@ -51,13 +62,7 @@ def get_aggregate_data(pr_data: dict, _only_basic_info: bool) -> dict:
     assignees = [ass["login"] for ass in inner["assignees"]["nodes"]]
     CI_passes = False
     # Get information about the latest CI run. We just look at the "summary job".
-    CI_runs = inner["statusCheckRollup"]["contexts"]["nodes"]
-    for r in CI_runs:
-        # Ignore bors runs: these don't have a job name (and are not interesting for us).
-        if "context" in r:
-            pass
-        elif r["name"] == "Summary":
-            CI_passes = True if r["conclusion"] == "SUCCESS" else False
+    CI_passes = determine_ci_status(inner["statusCheckRollup"]["contexts"]["nodes"])
     # NB. When adding future fields, pay attention to whether the 'basic' info files
     # also contain this information --- otherwise, it is fine to omit it!
     return {
