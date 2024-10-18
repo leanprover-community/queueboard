@@ -44,6 +44,8 @@ class Dashboard(Enum):
     NeedsHelp = auto()
     # Non-draft PRs into some branch other than mathlib's master branch
     OtherBase = auto()
+    # Non-draft PRs opened from a fork
+    FromFork = auto()
     # "Ready" PRs whose title does not start with an abbreviation like 'feat' or 'style'
     BadTitle = auto()
     # "Ready" PRs without the CI or a t-something label.
@@ -67,6 +69,7 @@ def short_description(kind: Dashboard) -> str:
         Dashboard.StaleNewContributor: "stale PRs by new contributors",
         Dashboard.NeedsHelp: "PRs which are looking for a help",
         Dashboard.OtherBase: "ready PRs into a non-master branch",
+        Dashboard.FromFork: "ready PRs opened from a fork of mathlib",
         Dashboard.Unlabelled: "ready PRs without a 'CI' or 't-something' label",
         Dashboard.BadTitle: "ready PRs whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
         Dashboard.ContradictoryLabels: "PRs with contradictory labels",
@@ -88,7 +91,8 @@ def long_description(kind: Dashboard) -> str:
         Dashboard.NeedsDecision: "all PRs labelled 'awaiting-zulip': these are blocked on a zulip discussion or similar",
         Dashboard.StaleMaintainerMerge: f"all PRs labelled 'maintainer-merge' but not 'ready-to-merge' {notupdated} 24 hours",
         Dashboard.NeedsHelp: "all PRs which are labelled 'please-adopt' or 'help-wanted'",
-        Dashboard.OtherBase: "all non-draft PRs into some branch other than mathlib's master branch",
+        Dashboard.OtherBase: "all non-draft PRs, not labelled WIP, into some branch other than mathlib's master branch",
+        Dashboard.FromFork: "all non-draft PRs, not labelled WIP, opened from a fork of mathlib",
         Dashboard.StaleNewContributor: f"all PR labelled 'new-contributor' {notupdated} 7 days",
         Dashboard.Unlabelled: "all PRs without draft status or 'WIP' label without a 'CI' or 't-something' label",
         Dashboard.BadTitle: "all PRs without draft status or 'WIP' label whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
@@ -127,6 +131,7 @@ def getIdTitle(kind: Dashboard) -> Tuple[str, str]:
         Dashboard.NeedsMerge: ("needs-merge", "PRs with just a merge conflict"),
         Dashboard.NeedsHelp: ("needs-owner", "PRs looking for help"),
         Dashboard.OtherBase: ("other-base", "PRs not into the master branch"),
+        Dashboard.FromFork: ("from-fork", "PRs from a fork of mathlib"),
         Dashboard.Unlabelled: ("unlabelled", "PRs without an area label"),
         Dashboard.BadTitle: ("bad-title", "PRs with non-conforming titles"),
         Dashboard.ContradictoryLabels: (
@@ -354,11 +359,14 @@ def main() -> None:
     print(f"<br><p>\n<b>Quick links:</b> <a href=\"#statistics\" target=\"_self\">PR statistics</a> | {str.join(' | ', links)}</p>")
 
     prs_to_list : dict[Dashboard, List[BasicPRInformation]] = dict()
-    # The 'tech debt' and 'other base' boards are obtained from filtering list of non-draft PRs.
+    # The 'tech debt', 'other base' and 'from fork' boards are obtained
+    # from filtering the list of all non-draft PRs (without the WIP label).
     all_ready_prs = prs_without_label(nondraft_PRs, 'WIP')
     prs_to_list[Dashboard.TechDebt] = prs_with_any_label(all_ready_prs, ['tech debt', 'longest-pole'])
-
     prs_to_list[Dashboard.OtherBase] = [pr for pr in nondraft_PRs if base_branch[pr.number] != 'master']
+    prs_from_fork = [pr for pr in nondraft_PRs if aggregate_info[pr.number].head_repo != "leanprover-community"]
+    prs_to_list[Dashboard.FromFork] = prs_from_fork
+
     prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(nondraft_PRs, ['help-wanted', 'please_adopt'])
     prs_to_list[Dashboard.NeedsDecision] = prs_with_label(nondraft_PRs, 'awaiting-zulip')
 
@@ -366,7 +374,6 @@ def main() -> None:
     # The review queue consists of all PRs against the master branch, with passing CI,
     # that are not in draft state and not labelled WIP, help-wanted or please-adopt,
     # and have none of the other labels below.
-    prs_from_fork = [pr for pr in nondraft_PRs if input_data.aggregate_info[pr.number].head_repo != "leanprover-community"]
     master_prs_with_CI = [pr for pr in nondraft_PRs if base_branch[pr.number] == 'master' and CI_passes[pr.number]]
     master_CI_notfork = [pr for pr in master_prs_with_CI if pr not in prs_from_fork]
     other_labels = [
