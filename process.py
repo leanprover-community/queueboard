@@ -52,7 +52,6 @@ def determine_ci_status(number, CI_check_nodes: dict) -> bool:
     return True
 
 
-
 def get_aggregate_data(pr_data: dict, _only_basic_info: bool) -> dict:
     inner = pr_data["data"]["repository"]["pullRequest"]
     number = inner["number"]
@@ -92,7 +91,6 @@ def get_aggregate_data(pr_data: dict, _only_basic_info: bool) -> dict:
         "label_names": labels,
         "assignees": assignees,
     }
-
 
 
 def main():

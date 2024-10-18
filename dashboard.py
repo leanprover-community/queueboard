@@ -160,8 +160,11 @@ class BasicPRInformation(NamedTuple):
 class AggregatePRInfo(NamedTuple):
     is_draft: bool
     CI_passes: bool
-    # 'master' for most PRs
+    # The branch this PR is opened against: should be 'master' (for most PRs)
     base_branch: str
+    # The repository this PR was opened from: should be 'leanprover-community',
+    # otherwise it is a PR from a fork.
+    head_repo: str
     # 'open' for open PRs, 'closed' for closed PRs
     state: str
     # Github's time when the PR was "last updated"
@@ -179,7 +182,10 @@ class AggregatePRInfo(NamedTuple):
     assignees: List[str]
 
 # Missing aggregate information will be replaced by this default item.
-PLACEHOLDER_AGGREGATE_INFO = AggregatePRInfo(False, False, "master", "open", datetime.now(), "unknown", "unknown title", [], -1, -1, -1, [])
+PLACEHOLDER_AGGREGATE_INFO = AggregatePRInfo(
+    False, False, "master", "leanprover-community", "open", datetime.now(),
+    "unknown", "unknown title", [], -1, -1, -1, []
+)
 
 # Information passed to this script, via various JSON files.
 class JSONInputData(NamedTuple):
@@ -213,9 +219,9 @@ def read_json_files() -> JSONInputData:
         for pr in data["pr_statusses"]:
             date = parse_datetime(pr["last_updated"])
             info = AggregatePRInfo(
-                pr["is_draft"], pr["CI_passes"], pr["base_branch"], pr["state"], date,
-                pr["author"], pr["title"], pr["label_names"], pr["additions"], pr["deletions"],
-                pr["num_files"], pr["assignees"]
+                pr["is_draft"], pr["CI_passes"], pr["base_branch"], pr["head_repo"]["login"],
+                pr["state"], date, pr["author"], pr["title"], pr["label_names"],
+                pr["additions"], pr["deletions"], pr["num_files"], pr["assignees"]
             )
             aggregate_info[pr["number"]] = info
     return JSONInputData(aggregate_info, all_open_prs)
