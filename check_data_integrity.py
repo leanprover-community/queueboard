@@ -9,6 +9,7 @@ This script assumes these files exist.
 
 import json
 from datetime import datetime, timedelta
+from os import path
 
 
 # Read the input JSON files, return a dictionary mapping each PR number
@@ -39,7 +40,7 @@ def parse_datetime(rep: str) -> datetime:
 def main():
     current_last_updated = extract_last_update_from_input()
     aggregate_last_updated = dict()
-    with open("", "r") as aggregate_file:
+    with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as aggregate_file:
         data = json.load(aggregate_file)
         for pr in data["pr_statusses"]:
             aggregate_last_updated[pr["number"]] = pr["last_updated"]
