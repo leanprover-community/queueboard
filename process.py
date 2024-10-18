@@ -32,6 +32,50 @@ def parse_json_file(name: str, pr_number: str) -> dict | str:
     return data
 
 
+def get_aggregate_data(pr_data: dict) -> dict:
+    inner = pr_data["data"]["repository"]["pullRequest"]
+    number = inner["number"]
+    base_branch = inner["baseRefName"]
+    is_draft = inner["isDraft"]
+    state = inner["state"].lower()
+    last_updated = inner["updatedAt"]
+    # We assume the author URL is determined by the github handle: in practice, it is.
+    author = inner["author"]["login"]
+    title = inner["title"]
+    additions = inner["additions"]
+    deletions = inner["deletions"]
+    # Number of files modified by this PR.
+    files = len(inner["files"]["nodes"])
+    # Names of all labels applied to this PR: missing the background colour!
+    labels = [lab["name"] for lab in inner["labels"]["nodes"]]
+    assignees = [ass["login"] for ass in inner["assignees"]["nodes"]]
+    CI_passes = False
+    # Get information about the latest CI run. We just look at the "summary job".
+    CI_runs = inner["statusCheckRollup"]["contexts"]["nodes"]
+    for r in CI_runs:
+        # Ignore bors runs: these don't have a job name (and are not interesting for us).
+        if "context" in r:
+            pass
+        elif r["name"] == "Summary":
+            CI_passes = True if r["conclusion"] == "SUCCESS" else False
+    return {
+        "number": number,
+        "is_draft": is_draft,
+        "CI_passes": CI_passes,
+        "base_branch": base_branch,
+        "state": state,
+        "last_updated": last_updated,
+        "author": author,
+        "title": title,
+        "additions": additions,
+        "deletions": deletions,
+        "num_files": files,
+        "label_names": labels,
+        "assignees": assignees,
+    }
+
+
+
 def main():
     output = dict()
     updated = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -54,47 +98,7 @@ def main():
             case dict(data):
                 if pr_number in known_erronerous:
                     print(f"warning: PR {pr_number} had fine data, but was listed as erronerous: please remove it from that list", file=sys.stderr)
-                inner = data["data"]["repository"]["pullRequest"]
-                number = inner["number"]
-                base_branch = inner["baseRefName"]
-                is_draft = inner["isDraft"]
-                state = inner["state"].lower()
-                last_updated = inner["updatedAt"]
-                # We assume the author URL is determined by the github handle: in practice, it is.
-                author = inner["author"]["login"]
-                title = inner["title"]
-                additions = inner["additions"]
-                deletions = inner["deletions"]
-                # Number of files modified by this PR.
-                files = len(inner["files"]["nodes"])
-                # Names of all labels applied to this PR: missing the background colour!
-                labels = [lab["name"] for lab in inner["labels"]["nodes"]]
-                assignees = [ass["login"] for ass in inner["assignees"]["nodes"]]
-                CI_passes = False
-                # Get information about the latest CI run. We just look at the "summary job".
-                CI_runs = inner["statusCheckRollup"]["contexts"]["nodes"]
-                for r in CI_runs:
-                    # Ignore bors runs: these don't have a job name (and are not interesting for us).
-                    if "context" in r:
-                        pass
-                    elif r["name"] == "Summary":
-                        CI_passes = True if r["conclusion"] == "SUCCESS" else False
-                d = {
-                    "number": number,
-                    "is_draft": is_draft,
-                    "CI_passes": CI_passes,
-                    "base_branch": base_branch,
-                    "state": state,
-                    "last_updated": last_updated,
-                    "author": author,
-                    "title": title,
-                    "additions": additions,
-                    "deletions": deletions,
-                    "num_files": files,
-                    "label_names": labels,
-                    "assignees": assignees,
-                }
-                pr_data.append(d)
+                pr_data.append(get_aggregate_data(data))
     output["pr_statusses"] = pr_data
     with open("processed_data/aggregate_pr_data.json", "w") as f:
         print(json.dumps(output, indent=4), file=f)
