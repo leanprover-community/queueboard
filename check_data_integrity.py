@@ -64,8 +64,8 @@ def main():
             if delta > timedelta(days=25):
                 very_outdated.append(pr_number)
     if outdated_prs:
-        print(f"data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{outdated_prs}")
-        print(f"Out of these, {len(very_outdated)} PRs are lagging behind by more than 25 days: {very_outdated}")
+        print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{outdated_prs}")
+        print(f"Among these, {len(very_outdated)} PRs are lagging behind by more than 25 days: {very_outdated}")
     else:
         print("All PR aggregate data appears up to date, congratulations!")
     # FIXME: automatically add these PRs as requiring a re-download
