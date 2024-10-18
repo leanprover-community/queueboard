@@ -59,6 +59,7 @@ for pr in $prs; do
   fi
 done
 
+echo "Starting re-downloading of outdated files"
 # Re-download data if missing. Take care to not ask for too much at once!
 # (If chunking, make sure to not run into a loop of re-re-downloading in a loop!)
 for pr in $(cat "redownload.txt"); do
@@ -78,6 +79,7 @@ for pr in $(cat "redownload.txt"); do
   fi
 done
 echo "" > redownload.txt
+echo "Redownloading completed"
 
 # In case there are PRs which got "missed" somehow, backfill
 # data for up to one of them.
