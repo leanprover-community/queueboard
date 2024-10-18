@@ -446,9 +446,9 @@ def gather_pr_statistics(
 
     # For some kinds, we have this data already: the review queue and the "not merged" kinds come to mind.
     # Let us compare with the classification logic.
-    def my_assert_eq(left: List[int], right: List[int]) -> bool:
+    def my_assert_eq(msg: str, left: List[int], right: List[int]) -> bool:
         if left != right:
-            print(f"assertion failure: left PRs are {left}, right PRs are {right}", file=sys.stderr)
+            print(f"{msg}\nassertion failure: left PRs are {left}, right PRs are {right}", file=sys.stderr)
             left_sans_right = set(left) - set(right)
             right_sans_left = set(right) - set(left)
             print(f"the following {len(left_sans_right)} PRs are contained in left, but not right: {left_sans_right}", file=sys.stderr)
@@ -457,7 +457,8 @@ def gather_pr_statistics(
         return True
 
     queue_prs_numbers = [pr for pr in ready_pr_status if ready_pr_status[pr] == PRStatus.AwaitingReview]
-    if my_assert_eq(queue_prs_numbers, [i.number for i in queue_prs]):
+    msg = "comparing the review queue (left) with all PRs classified as awaiting review (right)"
+    if my_assert_eq(msg, queue_prs_numbers, [i.number for i in queue_prs]):
         print("review queue: two computations match, hooray", file=sys.stderr)
         # print(f"warning: the review queue and the classification differ: found {len(right)} PRs {right} on the former, but the {len(queue_prs_numbers)} PRs {queue_prs_numbers} on the latter!", file=sys.stderr)
     # TODO: also cross-check the data for merge conflicts
@@ -506,7 +507,13 @@ def gather_pr_statistics(
     cumulative = [sum(numbers[:i+1]) for i in range(len(numbers))]
     piechart = ', '.join([f'{color[s]} 0 {cumulative[i] * 360 // number_all}deg' for (i, s) in enumerate(statusses)])
     piechart_style=f"width: 200px;height: 200px;border-radius: 50%;border: 1px solid black;background-image: conic-gradient( {piechart} );"
-    assert cumulative[-1] == number_all, "error: statistics calculation is inconsistent, all PR kinds do not add up!"
+    if cumulative[-1] != number_all:
+        dict = '{' + ', '.join([f"{s}: {number_prs[s]}" for s in statusses]) + '}'
+        msg = f'''error: statistics calculation is inconsistent, all PR kinds do not add up!
+            cumulative sum of PRs is {cumulative[-1]}, while there are {number_all} PRs in total
+            detailed stats dictionary is {dict}'''
+        print(msg, file=sys.stderr)
+        assert False
 
     return f'\n<h2 id="statistics"><a href="#statistics">Overall statistics</a></h2>\nFound <b>{number_all}</b> open PRs overall. Among these PRs\n<ul>\n{details}\n</ul><div class="piechart" style="{piechart_style}"></div>\n'
 
