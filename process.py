@@ -32,7 +32,8 @@ def parse_json_file(name: str, pr_number: str) -> dict | str:
     return data
 
 
-def get_aggregate_data(pr_data: dict) -> dict:
+def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
+    # TODO: take 'only_basic_info' into account!
     inner = pr_data["data"]["repository"]["pullRequest"]
     number = inner["number"]
     base_branch = inner["baseRefName"]
@@ -89,16 +90,19 @@ def main():
             if not line.startswith("--"):
                 known_erronerous.append(line.rstrip())
     # Read all pr info files in the data directory.
-    pr_names: List[str] = sorted(os.listdir("data"))
-    for pr_number in pr_names:
-        match parse_json_file(f"data/{pr_number}/pr_info.json", pr_number):
+    pr_dirs: List[str] = sorted(os.listdir("data"))
+    for pr_dir in pr_dirs:
+        only_basic_info = "basic" in pr_dir
+        pr_number = pr_dir.removesuffix("-basic")
+        filename = f"data/{pr_dir}/basic_pr_info.json" if only_basic_info else f"data/{pr_dir}/pr_info.json"
+        match parse_json_file(filename, pr_number):
             case str(err):
                 if pr_number not in known_erronerous:
                     print(f"attention: found an unexpected error!\n{err}", file=sys.stderr)
             case dict(data):
                 if pr_number in known_erronerous:
                     print(f"warning: PR {pr_number} had fine data, but was listed as erronerous: please remove it from that list", file=sys.stderr)
-                pr_data.append(get_aggregate_data(data))
+                pr_data.append(get_aggregate_data(data, only_basic_info))
     output["pr_statusses"] = pr_data
     with open("processed_data/aggregate_pr_data.json", "w") as f:
         print(json.dumps(output, indent=4), file=f)
