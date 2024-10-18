@@ -3,7 +3,6 @@
 # Gather updated PR information for all mathlib PRs which were updated "recently".
 # This script returns the exit code
 # - 0 if no errors occurred, and data for at least one PR was downloaded,
-# - 37 if no errors occurred, but the list of PRs was empty,
 # - 1 if the was an error fetching data.
 
 # Surface errors in this script to CI, so they get noticed.
@@ -38,12 +37,10 @@ prs=$(echo "$response" | jq -r --arg PAST_TIME "$PAST_TIME" --arg CURRENT_TIME "
   .number
 ')
 
-# if [ -z "$prs" ]; then
-#   echo "No PRs were updated in the last $TIMEDELTA minutes"
-#   exit 37
-# fi
-
-# Iterate over each PR number
+# Iterate over each PR number.
+# TODO: treat stubborn PRs differently: not sure how to do so nicely!
+# I can certainly hard-code them here and hope nothing fails...
+# and if these are rarely updated, that could work well enough...
 for pr in $prs; do
   # Create the directory for the PR
   dir="data/$pr"
@@ -81,6 +78,38 @@ for pr in $(cat "missing_prs.txt"); do
   i=$((i+1))
   if [ $i -eq 1 ]; then
     echo "Backfilled one PR successfully, exiting"
+    break;
+  fi
+done
+
+# TODO: parse the list of 'stubborn' PRs instead of hard-coding this here.
+# something like the following should work...
+# declare -a stubborn_prs
+# while IFS= read -r line; do
+#   if ! [[ $line == --* ]]; then
+#     stubborn_prs+=($line)
+#   fi
+# done < "stubborn_prs.txt"
+# TODO: each right line is filtered, but 'stubborn_prs' is populated wrong!
+
+# Do the same for at most one stubborn PR.
+j=0
+stubborn="4197 5901 6718 9353 9651 9675 9819 11975 11976 15254 15412 15925 16577 16596"
+for pr in $stubborn; do
+  dir="data/$pr-basic"
+  # Check if the directory exists
+  if [ -d $dir ]; then
+    echo "[skip] Data exists for stubborn PR #$pr: $CURRENT_TIME"
+    continue
+  fi
+  echo "Attempting to backfill data for stubborn PR $pr"
+  # Create the directory for the PR
+  mkdir -p "$dir"
+  ./basic_pr_info.sh "$pr" | jq '.' > "$dir/basic_pr_info.json"
+  echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+  j=$((j+1))
+  if [ $j -eq 1 ]; then
+    echo "Backfilled one stubborn PR successfully, exiting"
     break;
   fi
 done
