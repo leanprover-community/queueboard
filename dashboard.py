@@ -340,6 +340,18 @@ def main() -> None:
             aggregate_info[pr.number] = PLACEHOLDER_AGGREGATE_INFO
     draft_PRs = [pr for pr in input_data.all_open_prs if aggregate_info[pr.number].is_draft]
     nondraft_PRs = [pr for pr in input_data.all_open_prs if not aggregate_info[pr.number].is_draft]
+    draft_prs2 = None
+    with open("all-open-PRs-2.json", "r") as draftfile:
+        draft_prs2 = _extract_prs(json.load(draftfile))
+    msg = "comparing this page's list of draft PRs (left) with the Github API query for draft PRs (right)"
+    if my_assert_eq(msg, draft_PRs, draft_prs2):
+        print("Aggregate draft PRs and Github REST API's draft PRs match, hooray!", file=sys.stderr)
+    nondraft_prs2 = None
+    with open("all-open-PRs-1.json", "r") as nondraftfile:
+        nondraft_prs2 = _extract_prs(json.load(nondraftfile))
+    msg = "comparing this page's list of non-draft PRs (left) with the Github API query for non-draft PRs (right)"
+    if my_assert_eq(msg, nondraft_PRs, nondraft_prs2):
+        print("Aggregate non-draft PRs and Github REST API's non-draft PRs match, hooray!", file=sys.stderr)
     assert len(draft_PRs) + len(nondraft_PRs) == len(input_data.all_open_prs)
     print(f"PR lengths: {len(input_data.all_open_prs)} overall, {len(draft_PRs)} draft ones, {len(nondraft_PRs)} non-draft ones", file=sys.stderr)
 
