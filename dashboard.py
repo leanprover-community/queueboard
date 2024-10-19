@@ -215,20 +215,12 @@ def read_json_files() -> JSONInputData:
                 pr["state"], date, pr["author"], pr["title"], pr["label_names"],
                 pr["additions"], pr["deletions"], pr["num_files"], pr["assignees"]
             )
-            currently_missing = [
-                "modifies-tactic-syntax",
-                "enhancement",
-                "longest-pole",
-            ]
             for name in info.label_names:
                 if name.startswith(("t-", "blocked-by")):
-                    pass
-                elif name in currently_missing:
                     pass
                 elif name not in label_colours:
                     print(f'warning: no colour information for label {name} in the aggregate file (yet); PR {pr["number"]} has this label', file=sys.stderr)
             aggregate_info[pr["number"]] = info
-    print(f"Currently missing colour information about the {len(currently_missing)} labels {currently_missing}", file=sys.stderr)
     return JSONInputData(aggregate_info, all_open_prs)
 
 
