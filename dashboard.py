@@ -199,11 +199,6 @@ class JSONInputData(NamedTuple):
 # Validate the command-line arguments and try to read all data passed in via JSON files.
 # Any number of JSON files passed in is fine; we interpret them all as containing open PRs.
 def read_json_files() -> JSONInputData:
-    all_open_prs = []
-    for i in range(1, len(sys.argv)):
-        with open(sys.argv[i]) as prfile:
-            open_prs = _extract_prs(json.load(prfile))
-            all_open_prs.extend(open_prs)
     with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as f:
         data = json.load(f)
         label_colours = data["label_colours"]
@@ -228,6 +223,11 @@ def read_json_files() -> JSONInputData:
                 pr["additions"], pr["deletions"], pr["num_files"], number_all_comments, pr["assignees"]
             )
             aggregate_info[pr["number"]] = info
+    all_open_prs = []
+    for i in range(1, len(sys.argv)):
+        with open(sys.argv[i]) as prfile:
+            open_prs = _extract_prs(json.load(prfile), aggregate_info)
+            all_open_prs.extend(open_prs)
     return JSONInputData(aggregate_info, all_open_prs)
 
 
@@ -289,18 +289,20 @@ def print_on_the_queue_page(
 
     body = ""
     for pr in prs:
+        author = { "login": pr.aggregate_info.author, "url": pr.author_url }
+        url = f"https://github.com/leanprover-community/mathlib4/pull/{pr.number}"
         if base_branch[pr.number] != "master":
             continue
         from_fork = pr in prs_from_fork
         ci_passes = CI_passes[pr.number]
-        is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
-        has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.labels]
-        is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
-        review = not (any(lab.name in ["awaiting-CI", "awaiting-author", "awaiting-zulip"] for lab in pr.labels))
+        is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.aggregate_info.labels)
+        has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.aggregate_info.labels]
+        is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.aggregate_info.labels))
+        review = not (any(lab.name in ["awaiting-CI", "awaiting-author", "awaiting-zulip"] for lab in pr.aggregate_info.labels))
         overall = ci_passes and (not is_blocked) and (not has_merge_conflict) and is_ready and review
         entries = [
-            pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url),
-            _write_labels(pr.labels), icon(not from_fork),
+            pr_link(pr.number, url), user_link(author), title_link(pr.aggregate_info.title, url),
+            _write_labels(pr.aggregate_info.labels), icon(not from_fork),
             '???' if ci_passes is None else icon(ci_passes),
             icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall)
         ]
@@ -453,7 +455,7 @@ def main() -> None:
 def compute_pr_statusses(aggregate_info: dict[int, AggregatePRInfo], prs: List[BasicPRInformation]) -> dict[int, PRStatus]:
     def determine_status(aggregate_info: AggregatePRInfo, info: BasicPRInformation) -> PRStatus:
         # Ignore all "other" labels, which are not relevant for this anyway.
-        labels = [label_categorisation_rules[lab.name] for lab in info.labels if lab.name in label_categorisation_rules]
+        labels = [label_categorisation_rules[lab.name] for lab in info.aggregate_info.labels if lab.name in label_categorisation_rules]
         ci_status = CIStatus.Pass if aggregate_info.CI_passes else CIStatus.Fail
         state = PRState(labels, ci_status, aggregate_info.is_draft)
         return determine_PR_status(datetime.now(), state)
@@ -692,14 +694,14 @@ def _compute_pr_entries(prs: List[BasicPRInformation]) -> str:
     for pr in prs:
         author = { "login": pr.aggregate_info.author, "url": pr.author_url }
         url = f"https://github.com/leanprover-community/mathlib4/pull/{pr.number}"
-        entries = [pr_link(pr.number, url), user_link(author), title_link(pr.aggregate_info.title, url), _write_labels(pr.labels)]
+        entries = [pr_link(pr.number, url), user_link(author), title_link(pr.aggregate_info.title, url), _write_labels(pr.aggregate_info.labels)]
         # Detailed information about the current PR. Explain missing statistics.
         missing = '<a href title="more precise information about this PR is missing: usually, this is because the PR has lots of commits, so github refuses to simply download all information for this PR">-1</a>'
         number_total_comments = pr.aggregate_info.number_total_comments or missing
         entries.extend([
             f"{pr.aggregate_info.additions}/{pr.aggregate_info.deletions}",
             f"{pr.aggregate_info.number_modified_files}",
-            number_total_comments, time_info(pr.aggregate_info.last_updated)
+            number_total_comments, pr.aggregate_info.last_updated,
         ])
         result += _write_table_row(entries, "    ")
     return result
@@ -731,7 +733,7 @@ def print_dashboard(prs : List[BasicPRInformation], kind: Dashboard) -> None:
 
 # Does a PR have a given label?
 def _has_label(pr: BasicPRInformation, name: str) -> bool:
-    return name in [label.name for label in pr.labels]
+    return name in [label.name for label in pr.aggregate_info.labels]
 
 # Extract all PRs from a given list which have a certain label.
 def prs_with_label(prs: List[BasicPRInformation], label_name: str) -> List[BasicPRInformation]:
@@ -755,7 +757,7 @@ def has_contradictory_labels(pr: BasicPRInformation) -> bool:
         "ready-to-merge": "bors", "auto-merge-after-CI": "bors",
         "blocked-by-other-PR": "blocked", "blocked-by-core-PR": "blocked", "blocked-by-batt-PR": "blocked", "blocked-by-qq-PR": "blocked",
     }
-    normalised_labels = [(canonicalise[label.name] if label.name in canonicalise else label.name) for label in pr.labels]
+    normalised_labels = [(canonicalise[label.name] if label.name in canonicalise else label.name) for label in pr.aggregate_info.labels]
     # Test for contradictory label combinations.
     if 'awaiting-review-DONT-USE' in normalised_labels:
         return True
@@ -778,12 +780,12 @@ def has_contradictory_labels(pr: BasicPRInformation) -> bool:
 def compute_dashboards_bad_labels_title(prs : List[BasicPRInformation]) -> Tuple[List[BasicPRInformation], List[BasicPRInformation], List[BasicPRInformation]]:
     # Filter out all PRs which have a WIP label.
     nonwip_prs = prs_without_label(prs, 'WIP')
-    with_bad_title = [pr for pr in nonwip_prs if not pr.title.startswith(("feat", "chore", "perf", "refactor", "style", "fix", "doc"))]
+    with_bad_title = [pr for pr in nonwip_prs if not pr.aggregate_info.title.startswith(("feat", "chore", "perf", "refactor", "style", "fix", "doc"))]
     # Whether a PR has a "topic" label.
     def has_topic_label(pr: BasicPRInformation) -> bool:
-        topic_labels = [label for label in pr.labels if label.name in ['CI', 'IMO'] or label.name.startswith("t-")]
+        topic_labels = [label for label in pr.aggregate_info.labels if label.name in ['CI', 'IMO'] or label.name.startswith("t-")]
         return len(topic_labels) >= 1
-    prs_without_topic_label = [pr for pr in nonwip_prs if pr.title.startswith("feat") and not has_topic_label(pr)]
+    prs_without_topic_label = [pr for pr in nonwip_prs if pr.aggregate_info.title.startswith("feat") and not has_topic_label(pr)]
     prs_with_contradictory_labels = [pr for pr in nonwip_prs if has_contradictory_labels(pr)]
     return (with_bad_title, prs_without_topic_label, prs_with_contradictory_labels)
 
