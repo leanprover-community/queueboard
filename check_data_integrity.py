@@ -73,7 +73,7 @@ def _check_directory(dir: str, pr_number: int, files: List[str]) -> bool:
     return is_valid
 
 
-# Check the contents of the data directory:
+# Check the contents of the data directory; print information about errors to standard error.
 # - this contains only directories of the form "PR_number" or "PR_number-basic",
 # - no PR has both forms present,
 # - each directory only contains the expected files, and these parse successfully.
@@ -112,7 +112,7 @@ def check_data_directory_contents() -> bool:
 # dates from querying github.
 def main() -> None:
     current_last_updated = extract_last_update_from_input()
-    wellformed_content = check_data_directory_contents()
+    check_data_directory_contents()
     aggregate_last_updated = dict()
     with open(os.path.join("processed_data", "aggregate_pr_data.json"), "r") as aggregate_file:
         data = json.load(aggregate_file)
