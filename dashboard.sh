@@ -40,9 +40,3 @@ QUERY_ALLOPEN1=$(prepare_query 'sort:updated-asc is:pr state:open -is:draft')
 QUERY_ALLOPEN2=$(prepare_query 'sort:updated-asc is:pr state:open is:draft')
 gh api graphql --paginate --slurp -f query="$QUERY_ALLOPEN1" | jq '{"output": .}' > all-open-PRs-1.json
 gh api graphql --paginate --slurp -f query="$QUERY_ALLOPEN2" | jq '{"output": .}' > all-open-PRs-2.json
-
-python3 ./dashboard.py "all-open-PRs-1.json" "all-open-PRs-2.json" > ./index.html
-
-python check_data_integrity.py
-
-rm *.json
