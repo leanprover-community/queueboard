@@ -204,8 +204,6 @@ def read_json_files() -> JSONInputData:
         with open(sys.argv[i]) as prfile:
             open_prs = _extract_prs(json.load(prfile))
             all_open_prs.extend(open_prs)
-            if i == 2:
-                print(f"reading user data: would expect {len(open_prs)} draft PRs eventually", file=sys.stderr)
     with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as f:
         data = json.load(f)
         aggregate_info = dict()
@@ -343,7 +341,6 @@ def main() -> None:
     if my_assert_eq(msg, [pr.number for pr in nondraft_PRs], nondraft_numbers2):
         print("Aggregate non-draft PRs and Github REST API's non-draft PRs match, hooray!", file=sys.stderr)
     assert len(draft_PRs) + len(nondraft_PRs) == len(input_data.all_open_prs)
-    print(f"PR lengths: {len(input_data.all_open_prs)} overall, {len(draft_PRs)} draft ones, {len(nondraft_PRs)} non-draft ones", file=sys.stderr)
 
     # The only exception is for the "on the queue" page,
     # which points out missing information explicitly, hence is passed the non-filled in data.
