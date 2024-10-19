@@ -77,7 +77,7 @@ def main() -> None:
         if len(content) > 1:
             return
         with open("redownload.txt", "w") as file:
-            new = [str(very_outdated[i]) for i in range(3)]
+            new = [f"{very_outdated[i]}\n" for i in range(3)]
             file.writelines(new)
     else:
         print("All PR aggregate data appears up to date, congratulations!")
