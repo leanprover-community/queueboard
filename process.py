@@ -15,7 +15,7 @@ import sys
 from datetime import datetime, timezone
 from typing import List
 
-from util import parse_json_file
+from util import eprint, parse_json_file
 
 
 # commit_nodes is an array of all checks for all the commits
@@ -83,6 +83,7 @@ def main() -> None:
     output = dict()
     updated = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     output["timestamp"] = updated
+    label_colours: dict[str, str] = dict()
     pr_data = []
     # A few files are known to have broken detailed information.
     # They can be found in the file "stubborn_prs.txt".
@@ -104,7 +105,16 @@ def main() -> None:
             case dict(data):
                 if (pr_number in known_erronerous) and not only_basic_info:
                     print(f"warning: PR {pr_number} had fine data, but was listed as erronerous: please remove it from that list", file=sys.stderr)
+                label_data = data["data"]["repository"]["pullRequest"]["labels"]["nodes"]
+                for lab in label_data:
+                    if "color" in lab:
+                        (name, colour) = (lab["name"], lab["color"])
+                        if name in label_colours and colour != label_colours[name]:
+                            eprint(f"warning: label {name} is assigned colours {colour} and {label_colours[name]}")
+                        else:
+                            label_colours[name] = colour
                 pr_data.append(get_aggregate_data(data, only_basic_info))
+    output["label_colours"] = dict(sorted(label_colours.items()))
     output["pr_statusses"] = pr_data
     with open("processed_data/aggregate_pr_data.json", "w") as f:
         print(json.dumps(output, indent=4), file=f)

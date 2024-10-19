@@ -13,7 +13,7 @@ import sys
 from datetime import timedelta
 from typing import List
 
-from util import parse_datetime, parse_json_file
+from util import eprint, parse_datetime, parse_json_file
 
 
 # Read the input JSON files, return a dictionary mapping each PR number
@@ -30,10 +30,6 @@ def extract_last_update_from_input() -> dict[int, str]:
             for entry in page["data"]["search"]["nodes"]:
                 output[entry["number"]] = entry["updatedAt"]
     return output
-
-
-def eprint(val):
-    print(val, file=sys.stderr)
 
 
 # Check that a timestamp file at 'path' is well-formed;

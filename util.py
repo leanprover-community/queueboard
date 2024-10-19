@@ -13,6 +13,9 @@ import sys
 from datetime import datetime
 from typing import List
 
+def eprint(val):
+    print(val, file=sys.stderr)
+
 
 # Parse the JSON file 'name' for PR 'number'. Returned the parsed file if successful,
 # and an error message describing what went wrong otherwise.
