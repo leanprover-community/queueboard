@@ -153,7 +153,11 @@ def main() -> None:
         if len(content) > 1:
             return
         with open("redownload.txt", "w") as file:
-            new = [f"{very_outdated[i]}\n" for i in range(min(3, len(very_outdated)))]
+            # Shuffle the list of very outdated PRs, to avoid this getting stuck in a loop
+            # of trying and failing to re-download the same PR over and over.
+            import random
+            random.shuffle(very_outdated)
+            new = ['\n'.join(very_outdated[:min(3, len(list))]) + '\n']
             file.writelines(new)
     else:
         print("All PR aggregate data appears up to date, congratulations!")
