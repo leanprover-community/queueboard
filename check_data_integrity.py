@@ -68,9 +68,9 @@ def main() -> None:
         print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{outdated_prs}")
         very_outdated = sorted(very_outdated)
         print(f"Among these, {len(very_outdated)} PRs are lagging behind by more than 15 days: {very_outdated}")
-        # Write the first five of them into redownload.txt, if that file is basically empty.
-        # There is a small race condition with the other job --- but that is probably not too awful,
-        # as redownloading.txt being rubbish once just means extra downloads, no more.
+        # Do some crude batching of the PRs to re-download: first the first N PRs into redownload.txt,
+        # if that file is basically empty (i.e. no other files to already handle).
+        # The next run of this script will pick this up and try to download them.
         content = None
         with open("redownload.txt", "r") as file:
             content = file.readlines()
@@ -81,8 +81,11 @@ def main() -> None:
             file.writelines(new)
     else:
         print("All PR aggregate data appears up to date, congratulations!")
-    # FIXME: automatically add these PRs as requiring a re-download
-    # (need to implementing batching for this, or do so by hand).
+
+
+# FIXME: implement additional checks, such as
+# - each directory has all three files, and they look fine (no broken JSON)
+# - no PR has both a regular and a basic directory
 
 
 main()
