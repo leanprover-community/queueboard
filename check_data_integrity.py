@@ -8,11 +8,12 @@ This script assumes these files exist.
 """
 
 import json
+import os
+import sys
 from datetime import timedelta
-from os import path
 from typing import List
 
-from util import parse_datetime
+from util import parse_datetime, parse_json_file
 
 
 # Read the input JSON files, return a dictionary mapping each PR number
@@ -31,12 +32,89 @@ def extract_last_update_from_input() -> dict[int, str]:
     return output
 
 
+def eprint(val):
+    print(val, file=sys.stderr)
+
+
+# Check that a timestamp file at 'path' is well-formed;
+# print errors to standard output if not.
+def _check_timestamp_file(path: str) -> bool:
+    is_valid = True
+    with open(path, "r") as file:
+        content = file.read()
+        if not content.endswith('\n'):
+            eprint(f'error: timestamp file at path "{path}" should end with a newline')
+            is_valid = False
+        content = content.removesuffix("\n")
+        if "\n" in content:
+            eprint(f'error: timestamp file at path "{path}" contains more than one line of content')
+            return False
+        try:
+            _time = parse_datetime(content)
+        except ValueError:
+            eprint(f'error: timestamp file at path "{path}" does not contain a valid date and time')
+            is_valid = False
+    return is_valid
+
+
+def _check_directory(dir: str, pr_number: int, files: List[str]) -> bool:
+    is_valid = True
+    for file in files:
+        if file == "timestamp.txt":
+            is_valid = is_valid and _check_timestamp_file(os.path.join(dir, file))
+        else:
+            assert file.endswith('.json')
+            match parse_json_file(os.path.join(dir, file), str(pr_number)):
+                case str(err):
+                    eprint(err)
+                    is_valid = False
+                case dict(_data):
+                    pass
+    return is_valid
+
+
+# Check the contents of the data directory:
+# - this contains only directories of the form "PR_number" or "PR_number-basic",
+# - no PR has both forms present,
+# - each directory only contains the expected files, and these parse successfully.
+# Return if all data was well-formed, as above.
+def check_data_directory_contents() -> bool:
+    is_wellformed = True
+    data_dirs: List[str] = sorted(os.listdir("data"))
+    for dir in data_dirs:
+        if dir.endswith("-basic"):
+            number = dir.removesuffix("-basic")
+            if number in data_dirs:
+                eprint(f"error: there is both a normal and a 'basic' data directory for PR {number}")
+                is_wellformed = False
+            expected = ["basic_pr_info.json", "timestamp.txt"]
+            files = sorted(os.listdir(os.path.join("data", dir)))
+            if files != expected:
+                eprint(f"files for PR {number} did not match what I wanted: expected {expected}, got {files}")
+                is_wellformed = False
+                continue
+            is_wellformed = is_wellformed and _check_directory(os.path.join("data", dir), int(number), files)
+        elif dir.isnumeric():
+            expected = ["pr_info.json", "pr_reactions.json", "timestamp.txt"]
+            files = sorted(os.listdir(os.path.join("data", dir)))
+            if files != expected:
+                eprint(f"files for PR {dir} did not match what I wanted: expected {expected}, got {files}")
+                is_wellformed = False
+                continue
+            is_wellformed = is_wellformed and _check_directory(os.path.join("data", dir), int(dir), files)
+        else:
+            eprint("error: found directory {dir}, which was unexpected")
+            is_wellformed = False
+    return is_wellformed
+
+
 # Read the last updated fields of the aggregate data file, and compare it with the
 # dates from querying github.
 def main() -> None:
     current_last_updated = extract_last_update_from_input()
+    wellformed_content = check_data_directory_contents()
     aggregate_last_updated = dict()
-    with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as aggregate_file:
+    with open(os.path.join("processed_data", "aggregate_pr_data.json"), "r") as aggregate_file:
         data = json.load(aggregate_file)
         for pr in data["pr_statusses"]:
             aggregate_last_updated[pr["number"]] = pr["last_updated"]
@@ -79,11 +157,6 @@ def main() -> None:
             file.writelines(new)
     else:
         print("All PR aggregate data appears up to date, congratulations!")
-
-
-# FIXME: implement additional checks, such as
-# - each directory has all three files, and they look fine (no broken JSON)
-# - no PR has both a regular and a basic directory
 
 
 main()
