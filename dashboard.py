@@ -343,14 +343,16 @@ def main() -> None:
     draft_prs2 = None
     with open("all-open-PRs-2.json", "r") as draftfile:
         draft_prs2 = _extract_prs(json.load(draftfile))
+        draft_numbers2 = [pr.number for pr in draft_prs2]
     msg = "comparing this page's list of draft PRs (left) with the Github API query for draft PRs (right)"
-    if my_assert_eq(msg, draft_PRs, draft_prs2):
+    if my_assert_eq(msg, [pr.number for pr in draft_PRs], draft_numbers2):
         print("Aggregate draft PRs and Github REST API's draft PRs match, hooray!", file=sys.stderr)
     nondraft_prs2 = None
     with open("all-open-PRs-1.json", "r") as nondraftfile:
         nondraft_prs2 = _extract_prs(json.load(nondraftfile))
+        nondraft_numbers2 = [pr.number for pr in nondraft_prs2]
     msg = "comparing this page's list of non-draft PRs (left) with the Github API query for non-draft PRs (right)"
-    if my_assert_eq(msg, nondraft_PRs, nondraft_prs2):
+    if my_assert_eq(msg, [pr.number for pr in nondraft_PRs], nondraft_numbers2):
         print("Aggregate non-draft PRs and Github REST API's non-draft PRs match, hooray!", file=sys.stderr)
     assert len(draft_PRs) + len(nondraft_PRs) == len(input_data.all_open_prs)
     print(f"PR lengths: {len(input_data.all_open_prs)} overall, {len(draft_PRs)} draft ones, {len(nondraft_PRs)} non-draft ones", file=sys.stderr)
@@ -405,7 +407,9 @@ def main() -> None:
     queue_prs2 = None
     with open("queue.json", "r") as queuefile:
         queue_prs2 = _extract_prs(json.load(queuefile))
-    if my_assert_eq("comparing this page's results (left) with the Github #queue (right)", queue_prs, queue_prs2):
+        queue_pr_numbers2 = [pr.number for pr in queue_prs2]
+    msg = "comparing this page's results (left) with the Github #queue (right)"
+    if my_assert_eq(msg, [pr.number for pr in queue_prs], queue_pr_numbers2):
         print("Review dashboard and #queue match, hooray!", file=sys.stderr)
     prs_to_list[Dashboard.Queue] = queue_prs
     prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
