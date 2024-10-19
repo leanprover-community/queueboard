@@ -59,10 +59,10 @@ for pr in $prs; do
   fi
 done
 
-echo "Starting re-downloading of outdated files"
 # Re-download data if missing. Take care to not ask for too much at once!
 # (If chunking, make sure to not run into a loop of re-re-downloading in a loop!)
 for pr in $(cat "redownload.txt"); do
+  echo "About to re-download PR $pr"
   if [[ $stubborn_prs == *$pr* ]]; then
     dir="data/$pr-basic"
     mkdir -p "$dir"
