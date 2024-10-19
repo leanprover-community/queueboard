@@ -146,7 +146,7 @@ def main() -> None:
         content = None
         with open("redownload.txt", "r") as file:
             content = file.readlines()
-        if len(content) > 1:
+        if len(content) != 3 and len(content) > 1:
             return
         with open("redownload.txt", "w") as file:
             # Shuffle the list of very outdated PRs, to avoid this getting stuck in a loop
