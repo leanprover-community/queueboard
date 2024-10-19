@@ -10,6 +10,7 @@ This script assumes these files exist.
 import json
 from datetime import datetime, timedelta
 from os import path
+from typing import List
 
 
 # Read the input JSON files, return a dictionary mapping each PR number
@@ -37,7 +38,7 @@ def parse_datetime(rep: str) -> datetime:
 
 # Read the last updated fields of the aggregate data file, and compare it with the
 # dates from querying github.
-def main():
+def main() -> None:
     current_last_updated = extract_last_update_from_input()
     aggregate_last_updated = dict()
     with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as aggregate_file:
@@ -45,8 +46,8 @@ def main():
         for pr in data["pr_statusses"]:
             aggregate_last_updated[pr["number"]] = pr["last_updated"]
 
-    outdated_prs = []
-    very_outdated = []  # larger than 20 days, currently
+    outdated_prs: List[int] = []
+    very_outdated: List[int] = []  # larger than 15 days, currently
     # Note that both "last updated" fields have the same format.
     for pr_number in current_last_updated:
         current_updated = parse_datetime(current_last_updated[pr_number])
@@ -61,12 +62,12 @@ def main():
             print(f'mismatch: the aggregate file for PR {pr_number} is outdated by {delta}, please re-download!')
             print(f"  the aggregate file says {aggregate_updated}, current last update is {current_updated}")
             outdated_prs.append(pr_number)
-            if delta > timedelta(days=20):
+            if delta > timedelta(days=15):
                 very_outdated.append(pr_number)
     if outdated_prs:
         print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{outdated_prs}")
         very_outdated = sorted(very_outdated)
-        print(f"Among these, {len(very_outdated)} PRs are lagging behind by more than 20 days: {very_outdated}")
+        print(f"Among these, {len(very_outdated)} PRs are lagging behind by more than 15 days: {very_outdated}")
         # Write the first five of them into redownload.txt, if that file is basically empty.
         # There is a small race condition with the other job --- but that is probably not too awful,
         # as redownloading.txt being rubbish once just means extra downloads, no more.
@@ -76,7 +77,7 @@ def main():
         if len(content) > 1:
             return
         with open("redownload.txt", "w") as file:
-            new = [very_outdated[i] for i in range(5)]
+            new = [str(very_outdated[i]) for i in range(3)]
             file.writelines(new)
     else:
         print("All PR aggregate data appears up to date, congratulations!")
