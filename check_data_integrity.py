@@ -47,7 +47,8 @@ def main() -> None:
             aggregate_last_updated[pr["number"]] = pr["last_updated"]
 
     outdated_prs: List[int] = []
-    very_outdated: List[int] = []  # larger than 15 days, currently
+    N = 5
+    very_outdated: List[int] = []  # larger than N days
     # Note that both "last updated" fields have the same format.
     for pr_number in current_last_updated:
         current_updated = parse_datetime(current_last_updated[pr_number])
@@ -62,12 +63,12 @@ def main() -> None:
             print(f'mismatch: the aggregate file for PR {pr_number} is outdated by {delta}, please re-download!')
             print(f"  the aggregate file says {aggregate_updated}, current last update is {current_updated}")
             outdated_prs.append(pr_number)
-            if delta > timedelta(days=15):
+            if delta > timedelta(days=N):
                 very_outdated.append(pr_number)
     if outdated_prs:
         print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{outdated_prs}")
         very_outdated = sorted(very_outdated)
-        print(f"Among these, {len(very_outdated)} PRs are lagging behind by more than 15 days: {very_outdated}")
+        print(f"Among these, {len(very_outdated)} PRs are lagging behind by more than {N} days: {very_outdated}")
         # Do some crude batching of the PRs to re-download: first the first N PRs into redownload.txt,
         # if that file is basically empty (i.e. no other files to already handle).
         # The next run of this script will pick this up and try to download them.
@@ -77,7 +78,7 @@ def main() -> None:
         if len(content) > 1:
             return
         with open("redownload.txt", "w") as file:
-            new = [f"{very_outdated[i]}\n" for i in range(3)]
+            new = [f"{very_outdated[i]}\n" for i in range(min(3, len(very_outdated)))]
             file.writelines(new)
     else:
         print("All PR aggregate data appears up to date, congratulations!")
