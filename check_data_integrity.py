@@ -116,7 +116,7 @@ def main() -> None:
             aggregate_last_updated[pr["number"]] = pr["last_updated"]
 
     outdated_prs: List[int] = []
-    N = 2
+    N = 1
     very_outdated: List[int] = []  # larger than N days
     # Note that both "last updated" fields have the same format.
     for pr_number in current_last_updated:
@@ -139,7 +139,7 @@ def main() -> None:
     if outdated_prs:
         print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{sorted(outdated_prs)}")
         very_outdated = sorted(very_outdated)
-        print(f"Among these, {len(very_outdated)} PRs are lagging behind by more than {N} days: {very_outdated}")
+        print(f"Among these, {len(very_outdated)} PRs are lagging behind by more than {N} day(s): {very_outdated}")
         # Batch the PRs to to re-download: write the first N PRs into redownload.txt,
         # if that file is basically empty (i.e. no other files to already handle).
         # The next run of this script will pick this up and try to download them.
