@@ -693,9 +693,9 @@ def _compute_pr_entries(prs: List[BasicPRInformation]) -> str:
         author = { "login": pr.aggregate_info.author, "url": pr.author_url }
         url = f"https://github.com/leanprover-community/mathlib4/pull/{pr.number}"
         entries = [pr_link(pr.number, url), user_link(author), title_link(pr.aggregate_info.title, url), _write_labels(pr.labels)]
-        # Detailed information about the current PR.
-        # Display missing statistics about the number of comments as "-1".
-        number_total_comments = pr.aggregate_info.number_total_comments or "-1"
+        # Detailed information about the current PR. Explain missing statistics.
+        missing = '<a href title="more precise information about this PR is missing: usually, this is because the PR has lots of commits, so github refuses to simply download all information for this PR">-1</a>'
+        number_total_comments = pr.aggregate_info.number_total_comments or missing
         entries.extend([
             f"{pr.aggregate_info.additions}/{pr.aggregate_info.deletions}",
             f"{pr.aggregate_info.number_modified_files}",
