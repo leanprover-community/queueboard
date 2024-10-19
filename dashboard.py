@@ -216,16 +216,11 @@ def read_json_files() -> JSONInputData:
                 pr["additions"], pr["deletions"], pr["num_files"], pr["assignees"]
             )
             currently_missing = [
-                "documentation",
                 "modifies-tactic-syntax",
-                "please-adopt",
                 "good first issue",
-                "awaiting-zulip",
                 "dependency-bump",
-                "slow-typeclass-synthesis",
                 "test-ci",
                 "performance-hack",
-                "porting-notes",
                 "closed-due-to-inactivity",
                 "enhancement",
                 "longest-pole",
