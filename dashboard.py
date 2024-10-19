@@ -457,11 +457,13 @@ def compute_pr_statusses(aggregate_info: dict[int, AggregatePRInfo], prs: List[B
 # Compare two lists of PR numbers for equality, printing information output if different.
 def my_assert_eq(msg: str, left: List[int], right: List[int]) -> bool:
     if left != right:
-        print(f"{msg}\nassertion failure: left PRs are {left}, right PRs are {right}", file=sys.stderr)
+        print(f"{msg}\nassertion failure: found {len(left)} PRs on the left, {len(right)} PRs on the right", file=sys.stderr)
         left_sans_right = set(left) - set(right)
         right_sans_left = set(right) - set(left)
-        print(f"the following {len(left_sans_right)} PRs are contained in left, but not right: {left_sans_right}", file=sys.stderr)
-        print(f"the following {len(right_sans_left)} PRs are contained in right, but not left: {right_sans_left}", file=sys.stderr)
+        if left_sans_right:
+            print(f"the following {len(left_sans_right)} PRs are contained in left, but not right: {left_sans_right}", file=sys.stderr)
+        if right_sans_left:
+            print(f"the following {len(right_sans_left)} PRs are contained in right, but not left: {right_sans_left}", file=sys.stderr)
         return False
     return True
 

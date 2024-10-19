@@ -66,7 +66,7 @@ def main() -> None:
             if delta > timedelta(days=N):
                 very_outdated.append(pr_number)
     if outdated_prs:
-        print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{outdated_prs}")
+        print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{sorted(outdated_prs)}")
         very_outdated = sorted(very_outdated)
         print(f"Among these, {len(very_outdated)} PRs are lagging behind by more than {N} days: {very_outdated}")
         # Do some crude batching of the PRs to re-download: first the first N PRs into redownload.txt,
