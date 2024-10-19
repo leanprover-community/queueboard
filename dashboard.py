@@ -217,14 +217,8 @@ def read_json_files() -> JSONInputData:
             )
             currently_missing = [
                 "modifies-tactic-syntax",
-                "good first issue",
-                "dependency-bump",
-                "test-ci",
-                "performance-hack",
-                "closed-due-to-inactivity",
                 "enhancement",
                 "longest-pole",
-                "mathlib-port",
             ]
             for name in info.label_names:
                 if name.startswith(("t-", "blocked-by")):
