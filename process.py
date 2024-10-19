@@ -9,13 +9,13 @@ we list
 - the branch it is based on (usually "master")
 """
 
-from util import parse_json_file
-
 import json
 import os
 import sys
 from datetime import datetime, timezone
 from typing import List
+
+from util import parse_json_file
 
 
 # commit_nodes is an array of all checks for all the commits
@@ -79,7 +79,7 @@ def get_aggregate_data(pr_data: dict, _only_basic_info: bool) -> dict:
     }
 
 
-def main():
+def main() -> None:
     output = dict()
     updated = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     output["timestamp"] = updated

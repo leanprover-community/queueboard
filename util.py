@@ -8,9 +8,9 @@ Currently, this contains the following
 - comparing lists of PR numbers (with descriptive information)
 """
 
-from datetime import datetime
 import json
 import sys
+from datetime import datetime
 from typing import List
 
 

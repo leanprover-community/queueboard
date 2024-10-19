@@ -7,11 +7,12 @@ by comparing their time stamps with the data in the files `all-open-PRs-{1,2}.js
 This script assumes these files exist.
 """
 
-from util import parse_datetime
 import json
 from datetime import timedelta
 from os import path
 from typing import List
+
+from util import parse_datetime
 
 
 # Read the input JSON files, return a dictionary mapping each PR number
