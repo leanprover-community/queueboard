@@ -47,13 +47,15 @@ def main() -> None:
             aggregate_last_updated[pr["number"]] = pr["last_updated"]
 
     outdated_prs: List[int] = []
-    N = 5
+    N = 2
     very_outdated: List[int] = []  # larger than N days
     # Note that both "last updated" fields have the same format.
     for pr_number in current_last_updated:
         current_updated = parse_datetime(current_last_updated[pr_number])
         if pr_number not in aggregate_last_updated:
-            continue  # skip 'missing' PRs as first approximation; backfilling so far works well
+            print(f'mismatch: missing data for PR {pr_number}')
+            # FIXME: backfill that one as well; skipped for now
+            continue
         aggregate_updated = parse_datetime(aggregate_last_updated[pr_number])
 
         # current_updated should be at least as new,
@@ -69,7 +71,7 @@ def main() -> None:
         print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{sorted(outdated_prs)}")
         very_outdated = sorted(very_outdated)
         print(f"Among these, {len(very_outdated)} PRs are lagging behind by more than {N} days: {very_outdated}")
-        # Do some crude batching of the PRs to re-download: first the first N PRs into redownload.txt,
+        # Batch the PRs to to re-download: write the first N PRs into redownload.txt,
         # if that file is basically empty (i.e. no other files to already handle).
         # The next run of this script will pick this up and try to download them.
         content = None
