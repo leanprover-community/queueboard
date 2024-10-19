@@ -174,7 +174,7 @@ class AggregatePRInfo(NamedTuple):
     author: str
     title: str
     # All labels assigned to this PR.
-    label_names: List[str]
+    labels: List[Label]
     additions: int
     deletions: int
     number_modified_files: int
@@ -222,11 +222,6 @@ def read_json_files() -> JSONInputData:
                 pr["state"], date, pr["author"], pr["title"], [toLabel(name) for name in label_names],
                 pr["additions"], pr["deletions"], pr["num_files"], pr["assignees"]
             )
-            for name in info.label_names:
-                if name.startswith(("t-", "blocked-by")):
-                    pass
-                elif name not in label_colours:
-                    print(f'warning: no colour information for label {name} in the aggregate file (yet); PR {pr["number"]} has this label', file=sys.stderr)
             aggregate_info[pr["number"]] = info
     return JSONInputData(aggregate_info, all_open_prs)
 
