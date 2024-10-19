@@ -206,6 +206,7 @@ def read_json_files() -> JSONInputData:
             all_open_prs.extend(open_prs)
     with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as f:
         data = json.load(f)
+        label_colours = data["label_colours"]
         aggregate_info = dict()
         for pr in data["pr_statusses"]:
             date = parse_datetime(pr["last_updated"])
@@ -214,7 +215,31 @@ def read_json_files() -> JSONInputData:
                 pr["state"], date, pr["author"], pr["title"], pr["label_names"],
                 pr["additions"], pr["deletions"], pr["num_files"], pr["assignees"]
             )
+            currently_missing = [
+                "documentation",
+                "modifies-tactic-syntax",
+                "please-adopt",
+                "good first issue",
+                "awaiting-zulip",
+                "dependency-bump",
+                "slow-typeclass-synthesis",
+                "test-ci",
+                "performance-hack",
+                "porting-notes",
+                "closed-due-to-inactivity",
+                "enhancement",
+                "longest-pole",
+                "mathlib-port",
+            ]
+            for name in info.label_names:
+                if name.startswith(("t-", "blocked-by")):
+                    pass
+                elif name in currently_missing:
+                    pass
+                elif name not in label_colours:
+                    print(f'warning: no colour information for label {name} in the aggregate file (yet); PR {pr["number"]} has this label', file=sys.stderr)
             aggregate_info[pr["number"]] = info
+    print(f"Currently missing colour information about the {len(currently_missing)} labels {currently_missing}", file=sys.stderr)
     return JSONInputData(aggregate_info, all_open_prs)
 
 
