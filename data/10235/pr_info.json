@@ -10654,22 +10654,22 @@
         "latestReviews": {
           "nodes": [
             {
-              "id": "PRR_kwDOFcwZ1c6NcpxP",
+              "id": "PRR_kwDOFcwZ1c6N1wfk",
               "body": "",
               "state": "COMMENTED",
               "author": {
                 "login": "kmill"
               },
-              "submittedAt": "2024-10-16T16:43:32Z"
+              "submittedAt": "2024-10-19T19:02:36Z"
             },
             {
-              "id": "PRR_kwDOFcwZ1c6M5OOE",
+              "id": "PRR_kwDOFcwZ1c6N1wcq",
               "body": "",
               "state": "COMMENTED",
               "author": {
                 "login": "grunweg"
               },
-              "submittedAt": "2024-10-12T06:54:42Z"
+              "submittedAt": "2024-10-19T19:02:29Z"
             }
           ]
         },
@@ -10682,7 +10682,7 @@
         "milestone": null,
         "number": 10235,
         "potentialMergeCommit": {
-          "oid": "5553be9464cccb5b0dffc37f9e5a13e920930341"
+          "oid": "af6da783a55af7353ca5ddbd0d3a1dd6015957ee"
         },
         "projectCards": {
           "nodes": []
@@ -10841,6 +10841,42 @@
                 "login": "kmill"
               },
               "submittedAt": "2024-10-16T16:43:32Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6N1v0g",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2024-10-19T18:58:59Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6N1wBW",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2024-10-19T19:00:35Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6N1wcq",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "grunweg"
+              },
+              "submittedAt": "2024-10-19T19:02:29Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6N1wfk",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2024-10-19T19:02:36Z"
             }
           ]
         },
@@ -10943,6 +10979,50 @@
                   }
                 ]
               }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5ru4Z5",
+                    "body": "I saw you were having performance problems. I tried rewriting this as efficiently as I could, but unfortunately I didn't test it, so it might be worthless... Here:\r\n```lean\r\n/-- Check if a given declaration assumes some hypothesis `[Type p]`, but doesn't use this\r\nassumption in the type. `typesToAvoid` the list of such types.\r\nThis is the main logic underlying the linters below. -/\r\ndef checkUnusedAssumptionInType (declInfo : ConstantInfo) (typesToAvoid : Array Name) :\r\n    MetaM (Option MessageData) := do\r\n  -- We omit inductive types and their constructors, to reduce false positives.\r\n  -- We also omit partial declarations (via the `opaque` definitions they generate):\r\n  -- these are less useful for theorem proving, hence the linter is less useful there.\r\n  if declInfo.isInductive || declInfo.isCtor ||\r\n      (declInfo matches .opaqueInfo ..) then return none\r\n  let type := declInfo.type\r\n  -- Early return: none of the constants to avoid appear.\r\n  unless type.containsConst typesToAvoid.contains do\r\n    return none\r\n  forallTelescopeReducing type fun args ty ↦ do\r\n    -- Compute whether the given argument is used by the body of the definition outside of proofs.\r\n    let usedIdxs : Array Bool ← do\r\n      if ← pure declInfo.hasValue <&&> not <$> isProp type then\r\n        lambdaTelescope declInfo.value! fun args' e ↦ do\r\n          let mut usedIdxs := args.map (fun _ => false)\r\n          let e ← e.eraseProofs\r\n          let st := collectFVars {} e\r\n          for i in [0:args'.size] do\r\n            usedIdxs := usedIdxs.set! i (st.fvarSet.contains args'[i]!.fvarId!)\r\n          pure usedIdxs\r\n      else\r\n        pure #[]\r\n    -- Early return: every argument is used.\r\n    if usedIdxs.size == args.size && usedIdxs.all id then\r\n      return none\r\n    -- Compute an array of error messages for each superfluous argument\r\n    let ty ← ty.eraseProofs\r\n    let mut impossibleArgs := #[]\r\n    let mut usedFVars : CollectFVars.State := collectFVars {} ty\r\n    for i' in [0:args.size] do\r\n      let i := args.size - i' - 1\r\n      let arg := args[i]!\r\n      let t := (← inferType arg).cleanupAnnotations\r\n      if t.containsConst typesToAvoid.contains then\r\n        if usedIdxs[i]? != some true && !usedFVars.fvarSet.contains t.fvarId! then\r\n          impossibleArgs := impossibleArgs.push\r\n            (← addMessageContextFull m!\"argument {i+1} {arg} : {t}\")\r\n      usedFVars := collectFVars usedFVars t\r\n    if impossibleArgs.isEmpty then return none\r\n    return some <| .joinSep impossibleArgs.reverse.toList \", \"\r\n```",
+                    "createdAt": "2024-10-19T18:58:59Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5ru4to",
+                    "body": "If written correctly, it should be nearly functionally identical. The only intentional difference is that the message uses `t` with cleaned-up annotations now.",
+                    "createdAt": "2024-10-19T19:02:35Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5ru4fD",
+                    "body": "It's not a performance improvement, but you might like this syntax:\r\n```lean4\r\nif declInfo matches .inductInfo .. | .ctorInfo .. | .opaqueInfo .. then return none\r\n```",
+                    "createdAt": "2024-10-19T19:00:35Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5ru4tH",
+                    "body": "I actually know this syntax - but thanks for reminding me! This started as one condition, branched out and I didn't re-visit: I will certainly use the or pattern!",
+                    "createdAt": "2024-10-19T19:02:29Z",
+                    "author": {
+                      "login": "grunweg"
+                    }
+                  }
+                ]
+              }
             }
           ]
         },
@@ -10987,6 +11067,102 @@
             "nodes": [
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfMtKw",
+                "name": "Add ready-to-merge label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11419998808/job/31775206699"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfN5Dg",
+                "name": "Add ready-to-merge label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11420007675/job/31775226126"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfPuqg",
+                "name": "Add ready-to-merge label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11420022470/job/31775256234"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfPzPA",
+                "name": "Add ready-to-merge label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11420022975/job/31775257404"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfMtIQ",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11419998804/job/31775206689"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfN43w",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11420007676/job/31775226079"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfPuTQ",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11420022482/job/31775256141"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfPy8A",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11420022969/job/31775257328"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfMtLg",
+                "name": "Fix style issues from lint",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11419998802/job/31775206702"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfN4zw",
+                "name": "Fix style issues from lint",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11420007674/job/31775226063"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfPtww",
+                "name": "Fix style issues from lint",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11420022472/job/31775256003"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfPy7Q",
+                "name": "Fix style issues from lint",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11420022970/job/31775257325"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAHZe159g",
                 "name": "label-and-report-new-contributor",
                 "conclusion": "SUCCESS",
@@ -11024,6 +11200,38 @@
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11419823659/job/31774833173"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfMtlw",
+                "name": "Add delegated label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11419998808/job/31775206807"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfN5aQ",
+                "name": "Add delegated label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11420007675/job/31775226217"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfPttg",
+                "name": "Add delegated label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11420022470/job/31775255990"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHZfPy_Q",
+                "name": "Add delegated label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11420022975/job/31775257341"
               },
               {
                 "__typename": "CheckRun",
@@ -11093,7 +11301,7 @@
           }
         },
         "title": "feat: add `Decidable`, `Fintype`, `Encodable` linters",
-        "updatedAt": "2024-10-19T18:40:35Z",
+        "updatedAt": "2024-10-19T19:02:36Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/10235",
         "timelineItems": {
           "nodes": [
