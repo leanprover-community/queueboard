@@ -7,8 +7,9 @@ by comparing their time stamps with the data in the files `all-open-PRs-{1,2}.js
 This script assumes these files exist.
 """
 
+from util import parse_datetime
 import json
-from datetime import datetime, timedelta
+from datetime import timedelta
 from os import path
 from typing import List
 
@@ -27,13 +28,6 @@ def extract_last_update_from_input() -> dict[int, str]:
             for entry in page["data"]["search"]["nodes"]:
                 output[entry["number"]] = entry["updatedAt"]
     return output
-
-
-# Parse input of the form "2024-04-29T18:53:51Z" into a datetime.
-# The "Z" suffix means it's a time in UTC.
-# copied from dashboard.py
-def parse_datetime(rep: str) -> datetime:
-    return datetime.strptime(rep, "%Y-%m-%dT%H:%M:%SZ")
 
 
 # Read the last updated fields of the aggregate data file, and compare it with the

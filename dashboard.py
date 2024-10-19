@@ -20,6 +20,7 @@ from classify_pr_state import (
     determine_PR_status,
     label_categorisation_rules,
 )
+from util import my_assert_eq, parse_datetime
 
 
 @unique
@@ -198,14 +199,6 @@ class JSONInputData(NamedTuple):
     aggregate_info: dict[int, AggregatePRInfo]
     # Information about all open PRs
     all_open_prs: List[BasicPRInformation]
-
-
-# Parse input of the form "2024-04-29T18:53:51Z" into a datetime.
-# The "Z" suffix means it's a time in UTC.
-def parse_datetime(rep: str) -> datetime:
-    return datetime.strptime(rep, "%Y-%m-%dT%H:%M:%SZ")
-
-assert parse_datetime("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 51)
 
 
 # Validate the command-line arguments and try to read all data passed in via JSON files.
@@ -452,20 +445,6 @@ def compute_pr_statusses(aggregate_info: dict[int, AggregatePRInfo], prs: List[B
         state = PRState(labels, ci_status, aggregate_info.is_draft)
         return determine_PR_status(datetime.now(), state)
     return {info.number: determine_status(aggregate_info[info.number] or PLACEHOLDER_AGGREGATE_INFO, info) for info in prs}
-
-
-# Compare two lists of PR numbers for equality, printing information output if different.
-def my_assert_eq(msg: str, left: List[int], right: List[int]) -> bool:
-    if left != right:
-        print(f"assertion failure comparing {msg}\n  found {len(left)} PR(s) on the left, {len(right)} PR(s) on the right", file=sys.stderr)
-        left_sans_right = set(left) - set(right)
-        right_sans_left = set(right) - set(left)
-        if left_sans_right:
-            print(f"  the following {len(left_sans_right)} PR(s) are contained in left, but not right: {sorted(left_sans_right)}", file=sys.stderr)
-        if right_sans_left:
-            print(f"  the following {len(right_sans_left)} PR(s) are contained in right, but not left: {sorted(right_sans_left)}", file=sys.stderr)
-        return False
-    return True
 
 
 # If aggregate information about a PR is missing, we treat it as non-draft, failing CI and against 'master'.

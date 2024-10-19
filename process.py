@@ -9,27 +9,13 @@ we list
 - the branch it is based on (usually "master")
 """
 
+from util import parse_json_file
+
 import json
 import os
 import sys
 from datetime import datetime, timezone
 from typing import List
-
-
-# Parse the JSON file 'name' for PR 'number'. Returned the parsed file if successful,
-# and an error message describing what went wrong otherwise.
-def parse_json_file(name: str, pr_number: str) -> dict | str:
-    data = None
-    with open(name, "r") as fi:
-        try:
-            data = json.load(fi)
-        except json.decoder.JSONDecodeError:
-            return f"error: the pr_info file for PR {pr_number} is invalid JSON, ignoring"
-    if "errors" in data:
-        return f"warning: the data for PR {pr_number} is incomplete, ignoring"
-    elif "data" not in data:
-        return f"warning: the data for PR {pr_number} is incomplete (perhaps a time out downloading it), ignoring"
-    return data
 
 
 # commit_nodes is an array of all checks for all the commits
