@@ -414,16 +414,24 @@ def main() -> None:
     queue_or_merge_conflict = prs_without_any_label(master_CI_notfork, other_labels)
     prs_to_list[Dashboard.NeedsMerge] = prs_with_label(queue_or_merge_conflict, "merge-conflict")
     queue_prs = prs_without_label(queue_or_merge_conflict, "merge-conflict")
+    prs_to_list[Dashboard.Queue] = queue_prs
+    prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
+    prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs, 'easy')
+
     queue_prs2 = None
     with open("queue.json", "r") as queuefile:
         queue_prs2 = _extract_prs(json.load(queuefile))
         queue_pr_numbers2 = [pr.number for pr in queue_prs2]
-    msg = "comparing this page's results (left) with the Github #queue (right)"
-    if my_assert_eq(msg, [pr.number for pr in queue_prs], queue_pr_numbers2):
+    msg = "comparing this page's review dashboard (left) with the Github #queue (right)"
+    if my_assert_eq(msg, [pr.number for pr in prs_to_list[Dashboard.Queue]], queue_pr_numbers2):
         print("Review dashboard and #queue match, hooray!", file=sys.stderr)
-    prs_to_list[Dashboard.Queue] = queue_prs
-    prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
-    prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs, 'easy')
+    needs_merge2 = None
+    with open("needs-merge.json", "r") as file:
+        needs_merge_prs2 = _extract_prs(json.load(file))
+        needs_merge2 = [pr.number for pr in needs_merge_prs2]
+    msg = "comparing this page's 'needs merge' dashboard (left) with the Github REST APi search (right)"
+    if my_assert_eq(msg, [pr.number for pr in prs_to_list[Dashboard.NeedsMerge]], needs_merge2):
+        print("Needs merge dashboard: list matches the github API, hooray!", file=sys.stderr)
 
     a_day_ago = datetime.now() - timedelta(days=1)
     a_week_ago = datetime.now() - timedelta(days=7)
