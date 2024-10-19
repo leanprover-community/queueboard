@@ -113,7 +113,7 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
     if state.draft or state.ci == CIStatus.Fail:
         return PRStatus.NotReady
     # Ignore all "other" labels, which are not relevant for this anyway.
-    labels = [l for l in state.labels if l != LabelKind.Other]
+    labels = [label for label in state.labels if label != LabelKind.Other]
 
     # Labels can be contradictory (so we need to recognise this).
     # Also note that their priority orders are not transitive!
@@ -133,11 +133,11 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
     else:
         # Some label combinations are contradictory. We mark the PR as in a "contradictory" state.
         # awaiting-decision is exclusive with any of waiting on review, author, delegation and sent to bors.
-        if LabelKind.Decision in labels and any([l for l in labels if
-                l in [LabelKind.Author, LabelKind.Review, LabelKind.Delegated, LabelKind.Bors, LabelKind.WIP]]):
+        if LabelKind.Decision in labels and any([label for label in labels if
+                label in [LabelKind.Author, LabelKind.Review, LabelKind.Delegated, LabelKind.Bors, LabelKind.WIP]]):
             return PRStatus.Contradictory
         # Work in progress contradicts "awaiting review" and "ready for bors".
-        if LabelKind.WIP in labels and any([l for l in labels if l in [LabelKind.Review, LabelKind.Bors]]):
+        if LabelKind.WIP in labels and any([label for label in labels if label in [LabelKind.Review, LabelKind.Bors]]):
             return PRStatus.Contradictory
         # Waiting for the author and review is also contradictory,
         if LabelKind.Author in labels and LabelKind.Review in labels:
@@ -210,7 +210,7 @@ def test_determine_status() -> None:
         if a != LabelKind.Other:
             check([a], label_to_prstatus(a))
         for b in ALL:
-            statusses = [label_to_prstatus(l) for l in [a, b] if l != LabelKind.Other]
+            statusses = [label_to_prstatus(lab) for lab in [a, b] if lab != LabelKind.Other]
             # The "other" kind has no associated PR state: continue if all labels are "other"
             if not statusses:
                 continue
@@ -222,7 +222,7 @@ def test_determine_status() -> None:
                 if result_ab == PRStatus.Contradictory:
                     check([a, b, c], PRStatus.Contradictory)
                 else:
-                    statusses = [label_to_prstatus(l) for l in [a, b, c] if l != LabelKind.Other]
+                    statusses = [label_to_prstatus(lab) for lab in [a, b, c] if lab != LabelKind.Other]
                     if not statusses:
                         continue
                     actual = check_flexible([a, b, c], statusses + [PRStatus.Contradictory])

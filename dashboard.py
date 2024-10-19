@@ -435,7 +435,7 @@ def main() -> None:
 def compute_pr_statusses(aggregate_info: dict[int, AggregatePRInfo], prs: List[BasicPRInformation]) -> dict[int, PRStatus]:
     def determine_status(aggregate_info: AggregatePRInfo, info: BasicPRInformation) -> PRStatus:
         # Ignore all "other" labels, which are not relevant for this anyway.
-        labels = [label_categorisation_rules[l.name] for l in info.labels if l.name in label_categorisation_rules]
+        labels = [label_categorisation_rules[lab.name] for lab in info.labels if lab.name in label_categorisation_rules]
         ci_status = CIStatus.Pass if aggregate_info.CI_passes else CIStatus.Fail
         state = PRState(labels, ci_status, aggregate_info.is_draft)
         return determine_PR_status(datetime.now(), state)
@@ -731,7 +731,7 @@ def print_dashboard(prs : List[BasicPRInformation], kind: Dashboard) -> None:
 
 # Does a PR have a given label?
 def _has_label(pr: BasicPRInformation, name: str) -> bool:
-    return name in [l.name for l in pr.labels]
+    return name in [label.name for label in pr.labels]
 
 # Extract all PRs from a given list which have a certain label.
 def prs_with_label(prs: List[BasicPRInformation], label_name: str) -> List[BasicPRInformation]:
@@ -755,13 +755,13 @@ def has_contradictory_labels(pr: BasicPRInformation) -> bool:
         "ready-to-merge": "bors", "auto-merge-after-CI": "bors",
         "blocked-by-other-PR": "blocked", "blocked-by-core-PR": "blocked", "blocked-by-batt-PR": "blocked", "blocked-by-qq-PR": "blocked",
     }
-    normalised_labels = [(canonicalise[l.name] if l.name in canonicalise else l.name) for l in pr.labels]
+    normalised_labels = [(canonicalise[label.name] if label.name in canonicalise else label.name) for label in pr.labels]
     # Test for contradictory label combinations.
     if 'awaiting-review-DONT-USE' in normalised_labels:
         return True
     # Waiting for a decision contradicts most other labels.
     elif "awaiting-zulip" in normalised_labels and any(
-            [l for l in normalised_labels if l in ["awaiting-author", "delegated", "bors", "WIP"]]):
+            [lab for lab in normalised_labels if lab in ["awaiting-author", "delegated", "bors", "WIP"]]):
         return True
     elif "WIP" in normalised_labels and ("awaiting-review" in normalised_labels or "bors" in normalised_labels):
         return True
@@ -781,7 +781,7 @@ def compute_dashboards_bad_labels_title(prs : List[BasicPRInformation]) -> Tuple
     with_bad_title = [pr for pr in nonwip_prs if not pr.title.startswith(("feat", "chore", "perf", "refactor", "style", "fix", "doc"))]
     # Whether a PR has a "topic" label.
     def has_topic_label(pr: BasicPRInformation) -> bool:
-        topic_labels = [l for l in pr.labels if l.name in ['CI', 'IMO'] or l.name.startswith("t-")]
+        topic_labels = [label for label in pr.labels if label.name in ['CI', 'IMO'] or label.name.startswith("t-")]
         return len(topic_labels) >= 1
     prs_without_topic_label = [pr for pr in nonwip_prs if pr.title.startswith("feat") and not has_topic_label(pr)]
     prs_with_contradictory_labels = [pr for pr in nonwip_prs if has_contradictory_labels(pr)]
