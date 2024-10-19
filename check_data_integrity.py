@@ -157,7 +157,7 @@ def main() -> None:
             # of trying and failing to re-download the same PR over and over.
             import random
             random.shuffle(very_outdated)
-            new = ['\n'.join(very_outdated[:min(3, len(list))]) + '\n']
+            new = ['\n'.join([str(n) for n in very_outdated[:min(3, len(list))]]) + '\n']
             file.writelines(new)
     else:
         print("All PR aggregate data appears up to date, congratulations!")
