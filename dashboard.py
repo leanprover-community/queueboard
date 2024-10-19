@@ -344,14 +344,14 @@ def main() -> None:
     with open("all-open-PRs-2.json", "r") as draftfile:
         draft_prs2 = _extract_prs(json.load(draftfile))
         draft_numbers2 = [pr.number for pr in draft_prs2]
-    msg = "comparing this page's list of draft PRs (left) with the Github API query for draft PRs (right)"
+    msg = "this page's list of draft PRs (left) with the Github API query for draft PRs (right)"
     if my_assert_eq(msg, [pr.number for pr in draft_PRs], draft_numbers2):
         print("Aggregate draft PRs and Github REST API's draft PRs match, hooray!", file=sys.stderr)
     nondraft_prs2 = None
     with open("all-open-PRs-1.json", "r") as nondraftfile:
         nondraft_prs2 = _extract_prs(json.load(nondraftfile))
         nondraft_numbers2 = [pr.number for pr in nondraft_prs2]
-    msg = "comparing this page's list of non-draft PRs (left) with the Github API query for non-draft PRs (right)"
+    msg = "this page's list of non-draft PRs (left) with the Github API query for non-draft PRs (right)"
     if my_assert_eq(msg, [pr.number for pr in nondraft_PRs], nondraft_numbers2):
         print("Aggregate non-draft PRs and Github REST API's non-draft PRs match, hooray!", file=sys.stderr)
     assert len(draft_PRs) + len(nondraft_PRs) == len(input_data.all_open_prs)
@@ -457,13 +457,13 @@ def compute_pr_statusses(aggregate_info: dict[int, AggregatePRInfo], prs: List[B
 # Compare two lists of PR numbers for equality, printing information output if different.
 def my_assert_eq(msg: str, left: List[int], right: List[int]) -> bool:
     if left != right:
-        print(f"{msg}\nassertion failure: found {len(left)} PRs on the left, {len(right)} PRs on the right", file=sys.stderr)
+        print(f"assertion failure comparing {msg}\n  found {len(left)} PRs on the left, {len(right)} PRs on the right", file=sys.stderr)
         left_sans_right = set(left) - set(right)
         right_sans_left = set(right) - set(left)
         if left_sans_right:
-            print(f"the following {len(left_sans_right)} PRs are contained in left, but not right: {left_sans_right}", file=sys.stderr)
+            print(f"  the following {len(left_sans_right)} PRs are contained in left, but not right: {left_sans_right}", file=sys.stderr)
         if right_sans_left:
-            print(f"the following {len(right_sans_left)} PRs are contained in right, but not left: {right_sans_left}", file=sys.stderr)
+            print(f"  the following {len(right_sans_left)} PRs are contained in right, but not left: {right_sans_left}", file=sys.stderr)
         return False
     return True
 
@@ -501,7 +501,7 @@ def gather_pr_statistics(
     # For some kinds, we have this data already: the review queue and the "not merged" kinds come to mind.
     # Let us compare with the classification logic.
     queue_prs_numbers = [pr for pr in ready_pr_status if ready_pr_status[pr] == PRStatus.AwaitingReview]
-    msg = "comparing the review queue (left) with all PRs classified as awaiting review (right)"
+    msg = "the review queue (left) with all PRs classified as awaiting review (right)"
     if my_assert_eq(msg, queue_prs_numbers, [i.number for i in queue_prs]):
         print("review queue: two computations match, hooray", file=sys.stderr)
         # print(f"warning: the review queue and the classification differ: found {len(right)} PRs {right} on the former, but the {len(queue_prs_numbers)} PRs {queue_prs_numbers} on the latter!", file=sys.stderr)
