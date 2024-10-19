@@ -117,12 +117,13 @@ def main() -> None:
 
     # All PRs whose aggregate data is at least 10 minutes older than github's current "last update".
     outdated_prs: List[int] = []
+    missing_prs = []
     # Note that both "last updated" fields have the same format.
     for pr_number in current_last_updated:
         current_updated = parse_datetime(current_last_updated[pr_number])
         if pr_number not in aggregate_last_updated:
             print(f'mismatch: missing data for PR {pr_number}')
-            # FIXME: backfill that one as well; skipped for now
+            missing_prs.append(pr_number)
             continue
         aggregate_updated = parse_datetime(aggregate_last_updated[pr_number])
 
@@ -133,6 +134,18 @@ def main() -> None:
             print(f'mismatch: the aggregate file for PR {pr_number} is outdated by {delta}, please re-download!')
             print(f"  the aggregate file says {aggregate_updated}, current last update is {current_updated}")
             outdated_prs.append(pr_number)
+    # Write out the list of missing PRs.
+    # XXX: once written, this file never gets emptied; need to empty it manually.
+    if missing_prs:
+        print(f"SUMMARY: found {len(missing_prs)} PRs whose aggregate information is missing:\n{sorted(missing_prs)}", file=sys.stderr)
+        content = None
+        with open("missing_prs.txt", "r") as file:
+            content = file.readlines()
+        if len(content) <= 1:
+            # No need to shuffle this list: gather_stats.sh skips PRs with existing
+            # broken data, so each PR is tried at most once anyway.
+            with open("missing_prs.txt", "w") as file:
+                file.writelines('\n'.join([f"{n}\n" for n in missing_prs]) + '\n')
     if outdated_prs:
         print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{sorted(outdated_prs)}")
         # Batch the PRs to to re-download: write the first N PRs into redownload.txt,
