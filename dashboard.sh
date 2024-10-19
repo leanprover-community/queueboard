@@ -40,3 +40,8 @@ QUERY_ALLOPEN1=$(prepare_query 'sort:updated-asc is:pr state:open -is:draft')
 QUERY_ALLOPEN2=$(prepare_query 'sort:updated-asc is:pr state:open is:draft')
 gh api graphql --paginate --slurp -f query="$QUERY_ALLOPEN1" | jq '{"output": .}' > all-open-PRs-1.json
 gh api graphql --paginate --slurp -f query="$QUERY_ALLOPEN2" | jq '{"output": .}' > all-open-PRs-2.json
+
+# TEMPORARILY download the old queue file, to compare results.
+queue_labels_but_merge="-label:blocked-by-other-PR -label:awaiting-CI -label:awaiting-author -label:awaiting-zulip -label:please-adopt -label:help-wanted -label:WIP -label:delegated -label:auto-merge-after-CI -label:ready-to-merge"
+QUERY_QUEUE=$(prepare_query "sort:updated-asc is:pr state:open -is:draft status:success base:master $queue_labels_but_merge -label:merge-conflict")
+gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" | jq '{"output": .}' > queue.json

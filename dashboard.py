@@ -390,6 +390,11 @@ def main() -> None:
     queue_or_merge_conflict = prs_without_any_label(master_CI_notfork, other_labels)
     prs_to_list[Dashboard.NeedsMerge] = prs_with_label(queue_or_merge_conflict, "merge-conflict")
     queue_prs = prs_without_label(queue_or_merge_conflict, "merge-conflict")
+    queue_prs2 = None
+    with open("queue.json", "r") as queuefile:
+        queue_prs2 = _extract_prs(json.load(queuefile))
+    if my_assert_eq("comparing this page's results (left) with the Github #queue (right)", queue_prs, queue_prs2):
+        print("Review dashboard and #queue match, hooray!", file=sys.stderr)
     prs_to_list[Dashboard.Queue] = queue_prs
     prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
     prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs, 'easy')
@@ -433,6 +438,18 @@ def compute_pr_statusses(aggregate_info: dict[int, AggregatePRInfo], prs: List[B
     return {info.number: determine_status(aggregate_info[info.number] or PLACEHOLDER_AGGREGATE_INFO, info) for info in prs}
 
 
+# Compare two lists of PR numbers for equality, printing information output if different.
+def my_assert_eq(msg: str, left: List[int], right: List[int]) -> bool:
+    if left != right:
+        print(f"{msg}\nassertion failure: left PRs are {left}, right PRs are {right}", file=sys.stderr)
+        left_sans_right = set(left) - set(right)
+        right_sans_left = set(right) - set(left)
+        print(f"the following {len(left_sans_right)} PRs are contained in left, but not right: {left_sans_right}", file=sys.stderr)
+        print(f"the following {len(right_sans_left)} PRs are contained in right, but not left: {right_sans_left}", file=sys.stderr)
+        return False
+    return True
+
+
 # If aggregate information about a PR is missing, we treat it as non-draft, failing CI and against 'master'.
 # (Though, in fact, we assume that 'aggregate_info' is complete, by prior normalisation.)
 def gather_pr_statistics(
@@ -465,16 +482,6 @@ def gather_pr_statistics(
 
     # For some kinds, we have this data already: the review queue and the "not merged" kinds come to mind.
     # Let us compare with the classification logic.
-    def my_assert_eq(msg: str, left: List[int], right: List[int]) -> bool:
-        if left != right:
-            print(f"{msg}\nassertion failure: left PRs are {left}, right PRs are {right}", file=sys.stderr)
-            left_sans_right = set(left) - set(right)
-            right_sans_left = set(right) - set(left)
-            print(f"the following {len(left_sans_right)} PRs are contained in left, but not right: {left_sans_right}", file=sys.stderr)
-            print(f"the following {len(right_sans_left)} PRs are contained in right, but not left: {right_sans_left}", file=sys.stderr)
-            return False
-        return True
-
     queue_prs_numbers = [pr for pr in ready_pr_status if ready_pr_status[pr] == PRStatus.AwaitingReview]
     msg = "comparing the review queue (left) with all PRs classified as awaiting review (right)"
     if my_assert_eq(msg, queue_prs_numbers, [i.number for i in queue_prs]):
