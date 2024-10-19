@@ -38,7 +38,7 @@ def determine_ci_status(number, CI_check_nodes: dict) -> bool:
     return True
 
 
-def get_aggregate_data(pr_data: dict, _only_basic_info: bool) -> dict:
+def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
     inner = pr_data["data"]["repository"]["pullRequest"]
     number = inner["number"]
     head_repo = inner["headRepositoryOwner"]
@@ -61,7 +61,7 @@ def get_aggregate_data(pr_data: dict, _only_basic_info: bool) -> dict:
     CI_passes = determine_ci_status(number, inner["statusCheckRollup"]["contexts"]["nodes"])
     # NB. When adding future fields, pay attention to whether the 'basic' info files
     # also contain this information --- otherwise, it is fine to omit it!
-    return {
+    aggregate_data = {
         "number": number,
         "is_draft": is_draft,
         "CI_passes": CI_passes,
@@ -71,12 +71,21 @@ def get_aggregate_data(pr_data: dict, _only_basic_info: bool) -> dict:
         "last_updated": last_updated,
         "author": author,
         "title": title,
+        "label_names": labels,
+        "num_files": files,
         "additions": additions,
         "deletions": deletions,
-        "num_files": files,
-        "label_names": labels,
         "assignees": assignees,
     }
+    if not only_basic_info:
+        number_comments = len(inner["comments"]["nodes"])
+        number_review_comments = 0
+        review_threads = inner["reviewThreads"]["nodes"]
+        for t in review_threads:
+            number_review_comments += len(t["comments"]["nodes"])
+        aggregate_data["number_comments"] = number_comments
+        aggregate_data["number_review_comments"] = number_review_comments
+    return aggregate_data
 
 
 def main() -> None:
