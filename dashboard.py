@@ -173,8 +173,7 @@ class AggregatePRInfo(NamedTuple):
     # The PR author's github handle
     author: str
     title: str
-    # All names of labels assigned to this PR.
-    # FIXME: upgrade this to the full label data
+    # All labels assigned to this PR.
     label_names: List[str]
     additions: int
     deletions: int
@@ -207,12 +206,20 @@ def read_json_files() -> JSONInputData:
     with open(path.join("processed_data", "aggregate_pr_data.json"), "r") as f:
         data = json.load(f)
         label_colours = data["label_colours"]
+        def toLabel(name: str) -> Label:
+            url = f"https://github.com/leanprover-community/mathlib4/labels/{name}"
+            if name.startswith("t-"):
+                name = "t-analysis"
+            elif name.startswith("blocked-by"):
+                name = "blocked-by-other-PR"
+            return Label(name, label_colours[name], url)
         aggregate_info = dict()
         for pr in data["pr_statusses"]:
             date = parse_datetime(pr["last_updated"])
+            label_names = pr["label_names"]
             info = AggregatePRInfo(
                 pr["is_draft"], pr["CI_passes"], pr["base_branch"], pr["head_repo"]["login"],
-                pr["state"], date, pr["author"], pr["title"], pr["label_names"],
+                pr["state"], date, pr["author"], pr["title"], [toLabel(name) for name in label_names],
                 pr["additions"], pr["deletions"], pr["num_files"], pr["assignees"]
             )
             for name in info.label_names:
