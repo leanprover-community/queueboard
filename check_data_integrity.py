@@ -140,12 +140,14 @@ def main() -> None:
         print(f"SUMMARY: found {len(missing_prs)} PRs whose aggregate information is missing:\n{sorted(missing_prs)}", file=sys.stderr)
         content = None
         with open("missing_prs.txt", "r") as file:
-            content = file.readlines()
-        if len(content) <= 1:
+            content = file.read()
+        if not content.strip():
             # No need to shuffle this list: gather_stats.sh skips PRs with existing
             # broken data, so each PR is tried at most once anyway.
             with open("missing_prs.txt", "w") as file:
-                file.writelines('\n'.join([f"{n}\n" for n in missing_prs]) + '\n')
+                file.writelines('\n'.join([f"{n}\n" for n in missing_prs]))
+    else:
+        print("debug: found no missing PRs")
     if outdated_prs:
         print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{sorted(outdated_prs)}")
         # Batch the PRs to to re-download: write the first N PRs into redownload.txt,
