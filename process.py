@@ -18,8 +18,10 @@ from typing import List
 from util import eprint, parse_json_file
 
 
-# commit_nodes is an array of all checks for all the commits
-def determine_ci_status(number, CI_check_nodes: dict) -> bool:
+# Determine whether a PR's CI check all pass.
+# "Running" CI returns False, in particular.
+# 'CI_check_nodes' is an array of JSON data of all checks for all the commits.
+def determine_ci_passes(number, CI_check_nodes: dict) -> bool:
     # We consider CI to be passing if no job fails, and every job succeeds
     # or is skipped. (In the future, we may exclude inessential runs.)
     for r in CI_check_nodes:
@@ -32,7 +34,7 @@ def determine_ci_status(number, CI_check_nodes: dict) -> bool:
         elif r["conclusion"] in ["SUCCESS", "SKIPPED", "NEUTRAL"]:
             continue
         elif r["conclusion"] is None and r["status"] in ["IN_PROGRESS", "QUEUED"]:
-            continue # TODO!
+            return False  # TODO: how to ensure an updated status is polled?
         else:
             print(f'CI run \"{r["name"]}\" for PR {number} has interesting data: {r}"')
     return True
@@ -58,7 +60,7 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
     assignees = [ass["login"] for ass in inner["assignees"]["nodes"]]
     CI_passes = False
     # Get information about the latest CI run. We just look at the "summary job".
-    CI_passes = determine_ci_status(number, inner["statusCheckRollup"]["contexts"]["nodes"])
+    CI_passes = determine_ci_passes(number, inner["statusCheckRollup"]["contexts"]["nodes"])
     # NB. When adding future fields, pay attention to whether the 'basic' info files
     # also contain this information --- otherwise, it is fine to omit it!
     aggregate_data = {
