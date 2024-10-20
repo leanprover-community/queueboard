@@ -79,7 +79,7 @@ for pr in $(cat "redownload.txt"); do
   fi
 done
 echo "" > redownload.txt
-echo "Redownloading completed"
+echo "Successfully re-downloaded all planned PRs (if any)"
 
 # In case there are PRs which got "missed" somehow, backfill
 # data for up to one of them.
