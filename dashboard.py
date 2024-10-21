@@ -299,6 +299,7 @@ def print_on_the_queue_page(
         is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
         review = not (any(lab.name in ["awaiting-CI", "awaiting-author", "awaiting-zulip"] for lab in pr.labels))
         overall = ci_passes and (not is_blocked) and (not has_merge_conflict) and is_ready and review
+        print(f"trace: PR number {pr.number}, author dict is {pr.author}", file=sys.stderr)
         entries = [
             pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url),
             _write_labels(pr.labels), icon(not from_fork),
