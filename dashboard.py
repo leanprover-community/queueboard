@@ -303,7 +303,7 @@ def print_on_the_queue_page(
             author = pr.author
         else:
             # FIXME: fill in the user name from the actual aggregate data, which has this. Then remove the question mark.
-            print("warning: missing author information for PR {pr.number}, its authors dictionary is {pr.author} --- was this submitted by dependabot?", file=sys.stderr)
+            print(f"warning: missing author information for PR {pr.number}, its authors dictionary is {pr.author} --- was this submitted by dependabot?", file=sys.stderr)
             author = { "login": "dependabot(?)", "url": "https://github.com/dependabot"}
         entries = [
             pr_link(pr.number, pr.url), user_link(author), title_link(pr.title, pr.url),
