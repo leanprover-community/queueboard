@@ -299,9 +299,14 @@ def print_on_the_queue_page(
         is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
         review = not (any(lab.name in ["awaiting-CI", "awaiting-author", "awaiting-zulip"] for lab in pr.labels))
         overall = ci_passes and (not is_blocked) and (not has_merge_conflict) and is_ready and review
-        print(f"trace: PR number {pr.number}, author dict is {pr.author}", file=sys.stderr)
+        if "login" in pr.author:
+            author = pr.author
+        else:
+            # FIXME: fill in the user name from the actual aggregate data, which has this. Then remove the question mark.
+            print("warning: missing author information for PR {pr.number}, its authors dictionary is {pr.author} --- was this submitted by dependabot?", file=sys.stderr)
+            author = { "login": "dependabot(?)", "url": "https://github.com/dependabot"}
         entries = [
-            pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url),
+            pr_link(pr.number, pr.url), user_link(author), title_link(pr.title, pr.url),
             _write_labels(pr.labels), icon(not from_fork),
             '???' if ci_passes is None else icon(ci_passes),
             icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall)
