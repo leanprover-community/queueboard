@@ -409,7 +409,7 @@ def main() -> None:
         queue_prs2 = _extract_prs(json.load(queuefile))
         queue_pr_numbers2 = [pr.number for pr in queue_prs2]
     msg = "comparing this page's review dashboard (left) with the Github #queue (right)"
-    if my_assert_eq(msg, [pr.number for pr in prs_to_list[Dashboard.Queue]], queue_pr_numbers2):
+    if my_assert_eq(msg, [pr.number for pr in prs_to_list[queue_prs]], queue_pr_numbers2):
         print("Review dashboard and #queue match, hooray!", file=sys.stderr)
     # XXX: When re-visiting the comparison of queues, also re-run this again for a day.
     # For now, it doesn't expose more useful information, hence disabling this.
