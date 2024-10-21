@@ -403,9 +403,6 @@ def main() -> None:
     queue_or_merge_conflict = prs_without_any_label(master_CI_notfork, other_labels)
     prs_to_list[Dashboard.NeedsMerge] = prs_with_label(queue_or_merge_conflict, "merge-conflict")
     queue_prs = prs_without_label(queue_or_merge_conflict, "merge-conflict")
-    prs_to_list[Dashboard.Queue] = queue_prs
-    prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
-    prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs, 'easy')
 
     queue_prs2 = None
     with open("queue.json", "r") as queuefile:
@@ -414,13 +411,21 @@ def main() -> None:
     msg = "comparing this page's review dashboard (left) with the Github #queue (right)"
     if my_assert_eq(msg, [pr.number for pr in prs_to_list[Dashboard.Queue]], queue_pr_numbers2):
         print("Review dashboard and #queue match, hooray!", file=sys.stderr)
-    needs_merge2 = None
-    with open("needs-merge.json", "r") as file:
-        needs_merge_prs2 = _extract_prs(json.load(file))
-        needs_merge2 = [pr.number for pr in needs_merge_prs2]
-    msg = "comparing this page's 'needs merge' dashboard (left) with the Github REST APi search (right)"
-    if my_assert_eq(msg, [pr.number for pr in prs_to_list[Dashboard.NeedsMerge]], needs_merge2):
-        print("Needs merge dashboard: list matches the github API, hooray!", file=sys.stderr)
+    # XXX: When re-visiting the comparison of queues, also re-run this again for a day.
+    # For now, it doesn't expose more useful information, hence disabling this.
+    # needs_merge2 = None
+    # with open("needs-merge.json", "r") as file:
+    #     needs_merge_prs2 = _extract_prs(json.load(file))
+    #     needs_merge2 = [pr.number for pr in needs_merge_prs2]
+    # msg = "comparing this page's 'needs merge' dashboard (left) with the Github REST APi search (right)"
+    # if my_assert_eq(msg, [pr.number for pr in prs_to_list[Dashboard.NeedsMerge]], needs_merge2):
+    #     print("Needs merge dashboard: list matches the github API, hooray!", file=sys.stderr)
+
+    # TODO: try to switch back to 'queue_prs' again, once the root causes for PR getting 'dropped'
+    # by 'gather_stats.sh' are all identified and fixed.
+    prs_to_list[Dashboard.Queue] = queue_prs2
+    prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
+    prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs, 'easy')
 
     a_day_ago = datetime.now() - timedelta(days=1)
     a_week_ago = datetime.now() - timedelta(days=7)
