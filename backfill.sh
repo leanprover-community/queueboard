@@ -31,14 +31,14 @@ do
   echo "Backfilling PR #$prnumber: $CURRENT_TIME"
 
   # Create the directory for the PR.
-  dir="data/$pr"
+  dir="data/$prnumber"
   mkdir -p "$dir"
 
   # Run pr_info.sh and save the output.
-  ./pr_info.sh "$pr" | jq '.' > "$dir/pr_info.json"
+  ./pr_info.sh "$prnumber" | jq '.' > "$dir/pr_info.json"
 
   # Run pr_reactions.sh and save the output.
-  ./pr_reactions.sh "$pr" | jq '.' > "$dir/pr_reactions.json"
+  ./pr_reactions.sh "$prnumber" | jq '.' > "$dir/pr_reactions.json"
 
   # Save the current timestamp.
   echo "$CURRENT_TIME" > "$dir/timestamp.txt"
