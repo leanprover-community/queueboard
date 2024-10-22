@@ -16,7 +16,7 @@
         },
         "autoMergeRequest": null,
         "baseRefName": "master",
-        "body": "Updates `Mathlib.Analysis.InnerProductSpace.Simultaneous.lean` from the pairwise to the finite tuple case: i.e. gives decomposition of finite-dimensional Hilbert space as internal direct sum of joint eigenspaces of a commuting tuple of symmetric operators.\r\n\r\nCo-Authored by: Jack Cheverton <jt18chev@siena.edu>\r\n\r\nCo-Authored by: Samyak Dhar Tuladhar <sd10tula@siena.edu>\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nFor details on the \"pull request lifecycle\" in mathlib, please see:\r\nhttps://leanprover-community.github.io/contribute/index.html\r\n\r\nIn particular, note that most reviewers will only notice your PR\r\nif it passes the continuous integration checks.\r\nPlease ask for help on https://leanprover.zulipchat.com if needed.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nIf you are moving or deleting declarations, please include these lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nMoves:\r\n- Vector.* -> Mathlib.Vector.*\r\n- ...\r\n\r\nDeletions:\r\n- Nat.bit1_add_bit1\r\n- ...\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "body": "Updates `Mathlib.Analysis.InnerProductSpace.Simultaneous.lean` from the pairwise to the finite tuple case: i.e. gives decomposition of finite-dimensional Hilbert space as internal direct sum of joint eigenspaces of a commuting tuple of symmetric operators.\r\n\r\nCo-Authored by: Jack Cheverton <jt18chev@siena.edu>\r\n\r\nCo-Authored by: Samyak Dhar Tuladhar <sd10tula@siena.edu>\r\n\r\n---\r\n\r\n- [ ] depends on: #18054 \r\n\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nFor details on the \"pull request lifecycle\" in mathlib, please see:\r\nhttps://leanprover-community.github.io/contribute/index.html\r\n\r\nIn particular, note that most reviewers will only notice your PR\r\nif it passes the continuous integration checks.\r\nPlease ask for help on https://leanprover.zulipchat.com if needed.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nIf you are moving or deleting declarations, please include these lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nMoves:\r\n- Vector.* -> Mathlib.Vector.*\r\n- ...\r\n\r\nDeletions:\r\n- Nat.bit1_add_bit1\r\n- ...\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
         "changedFiles": 5,
         "closed": false,
         "closedAt": null,
@@ -138,6 +138,30 @@
               "id": "IC_kwDOFcwZ1c6QHFh2",
               "body": "That works. I'll update..👍\r\n\r\nOn Wed, Oct 16, 2024, 3:35 PM Oliver Nash ***@***.***> wrote:\r\n\r\n> ***@***.**** commented on this pull request.\r\n> ------------------------------\r\n>\r\n> In Mathlib/Analysis/InnerProductSpace/Spectrum.lean\r\n> <https://github.com/leanprover-community/mathlib4/pull/16569#discussion_r1803687846>\r\n> :\r\n>\r\n> > +/-- The generalized eigenspaces of a symmetric operator coincide with the eigenspace. -/\r\n> +theorem genEigenspace_eq_eigenspace\r\n> +    {T : E →ₗ[𝕜] E} (hT : T.IsSymmetric) {n : ℕ} {μ : 𝕜} (hn : 1 ≤ n) :\r\n> +    genEigenspace T μ n = genEigenspace T μ 1 := by\r\n> +  refine Nat.le_induction rfl (fun k hk ih ↦ ?_) n hn\r\n> +  refine ih ▸ le_antisymm (fun x hx ↦ ?_) ((genEigenspace T μ).mono k.le_succ)\r\n> +  obtain (rfl | hx_ne) := eq_or_ne x 0\r\n> +  · exact zero_mem _\r\n> +  · have hμ : starRingEnd 𝕜 μ = μ := hT.conj_eigenvalue_eq_self <|\r\n> +    hasEigenvalue_of_hasGenEigenvalue (k := k + 1) <|\r\n> +    (genEigenspace T μ (k + 1)).ne_bot_iff.mpr ⟨x, hx, hx_ne⟩\r\n> +    have hTμ : ((T - μ • 1) ^ k).IsSymmetric := by\r\n> +      aesop (add simp LinearMap.one_eq_id)\r\n> +    rw [mem_genEigenspace, ← norm_eq_zero, ← sq_eq_zero_iff, norm_sq_eq_inner (𝕜 := 𝕜),\r\n> +      hTμ, ← LinearMap.comp_apply, ← LinearMap.mul_eq_comp, ← pow_add]\r\n> +    simp [mem_genEigenspace .. |>.mp <| (genEigenspace T μ).mono (show k + 1 ≤ k + k by gcongr) hx]\r\n> +\r\n> +lemma maxGenEigenspace_eq_eigenspace {T : E →ₗ[𝕜] E} (hT : T.IsSymmetric)\r\n> +    {μ : 𝕜} : maxGenEigenspace T μ = eigenspace T μ := calc\r\n> +  _ = ⨆ n, genEigenspace T μ (n + 1) := by\r\n> +    rw [maxGenEigenspace_def, ← sup_iSup_nat_succ, genEigenspace_def]; simp [LinearMap.one_eq_id]\r\n> +  _ = ⨆ _ : ℕ, genEigenspace T μ 1 := by\r\n> +    congr! 2 with n; exact genEigenspace_eq_eigenspace hT n.succ_pos\r\n> +  _ = eigenspace T μ := by simp [genEigenspace_def, eigenspace_def]\r\n> +\r\n>\r\n> IMHO the right solution for me to complete #17689\r\n> <https://github.com/leanprover-community/mathlib4/pull/17689> where I\r\n> introduce the \"semisimple on finite-dimensional subspaces\" property (which\r\n> holds for symmetric infinite-dimensional operators) and where I also prove\r\n> that for any operators satisfying this condition, all generalised\r\n> eigenvectors are true eigenvectors.\r\n>\r\n> To avoid being blocked by my work, I suggest you follow Jireh's advice and\r\n> do not add these lemmas, but retain the fact that we have semisimplicity in\r\n> finite dimensions. I can generalise this to finitely semisimple in all\r\n> dimensions later on.\r\n>\r\n> —\r\n> Reply to this email directly, view it on GitHub\r\n> <https://github.com/leanprover-community/mathlib4/pull/16569#discussion_r1803687846>,\r\n> or unsubscribe\r\n> <https://github.com/notifications/unsubscribe-auth/AOJJJTSJC37SKH62XI5EM7DZ325WNAVCNFSM6AAAAABNZ7R4DOVHI2DSMVQWIX3LMV43YUDVNRWFEZLROVSXG5CSMV3GSZLXHMZDGNZTGQ4DSMRVHE>\r\n> .\r\n> You are receiving this because you were mentioned.Message ID:\r\n> ***@***.***>\r\n>\r\n",
               "createdAt": "2024-10-16T19:36:52Z",
+              "author": {
+                "login": "JonBannon"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6Q1gbn",
+              "body": "I would like this to wait for #18054 now, so I've added it as a dependency.",
+              "createdAt": "2024-10-22T18:16:57Z",
+              "author": {
+                "login": "j-loreaux"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6Q1p_j",
+              "body": "This PR/issue depends on:\n* leanprover-community/mathlib4#18054\nBy **[Dependent Issues](https://github.com/z0al/dependent-issues)** (🤖). Happy coding!\n<!-- By Dependent Issues (Action) - DO NOT REMOVE -->",
+              "createdAt": "2024-10-22T18:37:30Z",
+              "author": {
+                "login": "mathlib4-dependent-issues-bot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6Q15OP",
+              "body": "Sounds good. 👍\r\n\r\nOn Tue, Oct 22, 2024, 2:17 PM Jireh Loreaux ***@***.***>\r\nwrote:\r\n\r\n> I would like this to wait for #18054\r\n> <https://github.com/leanprover-community/mathlib4/pull/18054> now, so\r\n> I've added it as a dependency.\r\n>\r\n> —\r\n> Reply to this email directly, view it on GitHub\r\n> <https://github.com/leanprover-community/mathlib4/pull/16569#issuecomment-2429945575>,\r\n> or unsubscribe\r\n> <https://github.com/notifications/unsubscribe-auth/AOJJJTX6R7WDMJJVKFUJIYTZ42JDFAVCNFSM6AAAAABNZ7R4DOVHI2DSMVQWIX3LMV43OSLTON2WKQ3PNVWWK3TUHMZDIMRZHE2DKNJXGU>\r\n> .\r\n> You are receiving this because you were mentioned.Message ID:\r\n> ***@***.***>\r\n>\r\n",
+              "createdAt": "2024-10-22T19:10:42Z",
               "author": {
                 "login": "JonBannon"
               }
@@ -11645,6 +11669,11 @@
         "labels": {
           "nodes": [
             {
+              "id": "MDU6TGFiZWwzMjg4OTQyMDg2",
+              "color": "8A6A1C",
+              "name": "blocked-by-other-PR"
+            },
+            {
               "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
               "color": "f99094",
               "name": "merge-conflict"
@@ -11671,8 +11700,8 @@
         },
         "maintainerCanModify": false,
         "mergeCommit": null,
-        "mergeStateStatus": "DIRTY",
-        "mergeable": "CONFLICTING",
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
         "mergedAt": null,
         "mergedBy": null,
         "milestone": null,
@@ -13531,6 +13560,10 @@
               "login": "ocfnash"
             },
             {
+              "id": "U_kgDOCsITAQ",
+              "login": "mathlib4-dependent-issues-bot"
+            },
+            {
               "id": "U_kgDOBcsTTQ",
               "login": "leanprover-community-bot-assistant"
             }
@@ -13616,7 +13649,7 @@
           }
         },
         "title": "feat(Analysis.InnerProductSpace): Decomposition of finite-dimensional inner product space as direct sum of joint eigenspaces of commuting finite tuples of symmetric operators ",
-        "updatedAt": "2024-10-17T13:42:30Z",
+        "updatedAt": "2024-10-22T19:10:44Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/16569",
         "timelineItems": {
           "nodes": [
