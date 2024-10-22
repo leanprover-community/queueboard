@@ -24,38 +24,16 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         ./gather_stats.sh 8 2>&1 | tee gather_stats.log  # Log output to gather_stats.log
-        ./download_missing_outdated_PRs.sh
-
-    - name: "Update aggregate data file"
-      id: "aggregate-file"
-      if: ${{ !cancelled() }}
-      run: |
-        # Write a file with aggregate PR data, to "processed_data/aggregate_pr_data.json".
-        python3 process.py
-
-    - name: "Check data integrity"
-      if: ${{ !cancelled() }}
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        bash ./dashboard.sh
-        python check_data_integrity.py
-        rm *.json
 
     - name: Commit changes
       id: "commit"
-      if: ${{ !cancelled() }} && steps.aggregate-file.outcome == 'success'
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         git add data
-        git add redownload.txt
-        git add missing_prs.txt
-        git add processed_data/aggregate_pr_data.json
         git commit -m 'Update data/'
 
     - name: Push changes
-      if: ${{ !cancelled() }} && steps.commit.outcome == 'success'
       uses: ad-m/github-push-action@v0.8.0
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
