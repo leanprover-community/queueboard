@@ -160,7 +160,8 @@ class BasicPRInformation(NamedTuple):
 # Keep this in sync with the actual file, extending this once new data is added!
 class AggregatePRInfo(NamedTuple):
     is_draft: bool
-    CI_passes: bool
+    # "pass", "fail" or "running"
+    CI_status: str
     # The branch this PR is opened against: should be 'master' (for most PRs)
     base_branch: str
     # The repository this PR was opened from: should be 'leanprover-community',
@@ -185,7 +186,7 @@ class AggregatePRInfo(NamedTuple):
 
 # Missing aggregate information will be replaced by this default item.
 PLACEHOLDER_AGGREGATE_INFO = AggregatePRInfo(
-    False, False, "master", "leanprover-community", "open", datetime.now(),
+    False, "fail", "master", "leanprover-community", "open", datetime.now(),
     "unknown", "unknown title", [], -1, -1, -1, None, []
 )
 
@@ -223,9 +224,8 @@ def read_json_files() -> JSONInputData:
                 number_all_comments = pr["number_comments"] + pr["number_review_comments"]
             else:
                 number_all_comments = None
-            CI_passes = pr["CI_status"] == "pass"
             info = AggregatePRInfo(
-                pr["is_draft"], CI_passes, pr["base_branch"], pr["head_repo"]["login"],
+                pr["is_draft"], pr["CI_status"], pr["base_branch"], pr["head_repo"]["login"],
                 pr["state"], date, pr["author"], pr["title"], [toLabel(name) for name in label_names],
                 pr["additions"], pr["deletions"], pr["num_files"], number_all_comments, pr["assignees"]
             )
@@ -283,7 +283,7 @@ def _write_labels(labels: List[Label]) -> str:
 # If no detailed information was available for a given value, 'None' is returned.
 # 'base_branch' returns the pase branch of each PR.
 def print_on_the_queue_page(
-    prs: List[BasicPRInformation], prs_from_fork: List[BasicPRInformation], CI_status: dict[str, bool | None], base_branch: dict[int, str], outfile: str
+    prs: List[BasicPRInformation], prs_from_fork: List[BasicPRInformation], CI_status: dict[int, str | None], base_branch: dict[int, str], outfile: str
 ) -> None:
     def icon(state: bool | None) -> str:
         """Return a green checkmark emoji if `state` is true, and a red cross emoji otherwise."""
@@ -371,17 +371,17 @@ def main() -> None:
 
     # The only exception is for the "on the queue" page,
     # which points out missing information explicitly, hence is passed the non-filled in data.
-    CI_passes : dict[int, bool | None] = dict()
+    CI_status : dict[int, str | None] = dict()
     for pr in nondraft_PRs:
         if pr.number in input_data.aggregate_info:
-            CI_passes[pr.number] = input_data.aggregate_info[pr.number].CI_passes
+            CI_status[pr.number] = input_data.aggregate_info[pr.number].CI_status
         else:
-            CI_passes[pr.number] = None
+            CI_status[pr.number] = None
     base_branch: dict[int, str] = dict()
     for pr in nondraft_PRs:
         base_branch[pr.number] = aggregate_info[pr.number].base_branch
     prs_from_fork = [pr for pr in nondraft_PRs if aggregate_info[pr.number].head_repo != "leanprover-community"]
-    print_on_the_queue_page(nondraft_PRs, prs_from_fork, CI_passes, base_branch, "on_the_queue.html")
+    print_on_the_queue_page(nondraft_PRs, prs_from_fork, CI_status, base_branch, "on_the_queue.html")
 
     print_html5_header()
     # Print a quick table of contents.
@@ -406,7 +406,7 @@ def main() -> None:
     # The review queue consists of all PRs against the master branch, with passing CI,
     # that are not in draft state and not labelled WIP, help-wanted or please-adopt,
     # and have none of the other labels below.
-    master_prs_with_CI = [pr for pr in nondraft_PRs if base_branch[pr.number] == 'master' and CI_passes[pr.number]]
+    master_prs_with_CI = [pr for pr in nondraft_PRs if base_branch[pr.number] == 'master' and (CI_status[pr.number] == "pass")]
     master_CI_notfork = [pr for pr in master_prs_with_CI if pr not in prs_from_fork]
     other_labels = [
         # XXX: does the #queue check for all of these labels?
@@ -473,7 +473,8 @@ def compute_pr_statusses(aggregate_info: dict[int, AggregatePRInfo], prs: List[B
     def determine_status(aggregate_info: AggregatePRInfo, info: BasicPRInformation) -> PRStatus:
         # Ignore all "other" labels, which are not relevant for this anyway.
         labels = [label_categorisation_rules[lab.name] for lab in info.labels if lab.name in label_categorisation_rules]
-        ci_status = CIStatus.Pass if aggregate_info.CI_passes else CIStatus.Fail
+        translate = { "pass": CIStatus.Pass, "fail": CIStatus.Fail, "running": CIStatus.Running }
+        ci_status = translate[aggregate_info.CI_status]
         state = PRState(labels, ci_status, aggregate_info.is_draft)
         return determine_PR_status(datetime.now(), state)
     return {info.number: determine_status(aggregate_info[info.number] or PLACEHOLDER_AGGREGATE_INFO, info) for info in prs}
