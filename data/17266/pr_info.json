@@ -77,6 +77,14 @@
               "author": {
                 "login": "bjoernkjoshanssen"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6Q9JNl",
+              "body": "> one question is whether your map also is a homeomorphism.\r\n\r\nJust to answer this question from [here](https://github.com/leanprover-community/mathlib4/pull/17266#issuecomment-2430525234): yes, the map I describe is a homeomorphism. In fact it's the same map if you take `H` to be the horizontal line through `(0, 1)`.\r\n\r\n",
+              "createdAt": "2024-10-23T12:21:33Z",
+              "author": {
+                "login": "ocfnash"
+              }
             }
           ]
         },
@@ -2822,6 +2830,30 @@
                     "nodes": [
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHcCq3og",
+                        "name": "Add ready-to-merge label",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11479728477/job/31946618786"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHcCq3oQ",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11479728483/job/31946618785"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHcCq3zQ",
+                        "name": "Fix style issues from lint",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11479728479/job/31946618829"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAHbox8eg",
                         "name": "label-and-report-new-contributor",
                         "conclusion": "SUCCESS",
@@ -2859,6 +2891,14 @@
                         "conclusion": "SUCCESS",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11470392699/job/31919471757"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHcCq46g",
+                        "name": "Add delegated label",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11479728477/job/31946619114"
                       },
                       {
                         "__typename": "CheckRun",
@@ -3007,6 +3047,15 @@
         "latestReviews": {
           "nodes": [
             {
+              "id": "PRR_kwDOFcwZ1c6OXNs3",
+              "body": "Thank you very much for taking this up. I have finally had time to take a close look.\r\n\r\nEven though this is very nice work, I have quite a few suggestions. Some of these are just aspects of Mathlib style that there is no way to know in advance. Some detailed high-level remarks are as follows:\r\n 1. Using `open Classical` is almost always undesirable, and is undesirable here. We should use `[DecidableEq K]` instead here. (I will omit the detailed explanation for now, but can provide it upon request.)\r\n 2. Almost all the definitions / lemmas are auxiliary to the main construction with no value once you have `divSlope_equiv`. If possible we should thus avoid creating them.\r\n 3. I think we should use `K × K` instead of `Fin 2 → K` because this is more convenient and the result does not generalise beyond dimension two (more precisely it generalises in a different direction: to spheres, rather than projective spaces).\r\n 4. When authoring a new definition like `divSlope_equiv` we should almost always create API that defines its behaviour so that downstream users do not have to unfold its definition.\r\n 5. The lemma `rev_div_assoc` is not necessary but would have had to go in a different file if it were --- we always try to group lemmas in the most appropriate file.\r\n 6. We should not create a global notation `÷` for this very specific situation, especially as it is really just an implementation detail en route to `divSlope_equiv`.\r\n 7. The name `divSlope_equiv` should be camelCase and is too opaque for global namespace.\r\n 8. Part of the reason you have to work so hard here is that the `Projectivization` definition is missing some API. There should be a `Projectivization.lift` definition to help for situations like this.\r\n\r\netc.\r\n\r\nWith all of the above in mind, I propose that you add the following to `LinearAlgebra.Projectivization.Basic` (maybe just above the definition `protected noncomputable def rep`):\r\n```lean\r\n/-- A function on non-zero vectors which is independent of scale, descends to a function on the\r\nprojectivization. -/\r\nprotected def lift {α : Type*} (f : { v : V // v ≠ 0 } → α)\r\n    (hf : ∀ (a b : { v : V // v ≠ 0 }) (t : K), a = t • (b : V) → f a = f b)\r\n    (x : ℙ K V) : α := by\r\n  refine Quotient.lift f ?_ x\r\n  rintro ⟨v, hv⟩ ⟨w, hw⟩ ⟨⟨t, -⟩, rfl : t • w = v⟩\r\n  exact hf ⟨_, hv⟩ ⟨w, hw⟩ t rfl\r\n\r\n@[simp]\r\nprotected lemma lift_mk {α : Type*} (f : { v : V // v ≠ 0 } → α)\r\n    (hf : ∀ (a b : { v : V // v ≠ 0 }) (t : K), a = t • (b : V) → f a = f b)\r\n    (v : V) (hv : v ≠ 0) :\r\n    Projectivization.lift f hf (mk K v hv) = f ⟨v, hv⟩ :=\r\n  rfl\r\n```\r\nand then using that the entire contents of your file can be replaced with:\r\n```lean\r\nopen scoped LinearAlgebra.Projectivization OnePoint\r\nopen Projectivization\r\n\r\nnamespace OnePoint\r\n\r\nvariable (K : Type*) [DivisionRing K] [DecidableEq K]\r\n\r\ndef equivProjectivization :\r\n    OnePoint K ≃ ℙ K (K × K) where\r\n  toFun p := Option.elim p (mk K (1, 0) (by simp)) (fun t ↦ mk K (t, 1) (by simp))\r\n  invFun p := by\r\n    refine Projectivization.lift\r\n      (fun u : {v : K × K // v ≠ 0} ↦ if u.1.2 ≠ 0 then some ((u.1.2)⁻¹ * u.1.1) else ∞) ?_ p\r\n    rintro ⟨-, hv⟩ ⟨⟨x, y⟩, hw⟩ t rfl\r\n    have ht : t ≠ 0 := by rintro rfl; simp at hv\r\n    by_cases h₀ : y = 0 <;> simp [h₀, ht, mul_assoc]\r\n  left_inv p := by cases p <;> simp [OnePoint.infty, OnePoint.some]\r\n  right_inv p := by\r\n    induction' p using ind with p hp\r\n    obtain ⟨x, y⟩ := p\r\n    by_cases h₀ : y = 0 <;>\r\n    simp only [Option.elim, ite_not, Projectivization.lift_mk, h₀, mk_eq_mk_iff]\r\n    · have h₀' : x ≠ 0 := by aesop\r\n      exact ⟨Units.mk0 _ (inv_ne_zero h₀'), by simp [h₀']⟩\r\n    · exact ⟨Units.mk0 _ (inv_ne_zero h₀), by simp [h₀]⟩\r\n\r\n@[simp]\r\nlemma equivProjectivization_apply_infinity :\r\n    equivProjectivization K ∞ = mk K ⟨1, 0⟩ (by simp) :=\r\n  rfl\r\n\r\n@[simp]\r\nlemma equivProjectivization_apply_some (t : K) :\r\n    equivProjectivization K (OnePoint.some t) = mk K ⟨t, 1⟩ (by simp) :=\r\n  rfl\r\n\r\n@[simp]\r\nlemma equivProjectivization_symm_apply_mk (x y : K) (h : (x, y) ≠ 0) :\r\n    (equivProjectivization K).symm (mk K ⟨x, y⟩ h) =\r\n      if y = 0 then ∞ else (OnePoint.some <| y⁻¹ * x) := by\r\n  simp [equivProjectivization]\r\n\r\nend OnePoint\r\n```\r\n\r\nThank you again for this work. I look forward to the follow up proving we have a homeomorphism.",
+              "state": "CHANGES_REQUESTED",
+              "author": {
+                "login": "ocfnash"
+              },
+              "submittedAt": "2024-10-23T12:20:21Z"
+            },
+            {
               "id": "PRR_kwDOFcwZ1c6OHVda",
               "body": "LGTM, thanks!",
               "state": "APPROVED",
@@ -3019,15 +3068,13 @@
         },
         "maintainerCanModify": false,
         "mergeCommit": null,
-        "mergeStateStatus": "BLOCKED",
-        "mergeable": "MERGEABLE",
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
         "mergedAt": null,
         "mergedBy": null,
         "milestone": null,
         "number": 17266,
-        "potentialMergeCommit": {
-          "oid": "b200de7743924760d3af544971aae82e274779e6"
-        },
+        "potentialMergeCommit": null,
         "projectCards": {
           "nodes": []
         },
@@ -3081,16 +3128,9 @@
             }
           }
         ],
-        "reviewDecision": "APPROVED",
+        "reviewDecision": "CHANGES_REQUESTED",
         "reviewRequests": {
-          "nodes": [
-            {
-              "requestedReviewer": {
-                "id": "MDQ6VXNlcjc3MzQzNjQ=",
-                "login": "ocfnash"
-              }
-            }
-          ]
+          "nodes": []
         },
         "reviews": {
           "nodes": [
@@ -3309,6 +3349,15 @@
                 "login": "bjoernkjoshanssen"
               },
               "submittedAt": "2024-10-22T17:01:27Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6OXNs3",
+              "body": "Thank you very much for taking this up. I have finally had time to take a close look.\r\n\r\nEven though this is very nice work, I have quite a few suggestions. Some of these are just aspects of Mathlib style that there is no way to know in advance. Some detailed high-level remarks are as follows:\r\n 1. Using `open Classical` is almost always undesirable, and is undesirable here. We should use `[DecidableEq K]` instead here. (I will omit the detailed explanation for now, but can provide it upon request.)\r\n 2. Almost all the definitions / lemmas are auxiliary to the main construction with no value once you have `divSlope_equiv`. If possible we should thus avoid creating them.\r\n 3. I think we should use `K × K` instead of `Fin 2 → K` because this is more convenient and the result does not generalise beyond dimension two (more precisely it generalises in a different direction: to spheres, rather than projective spaces).\r\n 4. When authoring a new definition like `divSlope_equiv` we should almost always create API that defines its behaviour so that downstream users do not have to unfold its definition.\r\n 5. The lemma `rev_div_assoc` is not necessary but would have had to go in a different file if it were --- we always try to group lemmas in the most appropriate file.\r\n 6. We should not create a global notation `÷` for this very specific situation, especially as it is really just an implementation detail en route to `divSlope_equiv`.\r\n 7. The name `divSlope_equiv` should be camelCase and is too opaque for global namespace.\r\n 8. Part of the reason you have to work so hard here is that the `Projectivization` definition is missing some API. There should be a `Projectivization.lift` definition to help for situations like this.\r\n\r\netc.\r\n\r\nWith all of the above in mind, I propose that you add the following to `LinearAlgebra.Projectivization.Basic` (maybe just above the definition `protected noncomputable def rep`):\r\n```lean\r\n/-- A function on non-zero vectors which is independent of scale, descends to a function on the\r\nprojectivization. -/\r\nprotected def lift {α : Type*} (f : { v : V // v ≠ 0 } → α)\r\n    (hf : ∀ (a b : { v : V // v ≠ 0 }) (t : K), a = t • (b : V) → f a = f b)\r\n    (x : ℙ K V) : α := by\r\n  refine Quotient.lift f ?_ x\r\n  rintro ⟨v, hv⟩ ⟨w, hw⟩ ⟨⟨t, -⟩, rfl : t • w = v⟩\r\n  exact hf ⟨_, hv⟩ ⟨w, hw⟩ t rfl\r\n\r\n@[simp]\r\nprotected lemma lift_mk {α : Type*} (f : { v : V // v ≠ 0 } → α)\r\n    (hf : ∀ (a b : { v : V // v ≠ 0 }) (t : K), a = t • (b : V) → f a = f b)\r\n    (v : V) (hv : v ≠ 0) :\r\n    Projectivization.lift f hf (mk K v hv) = f ⟨v, hv⟩ :=\r\n  rfl\r\n```\r\nand then using that the entire contents of your file can be replaced with:\r\n```lean\r\nopen scoped LinearAlgebra.Projectivization OnePoint\r\nopen Projectivization\r\n\r\nnamespace OnePoint\r\n\r\nvariable (K : Type*) [DivisionRing K] [DecidableEq K]\r\n\r\ndef equivProjectivization :\r\n    OnePoint K ≃ ℙ K (K × K) where\r\n  toFun p := Option.elim p (mk K (1, 0) (by simp)) (fun t ↦ mk K (t, 1) (by simp))\r\n  invFun p := by\r\n    refine Projectivization.lift\r\n      (fun u : {v : K × K // v ≠ 0} ↦ if u.1.2 ≠ 0 then some ((u.1.2)⁻¹ * u.1.1) else ∞) ?_ p\r\n    rintro ⟨-, hv⟩ ⟨⟨x, y⟩, hw⟩ t rfl\r\n    have ht : t ≠ 0 := by rintro rfl; simp at hv\r\n    by_cases h₀ : y = 0 <;> simp [h₀, ht, mul_assoc]\r\n  left_inv p := by cases p <;> simp [OnePoint.infty, OnePoint.some]\r\n  right_inv p := by\r\n    induction' p using ind with p hp\r\n    obtain ⟨x, y⟩ := p\r\n    by_cases h₀ : y = 0 <;>\r\n    simp only [Option.elim, ite_not, Projectivization.lift_mk, h₀, mk_eq_mk_iff]\r\n    · have h₀' : x ≠ 0 := by aesop\r\n      exact ⟨Units.mk0 _ (inv_ne_zero h₀'), by simp [h₀']⟩\r\n    · exact ⟨Units.mk0 _ (inv_ne_zero h₀), by simp [h₀]⟩\r\n\r\n@[simp]\r\nlemma equivProjectivization_apply_infinity :\r\n    equivProjectivization K ∞ = mk K ⟨1, 0⟩ (by simp) :=\r\n  rfl\r\n\r\n@[simp]\r\nlemma equivProjectivization_apply_some (t : K) :\r\n    equivProjectivization K (OnePoint.some t) = mk K ⟨t, 1⟩ (by simp) :=\r\n  rfl\r\n\r\n@[simp]\r\nlemma equivProjectivization_symm_apply_mk (x y : K) (h : (x, y) ≠ 0) :\r\n    (equivProjectivization K).symm (mk K ⟨x, y⟩ h) =\r\n      if y = 0 then ∞ else (OnePoint.some <| y⁻¹ * x) := by\r\n  simp [equivProjectivization]\r\n\r\nend OnePoint\r\n```\r\n\r\nThank you again for this work. I look forward to the follow up proving we have a homeomorphism.",
+              "state": "CHANGES_REQUESTED",
+              "author": {
+                "login": "ocfnash"
+              },
+              "submittedAt": "2024-10-23T12:20:21Z"
             }
           ]
         },
@@ -3851,6 +3900,30 @@
             "nodes": [
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHcCq3og",
+                "name": "Add ready-to-merge label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11479728477/job/31946618786"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHcCq3oQ",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11479728483/job/31946618785"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHcCq3zQ",
+                "name": "Fix style issues from lint",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11479728479/job/31946618829"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAHbox8eg",
                 "name": "label-and-report-new-contributor",
                 "conclusion": "SUCCESS",
@@ -3888,6 +3961,14 @@
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11470392699/job/31919471757"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHcCq46g",
+                "name": "Add delegated label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11479728477/job/31946619114"
               },
               {
                 "__typename": "CheckRun",
@@ -3981,7 +4062,7 @@
           }
         },
         "title": "feat: Equivalence between OnePoint K and projective line over field K",
-        "updatedAt": "2024-10-22T23:57:14Z",
+        "updatedAt": "2024-10-23T12:23:35Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/17266",
         "timelineItems": {
           "nodes": [
@@ -4227,6 +4308,24 @@
             },
             {
               "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6OXNs3",
+              "createdAt": "2024-10-23T12:20:21Z",
+              "body": "Thank you very much for taking this up. I have finally had time to take a close look.\r\n\r\nEven though this is very nice work, I have quite a few suggestions. Some of these are just aspects of Mathlib style that there is no way to know in advance. Some detailed high-level remarks are as follows:\r\n 1. Using `open Classical` is almost always undesirable, and is undesirable here. We should use `[DecidableEq K]` instead here. (I will omit the detailed explanation for now, but can provide it upon request.)\r\n 2. Almost all the definitions / lemmas are auxiliary to the main construction with no value once you have `divSlope_equiv`. If possible we should thus avoid creating them.\r\n 3. I think we should use `K × K` instead of `Fin 2 → K` because this is more convenient and the result does not generalise beyond dimension two (more precisely it generalises in a different direction: to spheres, rather than projective spaces).\r\n 4. When authoring a new definition like `divSlope_equiv` we should almost always create API that defines its behaviour so that downstream users do not have to unfold its definition.\r\n 5. The lemma `rev_div_assoc` is not necessary but would have had to go in a different file if it were --- we always try to group lemmas in the most appropriate file.\r\n 6. We should not create a global notation `÷` for this very specific situation, especially as it is really just an implementation detail en route to `divSlope_equiv`.\r\n 7. The name `divSlope_equiv` should be camelCase and is too opaque for global namespace.\r\n 8. Part of the reason you have to work so hard here is that the `Projectivization` definition is missing some API. There should be a `Projectivization.lift` definition to help for situations like this.\r\n\r\netc.\r\n\r\nWith all of the above in mind, I propose that you add the following to `LinearAlgebra.Projectivization.Basic` (maybe just above the definition `protected noncomputable def rep`):\r\n```lean\r\n/-- A function on non-zero vectors which is independent of scale, descends to a function on the\r\nprojectivization. -/\r\nprotected def lift {α : Type*} (f : { v : V // v ≠ 0 } → α)\r\n    (hf : ∀ (a b : { v : V // v ≠ 0 }) (t : K), a = t • (b : V) → f a = f b)\r\n    (x : ℙ K V) : α := by\r\n  refine Quotient.lift f ?_ x\r\n  rintro ⟨v, hv⟩ ⟨w, hw⟩ ⟨⟨t, -⟩, rfl : t • w = v⟩\r\n  exact hf ⟨_, hv⟩ ⟨w, hw⟩ t rfl\r\n\r\n@[simp]\r\nprotected lemma lift_mk {α : Type*} (f : { v : V // v ≠ 0 } → α)\r\n    (hf : ∀ (a b : { v : V // v ≠ 0 }) (t : K), a = t • (b : V) → f a = f b)\r\n    (v : V) (hv : v ≠ 0) :\r\n    Projectivization.lift f hf (mk K v hv) = f ⟨v, hv⟩ :=\r\n  rfl\r\n```\r\nand then using that the entire contents of your file can be replaced with:\r\n```lean\r\nopen scoped LinearAlgebra.Projectivization OnePoint\r\nopen Projectivization\r\n\r\nnamespace OnePoint\r\n\r\nvariable (K : Type*) [DivisionRing K] [DecidableEq K]\r\n\r\ndef equivProjectivization :\r\n    OnePoint K ≃ ℙ K (K × K) where\r\n  toFun p := Option.elim p (mk K (1, 0) (by simp)) (fun t ↦ mk K (t, 1) (by simp))\r\n  invFun p := by\r\n    refine Projectivization.lift\r\n      (fun u : {v : K × K // v ≠ 0} ↦ if u.1.2 ≠ 0 then some ((u.1.2)⁻¹ * u.1.1) else ∞) ?_ p\r\n    rintro ⟨-, hv⟩ ⟨⟨x, y⟩, hw⟩ t rfl\r\n    have ht : t ≠ 0 := by rintro rfl; simp at hv\r\n    by_cases h₀ : y = 0 <;> simp [h₀, ht, mul_assoc]\r\n  left_inv p := by cases p <;> simp [OnePoint.infty, OnePoint.some]\r\n  right_inv p := by\r\n    induction' p using ind with p hp\r\n    obtain ⟨x, y⟩ := p\r\n    by_cases h₀ : y = 0 <;>\r\n    simp only [Option.elim, ite_not, Projectivization.lift_mk, h₀, mk_eq_mk_iff]\r\n    · have h₀' : x ≠ 0 := by aesop\r\n      exact ⟨Units.mk0 _ (inv_ne_zero h₀'), by simp [h₀']⟩\r\n    · exact ⟨Units.mk0 _ (inv_ne_zero h₀), by simp [h₀]⟩\r\n\r\n@[simp]\r\nlemma equivProjectivization_apply_infinity :\r\n    equivProjectivization K ∞ = mk K ⟨1, 0⟩ (by simp) :=\r\n  rfl\r\n\r\n@[simp]\r\nlemma equivProjectivization_apply_some (t : K) :\r\n    equivProjectivization K (OnePoint.some t) = mk K ⟨t, 1⟩ (by simp) :=\r\n  rfl\r\n\r\n@[simp]\r\nlemma equivProjectivization_symm_apply_mk (x y : K) (h : (x, y) ≠ 0) :\r\n    (equivProjectivization K).symm (mk K ⟨x, y⟩ h) =\r\n      if y = 0 then ∞ else (OnePoint.some <| y⁻¹ * x) := by\r\n  simp [equivProjectivization]\r\n\r\nend OnePoint\r\n```\r\n\r\nThank you again for this work. I look forward to the follow up proving we have a homeomorphism.",
+              "author": {
+                "login": "ocfnash"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6Q9JNl",
+              "createdAt": "2024-10-23T12:21:33Z",
+              "body": "> one question is whether your map also is a homeomorphism.\r\n\r\nJust to answer this question from [here](https://github.com/leanprover-community/mathlib4/pull/17266#issuecomment-2430525234): yes, the map I describe is a homeomorphism. In fact it's the same map if you take `H` to be the horizontal line through `(0, 1)`.\r\n\r\n",
+              "author": {
+                "login": "ocfnash"
+              }
             }
           ]
         }
