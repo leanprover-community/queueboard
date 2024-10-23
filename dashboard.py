@@ -276,6 +276,13 @@ def _write_labels(labels: List[Label]) -> str:
         return f"\n        {label_part}\n      "
 
 
+# Write a webpage with body out a file called 'outfile*.
+def write_webpage(body: str, outfile: str) -> None:
+    with open(outfile, "w") as fi:
+        # FIXME: should the footer be adjusted?
+        print(f"{HTML_HEADER}\n{body}\n{HTML_FOOTER}", file=fi)
+
+
 # Print a webpage "why is my PR not on the queue" to a new file of name 'outfile'.
 # 'prs' is the list of PRs on which to print information;
 # 'prs_from_fork' is the list of such PRs which are opened from a fork of mathlib,
@@ -330,13 +337,11 @@ def print_on_the_queue_page(
     ]
     head = _write_table_header(headings, "    ")
     table = f"  <table>\n{head}{body}  </table>"
-    with open(outfile, "w") as fi:
-        # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
-        updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
-        print(f"{HTML_HEADER}\n"
-            "  <h1>Why is my PR not on the queue?</h1>\n"
-           f"  <small>This page was last updated on: {updated}</small>\n"
-           f"{EXPLANATION}\n{table}\n{HTML_FOOTER}", file=fi)
+    # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
+    updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
+    start = ("  <h1>Why is my PR not on the queue?</h1>\n"
+      f"  <small>This page was last updated on: {updated}</small>")
+    write_webpage(f"{start}\n{EXPLANATION}\n{table}", outfile)
 
 
 def main() -> None:
