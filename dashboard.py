@@ -465,7 +465,7 @@ def main() -> None:
         if kind not in prs_to_list:
             print(f"error: forgot to include data for dashboard kind {kind}", file=sys.stderr)
         else:
-            print_dashboard(prs_to_list[kind], kind)
+            print(write_dashboard(prs_to_list[kind], kind))
     print(HTML_FOOTER)
 
 
@@ -751,17 +751,16 @@ def _compute_pr_entries(prs: List[BasicPRInformation]) -> str:
     return result
 
 
-# Print a dashboard of a given list of PRs.
-def print_dashboard(prs : List[BasicPRInformation], kind: Dashboard) -> None:
+# Write the code for a dashboard of a given list of PRs.
+def write_dashboard(prs : List[BasicPRInformation], kind: Dashboard) -> str:
     # Title of each list, and the corresponding HTML anchor.
     # Explain what each dashboard contains upon hovering the heading.
     (id, title) = getIdTitle(kind)
-    print(f"<h2 id=\"{id}\"><a href=\"#{id}\" title=\"{long_description(kind)}\">{title}</a></h2>")
+    title = f"<h2 id=\"{id}\"><a href=\"#{id}\" title=\"{long_description(kind)}\">{title}</a></h2>"
     # If there are no PRs, skip the table header and print a bold notice such as
     # "There are currently **no** stale `delegated` PRs. Congratulations!".
     if not prs:
-        print(f'There are currently <b>no</b> {short_description(kind)}. Congratulations!\n')
-        return
+        return f'{title}\nThere are currently <b>no</b> {short_description(kind)}. Congratulations!\n'
 
     headings = [
         "Number", "Author", "Title", "Labels",
@@ -772,8 +771,8 @@ def print_dashboard(prs : List[BasicPRInformation], kind: Dashboard) -> None:
     ]
     head = _write_table_header(headings, "    ")
     body = _compute_pr_entries(prs)
-    table = f"  <table>\n{head}{body}  </table>"
-    print(table)
+    return f"{title}\n  <table>\n{head}{body}  </table>"
+
 
 # Does a PR have a given label?
 def _has_label(pr: BasicPRInformation, name: str) -> bool:
