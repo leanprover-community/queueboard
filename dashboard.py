@@ -15,7 +15,7 @@ from dateutil.relativedelta import relativedelta
 
 from classify_pr_state import (CIStatus, PRState, PRStatus,
                                determine_PR_status, label_categorisation_rules)
-from util import my_assert_eq, parse_datetime
+from util import my_assert_eq, parse_datetime, parse_json_file
 
 
 @unique
@@ -708,8 +708,11 @@ def _compute_pr_entries(prs: List[BasicPRInformation]) -> str:
         pr_info = None
         filename = f"data/{pr.number}/pr_info.json"
         if path.exists(filename):
-            with open(filename, "r") as file:
-                pr_info = json.load(file)
+            match parse_json_file(filename, str(pr.number)):
+                case dict(data):
+                    pr_info = data
+                case str(_error):
+                    pass
         if pr_info is None:
             print(f"main dashboard: found no aggregate information for PR {pr.number}", file=sys.stderr)
             entries.extend(["-1/-1", "-1", "-1"])
