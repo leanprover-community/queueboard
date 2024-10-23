@@ -18,26 +18,27 @@ from typing import List
 from util import eprint, parse_json_file
 
 
-# Determine whether a PR's CI check all pass.
-# "Running" CI returns False, in particular.
+# Determine a PR's CI status: the return value is one of "pass", "fail" and "running".
+# (Queued or waiting also count as running, cancelled CI counts as failing.)
 # 'CI_check_nodes' is an array of JSON data of all checks for all the commits.
-def determine_ci_passes(number, CI_check_nodes: dict) -> bool:
+def determine_ci_status(number, CI_check_nodes: dict) -> str:
     # We consider CI to be passing if no job fails, and every job succeeds
     # or is skipped. (In the future, we may exclude inessential runs.)
+    in_progress = False
     for r in CI_check_nodes:
         # Ignore bors runs: these don't contain status information (and are not interesting for us).
         if "context" in r:
             continue
         if r["conclusion"] in ["FAILURE", "CANCELLED"]:
             # Future: exclude "inessential" runs?
-            return False
+            return "fail"
         elif r["conclusion"] in ["SUCCESS", "SKIPPED", "NEUTRAL"]:
             continue
         elif r["conclusion"] is None and r["status"] in ["IN_PROGRESS", "QUEUED"]:
-            return False  # TODO: how to ensure an updated status is polled?
+            in_progress = True
         else:
             print(f'CI run \"{r["name"]}\" for PR {number} has interesting data: {r}"')
-    return True
+    return "running" if in_progress else "pass"
 
 
 def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
@@ -58,15 +59,14 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
     # Names of all labels applied to this PR: missing the background colour!
     labels = [lab["name"] for lab in inner["labels"]["nodes"]]
     assignees = [ass["login"] for ass in inner["assignees"]["nodes"]]
-    CI_passes = False
     # Get information about the latest CI run. We just look at the "summary job".
-    CI_passes = determine_ci_passes(number, inner["statusCheckRollup"]["contexts"]["nodes"])
+    CI_status = determine_ci_status(number, inner["statusCheckRollup"]["contexts"]["nodes"])
     # NB. When adding future fields, pay attention to whether the 'basic' info files
     # also contain this information --- otherwise, it is fine to omit it!
     aggregate_data = {
         "number": number,
         "is_draft": is_draft,
-        "CI_passes": CI_passes,
+        "CI_status": CI_status,
         "head_repo": head_repo,
         "base_branch": base_branch,
         "state": state,
