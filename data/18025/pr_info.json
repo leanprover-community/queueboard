@@ -126,6 +126,30 @@
                     "nodes": [
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHdUuojw",
+                        "name": "Add ready-to-merge label",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11507150662/job/32032663695"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHdUupkw",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11507150658/job/32032663955"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHdUupZA",
+                        "name": "Fix style issues from lint",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11507150661/job/32032663908"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAHaZzKyA",
                         "name": "Add topic label",
                         "conclusion": "SUCCESS",
@@ -171,6 +195,14 @@
                         "conclusion": "SUCCESS",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11443613150/job/31836654977"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHdUuqtQ",
+                        "name": "Add delegated label",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11507150662/job/32032664245"
                       },
                       {
                         "__typename": "CheckRun",
@@ -294,6 +326,11 @@
         "labels": {
           "nodes": [
             {
+              "id": "LA_kwDOFcwZ1c7P265b",
+              "color": "f9d0c4",
+              "name": "awaiting-author"
+            },
+            {
               "id": "LA_kwDOFcwZ1c8AAAABViJjTQ",
               "color": "33DBEC",
               "name": "t-algebra"
@@ -301,7 +338,17 @@
           ]
         },
         "latestReviews": {
-          "nodes": []
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c6OrG2a",
+              "body": "This looks great, but I have one design question.",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ocfnash"
+              },
+              "submittedAt": "2024-10-24T20:42:18Z"
+            }
+          ]
         },
         "maintainerCanModify": false,
         "mergeCommit": null,
@@ -312,7 +359,7 @@
         "milestone": null,
         "number": 18025,
         "potentialMergeCommit": {
-          "oid": "aab453f97675d38bd87ead2f104d7c14b02dfab8"
+          "oid": "30ac0eb4516082c672036210300135b12b94cbf8"
         },
         "projectCards": {
           "nodes": []
@@ -369,20 +416,38 @@
         ],
         "reviewDecision": null,
         "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
           "nodes": [
             {
-              "requestedReviewer": {
-                "id": "MDQ6VXNlcjc3MzQzNjQ=",
+              "id": "PRR_kwDOFcwZ1c6OrG2a",
+              "body": "This looks great, but I have one design question.",
+              "state": "COMMENTED",
+              "author": {
                 "login": "ocfnash"
-              }
+              },
+              "submittedAt": "2024-10-24T20:42:18Z"
             }
           ]
         },
-        "reviews": {
-          "nodes": []
-        },
         "reviewThreads": {
-          "nodes": []
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5sOObT",
+                    "body": "I'm not sure this should be the definition of automorphisms. I think instead we should define:\r\n```lean\r\n@[ext]\r\nstructure Equiv {ι₂ M₂ N₂ : Type*}\r\n    [AddCommGroup M₂] [Module R M₂] [AddCommGroup N₂] [Module R N₂]\r\n    (P : RootPairing ι R M N) (Q : RootPairing ι₂ R M₂ N₂) where\r\n  /-- A linear equivalence on weight space. -/\r\n  weightMap : M ≃ₗ[R] M₂\r\n  /-- A contravariant linear equivalence on coweight space. -/\r\n  coweightMap : N₂ ≃ₗ[R] N\r\n  /-- A bijection on index sets. -/\r\n  indexEquiv : ι ≃ ι₂\r\n  weight_coweight_transpose : Q.toDualRight ≪≫ₗ weightMap.dualMap = coweightMap ≪≫ₗ P.toDualRight\r\n  root_weightMap : weightMap ∘ P.root = Q.root ∘ indexEquiv\r\n  coroot_coweightMap : coweightMap ∘ Q.coroot = P.coroot ∘ indexEquiv.symm\r\n```\r\nand then use `Equiv P P` for `Aut V` instead of `(End P)ˣ`.\r\n\r\nI claim the advantage of using `Equiv P P` is that in due course we will wish to talk about equivalence of root pairings, and these will have to be written using `Equiv P Q`. Life will be simpler if there is one standard way to speak of an equivalence of a root pairing with itself. In other words, if we use `(End P)ˣ` here, since we'll eventually be forced to introduce `Equiv P Q`, we will be forced to author `(End P)ˣ ≃* Equiv P P` and transport things across it. (In fact this design is probably why you need to use `Module.endUnitsToModuleAutEquiv` as part of these changes, though obviously `Module.endUnitsToModuleAutEquiv` is worth having anyway.)\r\n\r\nThe only annoying thing is a bunch of API will have to be duplicated for `Hom` and `Equiv`, and this will be a tiny bit more awkward than for the analogous situation with `LinearMap` and `LinearEquiv` since we cannot have `Equiv` extend `Hom` (because the data of the maps `M → M₂`, `N → N₂` is not at the top-level in the class fields).\r\n\r\nWhat do you think?\r\n\r\nIf you agree but are not so keen on writing even more boilerplate, I'd be happy to spend some time on this at the weekend, and could push up a commit.",
+                    "createdAt": "2024-10-24T20:38:37Z",
+                    "author": {
+                      "login": "ocfnash"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
         },
         "closingIssuesReferences": {
           "nodes": []
@@ -392,6 +457,10 @@
             {
               "id": "U_kgDOB66iMA",
               "login": "ScottCarnahan"
+            },
+            {
+              "id": "MDQ6VXNlcjc3MzQzNjQ=",
+              "login": "ocfnash"
             }
           ]
         },
@@ -399,6 +468,30 @@
         "statusCheckRollup": {
           "contexts": {
             "nodes": [
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHdUuojw",
+                "name": "Add ready-to-merge label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11507150662/job/32032663695"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHdUupkw",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11507150658/job/32032663955"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHdUupZA",
+                "name": "Fix style issues from lint",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11507150661/job/32032663908"
+              },
               {
                 "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAHaZzKyA",
@@ -446,6 +539,14 @@
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11443613150/job/31836654977"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHdUuqtQ",
+                "name": "Add delegated label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11507150662/job/32032664245"
               },
               {
                 "__typename": "CheckRun",
@@ -523,7 +624,7 @@
           }
         },
         "title": "feat (RootSystem/Hom): endomorphisms and automorphisms of root pairings",
-        "updatedAt": "2024-10-21T17:13:39Z",
+        "updatedAt": "2024-10-24T20:43:55Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/18025",
         "timelineItems": {
           "nodes": [
@@ -558,6 +659,24 @@
               "requestedReviewer": {
                 "id": "MDQ6VXNlcjc3MzQzNjQ=",
                 "login": "ocfnash"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6OrG2a",
+              "createdAt": "2024-10-24T20:38:37Z",
+              "body": "This looks great, but I have one design question.",
+              "author": {
+                "login": "ocfnash"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c6bJaGBzwAAAAN1o-RX",
+              "createdAt": "2024-10-24T20:43:55Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
               }
             }
           ]
