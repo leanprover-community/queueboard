@@ -494,7 +494,7 @@ def write_overview_page(updated: str) -> None:
     welcome = "\n  ".join(welcome.splitlines())
     feedback = 'Feedback (including bug reports and ideas for improvements) on this dashboard is very welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.<br>'
     body = f"{title}\n  {welcome}\n  {feedback}\n  <small>This dashboard was last updated on: {updated}</small>\n"
-    write_webpage(body, "../overview.html")
+    write_webpage(body, "overview.html")
 
 
 def write_review_queue_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]]) -> None:
@@ -510,7 +510,7 @@ def write_review_queue_page(updated: str, prs_to_list: dict[Dashboard, List[Basi
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
     dashboards = [write_dashboard(prs_to_list[kind], kind) for (kind, _, _) in items]
     body += '\n'.join(dashboards) + '\n'
-    write_webpage(body, "../review_dashboard.html")
+    write_webpage(body, "review_dashboard.html")
 
 
 def write_maintainers_quick_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]]) -> None:
@@ -529,7 +529,7 @@ def write_maintainers_quick_page(updated: str, prs_to_list: dict[Dashboard, List
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  {post}<br>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
     dashboards = [write_dashboard(prs_to_list[kind], kind) for (kind, _, _) in items]
     body += '\n'.join(dashboards) + '\n'
-    write_webpage(body, "../maintainers_quick.html")
+    write_webpage(body, "maintainers_quick.html")
 
 
 def write_help_out_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]]) -> None:
@@ -547,7 +547,7 @@ def write_help_out_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRI
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
     dashboards = [write_dashboard(prs_to_list[kind], kind) for (kind, _, _, _) in items]
     body += '\n'.join(dashboards) + '\n'
-    write_webpage(body, "../help_out.html")
+    write_webpage(body, "help_out.html")
 
 
 def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]]) -> None:
@@ -565,7 +565,7 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
     dashboards = [write_dashboard(prs_to_list[kind], kind) for (kind, _, _, _) in items]
     body += '\n'.join(dashboards) + '\n'
-    write_webpage(body, "../triage.html")
+    write_webpage(body, "triage.html")
 
 
 # Write the main page for the dashboard to the file index.html.
