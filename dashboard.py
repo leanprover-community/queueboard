@@ -304,11 +304,11 @@ def print_on_the_queue_page(
         ci_status = CI_status[pr.number]
         status_symbol = "???"
         if ci_status == "pass":
-            status_symbol = icon(True)
+            status_symbol = f'<a title="CI for this pull request passes">{icon(True)}</a>'
         elif ci_status == "fail":
-            status_symbol = icon(False)
+            status_symbol = f'<a title="CI for this pull request fails">{icon(True)}</a>'
         elif ci_status == "running":
-            status_symbol = "&#128996;"
+            status_symbol = f'<a title="CI for this pull request is still running">&#128996;</a>'
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
         has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.labels]
         is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
