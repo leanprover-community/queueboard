@@ -493,13 +493,13 @@ def write_overview_page(updated: str) -> None:
 <details>
   <summary>What do these buttons mean? Which page should I visit?</summary>
   <ul>
-    <li>Would you like to review some pull request? The <a href="review_dashboard.html">review dashboard</a> contains all PRs waiting for review. There are special sections for PRs by new contributors, labelled <em>easy</em> or addressing technical debt.</li>
-    <li>Would you like to find out why your PR is (not) on the review queue? Are you interested in an overview of all your PRs with their status? <a href="on_the_queue.html">This webpage</a> contains all information necessary.</li>
-    <li>There is a webpage for maintainers with little time: this contains e.g. all PRs which are just awaiting maintainer approval.
+    <li>Would you like to review some pull request? The <strong><a href="review_dashboard.html">review dashboard</a></strong> contains all PRs waiting for review. There are special sections for PRs by new contributors, labelled <em>easy</em> or addressing technical debt.</li>
+    <li>Would you like to find out <strong>why</strong> your PR is (not) <strong>on the review queue</strong>? Are you interested in an overview of all your PRs with their status? <a href="on_the_queue.html">This webpage</a> contains all information necessary.</li>
+    <li>There is a webpage for <strong>maintainers with little time</strong>: this contains e.g. all PRs which are just awaiting maintainer approval.
     If you actually have some more time at your hands, the <a href="review_dashboard.html">page for reviewers</a> or the <a href="triage.html">triage dashboard</a> should be useful.</li>
     <!-- XXX. I'm not fully sure yet if this page has a coherent theme. Perhaps not! -->
-    <li>Would you just like to help out? <a href="help_out.html">This page</a> collects PRs where help was requested, or where some quick action can be useful.</li>
-    <li>Are you coming here for issue triage: looking for PRs stuck in some state, and would like to move them along? The <a href="triage.html">triage dashboard</a> has the ultimate collection of all public information.</li>
+    <li>Would you just like to <strong>help out</strong>? <a href="help_out.html">This page</a> collects PRs where help was requested, or where some quick action can be useful.</li>
+    <li>Are you coming here for <strong>PR triage</strong>: looking for PRs stuck in some state, and would like to move them along? The <a href="triage.html">triage dashboard</a> has the ultimate collection of all public information.</li>
   <!-- hidden page for maintainers to assign reviewers is not public -->
   </ul>
 </details>'''
