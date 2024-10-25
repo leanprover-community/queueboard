@@ -564,17 +564,50 @@ def write_help_out_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRI
 
 def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]]) -> None:
     title = "  <h1>Mathlib triage dashboard</h1>"
-    welcome = "<p>TODO: write an intro text here! This is a big messy page, containing all dashboards I haven't otherwise placed.</p>"
+    welcome = "<p>Welcome to the PR triage page! This page is perfect if you intend to look for pull request which seem to have stalled.<br>TODO: this page is still under construction!</p>"
+
+    # TODO: compute the following data, and fill in the placeholders!
+    # first appeared on the queue two weeks ago, computed using long-term data
+    queue_new = "???"
+    # under review, unassigned and not updated in two weeks (resp: no real status update)
+    unassigned = "???"
+    # assigned, under review and no comment or review comment from not-the-author in two weeks.
+    # Author comments are discarded (to exclude "I have rebased comments"); any review comments are included.
+    stale_assigned = "???"
+    review_heading = f"""<h2>Review status</h2>
+  <p>There are currently <strong>{len(prs_to_list[Dashboard.Queue])}</strong> PRs awaiting review. Among these,</p>
+  <ul>
+    <li><strong>{len(prs_to_list[Dashboard.QueueEasy])}</strong> are labelled easy,</li>
+    <li><strong>{len(prs_to_list[Dashboard.QueueTechDebt])}</strong> are addressing technical debt, and</li>
+    <li><strong>{queue_new}</strong> appeared on the queue within the last two weeks.</li><!-- TODO: add! -->
+  </ul>
+  <p>On the other hand, <strong>{unassigned}</strong> PRs are unassigned and have not been updated for three weeks, and <strong>{stale_assigned}</strong> PRs are assigned, without recent review action.</p>"""
+    review_heading = "\n  ".join(review_heading.splitlines())
+    # TODO: add table for unassigned PRs
+    # TODO: add table for stale assigned PRs
+
+    # omit stale maintainer merge, stale ready-to-merge ? or should this go on the big page?
+    # or perhaps have a short section with statistics, but refer to the details elsewhere?
+    # stale-delegated -> to help-out page? (and references here, open in new tab)
+
+    # xxx: audit links; which ones should open on the same page, which ones in a new tab?
+
+    # idea: revamp that page further, with an overview by status
+    # - stale ready-to-merge
+    # - stale delegated (-> help the author? ping the author?)
+    # - stale maintainer merge
+    # - review queue: references, then unassigned, then ping assignees
+
     # TODO: add the statistics here, or to the overview page? or hide temporarily?
     items = []
     for kind in Dashboard._member_map_.values():
-        if kind in [Dashboard.QueueTechDebt, Dashboard.AllMaintainerMerge]:
+        if kind in [Dashboard.Queue, Dashboard.QueueEasy, Dashboard.QueueNewContributor, Dashboard.QueueTechDebt, Dashboard.AllMaintainerMerge]:
             continue
         items.append((kind, "", long_description(kind), ""))
     list_items = [f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items]
     # Also: add a giant table with all PRs, and their status or so!
 
-    body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
+    body = f"{title}\n  {welcome}\n  {review_heading}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
     dashboards = [write_dashboard(prs_to_list[kind], kind) for (kind, _, _, _) in items]
     body += '\n'.join(dashboards) + '\n'
     write_webpage(body, "triage.html")
