@@ -24,6 +24,14 @@
               "author": {
                 "login": "github-actions"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6RuYS8",
+              "body": "I don’t understand why you want to use definitions instead of lemmas stating existence, since what you construct is not a canonical object. Not only the result looks a bit strange, but you need to suffer with all those `Classical.choose` and `Classical.choose_spec` (by the way, you could use `Exists.choose` and `Exists.choose_spec` to get access to dot notation).\r\n\r\nWhy not finishing the main file with\r\n```\r\n@[to_additive]\r\nlemma iUnion_pow {G : Type*} [Group G] {V : Set G} (einV : 1 ∈ V) :\r\n    {x : G | ∃ n : ℕ, x ∈ V ^ n} = ⋃ n , V ^ (n + 1) := by\r\n  …\r\n\r\n@[to_additive \"An open subgroup that is contained in a given clopen neighborhood of `1`.\"]\r\nlemma OpenSubgroupSubClopenNhdsOfOne {G : Type*} [Group G] [TopologicalSpace G] [TopologicalGroup G]\r\n    [CompactSpace G] {W : Set G} (WClopen : IsClopen W) (einW : 1 ∈ W) : \r\n    ∃ H : OpenSubgroup G, (H : Set G) ⊆ W := by\r\n  rcases exists_mulInvClosureNhd WClopen with ⟨T, hT⟩\r\n  let S : Subgroup G := {\r\n    carrier := {x : G | ∃ n : ℕ, x ∈ T ^ n}\r\n    mul_mem':= by\r\n      rintro a b ⟨na, hna⟩ ⟨nb, hnb⟩\r\n      use na + nb\r\n      rw [pow_add]\r\n      exact Set.mul_mem_mul hna hnb\r\n    one_mem':= ⟨1, (by simp only [pow_one, mem_of_mem_nhds hT.nhd])⟩\r\n    inv_mem':= by\r\n      simp only [Set.mem_setOf_eq, forall_exists_index]\r\n      intro x m hm\r\n      use m\r\n      rw [← hT.inv]\r\n      simpa using hm }\r\n  refine ⟨⟨S, ?_⟩, ?_⟩\r\n  · simp only [iUnion_pow <| mem_of_mem_nhds hT.nhd]\r\n    refine isOpen_iUnion (fun n ↦ ?_)\r\n    rw [pow_succ]\r\n    exact IsOpen.mul_left hT.isOpen\r\n  · change {x : G | ∃ n : ℕ, x ∈ T ^ n} ⊆ W \r\n    simp_rw [iUnion_pow (mem_of_mem_nhds hT.nhd), Set.iUnion_subset_iff]\r\n    intro n _\r\n    have mulVpow: W * T ^ (n + 1) ⊆ W := by\r\n      induction' n with n ih\r\n      · simp only [zero_add, pow_one, hT.mul]\r\n      · rw [pow_succ, ← mul_assoc]\r\n        exact le_trans (Set.mul_subset_mul_right ih) <|\r\n          hT.mul\r\n    apply le_trans _ mulVpow\r\n    intro x xin\r\n    rw [Set.mem_mul]\r\n    use 1, einW, x, xin\r\n    rw [one_mul]\r\n\r\nend TopologicalGroup\r\n```\r\nNote how manipulating `T` and `hT` is less painful than what you do in your version. \r\n\r\nBy the way, if you really want to keep `iUnion_pow` then it should move to some algebra file since this has nothing to do with topology, and probably also get a more descriptive name. ",
+              "createdAt": "2024-10-29T17:00:18Z",
+              "author": {
+                "login": "PatrickMassot"
+              }
             }
           ]
         },
@@ -337,6 +345,11 @@
         "labels": {
           "nodes": [
             {
+              "id": "LA_kwDOFcwZ1c7P265b",
+              "color": "f9d0c4",
+              "name": "awaiting-author"
+            },
+            {
               "id": "LA_kwDOFcwZ1c8AAAABViJbOw",
               "color": "33DBEC",
               "name": "t-topology"
@@ -348,13 +361,15 @@
         },
         "maintainerCanModify": false,
         "mergeCommit": null,
-        "mergeStateStatus": "UNKNOWN",
-        "mergeable": "UNKNOWN",
+        "mergeStateStatus": "BLOCKED",
+        "mergeable": "MERGEABLE",
         "mergedAt": null,
         "mergedBy": null,
         "milestone": null,
         "number": 18377,
-        "potentialMergeCommit": null,
+        "potentialMergeCommit": {
+          "oid": "5ed0e6ac5008940cec4e36058bba1cfbcc2393ab"
+        },
         "projectCards": {
           "nodes": []
         },
@@ -426,6 +441,10 @@
             {
               "id": "U_kgDOCPkENQ",
               "login": "Thmoas-Guan"
+            },
+            {
+              "id": "MDQ6VXNlcjE0MDYwODgz",
+              "login": "PatrickMassot"
             }
           ]
         },
@@ -549,7 +568,7 @@
           }
         },
         "title": "feat(Topology/Group): Open normal subgroup in clopen nhds of one",
-        "updatedAt": "2024-10-29T10:37:30Z",
+        "updatedAt": "2024-10-29T17:00:32Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/18377",
         "timelineItems": {
           "nodes": [
@@ -586,6 +605,24 @@
             },
             {
               "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6RuYS8",
+              "createdAt": "2024-10-29T17:00:18Z",
+              "body": "I don’t understand why you want to use definitions instead of lemmas stating existence, since what you construct is not a canonical object. Not only the result looks a bit strange, but you need to suffer with all those `Classical.choose` and `Classical.choose_spec` (by the way, you could use `Exists.choose` and `Exists.choose_spec` to get access to dot notation).\r\n\r\nWhy not finishing the main file with\r\n```\r\n@[to_additive]\r\nlemma iUnion_pow {G : Type*} [Group G] {V : Set G} (einV : 1 ∈ V) :\r\n    {x : G | ∃ n : ℕ, x ∈ V ^ n} = ⋃ n , V ^ (n + 1) := by\r\n  …\r\n\r\n@[to_additive \"An open subgroup that is contained in a given clopen neighborhood of `1`.\"]\r\nlemma OpenSubgroupSubClopenNhdsOfOne {G : Type*} [Group G] [TopologicalSpace G] [TopologicalGroup G]\r\n    [CompactSpace G] {W : Set G} (WClopen : IsClopen W) (einW : 1 ∈ W) : \r\n    ∃ H : OpenSubgroup G, (H : Set G) ⊆ W := by\r\n  rcases exists_mulInvClosureNhd WClopen with ⟨T, hT⟩\r\n  let S : Subgroup G := {\r\n    carrier := {x : G | ∃ n : ℕ, x ∈ T ^ n}\r\n    mul_mem':= by\r\n      rintro a b ⟨na, hna⟩ ⟨nb, hnb⟩\r\n      use na + nb\r\n      rw [pow_add]\r\n      exact Set.mul_mem_mul hna hnb\r\n    one_mem':= ⟨1, (by simp only [pow_one, mem_of_mem_nhds hT.nhd])⟩\r\n    inv_mem':= by\r\n      simp only [Set.mem_setOf_eq, forall_exists_index]\r\n      intro x m hm\r\n      use m\r\n      rw [← hT.inv]\r\n      simpa using hm }\r\n  refine ⟨⟨S, ?_⟩, ?_⟩\r\n  · simp only [iUnion_pow <| mem_of_mem_nhds hT.nhd]\r\n    refine isOpen_iUnion (fun n ↦ ?_)\r\n    rw [pow_succ]\r\n    exact IsOpen.mul_left hT.isOpen\r\n  · change {x : G | ∃ n : ℕ, x ∈ T ^ n} ⊆ W \r\n    simp_rw [iUnion_pow (mem_of_mem_nhds hT.nhd), Set.iUnion_subset_iff]\r\n    intro n _\r\n    have mulVpow: W * T ^ (n + 1) ⊆ W := by\r\n      induction' n with n ih\r\n      · simp only [zero_add, pow_one, hT.mul]\r\n      · rw [pow_succ, ← mul_assoc]\r\n        exact le_trans (Set.mul_subset_mul_right ih) <|\r\n          hT.mul\r\n    apply le_trans _ mulVpow\r\n    intro x xin\r\n    rw [Set.mem_mul]\r\n    use 1, einW, x, xin\r\n    rw [one_mul]\r\n\r\nend TopologicalGroup\r\n```\r\nNote how manipulating `T` and `hT` is less painful than what you do in your version. \r\n\r\nBy the way, if you really want to keep `iUnion_pow` then it should move to some algebra file since this has nothing to do with topology, and probably also get a more descriptive name. ",
+              "author": {
+                "login": "PatrickMassot"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c6cM26DzwAAAAN9X0jl",
+              "createdAt": "2024-10-29T17:00:32Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
             }
           ]
         }
