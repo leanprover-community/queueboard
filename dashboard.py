@@ -235,6 +235,7 @@ def read_json_files() -> JSONInputData:
         for pr in data["pr_statusses"]:
             date = parse_datetime(pr["last_updated"])
             label_names = pr["label_names"]
+            # Some PRs only have basic information present: fill in suitable placeholder values.
             if "number_comments" in pr:
                 number_all_comments = pr["number_comments"] + pr["number_review_comments"]
             else:
@@ -914,10 +915,12 @@ def _compute_pr_entries(prs: List[BasicPRInformation], aggregate_information: di
             print(f"main dashboard: found no aggregate information for PR {pr.number}", file=sys.stderr)
             entries.extend(["-1/-1", "-1", "-1"])
         else:
+            # NB. We cannot use "pr_info.number_total_comments or -1" as 0 is falsy in Python.
+            total_comments = -1 if pr_info.number_total_comments is None else pr_info.number_total_comments
             entries.extend([
                 "{}/{}".format(pr_info.additions, pr_info.deletions),
                 str(pr_info.number_modified_files),
-                str(pr_info.number_total_comments),
+                str(total_comments),
             ])
         entries.append(time_info(pr.updatedAt))
         result += _write_table_row(entries, "    ")
