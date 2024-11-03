@@ -913,14 +913,24 @@ def _compute_pr_entries(prs: List[BasicPRInformation], aggregate_information: di
             pr_info = aggregate_information[pr.number]
         if pr_info is None:
             print(f"main dashboard: found no aggregate information for PR {pr.number}", file=sys.stderr)
-            entries.extend(["-1/-1", "-1", "-1"])
+            entries.extend(["-1/-1", "-1", "-1", "???"])
         else:
             # NB. We cannot use "pr_info.number_total_comments or -1" as 0 is falsy in Python.
             total_comments = -1 if pr_info.number_total_comments is None else pr_info.number_total_comments
+            match pr_info.assignees:
+                case []:
+                    assignees = "nobody"
+                case [user]:
+                    assignees = user
+                case [user1, user2]:
+                    assignees = f"{user1} and {user2}"
+                case several_users:
+                    assignees = ", ".join(several_users)
             entries.extend([
                 "{}/{}".format(pr_info.additions, pr_info.deletions),
                 str(pr_info.number_modified_files),
                 str(total_comments),
+                assignees,
             ])
         entries.append(time_info(pr.updatedAt))
         result += _write_table_row(entries, "    ")
@@ -950,6 +960,7 @@ def write_dashboard(prs : List[BasicPRInformation], aggregate_info: dict[int, Ag
         '<a title="number of added/deleted lines">+/-</a>',
         '<a title="number of files modified">&#128221;</a>',
         '<a title="number of standard or review comments on this PR">&#128172;</a>',
+        '<a title="github user(s) this PR is assigned to (if any)">Assignee(s)</a>',
         'Updated'
     ]
     head = _write_table_header(headings, "    ")
