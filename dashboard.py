@@ -469,13 +469,11 @@ def main() -> None:
     # Future idea: add a histrogram with the most common areas,
     # or dedicated tables for common areas (and perhaps one for t-algebra, because it's hard to filter)
     write_review_queue_page(updated, prs_to_list)
-    # XXX: should the list of tech debt PRs be included here?
     write_maintainers_quick_page(updated, prs_to_list)
-    # XXX: open to refining what is shown on that page!
     write_help_out_page(updated, prs_to_list)
     # XXX: this page needs to be refined!
     write_triage_page(updated, prs_to_list)
-    # write_main_page(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, updated)
+    write_main_page(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, updated)
 
 
 def write_overview_page(updated: str) -> None:
@@ -506,7 +504,7 @@ def write_overview_page(updated: str) -> None:
     welcome = "\n  ".join(welcome.splitlines())
     feedback = '<p>Feedback (including bug reports and ideas for improvements) on this dashboard is very welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.</p>'
     body = f"{title}\n  {welcome}\n  {feedback}\n  <p><small>This dashboard was last updated on: {updated}</small></p>\n"
-    write_webpage(body, "overview.html")
+    write_webpage(body, "index.html")
 
 
 def write_review_queue_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]]) -> None:
@@ -534,6 +532,7 @@ def write_maintainers_quick_page(updated: str, prs_to_list: dict[Dashboard, List
         (Dashboard.AllMaintainerMerge, "all PRs labelled 'maintainer merge'", ""),
         (Dashboard.FromFork, 'all PRs made from a fork', ""),
         (Dashboard.NeedsDecision, 'all PRs waiting on finding consensus on zulip', ""),
+        # XXX: should this one be here? can be changed upon discussion
         (Dashboard.QueueTechDebt, "just the PRs addressing technical debt", ""),
     ]
     list_items = [f'<li><a href="#{getIdTitle(kind)[0]}">{description}</a>{unlinked}</li>\n' for (kind, description, unlinked) in items]
@@ -546,13 +545,13 @@ def write_maintainers_quick_page(updated: str, prs_to_list: dict[Dashboard, List
 
 def write_help_out_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]]) -> None:
     title = "  <h1>Helping out: short tasks</h1>"
-    welcome = "<p>Would you like to help out at a PR, differently from reviewing. Here are some ideas:</p>"
+    welcome = "<p>Would you like to help out at a PR, differently from reviewing? Here are some ideas:</p>"
     items = [
         (Dashboard.NeedsHelp, "take a look at ", "PRs labelled help-wanted or please-adopt", ""),
         (Dashboard.NeedsMerge, "If the author hasn't noticed, you can ask in a PR which ", 'just has a merge conflict, but would be reviewable otherwise', ". (Remember, that most contributors to mathlib are volunteers/contribute in their free time, often have other commitments &emdash; and that real-life events can happen!)"),
         # Future: add "just CI failing" here
         (Dashboard.FromFork, "post a comment on a ", "PR made from a fork", ", nicely asking them to re-submit it from a mathlib branch instead"),
-        # XXX: add all new contributor PRs here?
+        (Dashboard.StaleNewContributor, "check if any ", "'stale' PR by a new contributor", "benefits from support, such as help with failing CI or providing feedback on the code"),
         # XXX: add all stale delegated PRs here?
     ]
     list_items = [f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items]
@@ -613,7 +612,7 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     write_webpage(body, "triage.html")
 
 
-# Write the main page for the dashboard to the file index.html.
+# Write the main page for the dashboard to the file index-old.html.
 def write_main_page(
     aggregate_info: dict[int, AggregatePRInfo], prs_to_list: dict[Dashboard, List[BasicPRInformation]],
     nondraft_PRs: list[BasicPRInformation], draft_PRs: list[BasicPRInformation], updated: str
@@ -640,7 +639,7 @@ def write_main_page(
             print(f"error: forgot to include data for dashboard kind {kind}", file=sys.stderr)
         else:
             body += f"{write_dashboard(prs_to_list[kind], kind)}\n"
-    write_webpage(body, "index.html")
+    write_webpage(body, "index-old.html")
 
 
 # Compute the status of each PR in a given list. Return a dictionary keyed by the PR number.
