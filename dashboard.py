@@ -640,7 +640,13 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     # TODO: add the statistics here, or to the overview page? or hide temporarily?
     items = []
     for kind in Dashboard._member_map_.values():
-        if kind in [Dashboard.Queue, Dashboard.QueueEasy, Dashboard.QueueNewContributor, Dashboard.QueueTechDebt, Dashboard.AllMaintainerMerge, Dashboard.StaleMaintainerMerge, Dashboard.StaleDelegated, Dashboard.AllReadyToMerge, Dashboard.StaleReadyToMerge, Dashboard.NeedsHelp]:
+        kinds = [
+            Dashboard.Queue, Dashboard.QueueEasy, Dashboard.QueueNewContributor, Dashboard.QueueTechDebt,
+            Dashboard.QueueStaleUnassigned, Dashboard.QueueStaleAssigned,
+            Dashboard.AllMaintainerMerge, Dashboard.StaleMaintainerMerge, Dashboard.StaleDelegated, Dashboard.AllReadyToMerge, Dashboard.StaleReadyToMerge,
+            Dashboard.NeedsHelp
+        ]
+        if kind in kinds:
             continue
         items.append((kind, "", long_description(kind), ""))
     list_items = [f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items]
