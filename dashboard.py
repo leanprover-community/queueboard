@@ -941,8 +941,8 @@ def _compute_pr_entries(prs: List[BasicPRInformation], aggregate_information: di
             print(f"main dashboard: found no aggregate information for PR {pr.number}", file=sys.stderr)
             entries.extend(["-1/-1", "-1", "-1", "???"])
         else:
-            # NB. We cannot use "pr_info.number_total_comments or -1" as 0 is falsy in Python.
-            total_comments = -1 if pr_info.number_total_comments is None else pr_info.number_total_comments
+            na = '<a href="no data available">n/a</a>'
+            total_comments = na if pr_info.number_total_comments is None else pr_info.number_total_comments
             match pr_info.assignees:
                 case []:
                     assignees = "nobody"
@@ -955,7 +955,7 @@ def _compute_pr_entries(prs: List[BasicPRInformation], aggregate_information: di
             entries.extend([
                 "{}/{}".format(pr_info.additions, pr_info.deletions),
                 str(pr_info.number_modified_files),
-                str(total_comments),
+                total_comments,
                 assignees,
             ])
         entries.append(time_info(pr.updatedAt))
