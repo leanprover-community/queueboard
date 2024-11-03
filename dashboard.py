@@ -15,7 +15,7 @@ from dateutil.relativedelta import relativedelta
 
 from classify_pr_state import (CIStatus, PRState, PRStatus,
                                determine_PR_status, label_categorisation_rules)
-from util import my_assert_eq, parse_datetime, parse_json_file
+from util import my_assert_eq, parse_datetime
 
 
 @unique
@@ -92,7 +92,7 @@ def long_description(kind: Dashboard) -> str:
         Dashboard.QueueTechDebt: "all PRs labelled with 'tech debt' or 'longest-pole' which are ready for review",
         Dashboard.NeedsMerge: "all PRs which have a merge conflict, but otherwise fit the review queue",
         Dashboard.StaleDelegated: f"all PRs labelled 'delegated' {notupdated} 24 hours",
-        Dashboard.AllReadyToMerge: f"all PRs labelled 'auto-merge-after-CI' or 'ready-to-merge'",
+        Dashboard.AllReadyToMerge: "all PRs labelled 'auto-merge-after-CI' or 'ready-to-merge'",
         Dashboard.StaleReadyToMerge: f"all PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
         Dashboard.TechDebt: "all 'ready' PRs (not draft, not labelled WIP) labelled with 'tech debt' or 'longest-pole'",
         Dashboard.NeedsDecision: "all PRs labelled 'awaiting-zulip': these are blocked on a zulip discussion or similar",
@@ -323,7 +323,7 @@ def print_on_the_queue_page(
         elif ci_status == "fail":
             status_symbol = f'<a title="CI for this pull request fails">{icon(True)}</a>'
         elif ci_status == "running":
-            status_symbol = f'<a title="CI for this pull request is still running">&#128996;</a>'
+            status_symbol = '<a title="CI for this pull request is still running">&#128996;</a>'
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
         has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.labels]
         is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
@@ -474,11 +474,11 @@ def main() -> None:
     write_overview_page(updated)
     # Future idea: add a histrogram with the most common areas,
     # or dedicated tables for common areas (and perhaps one for t-algebra, because it's hard to filter)
-    write_review_queue_page(updated, prs_to_list)
-    write_maintainers_quick_page(updated, prs_to_list)
-    write_help_out_page(updated, prs_to_list)
+    write_review_queue_page(updated, prs_to_list, aggregate_info)
+    write_maintainers_quick_page(updated, prs_to_list, aggregate_info)
+    write_help_out_page(updated, prs_to_list, aggregate_info)
     # XXX: this page needs to be refined!
-    write_triage_page(updated, prs_to_list)
+    write_triage_page(updated, prs_to_list, aggregate_info)
     write_main_page(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, updated)
 
 
@@ -514,7 +514,7 @@ def write_overview_page(updated: str) -> None:
     write_webpage(body, "index.html")
 
 
-def write_review_queue_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]]) -> None:
+def write_review_queue_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]], aggregate_info: dict[int, AggregatePRInfo]) -> None:
     title = "  <h1>The mathlib review queue</h1>"
     welcome = "<p>Welcome to the mathlib review page. Everybody's help with reviewing is appreciated. Reviewing contributions is important, and everybody is welcome to review pull requests! If you're not sure how, the <a href=\"https://leanprover-community.github.io/contribute/pr-review.html\">pull request review guide</a> is there to help you.<br>\n  This page contains tables of</p>"
     items = [
@@ -525,12 +525,12 @@ def write_review_queue_page(updated: str, prs_to_list: dict[Dashboard, List[Basi
     ]
     list_items = [f'<li><a href="#{getIdTitle(kind)[0]}">{description}</a>{unlinked}</li>\n' for (kind, description, unlinked) in items]
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
-    dashboards = [write_dashboard(prs_to_list[kind], kind) for (kind, _, _) in items]
+    dashboards = [write_dashboard(prs_to_list[kind], aggregate_info, kind) for (kind, _, _) in items]
     body += '\n'.join(dashboards) + '\n'
     write_webpage(body, "review_dashboard.html")
 
 
-def write_maintainers_quick_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]]) -> None:
+def write_maintainers_quick_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]], aggregate_info: dict[int, AggregatePRInfo]) -> None:
     title = "  <h1>Maintainers page: short tasks</h1>"
     welcome = "<p>Are you a maintainer with just a short amount of time? The following kinds of pull requests could be relevant for you.</p>"
     items = [
@@ -545,12 +545,12 @@ def write_maintainers_quick_page(updated: str, prs_to_list: dict[Dashboard, List
     list_items = [f'<li><a href="#{getIdTitle(kind)[0]}">{description}</a>{unlinked}</li>\n' for (kind, description, unlinked) in items]
     post = 'If you realise you actually have a bit more time, you can also look at the <a href="review_dashboard.html">page for reviewers</a>, or look at the <a href="triage.html">triage page!</a>'
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  {post}<br>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
-    dashboards = [write_dashboard(prs_to_list[kind], kind) for (kind, _, _) in items]
+    dashboards = [write_dashboard(prs_to_list[kind], aggregate_info, kind) for (kind, _, _) in items]
     body += '\n'.join(dashboards) + '\n'
     write_webpage(body, "maintainers_quick.html")
 
 
-def write_help_out_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]]) -> None:
+def write_help_out_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]], aggregate_info: dict[int, AggregatePRInfo]) -> None:
     title = "  <h1>Helping out: short tasks</h1>"
     welcome = "<p>Would you like to help out at a PR, differently from reviewing? Here are some ideas:</p>"
     items = [
@@ -563,27 +563,27 @@ def write_help_out_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRI
     ]
     list_items = [f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items]
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
-    dashboards = [write_dashboard(prs_to_list[kind], kind) for (kind, _, _, _) in items]
+    dashboards = [write_dashboard(prs_to_list[kind], aggregate_info, kind) for (kind, _, _, _) in items]
     body += '\n'.join(dashboards) + '\n'
     write_webpage(body, "help_out.html")
 
 
-def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]]) -> None:
+def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]], aggregate_info: dict[int, AggregatePRInfo]) -> None:
     title = "  <h1>Mathlib triage dashboard</h1>"
     welcome = "<p>Welcome to the PR triage page! This page is perfect if you intend to look for pull request which seem to have stalled.<br>TODO: this page is still under construction!</p>"
     welcome += f"\n  <small>This dashboard was last updated on: {updated}</small>"
 
     some_stale = f": <strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> of them are stale, and merit another look</li>\n"
-    some_stale += write_dashboard(prs_to_list[Dashboard.StaleReadyToMerge], Dashboard.StaleReadyToMerge, False)
+    some_stale += write_dashboard(prs_to_list[Dashboard.StaleReadyToMerge], aggregate_info, Dashboard.StaleReadyToMerge, False)
     no_stale = ", including <strong>no</strong> stale ones, congratulations!</li>"
     ready_to_merge = f"<strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> PRs are ready to merge{some_stale if prs_to_list[Dashboard.StaleReadyToMerge] else no_stale}" # TODO: add AllReadyToMerge
 
     stale_mm = f'of which <strong>{len(prs_to_list[Dashboard.StaleMaintainerMerge])}</strong> have not been updated in a day (<a href="maintainers_quick.html/#stale-maintainer-merge">these</a>)'
-    no_stale_mm = f"<strong>none of which</strong> has been pending for more than a day. Congratulations!"
+    no_stale_mm = "<strong>none of which</strong> has been pending for more than a day. Congratulations!"
     mm = f'<strong>{len(prs_to_list[Dashboard.AllMaintainerMerge])}</strong> PRs are waiting on maintainer approval (<a href="maintainers_quick.html/#all-maintainer-merge">these</a>), {stale_mm if prs_to_list[Dashboard.StaleMaintainerMerge] else no_stale_mm}'
 
     no_stale_delegated = "<strong>no</strong> PRs have been delegated and not updated in a day, congratulations!</li>"
-    stale_delegated = f'<strong>{len(prs_to_list[Dashboard.StaleDelegated])}</strong> PRs have been delegated and not updated in a day:</li>\n  {write_dashboard(prs_to_list[Dashboard.StaleDelegated], Dashboard.StaleDelegated, False)}'
+    stale_delegated = f'<strong>{len(prs_to_list[Dashboard.StaleDelegated])}</strong> PRs have been delegated and not updated in a day:</li>\n  {write_dashboard(prs_to_list[Dashboard.StaleDelegated], aggregate_info, Dashboard.StaleDelegated, False)}'
 
     notlanded = f"""<h2>Approved, not yet landed PRs</h2>
 
@@ -630,7 +630,7 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     # Also: add a giant table with all PRs, and their status or so!
 
     body = f"{title}\n  {welcome}\n  {notlanded}\n  {review_heading}\n  {other_PRs}\n"
-    dashboards = [write_dashboard(prs_to_list[kind], kind) for (kind, _, _, _) in items]
+    dashboards = [write_dashboard(prs_to_list[kind], aggregate_info, kind) for (kind, _, _, _) in items]
     body += '\n'.join(dashboards) + '\n'
     write_webpage(body, "triage.html")
 
@@ -661,7 +661,7 @@ def write_main_page(
         if kind not in prs_to_list:
             print(f"error: forgot to include data for dashboard kind {kind}", file=sys.stderr)
         else:
-            body += f"{write_dashboard(prs_to_list[kind], kind)}\n"
+            body += f"{write_dashboard(prs_to_list[kind], aggregate_info, kind)}\n"
     write_webpage(body, "index-old.html")
 
 
@@ -898,47 +898,39 @@ def _extract_prs(data: dict) -> List[BasicPRInformation]:
 
 
 # Compute the table entries about a sequence of PRs.
-def _compute_pr_entries(prs: List[BasicPRInformation]) -> str:
+# 'aggregate_information' maps each PR number to the corresponding aggregate information
+# (and may contain information on PRs not to be printed).
+# TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
+# in the latter is always kept updated.
+def _compute_pr_entries(prs: List[BasicPRInformation], aggregate_information: dict[int, AggregatePRInfo]) -> str:
     result = ""
     for pr in prs:
         entries = [pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url), _write_labels(pr.labels)]
         # Detailed information about the current PR.
         pr_info = None
-        filename = f"data/{pr.number}/pr_info.json"
-        if path.exists(filename):
-            match parse_json_file(filename, str(pr.number)):
-                case dict(data):
-                    pr_info = data
-                case str(_error):
-                    pass
+        if pr.number in aggregate_information:
+            pr_info = aggregate_information[pr.number]
         if pr_info is None:
             print(f"main dashboard: found no aggregate information for PR {pr.number}", file=sys.stderr)
             entries.extend(["-1/-1", "-1", "-1"])
         else:
-            # We treat non-well-formed data as missing.
-            # FUTURE: unify and centralise all these checks for bad/missing data (also for CI status)
-            if "data" not in pr_info or "errors" in pr_info:
-                entries.extend(["-1/-1", "-1", "-1"])
-                continue
-            inner = pr_info["data"]["repository"]["pullRequest"]
             entries.extend([
-                "{}/{}".format(inner["additions"], inner["deletions"]), inner["changedFiles"]
+                "{}/{}".format(pr_info.additions, pr_info.deletions),
+                str(pr_info.number_modified_files),
+                str(pr_info.number_total_comments),
             ])
-            # Add the number of normal and review comments.
-            number_comments = len(inner["comments"]["nodes"])
-            number_review_comments = 0
-            review_threads = inner["reviewThreads"]["nodes"]
-            for t in review_threads:
-                number_review_comments += len(t["comments"]["nodes"])
-            entries.append(f"{number_comments + number_review_comments}")
         entries.append(time_info(pr.updatedAt))
         result += _write_table_row(entries, "    ")
     return result
 
 
 # Write the code for a dashboard of a given list of PRs.
+# 'aggregate_information' maps each PR number to the corresponding aggregate information
+# (and may contain information on PRs not to be printed).
+# TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
+# in the latter is always kept updated.
 # If 'header' is false, a table header is omitted and just the dashboard is printed.
-def write_dashboard(prs : List[BasicPRInformation], kind: Dashboard, header=True) -> str:
+def write_dashboard(prs : List[BasicPRInformation], aggregate_info: dict[int, AggregatePRInfo], kind: Dashboard, header=True) -> str:
     # Title of each list, and the corresponding HTML anchor.
     # Explain what each dashboard contains upon hovering the heading.
     if header:
@@ -958,7 +950,7 @@ def write_dashboard(prs : List[BasicPRInformation], kind: Dashboard, header=True
         'Updated'
     ]
     head = _write_table_header(headings, "    ")
-    body = _compute_pr_entries(prs)
+    body = _compute_pr_entries(prs, aggregate_info)
     return f"{title}\n  <table>\n{head}{body}  </table>"
 
 
