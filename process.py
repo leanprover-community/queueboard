@@ -115,7 +115,7 @@ def main() -> None:
                     print(f"attention: found an unexpected error!\n  {err}", file=sys.stderr)
             case dict(data):
                 if (pr_number in known_erronerous) and not only_basic_info:
-                    print(f"warning: PR {pr_number} had fine data, but was listed as erronerous: please remove it from that list", file=sys.stderr)
+                    print(f"warning: PR {pr_number} has fine data, but is listed as erronerous: please remove it from that list", file=sys.stderr)
                 label_data = data["data"]["repository"]["pullRequest"]["labels"]["nodes"]
                 for lab in label_data:
                     if "color" in lab:
