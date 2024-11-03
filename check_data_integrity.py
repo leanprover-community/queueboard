@@ -10,8 +10,8 @@ This script assumes these files exist.
 import json
 import os
 import sys
-from datetime import timedelta
-from typing import List
+from datetime import datetime, timedelta
+from typing import List, NamedTuple
 
 from util import eprint, parse_datetime, parse_json_file
 
@@ -104,16 +104,25 @@ def check_data_directory_contents() -> bool:
     return is_wellformed
 
 
+# All data we are currently extracting from each PR's aggregate info.
+class AggregateData(NamedTuple):
+    last_updated: str
+    is_CI_running: bool
+
 # Read the last updated fields of the aggregate data file, and compare it with the
 # dates from querying github.
 def main() -> None:
+    # "Last updated" information as returned from a fresh github query.
     current_last_updated = extract_last_update_from_input()
+    # "Last updated" information as found in the aggregate data file.
     check_data_directory_contents()
     aggregate_last_updated = dict()
     with open(os.path.join("processed_data", "aggregate_pr_data.json"), "r") as aggregate_file:
         data = json.load(aggregate_file)
         for pr in data["pr_statusses"]:
-            aggregate_last_updated[pr["number"]] = pr["last_updated"]
+            updated = pr["last_updated"]
+            ci = pr["CI_status"]
+            aggregate_last_updated[pr["number"]] = AggregateData(updated, ci == "running")
 
     # All PRs whose aggregate data is at least 10 minutes older than github's current "last update".
     outdated_prs: List[int] = []
@@ -125,7 +134,7 @@ def main() -> None:
             print(f'mismatch: missing data for PR {pr_number}')
             missing_prs.append(pr_number)
             continue
-        aggregate_updated = parse_datetime(aggregate_last_updated[pr_number])
+        aggregate_updated = parse_datetime(aggregate_last_updated[pr_number].last_updated)
 
         # current_updated should be at least as new,
         # aggregate_updated is allowed to lag behind by at most 10 minutes.
