@@ -571,6 +571,7 @@ def write_help_out_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRI
 def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]]) -> None:
     title = "  <h1>Mathlib triage dashboard</h1>"
     welcome = "<p>Welcome to the PR triage page! This page is perfect if you intend to look for pull request which seem to have stalled.<br>TODO: this page is still under construction!</p>"
+    welcome += f"\n  <small>This dashboard was last updated on: {updated}</small>"
 
     some_stale = f": <strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> of them are stale, and merit another look</li>\n"
     some_stale += write_dashboard(prs_to_list[Dashboard.StaleReadyToMerge], Dashboard.StaleReadyToMerge, False)
@@ -601,7 +602,7 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     # assigned, under review and no comment or review comment from not-the-author in two weeks.
     # Author comments are discarded (to exclude "I have rebased comments"); any review comments are included.
     stale_assigned = "???"
-    review_heading = f"""<h2>Review status</h2>
+    review_heading = f"""\n<h2>Review status</h2>
   <p>There are currently <strong>{len(prs_to_list[Dashboard.Queue])}</strong> <a href="review_dashboard.html/#queue">PRs awaiting review</a>. Among these,</p>
   <ul>
     <li><strong>{len(prs_to_list[Dashboard.QueueEasy])}</strong> are labelled easy (<a href="review_dashboard.html/#queue-easy">these ones</a>),</li>
@@ -613,25 +614,22 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     # TODO: add table for unassigned PRs
     # TODO: add table for stale assigned PRs
 
-    # omit stale maintainer merge, stale ready-to-merge ? or should this go on the big page?
-    # or perhaps have a short section with statistics, but refer to the details elsewhere?
-    # stale-delegated -> to help-out page? (and references here, open in new tab)
-
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
-
-    # idea: revamp that page further, with an overview by status
-    # - review queue: references, then unassigned, then ping assignees
 
     # TODO: add the statistics here, or to the overview page? or hide temporarily?
     items = []
     for kind in Dashboard._member_map_.values():
-        if kind in [Dashboard.Queue, Dashboard.QueueEasy, Dashboard.QueueNewContributor, Dashboard.QueueTechDebt, Dashboard.AllMaintainerMerge, Dashboard.StaleDelegated, Dashboard.StaleMaintainerMerge]:
+        if kind in [Dashboard.Queue, Dashboard.QueueEasy, Dashboard.QueueNewContributor, Dashboard.QueueTechDebt, Dashboard.AllMaintainerMerge, Dashboard.StaleMaintainerMerge, Dashboard.StaleDelegated, Dashboard.AllReadyToMerge, Dashboard.StaleReadyToMerge, Dashboard.NeedsHelp]:
             continue
         items.append((kind, "", long_description(kind), ""))
     list_items = [f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items]
+    other_PRs = f"""\n<h2>Other lists of PRs</h2>
+    Some other lists of PRs which could be useful:
+    <ul>{'    '.join(list_items)}  </ul>
+    """
     # Also: add a giant table with all PRs, and their status or so!
 
-    body = f"{title}\n  {welcome}\n  {notlanded}\n  {review_heading}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
+    body = f"{title}\n  {welcome}\n  {notlanded}\n  {review_heading}\n  {other_PRs}\n"
     dashboards = [write_dashboard(prs_to_list[kind], kind) for (kind, _, _, _) in items]
     body += '\n'.join(dashboards) + '\n'
     write_webpage(body, "triage.html")
