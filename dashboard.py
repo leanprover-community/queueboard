@@ -621,7 +621,10 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
   </ul>
   <p>On the other hand, <strong>{unassigned}</strong> PRs are unassigned and have not been updated for two weeks, and <strong>{stale_assigned}</strong> PRs are assigned, without recent review activity.</p>"""
     review_heading = "\n  ".join(review_heading.splitlines())
-    # TODO: add table for unassigned PRs
+
+    # XXX: can I hide the assignee column in this dashboard? it's redundant by definition...
+    stale_unassigned = write_dashboard(prs_to_list[Dashboard.QueueStaleUnassigned], aggregate_info, Dashboard.QueueStaleUnassigned, True)
+
     # TODO: add table for stale assigned PRs
 
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
@@ -639,7 +642,7 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     """
     # Also: add a giant table with all PRs, and their status or so!
 
-    body = f"{title}\n  {welcome}\n  {notlanded}\n  {review_heading}\n  {other_PRs}\n"
+    body = f"{title}\n  {welcome}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {other_PRs}\n"
     dashboards = [write_dashboard(prs_to_list[kind], aggregate_info, kind) for (kind, _, _, _) in items]
     body += '\n'.join(dashboards) + '\n'
     write_webpage(body, "triage.html")
