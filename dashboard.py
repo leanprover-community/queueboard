@@ -645,7 +645,7 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
             'Updated'
         ]
         head = _write_table_header(headings, "    ")
-        body = _compute_pr_entries(prs_to_list[Dashboard.QueueStaleUnassigned], aggregate_info)
+        body = _compute_pr_entries(prs_to_list[Dashboard.QueueStaleUnassigned], aggregate_info, False)
         stale_unassigned = f"{title}\n  <table>\n{head}{body}  </table>"
 
     # XXX: when updating the definition, make sure to update all the dashboard descriptions
@@ -947,7 +947,7 @@ def _extract_prs(data: dict) -> List[BasicPRInformation]:
 # (and may contain information on PRs not to be printed).
 # TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
 # in the latter is always kept updated.
-def _compute_pr_entries(prs: List[BasicPRInformation], aggregate_information: dict[int, AggregatePRInfo]) -> str:
+def _compute_pr_entries(prs: List[BasicPRInformation], aggregate_information: dict[int, AggregatePRInfo], show_assignee=True) -> str:
     result = ""
     for pr in prs:
         entries = [pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url), _write_labels(pr.labels)]
@@ -961,21 +961,22 @@ def _compute_pr_entries(prs: List[BasicPRInformation], aggregate_information: di
         else:
             na = '<a href="no data available">n/a</a>'
             total_comments = na if pr_info.number_total_comments is None else pr_info.number_total_comments
-            match pr_info.assignees:
-                case []:
-                    assignees = "nobody"
-                case [user]:
-                    assignees = user
-                case [user1, user2]:
-                    assignees = f"{user1} and {user2}"
-                case several_users:
-                    assignees = ", ".join(several_users)
             entries.extend([
                 "{}/{}".format(pr_info.additions, pr_info.deletions),
                 str(pr_info.number_modified_files),
                 total_comments,
-                assignees,
             ])
+            if show_assignee:
+                match pr_info.assignees:
+                    case []:
+                        assignees = "nobody"
+                    case [user]:
+                        assignees = user
+                    case [user1, user2]:
+                        assignees = f"{user1} and {user2}"
+                    case several_users:
+                        assignees = ", ".join(several_users)
+                entries.append(assignees)
         entries.append(time_info(pr.updatedAt))
         result += _write_table_row(entries, "    ")
     return result
