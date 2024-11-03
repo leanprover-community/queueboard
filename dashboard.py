@@ -502,7 +502,7 @@ def write_overview_page(updated: str) -> None:
   </ul>
 </details>'''
     welcome = "\n  ".join(welcome.splitlines())
-    welcome += '\n  For the old main page with all tables at one glance, look here: <a href="index-old.html">here</a>.'
+    welcome += '\n  <p>For the <strong>old main page</strong> with all tables at one glance, <a href="index-old.html">look here</a>.</p>'
     feedback = '<p>Feedback (including bug reports and ideas for improvements) on this dashboard is very welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.</p>'
     body = f"{title}\n  {welcome}\n  {feedback}\n  <p><small>This dashboard was last updated on: {updated}</small></p>\n"
     write_webpage(body, "index.html")
