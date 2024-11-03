@@ -26,6 +26,8 @@ class Dashboard(Enum):
     Queue = 0
     QueueNewContributor = auto()
     QueueEasy = auto()
+    # All PRs on the queue which are unassigned and have not been updated in the past two weeks.
+    QueueStaleUnassigned = auto()
     # All PRs labelled "tech-debt" or "longest-pole"
     QueueTechDebt = auto()
     # All PRs labelled ready-to-merge or auto-merge-after-CI, not just the stale ones
@@ -63,6 +65,7 @@ def short_description(kind: Dashboard) -> str:
         Dashboard.QueueNewContributor: "PRs by new mathlib contributors on the review queue",
         Dashboard.QueueEasy: "PRs on the review queue which are labelled 'easy'",
         Dashboard.QueueTechDebt: "PRs on the review queue which are labelled 'tech debt' or 'longest-pole",
+        Dashboard.QueueStaleUnassigned: "unassigned PRs without activity in the past two weeks",
         Dashboard.StaleMaintainerMerge: "stale PRs labelled maintainer merge",
         Dashboard.AllMaintainerMerge: "PRs labelled maintainer merge",
         Dashboard.StaleDelegated: "stale delegated PRs",
@@ -90,6 +93,7 @@ def long_description(kind: Dashboard) -> str:
         Dashboard.QueueNewContributor: "all PRs by new contributors which are ready for review",
         Dashboard.QueueEasy: "all PRs labelled 'easy' which are ready for review",
         Dashboard.QueueTechDebt: "all PRs labelled with 'tech debt' or 'longest-pole' which are ready for review",
+        Dashboard.QueueStaleUnassigned: "all PRs on the queue which are unassigned and have not been updated in the past two weeks",
         Dashboard.NeedsMerge: "all PRs which have a merge conflict, but otherwise fit the review queue",
         Dashboard.StaleDelegated: f"all PRs labelled 'delegated' {notupdated} 24 hours",
         Dashboard.AllReadyToMerge: "all PRs labelled 'auto-merge-after-CI' or 'ready-to-merge'",
@@ -119,6 +123,7 @@ def getIdTitle(kind: Dashboard) -> Tuple[str, str]:
         ),
         Dashboard.QueueEasy: ("queue-easy", "PRs on the review queue labelled 'easy'"),
         Dashboard.QueueTechDebt: ("queue-tech-debt", "PRs on the review queue labelled 'tech debt' or 'longest-pole'"),
+        Dashboard.QueueStaleUnassigned: ("queue-stale-unassigned", "Unassigned PRs on the review queue without updates in the past two weeks"),
         Dashboard.StaleDelegated: ("stale-delegated", "Stale delegated PRs"),
         Dashboard.StaleNewContributor: (
             "stale-new-contributor",
@@ -456,6 +461,7 @@ def main() -> None:
 
     a_day_ago = datetime.now() - timedelta(days=1)
     a_week_ago = datetime.now() - timedelta(days=7)
+    two_weeks_ago = datetime.now() - timedelta(days=14)
     one_day_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_day_ago]
     one_week_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_week_ago]
     prs_to_list[Dashboard.AllReadyToMerge] = prs_with_any_label(nondraft_PRs, ['ready-to-merge', 'auto-merge-after-CI'])
@@ -465,6 +471,9 @@ def main() -> None:
     prs_to_list[Dashboard.StaleMaintainerMerge] = prs_without_label(mm_prs, 'ready-to-merge')
     prs_to_list[Dashboard.AllMaintainerMerge] = prs_without_label(prs_with_label(nondraft_PRs, 'maintainer-merge'), 'ready-to-merge')
     prs_to_list[Dashboard.StaleNewContributor] = prs_with_label(one_week_stale, 'new-contributor')
+
+    stale_queue = [pr for pr in queue_prs2 if aggregate_info[pr.number].last_updated < two_weeks_ago]
+    prs_to_list[Dashboard.QueueStaleUnassigned] = [pr for pr in stale_queue if not aggregate_info[pr.number].assignees]
 
     (bad_title, unlabelled, contradictory) = compute_dashboards_bad_labels_title(nondraft_PRs)
     prs_to_list[Dashboard.BadTitle] = bad_title
@@ -598,8 +607,8 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     # TODO: compute the following data, and fill in the placeholders!
     # first appeared on the queue two weeks ago, computed using long-term data
     queue_new = "???"
-    # under review, unassigned and not updated in two weeks (resp: no real status update)
-    unassigned = "???"
+    # under review, unassigned and not updated in two weeks (future: upgrade to "no real status update" in two weeks)
+    unassigned = len(prs_to_list[Dashboard.QueueStaleUnassigned])
     # assigned, under review and no comment or review comment from not-the-author in two weeks.
     # Author comments are discarded (to exclude "I have rebased comments"); any review comments are included.
     stale_assigned = "???"
@@ -610,7 +619,7 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     <li><strong>{len(prs_to_list[Dashboard.QueueTechDebt])}</strong> are addressing technical debt (<a href="review_dashboard.html/#queue-tech-debt">namely these</a>), and</li>
     <li><strong>{queue_new}</strong> appeared on the queue within the last two weeks.</li><!-- TODO: add! -->
   </ul>
-  <p>On the other hand, <strong>{unassigned}</strong> PRs are unassigned and have not been updated for three weeks, and <strong>{stale_assigned}</strong> PRs are assigned, without recent review activity.</p>"""
+  <p>On the other hand, <strong>{unassigned}</strong> PRs are unassigned and have not been updated for two weeks, and <strong>{stale_assigned}</strong> PRs are assigned, without recent review activity.</p>"""
     review_heading = "\n  ".join(review_heading.splitlines())
     # TODO: add table for unassigned PRs
     # TODO: add table for stale assigned PRs
