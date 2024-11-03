@@ -161,10 +161,12 @@ def main() -> None:
         # Batch the PRs to to re-download: write the first N PRs into redownload.txt,
         # if that file is basically empty (i.e. no other files to already handle).
         # The next run of this script will pick this up and try to download them.
-        content = None
+        content2 = None
         with open("redownload.txt", "r") as file:
-            content = file.readlines()
-        if len(content) != 3 and len(content) > 1:
+            content2 = file.readlines()
+        if content2 is None:
+            return
+        if len(content2) != 3 and len(content2) > 1:
             return
         with open("redownload.txt", "w") as file:
             # Shuffle the list of outdated PRs, to avoid this getting stuck in a loop
