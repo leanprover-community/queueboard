@@ -450,9 +450,9 @@ def main() -> None:
     # TODO: try to switch back to 'queue_prs' again, once the root causes for PR getting 'dropped'
     # by 'gather_stats.sh' are all identified and fixed.
     prs_to_list[Dashboard.Queue] = queue_prs2
-    prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs, 'new-contributor')
-    prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs, 'easy')
-    prs_to_list[Dashboard.QueueTechDebt] = prs_with_any_label(queue_prs, ['tech debt', 'longest-pole'])
+    prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs2, 'new-contributor')
+    prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs2, 'easy')
+    prs_to_list[Dashboard.QueueTechDebt] = prs_with_any_label(queue_prs2, ['tech debt', 'longest-pole'])
 
     a_day_ago = datetime.now() - timedelta(days=1)
     a_week_ago = datetime.now() - timedelta(days=7)
