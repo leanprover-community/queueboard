@@ -28,6 +28,8 @@ class Dashboard(Enum):
     QueueEasy = auto()
     # All PRs labelled "tech-debt" or "longest-pole"
     QueueTechDebt = auto()
+    # All PRs labelled ready-to-merge or auto-merge-after-CI, not just the stale ones
+    AllReadyToMerge = auto()
     StaleReadyToMerge = auto()
     StaleDelegated = auto()
     StaleMaintainerMerge = auto()
@@ -64,6 +66,7 @@ def short_description(kind: Dashboard) -> str:
         Dashboard.StaleMaintainerMerge: "stale PRs labelled maintainer merge",
         Dashboard.AllMaintainerMerge: "PRs labelled maintainer merge",
         Dashboard.StaleDelegated: "stale delegated PRs",
+        Dashboard.AllReadyToMerge: "all PRs labelled auto-merge-after-CI or ready-to-merge",
         Dashboard.StaleReadyToMerge: "stale PRs labelled auto-merge-after-CI or ready-to-merge",
         Dashboard.TechDebt: "ready PRs labelled with 'tech debt' or 'longest-pole'",
         Dashboard.NeedsDecision: "PRs blocked on a zulip discussion or similar",
@@ -89,6 +92,7 @@ def long_description(kind: Dashboard) -> str:
         Dashboard.QueueTechDebt: "all PRs labelled with 'tech debt' or 'longest-pole' which are ready for review",
         Dashboard.NeedsMerge: "all PRs which have a merge conflict, but otherwise fit the review queue",
         Dashboard.StaleDelegated: f"all PRs labelled 'delegated' {notupdated} 24 hours",
+        Dashboard.AllReadyToMerge: f"all PRs labelled 'auto-merge-after-CI' or 'ready-to-merge'",
         Dashboard.StaleReadyToMerge: f"all PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
         Dashboard.TechDebt: "all 'ready' PRs (not draft, not labelled WIP) labelled with 'tech debt' or 'longest-pole'",
         Dashboard.NeedsDecision: "all PRs labelled 'awaiting-zulip': these are blocked on a zulip discussion or similar",
@@ -125,6 +129,7 @@ def getIdTitle(kind: Dashboard) -> Tuple[str, str]:
             "Stale maintainer-merge'd PRs",
         ),
         Dashboard.AllMaintainerMerge: ("all-maintainer-merge", "Maintainer merge'd PRs"),
+        Dashboard.AllReadyToMerge: ("all-ready-to-merge", "All ready-to-merge'd PRs"),
         Dashboard.StaleReadyToMerge: (
             "stale-ready-to-merge",
             "Stale ready-to-merge'd PRs",
@@ -452,6 +457,7 @@ def main() -> None:
     a_week_ago = datetime.now() - timedelta(days=7)
     one_day_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_day_ago]
     one_week_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_week_ago]
+    prs_to_list[Dashboard.AllReadyToMerge] = prs_with_any_label(nondraft_PRs, ['ready-to-merge', 'auto-merge-after-CI'])
     prs_to_list[Dashboard.StaleReadyToMerge] = prs_with_any_label(one_day_stale, ['ready-to-merge', 'auto-merge-after-CI'])
     prs_to_list[Dashboard.StaleDelegated] = prs_with_label(one_day_stale, 'delegated')
     mm_prs = prs_with_label(one_day_stale, 'maintainer-merge')
@@ -566,6 +572,27 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     title = "  <h1>Mathlib triage dashboard</h1>"
     welcome = "<p>Welcome to the PR triage page! This page is perfect if you intend to look for pull request which seem to have stalled.<br>TODO: this page is still under construction!</p>"
 
+    some_stale = f": <strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> of them are stale, and merit another look</li>\n"
+    some_stale += write_dashboard(prs_to_list[Dashboard.StaleReadyToMerge], Dashboard.StaleReadyToMerge, False)
+    no_stale = ", including <strong>no</strong> stale ones, congratulations!</li>"
+    ready_to_merge = f"<strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> PRs are ready to merge{some_stale if prs_to_list[Dashboard.StaleReadyToMerge] else no_stale}" # TODO: add AllReadyToMerge
+
+    stale_mm = f'of which <strong>{len(prs_to_list[Dashboard.StaleMaintainerMerge])}</strong> have not been updated in a day (<a href="maintainers_quick.html/#stale-maintainer-merge">these</a>)'
+    no_stale_mm = f"<strong>none of which</strong> has been pending for more than a day. Congratulations!"
+    mm = f'<strong>{len(prs_to_list[Dashboard.AllMaintainerMerge])}</strong> PRs are waiting on maintainer approval (<a href="maintainers_quick.html/#all-maintainer-merge">these</a>), {stale_mm if prs_to_list[Dashboard.StaleMaintainerMerge] else no_stale_mm}'
+
+    no_stale_delegated = "<strong>no</strong> PRs have been delegated and not updated in a day, congratulations!</li>"
+    stale_delegated = f'<strong>{len(prs_to_list[Dashboard.StaleDelegated])}</strong> PRs have been delegated and not updated in a day:</li>\n  {write_dashboard(prs_to_list[Dashboard.StaleDelegated], Dashboard.StaleDelegated, False)}'
+
+    notlanded = f"""<h2>Approved, not yet landed PRs</h2>
+
+    At the moment,
+    <ul>
+      <li>{ready_to_merge}
+      <li>{mm}</li>
+      <li>{stale_delegated if prs_to_list[Dashboard.StaleDelegated] else no_stale_delegated}
+    </ul>"""
+
     # TODO: compute the following data, and fill in the placeholders!
     # first appeared on the queue two weeks ago, computed using long-term data
     queue_new = "???"
@@ -575,13 +602,13 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     # Author comments are discarded (to exclude "I have rebased comments"); any review comments are included.
     stale_assigned = "???"
     review_heading = f"""<h2>Review status</h2>
-  <p>There are currently <strong>{len(prs_to_list[Dashboard.Queue])}</strong> PRs awaiting review. Among these,</p>
+  <p>There are currently <strong>{len(prs_to_list[Dashboard.Queue])}</strong> <a href="review_dashboard.html/#queue">PRs awaiting review</a>. Among these,</p>
   <ul>
-    <li><strong>{len(prs_to_list[Dashboard.QueueEasy])}</strong> are labelled easy,</li>
-    <li><strong>{len(prs_to_list[Dashboard.QueueTechDebt])}</strong> are addressing technical debt, and</li>
+    <li><strong>{len(prs_to_list[Dashboard.QueueEasy])}</strong> are labelled easy (<a href="review_dashboard.html/#queue-easy">these ones</a>),</li>
+    <li><strong>{len(prs_to_list[Dashboard.QueueTechDebt])}</strong> are addressing technical debt (<a href="review_dashboard.html/#queue-tech-debt">namely these</a>), and</li>
     <li><strong>{queue_new}</strong> appeared on the queue within the last two weeks.</li><!-- TODO: add! -->
   </ul>
-  <p>On the other hand, <strong>{unassigned}</strong> PRs are unassigned and have not been updated for three weeks, and <strong>{stale_assigned}</strong> PRs are assigned, without recent review action.</p>"""
+  <p>On the other hand, <strong>{unassigned}</strong> PRs are unassigned and have not been updated for three weeks, and <strong>{stale_assigned}</strong> PRs are assigned, without recent review activity.</p>"""
     review_heading = "\n  ".join(review_heading.splitlines())
     # TODO: add table for unassigned PRs
     # TODO: add table for stale assigned PRs
@@ -593,21 +620,18 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
 
     # idea: revamp that page further, with an overview by status
-    # - stale ready-to-merge
-    # - stale delegated (-> help the author? ping the author?)
-    # - stale maintainer merge
     # - review queue: references, then unassigned, then ping assignees
 
     # TODO: add the statistics here, or to the overview page? or hide temporarily?
     items = []
     for kind in Dashboard._member_map_.values():
-        if kind in [Dashboard.Queue, Dashboard.QueueEasy, Dashboard.QueueNewContributor, Dashboard.QueueTechDebt, Dashboard.AllMaintainerMerge]:
+        if kind in [Dashboard.Queue, Dashboard.QueueEasy, Dashboard.QueueNewContributor, Dashboard.QueueTechDebt, Dashboard.AllMaintainerMerge, Dashboard.StaleDelegated, Dashboard.StaleMaintainerMerge]:
             continue
         items.append((kind, "", long_description(kind), ""))
     list_items = [f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items]
     # Also: add a giant table with all PRs, and their status or so!
 
-    body = f"{title}\n  {welcome}\n  {review_heading}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
+    body = f"{title}\n  {welcome}\n  {notlanded}\n  {review_heading}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
     dashboards = [write_dashboard(prs_to_list[kind], kind) for (kind, _, _, _) in items]
     body += '\n'.join(dashboards) + '\n'
     write_webpage(body, "triage.html")
@@ -915,16 +939,19 @@ def _compute_pr_entries(prs: List[BasicPRInformation]) -> str:
 
 
 # Write the code for a dashboard of a given list of PRs.
-def write_dashboard(prs : List[BasicPRInformation], kind: Dashboard) -> str:
+# If 'header' is false, a table header is omitted and just the dashboard is printed.
+def write_dashboard(prs : List[BasicPRInformation], kind: Dashboard, header=True) -> str:
     # Title of each list, and the corresponding HTML anchor.
     # Explain what each dashboard contains upon hovering the heading.
-    (id, title) = getIdTitle(kind)
-    title = f"<h2 id=\"{id}\"><a href=\"#{id}\" title=\"{long_description(kind)}\">{title}</a></h2>"
-    # If there are no PRs, skip the table header and print a bold notice such as
-    # "There are currently **no** stale `delegated` PRs. Congratulations!".
-    if not prs:
-        return f'{title}\nThere are currently <b>no</b> {short_description(kind)}. Congratulations!\n'
-
+    if header:
+        (id, title) = getIdTitle(kind)
+        title = f"<h2 id=\"{id}\"><a href=\"#{id}\" title=\"{long_description(kind)}\">{title}</a></h2>"
+        # If there are no PRs, skip the table header and print a bold notice such as
+        # "There are currently **no** stale `delegated` PRs. Congratulations!".
+        if not prs:
+            return f'{title}\nThere are currently <b>no</b> {short_description(kind)}. Congratulations!\n'
+    else:
+        title = ""
     headings = [
         "Number", "Author", "Title", "Labels",
         '<a title="number of added/deleted lines">+/-</a>',
