@@ -143,8 +143,18 @@ def main() -> None:
             print(f'mismatch: the aggregate file for PR {pr_number} is outdated by {delta}, please re-download!')
             print(f"  the aggregate file says {aggregate_updated}, current last update is {current_updated}")
             outdated_prs.append(pr_number)
+
+    # Also check for PRs whose aggregate data says CI is "running", but whose last update
+    # was at least 60 minutes old. In that case, some data also didn't get updated.
+    ci_limit = 60
+    for pr_number in aggregate_last_updated:
+        is_running = aggregate_last_updated[pr_number].is_CI_running
+        if is_running and aggregate_updated < datetime.now() - timedelta(minutes=ci_limit):
+            print(f"outdated data: the aggregate data for PR {pr_number} claims CI is still running, but was last updated more than {ci_limit} minutes ago")
+            outdated_prs.append(pr_number)
+
     # Write out the list of missing PRs.
-    # XXX: once written, this file never gets emptied; need to empty it manually.
+    # XXX: once written, this file 'missing_prs.txt' never gets emptied; need to empty it manually.
     if missing_prs:
         print(f"SUMMARY: found {len(missing_prs)} PR(s) whose aggregate information is missing:\n{sorted(missing_prs)}", file=sys.stderr)
         content = None
