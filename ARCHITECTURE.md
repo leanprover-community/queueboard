@@ -9,7 +9,7 @@ Generating a dashboard requires several steps.
 This happens asynchronously from the remaining tasks.
 - step 2: generate a static webpage from this information
 - step 3: publish this webpage using github pages
-These steps are repeated regularly, using a cronjob. Step 1 happens asynchronously of steps 2 and 3. Currently (as of October 8, 2024), a workflow run takes about 5 minutes, and a new job starts eight minutes after the previous run. All in all, this means the data on the dashboard has a latency of 12--15 minutes.
+These steps are repeated regularly, using a cronjob. Step 1 happens asynchronously of steps 2 and 3. Currently (as of October 8, 2024), a workflow run takes about a minute, and a new job starts every five minutes. All in all, this means the data on the dashboard has a latency of around ten minutes.
 
 ## Relevant files
 This section talks briefly about various important directories and data structures. Pay attention to the Architecture Invariant sections. They often talk about things which are deliberately absent in the source code.
