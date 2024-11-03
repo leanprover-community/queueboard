@@ -212,7 +212,7 @@ class AggregatePRInfo(NamedTuple):
 
 # Missing aggregate information will be replaced by this default item.
 PLACEHOLDER_AGGREGATE_INFO = AggregatePRInfo(
-    False, "fail", "master", "leanprover-community", "open", datetime.now(),
+    False, "fail", "master", "leanprover-community", "open", datetime.now(timezone.utc),
     "unknown", "unknown title", [], -1, -1, -1, None, []
 )
 
@@ -465,9 +465,9 @@ def main() -> None:
     prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs2, 'easy')
     prs_to_list[Dashboard.QueueTechDebt] = prs_with_any_label(queue_prs2, ['tech debt', 'longest-pole'])
 
-    a_day_ago = datetime.now() - timedelta(days=1)
-    a_week_ago = datetime.now() - timedelta(days=7)
-    two_weeks_ago = datetime.now() - timedelta(days=14)
+    a_day_ago = datetime.now(timezone.utc) - timedelta(days=1)
+    a_week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    two_weeks_ago = datetime.now(timezone.utc) - timedelta(days=14)
     one_day_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_day_ago]
     one_week_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_week_ago]
     prs_to_list[Dashboard.AllReadyToMerge] = prs_with_any_label(nondraft_PRs, ['ready-to-merge', 'auto-merge-after-CI'])
@@ -704,7 +704,7 @@ def compute_pr_statusses(aggregate_info: dict[int, AggregatePRInfo], prs: List[B
         translate = { "pass": CIStatus.Pass, "fail": CIStatus.Fail, "running": CIStatus.Running }
         ci_status = translate[aggregate_info.CI_status]
         state = PRState(labels, ci_status, aggregate_info.is_draft)
-        return determine_PR_status(datetime.now(), state)
+        return determine_PR_status(datetime.now(timezone.utc), state)
     return {info.number: determine_status(aggregate_info[info.number] or PLACEHOLDER_AGGREGATE_INFO, info) for info in prs}
 
 
@@ -904,7 +904,7 @@ def format_delta(delta: relativedelta) -> str:
 # Output is in the format: "2020-11-02 14:23 (2 days ago)"
 def time_info(updatedAt: str) -> str:
     updated = datetime.strptime(updatedAt, "%Y-%m-%dT%H:%M:%SZ")
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     # Calculate the difference in time
     delta = relativedelta(now, updated)
     # Format the output

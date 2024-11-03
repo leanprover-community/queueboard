@@ -10,10 +10,11 @@ This script assumes these files exist.
 import json
 import os
 import sys
-from datetime import datetime, timedelta
+from dateutil import parser
+from datetime import datetime, timedelta, timezone
 from typing import List, NamedTuple
 
-from util import eprint, parse_datetime, parse_json_file
+from util import eprint, parse_json_file
 
 
 # Read the input JSON files, return a dictionary mapping each PR number
@@ -46,7 +47,7 @@ def _check_timestamp_file(path: str) -> bool:
             eprint(f'error: timestamp file at path "{path}" contains more than one line of content')
             return False
         try:
-            _time = parse_datetime(content)
+            _time = parser.isoparse(content)
         except ValueError:
             eprint(f'error: timestamp file at path "{path}" does not contain a valid date and time')
             is_valid = False
@@ -129,12 +130,12 @@ def main() -> None:
     missing_prs = []
     # Note that both "last updated" fields have the same format.
     for pr_number in current_last_updated:
-        current_updated = parse_datetime(current_last_updated[pr_number])
+        current_updated = parser.isoparse(current_last_updated[pr_number])
         if pr_number not in aggregate_last_updated:
             print(f'mismatch: missing data for PR {pr_number}')
             missing_prs.append(pr_number)
             continue
-        aggregate_updated = parse_datetime(aggregate_last_updated[pr_number].last_updated)
+        aggregate_updated = parser.isoparse(aggregate_last_updated[pr_number].last_updated)
 
         # current_updated should be at least as new,
         # aggregate_updated is allowed to lag behind by at most 10 minutes.
@@ -149,7 +150,7 @@ def main() -> None:
     ci_limit = 60
     for pr_number in aggregate_last_updated:
         is_running = aggregate_last_updated[pr_number].is_CI_running
-        if is_running and aggregate_updated < datetime.now() - timedelta(minutes=ci_limit):
+        if is_running and aggregate_updated < datetime.now(timezone.utc) - timedelta(minutes=ci_limit):
             print(f"outdated data: the aggregate data for PR {pr_number} claims CI is still running, but was last updated more than {ci_limit} minutes ago")
             outdated_prs.append(pr_number)
 
