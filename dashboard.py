@@ -630,8 +630,24 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
   <p>On the other hand, <strong>{unassigned}</strong> PRs are unassigned and have not been updated for two weeks, and <strong>{stale_assigned}</strong> PRs are assigned, without recent review activity.</p>"""
     review_heading = "\n  ".join(review_heading.splitlines())
 
-    # XXX: can I hide the assignee column in this dashboard? it's redundant by definition...
-    stale_unassigned = write_dashboard(prs_to_list[Dashboard.QueueStaleUnassigned], aggregate_info, Dashboard.QueueStaleUnassigned, True)
+    # Write a dashboard of unassigned PRs: we can safely skip the "assignee" column.
+    # (This code is manually inlined, and then slightly tweaked, from write_dashboard.)
+    (id, title) = getIdTitle(Dashboard.QueueStaleUnassigned)
+    title = f"<h2 id=\"{id}\"><a href=\"#{id}\" title=\"{long_description(Dashboard.QueueStaleUnassigned)}\">{title}</a></h2>"
+    if not unassigned:
+        stale_unassigned = f'{title}\nCurrently, <strong>every</strong> unassigned PR on the review queue was updated within the past two weeks.\n'
+    else:
+        headings = [
+            "Number", "Author", "Title", "Labels",
+            '<a title="number of added/deleted lines">+/-</a>',
+            '<a title="number of files modified">&#128221;</a>',
+            '<a title="number of standard or review comments on this PR">&#128172;</a>',
+            'Updated'
+        ]
+        head = _write_table_header(headings, "    ")
+        body = _compute_pr_entries(prs_to_list[Dashboard.QueueStaleUnassigned], aggregate_info)
+        stale_unassigned = f"{title}\n  <table>\n{head}{body}  </table>"
+
     # XXX: when updating the definition, make sure to update all the dashboard descriptions
     stale_assigned = write_dashboard(prs_to_list[Dashboard.QueueStaleAssigned], aggregate_info, Dashboard.QueueStaleAssigned, True)
 
