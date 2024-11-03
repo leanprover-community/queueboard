@@ -1,5 +1,6 @@
 '''Helper utilities for determining the current state of a pull request from e.g. its labels.'''
 from datetime import datetime
+from dateutil import tz
 from enum import Enum, auto
 from typing import List, NamedTuple
 
@@ -124,7 +125,7 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
         # Until July 9th, a PR had to be labelled awaiting-review to be marked as such.
         # After that date, the label is retired and PRs are considered ready for review
         # by default.
-        if date > datetime(2024, 7, 9):
+        if date > datetime(2024, 7, 9, tzinfo=tz.tzutc()):
             return PRStatus.AwaitingReview
         else:
             return PRStatus.AwaitingAuthor

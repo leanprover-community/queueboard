@@ -11,11 +11,11 @@ from enum import Enum, auto, unique
 from os import path
 from typing import Dict, List, NamedTuple, Tuple
 
-from dateutil.relativedelta import relativedelta
+from dateutil import parser, relativedelta
 
 from classify_pr_state import (CIStatus, PRState, PRStatus,
                                determine_PR_status, label_categorisation_rules)
-from util import my_assert_eq, parse_datetime
+from util import my_assert_eq
 
 
 @unique
@@ -244,7 +244,7 @@ def read_json_files() -> JSONInputData:
             return Label(name, label_colours[name], url)
         aggregate_info = dict()
         for pr in data["pr_statusses"]:
-            date = parse_datetime(pr["last_updated"])
+            date = parser.isoparse(pr["last_updated"])
             label_names = pr["label_names"]
             # Some PRs only have basic information present: fill in suitable placeholder values.
             if "number_comments" in pr:
@@ -900,17 +900,19 @@ def format_delta(delta: relativedelta) -> str:
 
 
 # Function to format the time of the last update
-# Input is in the format: "2020-11-02T14:23:56Z"
+# Input is in the format: "2020-11-02T14:23:56Z" (i.e., in ISO format).
 # Output is in the format: "2020-11-02 14:23 (2 days ago)"
 def time_info(updatedAt: str) -> str:
-    updated = datetime.strptime(updatedAt, "%Y-%m-%dT%H:%M:%SZ")
+    updated = parser.isoparse(updatedAt)
     now = datetime.now(timezone.utc)
     # Calculate the difference in time
-    delta = relativedelta(now, updated)
+    delta = relativedelta.relativedelta(now, updated)
     # Format the output
     s = updated.strftime("%Y-%m-%d %H:%M")
     return f"{s} ({format_delta(delta)} ago)"
 
+from dateutil import tz
+assert parser.isoparse("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 51, tzinfo=tz.tzutc())
 
 # Extract all PRs mentioned in a data file.
 def _extract_prs(data: dict) -> List[BasicPRInformation]:

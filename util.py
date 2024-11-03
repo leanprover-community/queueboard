@@ -4,8 +4,7 @@
 This file contains various utility functions, which are needed in several otherwise unrelated scripts.
 Currently, this contains the following
 - a function to parse JSON files with PR info (with error handling),
-- parsing a 'data' into a datetime
-- comparing lists of PR numbers (with descriptive information)
+- a helper for comparing lists of PR numbers (with detailed information about the differences)
 """
 
 import json
@@ -31,14 +30,6 @@ def parse_json_file(name: str, pr_number: str) -> dict | str:
     elif "data" not in data:
         return f"warning: the data for PR {pr_number} is incomplete (perhaps a time out downloading it), ignoring"
     return data
-
-
-# Parse input of the form "2024-04-29T18:53:51Z" into a datetime.
-# The "Z" suffix means it's a time in UTC.
-def parse_datetime(rep: str) -> datetime:
-    return datetime.strptime(rep, "%Y-%m-%dT%H:%M:%SZ")
-
-assert parse_datetime("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 51)
 
 
 # Compare two lists of PR numbers for equality, printing informative output if different.
