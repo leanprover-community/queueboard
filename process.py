@@ -55,7 +55,7 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
     additions = inner["additions"]
     deletions = inner["deletions"]
     # Number of files modified by this PR.
-    files = len(inner["files"]["nodes"])
+    files = inner["changedFiles"]
     # Names of all labels applied to this PR: missing the background colour!
     labels = [lab["name"] for lab in inner["labels"]["nodes"]]
     assignees = [ass["login"] for ass in inner["assignees"]["nodes"]]
