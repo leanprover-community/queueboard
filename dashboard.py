@@ -502,6 +502,7 @@ def write_overview_page(updated: str) -> None:
   </ul>
 </details>'''
     welcome = "\n  ".join(welcome.splitlines())
+    welcome += '\n  For the old main page with all tables at one glance, look here: <a href="index-old.html">here</a>.'
     feedback = '<p>Feedback (including bug reports and ideas for improvements) on this dashboard is very welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.</p>'
     body = f"{title}\n  {welcome}\n  {feedback}\n  <p><small>This dashboard was last updated on: {updated}</small></p>\n"
     write_webpage(body, "index.html")
@@ -548,10 +549,10 @@ def write_help_out_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRI
     welcome = "<p>Would you like to help out at a PR, differently from reviewing? Here are some ideas:</p>"
     items = [
         (Dashboard.NeedsHelp, "take a look at ", "PRs labelled help-wanted or please-adopt", ""),
-        (Dashboard.NeedsMerge, "If the author hasn't noticed, you can ask in a PR which ", 'just has a merge conflict, but would be reviewable otherwise', ". (Remember, that most contributors to mathlib are volunteers/contribute in their free time, often have other commitments &emdash; and that real-life events can happen!)"),
+        (Dashboard.NeedsMerge, "If the author hasn't noticed, you can ask in a PR which ", 'just has a merge conflict, but would be reviewable otherwise', ". (Remember, that most contributors to mathlib are volunteers/contribute in their free time, often have other commitments — and that real-life events can happen!)"),
         # Future: add "just CI failing" here
         (Dashboard.FromFork, "post a comment on a ", "PR made from a fork", ", nicely asking them to re-submit it from a mathlib branch instead"),
-        (Dashboard.StaleNewContributor, "check if any ", "'stale' PR by a new contributor", "benefits from support, such as help with failing CI or providing feedback on the code"),
+        (Dashboard.StaleNewContributor, "check if any ", "'stale' PR by a new contributor", " benefits from support, such as help with failing CI or providing feedback on the code"),
         # XXX: add all stale delegated PRs here?
     ]
     list_items = [f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items]
