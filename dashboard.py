@@ -596,9 +596,9 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     no_stale = ", including <strong>no</strong> stale ones, congratulations!</li>"
     ready_to_merge = f"<strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> PRs are ready to merge{some_stale if prs_to_list[Dashboard.StaleReadyToMerge] else no_stale}" # TODO: add AllReadyToMerge
 
-    stale_mm = f'of which <strong>{len(prs_to_list[Dashboard.StaleMaintainerMerge])}</strong> have not been updated in a day (<a href="maintainers_quick.html/#stale-maintainer-merge">these</a>)'
+    stale_mm = f'of which <strong>{len(prs_to_list[Dashboard.StaleMaintainerMerge])}</strong> have not been updated in a day (<a href="maintainers_quick.html#stale-maintainer-merge">these</a>)'
     no_stale_mm = "<strong>none of which</strong> has been pending for more than a day. Congratulations!"
-    mm = f'<strong>{len(prs_to_list[Dashboard.AllMaintainerMerge])}</strong> PRs are waiting on maintainer approval (<a href="maintainers_quick.html/#all-maintainer-merge">these</a>), {stale_mm if prs_to_list[Dashboard.StaleMaintainerMerge] else no_stale_mm}'
+    mm = f'<strong>{len(prs_to_list[Dashboard.AllMaintainerMerge])}</strong> PRs are waiting on maintainer approval (<a href="maintainers_quick.html#all-maintainer-merge">these</a>), {stale_mm if prs_to_list[Dashboard.StaleMaintainerMerge] else no_stale_mm}'
 
     no_stale_delegated = "<strong>no</strong> PRs have been delegated and not updated in a day, congratulations!</li>"
     stale_delegated = f'<strong>{len(prs_to_list[Dashboard.StaleDelegated])}</strong> PRs have been delegated and not updated in a day:</li>\n  {write_dashboard(prs_to_list[Dashboard.StaleDelegated], aggregate_info, Dashboard.StaleDelegated, False)}'
@@ -621,10 +621,10 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     # TODO/future: use a better measure of no activity, such as "no comment/review comment from anybody but the PR author".
     stale_assigned = len(prs_to_list[Dashboard.QueueStaleAssigned])
     review_heading = f"""\n<h2>Review status</h2>
-  <p>There are currently <strong>{len(prs_to_list[Dashboard.Queue])}</strong> <a href="review_dashboard.html/#queue">PRs awaiting review</a>. Among these,</p>
+  <p>There are currently <strong>{len(prs_to_list[Dashboard.Queue])}</strong> <a href="review_dashboard.html#queue">PRs awaiting review</a>. Among these,</p>
   <ul>
-    <li><strong>{len(prs_to_list[Dashboard.QueueEasy])}</strong> are labelled easy (<a href="review_dashboard.html/#queue-easy">these ones</a>),</li>
-    <li><strong>{len(prs_to_list[Dashboard.QueueTechDebt])}</strong> are addressing technical debt (<a href="review_dashboard.html/#queue-tech-debt">namely these</a>), and</li>
+    <li><strong>{len(prs_to_list[Dashboard.QueueEasy])}</strong> are labelled easy (<a href="review_dashboard.html#queue-easy">these ones</a>),</li>
+    <li><strong>{len(prs_to_list[Dashboard.QueueTechDebt])}</strong> are addressing technical debt (<a href="review_dashboard.html#queue-tech-debt">namely these</a>), and</li>
     <li><strong>{queue_new}</strong> appeared on the queue within the last two weeks.</li><!-- TODO: add! -->
   </ul>
   <p>On the other hand, <strong>{unassigned}</strong> PRs are unassigned and have not been updated for two weeks, and <strong>{stale_assigned}</strong> PRs are assigned, without recent review activity.</p>"""
