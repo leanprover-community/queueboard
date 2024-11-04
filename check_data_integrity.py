@@ -206,6 +206,7 @@ def main() -> None:
 
     # Write out the list of missing PRs.
     # XXX why not prune here? Is there some actual race to protect against?
+    # TODO: skip this step if the PR is marked as stubborn/warn about this.
     if missing_prs:
         print(f"SUMMARY: found {len(missing_prs)} PR(s) whose aggregate information is missing:\n{sorted(missing_prs)}", file=sys.stderr)
         content = ""
