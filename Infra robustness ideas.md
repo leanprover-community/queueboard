@@ -19,6 +19,9 @@ hack for CI completed: auto-add awaiting-CI on every new push --- gets removed o
   - switch to full paranoia mode: comparing the key data on all open PRs; *that* paranoia could suffice once a day or so (to only plug the remaining leaks) --- multi-layered approach
 - automatically re-download out of date PRs: that works reasonably well. Remaining improvements are tracked separately.
 
+- once "missing" PRs are downloaded successfully, remove them from the 'missing_prs.txt' file
+This step is currently, erm, missing --- and can stall future automatic updates of that file.
+
 - recover from time-outs or rate-limiting in re-downloading
    - avoid discarding up to two re-downloaded PRs if only one fails
    - avoid getting stuck in a loop of one PR blocking everything
