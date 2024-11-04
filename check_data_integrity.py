@@ -10,9 +10,10 @@ This script assumes these files exist.
 import json
 import os
 import sys
-from dateutil import parser
 from datetime import datetime, timedelta, timezone
 from typing import List, NamedTuple
+
+from dateutil import parser
 
 from util import eprint, parse_json_file
 
@@ -129,6 +130,8 @@ def _has_valid_entries(data_dirs: List[str], number: int) -> bool:
             path = os.path.join("data", str(number))
             files = sorted(os.listdir(path))
             return files == expected and _check_directory(path, number, files)
+        case _:
+            assert False  # unreachable
 
 
 # Read the file 'missing_prs.txt', check for entries which can be removed now and writes out the updated file.
@@ -205,7 +208,7 @@ def main() -> None:
     # XXX why not prune here? Is there some actual race to protect against?
     if missing_prs:
         print(f"SUMMARY: found {len(missing_prs)} PR(s) whose aggregate information is missing:\n{sorted(missing_prs)}", file=sys.stderr)
-        content = None
+        content = ""
         with open("missing_prs.txt", "r") as file:
             content = file.read()
         if not content.strip():

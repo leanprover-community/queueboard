@@ -900,7 +900,7 @@ def label_link(label: Label) -> str:
     return f"<a href='{label.url}'><span class='label' style='color: #{fgcolor}; background: #{bgcolor}'>{label.name}</span></a>"
 
 
-def format_delta(delta: relativedelta) -> str:
+def format_delta(delta: relativedelta.relativedelta) -> str:
     if delta.years > 0:
         return f"{delta.years} years"
     elif delta.months > 0:
@@ -928,6 +928,7 @@ def time_info(updatedAt: str) -> str:
     return f"{s} ({format_delta(delta)} ago)"
 
 from dateutil import tz
+
 assert parser.isoparse("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 51, tzinfo=tz.tzutc())
 
 # Extract all PRs mentioned in a data file.
@@ -960,7 +961,7 @@ def _compute_pr_entries(prs: List[BasicPRInformation], aggregate_information: di
             entries.extend(["-1/-1", "-1", "-1", "???"])
         else:
             na = '<a href="no data available">n/a</a>'
-            total_comments = na if pr_info.number_total_comments is None else pr_info.number_total_comments
+            total_comments = na if pr_info.number_total_comments is None else str(pr_info.number_total_comments)
             entries.extend([
                 "{}/{}".format(pr_info.additions, pr_info.deletions),
                 str(pr_info.number_modified_files),

@@ -1,8 +1,9 @@
 '''Helper utilities for determining the current state of a pull request from e.g. its labels.'''
 from datetime import datetime
-from dateutil import tz
 from enum import Enum, auto
 from typing import List, NamedTuple
+
+from dateutil import tz
 
 
 # The different kinds of PR labels we care about.

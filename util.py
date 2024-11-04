@@ -9,8 +9,8 @@ Currently, this contains the following
 
 import json
 import sys
-from datetime import datetime
 from typing import List
+
 
 def eprint(val):
     print(val, file=sys.stderr)
