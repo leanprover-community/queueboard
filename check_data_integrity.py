@@ -110,6 +110,46 @@ class AggregateData(NamedTuple):
     last_updated: str
     is_CI_running: bool
 
+
+# Is there valid and complete PR data for a PR numbered `number`?
+# We pass in the list of all directories in the `data` dir, to avoid computing this multiple times.
+def _has_valid_entries(data_dirs: List[str], number: int) -> bool:
+    has_basic_dir = f"{number}-basic" in data_dirs
+    has_std_dir = str(number) in data_dirs
+    match (has_basic_dir, has_std_dir):
+        case (True, True) | (False, False):
+            return False
+        case (True, False):
+            expected = ["basic_pr_info.json", "timestamp.txt"]
+            path = os.path.join("data", f"{number}-basic")
+            files = sorted(os.listdir(path))
+            return files == expected and _check_directory(path, number, files)
+        case (False, True):
+            expected = ["pr_info.json", "pr_reactions.json", "timestamp.txt"]
+            path = os.path.join("data", str(number))
+            files = sorted(os.listdir(path))
+            return files == expected and _check_directory(path, number, files)
+
+
+# Read the file 'missing_prs.txt', check for entries which can be removed now and writes out the updated file.
+def prune_missing_prs_file() -> None:
+    current_numbers: List[str] = []
+    with open("missing_prs.txt", "r") as file:
+        current_numbers = file.read().strip().splitlines()
+    data_dirs: List[str] = sorted(os.listdir("data"))
+    # For each PR number in that file, whether there is a well-formed entry for it.
+    is_well_formed = {
+        n: _has_valid_entries(data_dirs, int(n)) for n in current_numbers
+    }
+    superfluous = [n for n in current_numbers if is_well_formed[n]]
+    if superfluous:
+        eprint(f"{len(superfluous)} PR(s) marked as missing have present entries now, removing: {superfluous}")
+    prs_to_keep = [n for n in current_numbers if not is_well_formed[n]]
+    new = '\n'.join([str(n) for n in prs_to_keep])
+    with open("missing_prs.txt", "w") as file:
+        file.writelines(new)
+
+
 # Read the last updated fields of the aggregate data file, and compare it with the
 # dates from querying github.
 def main() -> None:
@@ -124,6 +164,13 @@ def main() -> None:
             updated = pr["last_updated"]
             ci = pr["CI_status"]
             aggregate_last_updated[pr["number"]] = AggregateData(updated, ci == "running")
+
+    # Prune superfluous entries from 'missing_prs.txt'. We conciously run this check
+    # before the others, and not in the same step as downloading the missing data
+    # to increase resilience against push races or other unforeseen events.
+    # Any superfluous entries observed here are actually present in the repository.
+    # XXX. actually, that's nonsense --- downloading missing data happens before this step. Hm... but this is fine, if committing fails, so does this update...
+    prune_missing_prs_file()
 
     # All PRs whose aggregate data is at least 10 minutes older than github's current "last update".
     outdated_prs: List[int] = []
@@ -155,7 +202,7 @@ def main() -> None:
             outdated_prs.append(pr_number)
 
     # Write out the list of missing PRs.
-    # XXX: once written, this file 'missing_prs.txt' never gets emptied; need to empty it manually.
+    # XXX why not prune here? Is there some actual race to protect against?
     if missing_prs:
         print(f"SUMMARY: found {len(missing_prs)} PR(s) whose aggregate information is missing:\n{sorted(missing_prs)}", file=sys.stderr)
         content = None
