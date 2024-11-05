@@ -139,6 +139,8 @@ def prune_missing_prs_file() -> None:
     current_numbers: List[str] = []
     with open("missing_prs.txt", "r") as file:
         current_numbers = file.read().strip().splitlines()
+    # Remove empty lines.
+    current_numbers = [n for n in current_numbers if n]
     data_dirs: List[str] = sorted(os.listdir("data"))
     # For each PR number in that file, whether there is a well-formed entry for it.
     is_well_formed = {
