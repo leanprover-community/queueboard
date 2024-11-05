@@ -4,6 +4,12 @@
   - unracying: fix the inherent race between the two workflows, as well as I can
   - make pushing more resilient: add automatic conflict resolution
 
+- race condition/duplicate work: publishing job runs `check_data_integrity`, requesting the re-download of some PRs
+I could happen, however, that this workflow just ran before the gather_stats workflow, and some of these PRs would get downloaded anyway, right? Then, this might lead to re-downloading twice.
+mitigation: schedule those with completed running CI first, as these are more likely to get missed
+
+- another race condition: both jobs write to "redownload.txt" (gather_stats.yml empties it when successful, publish-dashboard.yml writes new content); this could lead to a push race
+
 - avoid web-hooks time-outs: make sure the more frequent polling doesn't break havoc
   - trigger these hooks often enough:
     whenever a force-push happens, CI finishes, a new commit is made, somebody comments, reviews or some label changes. Also for draft status changes;  cross-references are not important. (Compare the full list of change events.)
