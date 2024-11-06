@@ -151,7 +151,7 @@ def prune_missing_prs_file() -> None:
         eprint(f"{len(superfluous)} PR(s) marked as missing have present entries now, removing: {superfluous}")
     prs_to_keep = [n for n in current_numbers if not is_well_formed[n]]
     with open("missing_prs.txt", "w") as file:
-        file.writelines([str(n) for n in prs_to_keep])
+        file.write('\n'.join([str(n) for n in prs_to_keep]) + '\n')
 
 
 # Read the last updated fields of the aggregate data file, and compare it with the
