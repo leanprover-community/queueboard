@@ -310,67 +310,6 @@ def write_webpage(body: str, outfile: str) -> None:
         print(f"{HTML_HEADER}\n{body}\n{HTML_FOOTER}", file=fi)
 
 
-# Print a webpage "why is my PR not on the queue" to a new file of name 'outfile'.
-# 'prs' is the list of PRs on which to print information;
-# 'prs_from_fork' is the list of such PRs which are opened from a fork of mathlib,
-# 'CI_status' states, for each PR, whether PR passes, fails or is still running.
-# If no detailed information was available for a given value, 'None' is returned.
-# 'base_branch' returns the pase branch of each PR.
-def print_on_the_queue_page(
-    prs: List[BasicPRInformation], prs_from_fork: List[BasicPRInformation], CI_status: dict[int, str | None], base_branch: dict[int, str], outfile: str
-) -> None:
-    def icon(state: bool | None) -> str:
-        """Return a green checkmark emoji if `state` is true, and a red cross emoji otherwise."""
-        return "&#9989;" if state else "&#10060;"
-
-    body = ""
-    for pr in prs:
-        if base_branch[pr.number] != "master":
-            continue
-        from_fork = pr in prs_from_fork
-        ci_status = CI_status[pr.number]
-        status_symbol = "???"
-        if ci_status == "pass":
-            status_symbol = f'<a title="CI for this pull request passes">{icon(True)}</a>'
-        elif ci_status == "fail":
-            status_symbol = f'<a title="CI for this pull request fails">{icon(True)}</a>'
-        elif ci_status == "running":
-            status_symbol = '<a title="CI for this pull request is still running">&#128996;</a>'
-        is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
-        has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.labels]
-        is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
-        review = not (any(lab.name in ["awaiting-CI", "awaiting-author", "awaiting-zulip"] for lab in pr.labels))
-        overall = (ci_status == "pass") and (not is_blocked) and (not has_merge_conflict) and is_ready and review
-        if "login" in pr.author:
-            author = pr.author
-        else:
-            # FIXME: fill in the user name from the actual aggregate data, which has this. Then remove the question mark.
-            print(f"warning: missing author information for PR {pr.number}, its authors dictionary is {pr.author} --- was this submitted by dependabot?", file=sys.stderr)
-            author = { "login": "dependabot(?)", "url": "https://github.com/dependabot"}
-        entries = [
-            pr_link(pr.number, pr.url), user_link(author), title_link(pr.title, pr.url),
-            _write_labels(pr.labels), icon(not from_fork), status_symbol,
-            icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall)
-        ]
-        result = _write_table_row(entries, "    ")
-        body += result
-    headings = [
-        "Number", "Author", "Title", "Labels", "not from a fork?", "CI status?",
-        '<a title="not labelled with blocked-by-other-PR, blocked-by-batt-PR, blocked-by-core-PR, blocked-by-qq-PR">not blocked?</a>',
-        "no merge conflict?",
-        '<a title="not in draft state or labelled as in progress">ready?</a>',
-        '<a title="not labelled awaiting-author, awaiting-zulip, awaiting-CI">awaiting review?</a>',
-        "On the review queue?",
-    ]
-    head = _write_table_header(headings, "    ")
-    table = f"  <table>\n{head}{body}  </table>"
-    # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
-    updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
-    start = ("  <h1>Why is my PR not on the queue?</h1>\n"
-      f"  <small>This page was last updated on: {updated}</small>")
-    write_webpage(f"{start}\n{EXPLANATION}\n{table}", outfile)
-
-
 def main() -> None:
     input_data = read_json_files()
     # Populate basic information from the input data: splitting into draft and non-draft PRs
@@ -413,7 +352,7 @@ def main() -> None:
     for pr in nondraft_PRs:
         base_branch[pr.number] = aggregate_info[pr.number].base_branch
     prs_from_fork = [pr for pr in nondraft_PRs if aggregate_info[pr.number].head_repo != "leanprover-community"]
-    print_on_the_queue_page(nondraft_PRs, prs_from_fork, CI_status, base_branch, "on_the_queue.html")
+    write_on_the_queue_page(nondraft_PRs, prs_from_fork, CI_status, base_branch)
 
     prs_to_list : dict[Dashboard, List[BasicPRInformation]] = dict()
     # The 'tech debt', 'other base' and 'from fork' boards are obtained
@@ -498,6 +437,67 @@ def main() -> None:
     # XXX: this page needs to be refined!
     write_triage_page(updated, prs_to_list, aggregate_info)
     write_main_page(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, updated)
+
+
+# Print a webpage "why is my PR not on the queue" to the file "on_the_queue.html".
+# 'prs' is the list of PRs on which to print information;
+# 'prs_from_fork' is the list of such PRs which are opened from a fork of mathlib,
+# 'CI_status' states, for each PR, whether PR passes, fails or is still running.
+# If no detailed information was available for a given value, 'None' is returned.
+# 'base_branch' returns the pase branch of each PR.
+def write_on_the_queue_page(
+    prs: List[BasicPRInformation], prs_from_fork: List[BasicPRInformation], CI_status: dict[int, str | None], base_branch: dict[int, str]
+) -> None:
+    def icon(state: bool | None) -> str:
+        """Return a green checkmark emoji if `state` is true, and a red cross emoji otherwise."""
+        return "&#9989;" if state else "&#10060;"
+
+    body = ""
+    for pr in prs:
+        if base_branch[pr.number] != "master":
+            continue
+        from_fork = pr in prs_from_fork
+        ci_status = CI_status[pr.number]
+        status_symbol = "???"
+        if ci_status == "pass":
+            status_symbol = f'<a title="CI for this pull request passes">{icon(True)}</a>'
+        elif ci_status == "fail":
+            status_symbol = f'<a title="CI for this pull request fails">{icon(True)}</a>'
+        elif ci_status == "running":
+            status_symbol = '<a title="CI for this pull request is still running">&#128996;</a>'
+        is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
+        has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.labels]
+        is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
+        review = not (any(lab.name in ["awaiting-CI", "awaiting-author", "awaiting-zulip"] for lab in pr.labels))
+        overall = (ci_status == "pass") and (not is_blocked) and (not has_merge_conflict) and is_ready and review
+        if "login" in pr.author:
+            author = pr.author
+        else:
+            # FIXME: fill in the user name from the actual aggregate data, which has this. Then remove the question mark.
+            print(f"warning: missing author information for PR {pr.number}, its authors dictionary is {pr.author} --- was this submitted by dependabot?", file=sys.stderr)
+            author = { "login": "dependabot(?)", "url": "https://github.com/dependabot"}
+        entries = [
+            pr_link(pr.number, pr.url), user_link(author), title_link(pr.title, pr.url),
+            _write_labels(pr.labels), icon(not from_fork), status_symbol,
+            icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall)
+        ]
+        result = _write_table_row(entries, "    ")
+        body += result
+    headings = [
+        "Number", "Author", "Title", "Labels", "not from a fork?", "CI status?",
+        '<a title="not labelled with blocked-by-other-PR, blocked-by-batt-PR, blocked-by-core-PR, blocked-by-qq-PR">not blocked?</a>',
+        "no merge conflict?",
+        '<a title="not in draft state or labelled as in progress">ready?</a>',
+        '<a title="not labelled awaiting-author, awaiting-zulip, awaiting-CI">awaiting review?</a>',
+        "On the review queue?",
+    ]
+    head = _write_table_header(headings, "    ")
+    table = f"  <table>\n{head}{body}  </table>"
+    # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
+    updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
+    start = ("  <h1>Why is my PR not on the queue?</h1>\n"
+      f"  <small>This page was last updated on: {updated}</small>")
+    write_webpage(f"{start}\n{EXPLANATION}\n{table}", "on_the_queue.html")
 
 
 def write_overview_page(updated: str) -> None:
