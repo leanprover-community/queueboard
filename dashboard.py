@@ -651,8 +651,8 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
         body = _compute_pr_entries(prs_to_list[Dashboard.QueueStaleUnassigned], aggregate_info, False)
         stale_unassigned = f"{title}\n  <table>\n{head}{body}  </table>"
 
-    # XXX: when updating the definition, make sure to update all the dashboard descriptions
-    stale_assigned = write_dashboard(prs_to_list[Dashboard.QueueStaleAssigned], aggregate_info, Dashboard.QueueStaleAssigned, True)
+    # XXX: when updating the definition of "stale assigned" PRs, make sure to update all the dashboard descriptions
+    write_dashboard(prs_to_list[Dashboard.QueueStaleAssigned], aggregate_info, Dashboard.QueueStaleAssigned, True)
 
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
 
