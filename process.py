@@ -61,6 +61,12 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
     assignees = [ass["login"] for ass in inner["assignees"]["nodes"]]
     # Get information about the latest CI run. We just look at the "summary job".
     CI_status = determine_ci_status(number, inner["statusCheckRollup"]["contexts"]["nodes"])
+    # github usernames of everyone who left an "approving" review on this PR.
+    approvals = []
+    for r in inner["reviews"]["nodes"]:
+        if r["state"] == "APPROVED":
+            approvals.append(r["author"]["login"])
+
     # NB. When adding future fields, pay attention to whether the 'basic' info files
     # also contain this information --- otherwise, it is fine to omit it!
     aggregate_data = {
@@ -78,6 +84,7 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
         "additions": additions,
         "deletions": deletions,
         "assignees": assignees,
+        "review_approvals": approvals,
     }
     if not only_basic_info:
         number_comments = len(inner["comments"]["nodes"])
@@ -87,13 +94,6 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
             number_review_comments += len(t["comments"]["nodes"])
         aggregate_data["number_comments"] = number_comments
         aggregate_data["number_review_comments"] = number_review_comments
-        # github usernames of everyone who left an "approving" review on this PR.
-        # TODO: also collect this data for all "basic" PRs, after re-downloading their data
-        approvals = []
-        for r in inner["reviews"]["nodes"]:
-            if r["state"] == "APPROVED":
-                approvals.append(r["author"]["login"])
-        aggregate_data["review_approvals"] = approvals
     return aggregate_data
 
 
