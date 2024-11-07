@@ -40,9 +40,8 @@ echo "" > redownload.txt
 echo "Successfully re-downloaded all planned PRs (if any)"
 
 # In case there are PRs which got "missed" somehow, backfill data for up to one of them.
-# NB. This assumes a back is not stubborn --- need to ensure "missing_prs.txt" doesn't contain stubborn PRs!
-i=0
-for pr in $(cat "missing_prs.txt"); do
+# NB. This assumes each such PR is not stubborn --- need to ensure "missing_prs.txt" doesn't contain stubborn PRs!
+for pr in $(cat "missing_prs.txt" | head --lines 1); do
   # Check if the directory exists
   if [ -d "data/$pr" ]; then
     echo "[skip] Data exists for #$pr: $CURRENT_TIME"
@@ -56,12 +55,8 @@ for pr in $(cat "missing_prs.txt"); do
   ./pr_reactions.sh "$pr" | jq '.' > "$dir/pr_reactions.json"
   # Save the current timestamp.
   echo "$CURRENT_TIME" > "$dir/timestamp.txt"
-  i=$((i+1))
-  if [ $i -eq 1 ]; then
-    echo "Backfilled one PR successfully, exiting"
-    break;
-  fi
 done
+echo "Backfilled at most one PR successfully"
 
 # Do the same for at most 2 stubborn PRs.
 for pr in $(echo $stubborn_prs | head --lines 2); do
