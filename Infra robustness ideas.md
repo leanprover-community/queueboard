@@ -16,6 +16,8 @@ mitigation: schedule those with completed running CI first, as these are more li
   - these hooks get added to a queue, right --- so no flooding of workers, I hope?!
   - are these batched? if one PR has a label removed, a comment made, and a commit pushed --- can we make it so the last request "within reason" wins? Or only new data is downloaded (somehow, without re-implementing everything)? Would be nice to not re-download the world *all the time*. The current polling frequency keeps this within reason, would be nice to not regress *too* hard.
 
+- re-running CI jobs might also not be caught by the current "updates" logic; make sure web-hooks catch this
+
 - make sure to detect all PR updates: web-hooks should help
 hack for CI completed: auto-add awaiting-CI on every new push --- gets removed once sth passes :-)
 
