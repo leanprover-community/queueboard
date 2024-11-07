@@ -14,7 +14,7 @@ CURRENT_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # Parse the list of all stubborn PRs. This is newline-separated,
 # but for our purposes, that is fine.
-stubborn_prs=$(cat stubborn_prs.txt | grep --invert-match "^--")
+stubborn_prs=$(cat "stubborn_prs.txt" | grep --invert-match "^--")
 
 # Re-download data if missing. Take care to not ask for too much at once!
 # FIXME: this is only somewhat robust --- improve this to ensure to avoid
@@ -64,7 +64,7 @@ for pr in $(cat "missing_prs.txt"); do
 done
 
 # Do the same for at most 2 stubborn PRs.
-for pr in $(cat stubborn_prs | head --lines 2); do
+for pr in $(echo $stubborn_prs | head --lines 2); do
   dir="data/$pr-basic"
   # Check if the directory exists.
   if [ -d $dir ]; then
