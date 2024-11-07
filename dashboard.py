@@ -205,15 +205,17 @@ class AggregatePRInfo(NamedTuple):
     additions: int
     deletions: int
     number_modified_files: int
-    # This field is *not* present if there is only "basic" information about this PR
-    number_total_comments: int | None
+    # Github handles of all users (if any) approving this
+    approvals: List[str]
     # The github handles of all users (if any) assigned to this PR
     assignees: List[str]
+    # This field is *not* present if there is only "basic" information about this PR
+    number_total_comments: int | None
 
 # Missing aggregate information will be replaced by this default item.
 PLACEHOLDER_AGGREGATE_INFO = AggregatePRInfo(
     False, "fail", "master", "leanprover-community", "open", datetime.now(timezone.utc),
-    "unknown", "unknown title", [], -1, -1, -1, None, []
+    "unknown", "unknown title", [], -1, -1, -1, [], [], None,
 )
 
 # Information passed to this script, via various JSON files.
@@ -254,7 +256,7 @@ def read_json_files() -> JSONInputData:
             info = AggregatePRInfo(
                 pr["is_draft"], pr["CI_status"], pr["base_branch"], pr["head_repo"]["login"],
                 pr["state"], date, pr["author"], pr["title"], [toLabel(name) for name in label_names],
-                pr["additions"], pr["deletions"], pr["num_files"], number_all_comments, pr["assignees"]
+                pr["additions"], pr["deletions"], pr["num_files"], pr["review_approvals"], pr["assignees"], number_all_comments
             )
             aggregate_info[pr["number"]] = info
     return JSONInputData(aggregate_info, all_open_prs)
