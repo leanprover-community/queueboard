@@ -39,7 +39,7 @@ prs=$(echo "$response" | jq -r --arg PAST_TIME "$PAST_TIME" --arg CURRENT_TIME "
 
 # Parse the list of all stubborn PRs. This is newline-separated,
 # but for our purposes, that is fine.
-stubborn_prs=$(cat stubborn_prs.txt | grep --invert-match "^-")
+stubborn_prs=$(cat stubborn_prs.txt | grep --invert-match "^--")
 
 # Download data for all updated PRs, overwriting existing data if needed.
 for pr in $prs; do

@@ -205,9 +205,14 @@ def main() -> None:
             print(f"outdated data: the aggregate data for PR {pr_number} claims CI is still running, but was last updated more than {ci_limit} minutes ago")
             outdated_prs.append(pr_number)
 
+    # Some PRs are marked as stubborn: for them, only basic information is downloaded.
+    stubborn_prs = []
+    with open("stubborn_prs.txt", "r") as file:
+        for line in file:
+            if not line.startswith("--") and line:
+                stubborn_prs.append(int(line))
     # Write out the list of missing PRs.
     # XXX why not prune here? Is there some actual race to protect against?
-    # TODO: skip this step if the PR is marked as stubborn/warn about this.
     if missing_prs:
         print(f"SUMMARY: found {len(missing_prs)} PR(s) whose aggregate information is missing:\n{sorted(missing_prs)}", file=sys.stderr)
         content = ""
@@ -217,7 +222,7 @@ def main() -> None:
             # No need to shuffle this list: gather_stats.sh skips PRs with existing
             # broken data, so each PR is tried at most once anyway.
             with open("missing_prs.txt", "w") as file:
-                file.write('\n'.join([str(n) for n in missing_prs]) + '\n')
+                file.write('\n'.join([str(n) for n in missing_prs if n not in stubborn_prs]) + '\n')
             print("  Scheduled all PRs for backfilling")
     if outdated_prs:
         print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{sorted(outdated_prs)}")
