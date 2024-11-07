@@ -87,6 +87,13 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
             number_review_comments += len(t["comments"]["nodes"])
         aggregate_data["number_comments"] = number_comments
         aggregate_data["number_review_comments"] = number_review_comments
+        # github usernames of everyone who left an "approving" review on this PR.
+        # TODO: also collect this data for all "basic" PRs, after re-downloading their data
+        approvals = []
+        for r in inner["reviews"]["nodes"]:
+            if r["state"] == "APPROVED":
+                approvals.append(r["author"]["login"])
+        aggregate_data["review_approvals"] = approvals
     return aggregate_data
 
 
