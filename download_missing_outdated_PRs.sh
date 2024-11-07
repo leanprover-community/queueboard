@@ -63,9 +63,8 @@ for pr in $(cat "missing_prs.txt"); do
   fi
 done
 
-# Do the same for at most one stubborn PR.
-j=0
-for pr in $stubborn_prs; do
+# Do the same for at most 2 stubborn PRs.
+for pr in $(cat stubborn_prs | head --lines 2); do
   dir="data/$pr-basic"
   # Check if the directory exists.
   if [ -d $dir ]; then
@@ -76,9 +75,5 @@ for pr in $stubborn_prs; do
   mkdir -p "$dir"
   ./basic_pr_info.sh "$pr" | jq '.' > "$dir/basic_pr_info.json"
   echo "$CURRENT_TIME" > "$dir/timestamp.txt"
-  j=$((j+1))
-  if [ $j -eq 1 ]; then
-    echo "Backfilled one 'stubborn' PR successfully, exiting"
-    break;
-  fi
 done
+echo "Backfilled up to two 'stubborn' PRs successfully"
