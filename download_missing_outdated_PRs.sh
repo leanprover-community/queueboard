@@ -59,7 +59,7 @@ done
 echo "Backfilled at most one PR successfully"
 
 # Do the same for at most 2 stubborn PRs.
-for pr in $(echo $stubborn_prs | head --lines 2); do
+for pr in $(cat "stubborn_prs.txt" | grep --invert-match "^--" | head --lines 2); do
   dir="data/$pr-basic"
   # Check if the directory exists.
   if [ -d $dir ]; then
