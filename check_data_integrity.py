@@ -151,7 +151,6 @@ def prune_missing_prs_file() -> None:
         eprint(f"{len(superfluous)} PR(s) marked as missing have present entries now, removing: {superfluous}")
     prs_to_keep = [n for n in current_numbers if not is_well_formed[n]]
     with open("missing_prs.txt", "w") as file:
-        print("foo")
         file.write('\n'.join([str(n) for n in prs_to_keep]) + '\n')
 
 
@@ -218,7 +217,6 @@ def main() -> None:
             # No need to shuffle this list: gather_stats.sh skips PRs with existing
             # broken data, so each PR is tried at most once anyway.
             with open("missing_prs.txt", "w") as file:
-                print("bar")
                 file.write('\n'.join([str(n) for n in missing_prs]) + '\n')
             print("  Scheduled all PRs for backfilling")
     if outdated_prs:
