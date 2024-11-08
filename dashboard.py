@@ -59,6 +59,8 @@ class Dashboard(Enum):
     Unlabelled = auto()
     # This PR carries inconsistent labels, such as "WIP" and "ready-to-merge".
     ContradictoryLabels = auto()
+    # PRs with at least one "approved" review by a community member.
+    Approved = auto()
 
 
 def short_description(kind: Dashboard) -> str:
@@ -85,6 +87,7 @@ def short_description(kind: Dashboard) -> str:
         Dashboard.Unlabelled: "ready PRs without a 'CI' or 't-something' label",
         Dashboard.BadTitle: "ready PRs whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
         Dashboard.ContradictoryLabels: "PRs with contradictory labels",
+        Dashboard.Approved: "PRs that have an 'approved' review",
     }[kind]
 
 
@@ -114,6 +117,7 @@ def long_description(kind: Dashboard) -> str:
         Dashboard.Unlabelled: "all PRs without draft status or 'WIP' label without a 'CI' or 't-something' label",
         Dashboard.BadTitle: "all PRs without draft status or 'WIP' label whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
         Dashboard.ContradictoryLabels: "PRs whose labels are contradictory, such as 'WIP' and 'ready-to-merge'",
+        Dashboard.Approved: "PRs that have at least one 'approved' review by a community member",
     }[kind]
 
 
@@ -160,6 +164,7 @@ def getIdTitle(kind: Dashboard) -> Tuple[str, str]:
             "contradictory-labels",
             "PRs with contradictory labels",
         ),
+        Dashboard.Approved: ("approved", "PRs with an 'approved' review"),
     }[kind]
 
 
@@ -354,6 +359,7 @@ def main() -> None:
     for pr in nondraft_PRs:
         base_branch[pr.number] = aggregate_info[pr.number].base_branch
     prs_from_fork = [pr for pr in nondraft_PRs if aggregate_info[pr.number].head_repo != "leanprover-community"]
+    approved = [pr for pr in nondraft_PRs if aggregate_info[pr.number].approvals]
     write_on_the_queue_page(nondraft_PRs, prs_from_fork, CI_status, base_branch)
 
     prs_to_list : dict[Dashboard, List[BasicPRInformation]] = dict()
@@ -428,6 +434,7 @@ def main() -> None:
     prs_to_list[Dashboard.BadTitle] = bad_title
     prs_to_list[Dashboard.Unlabelled] = unlabelled
     prs_to_list[Dashboard.ContradictoryLabels] = contradictory
+    prs_to_list[Dashboard.Approved] = approved
     # FUTURE: can this time be displayed in the local time zone of  the user viewing this page?
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
     write_overview_page(updated)
@@ -663,6 +670,7 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
             Dashboard.Queue, Dashboard.QueueEasy, Dashboard.QueueNewContributor, Dashboard.QueueTechDebt,
             Dashboard.QueueStaleUnassigned, Dashboard.QueueStaleAssigned,
             Dashboard.AllMaintainerMerge, Dashboard.StaleMaintainerMerge, Dashboard.StaleDelegated, Dashboard.AllReadyToMerge, Dashboard.StaleReadyToMerge,
+            Dashboard.Approved,
             Dashboard.NeedsHelp
         ]
         if kind in kinds:
