@@ -18,7 +18,7 @@ Pay attention to the fact that there is "basic" and "full" PR info; not all info
 Just changing the **generated webpages**: edit `dashboard.py`, test using the testing data (see above)
 For more detailed advice on particular kinds of changes, read on.
 
-- change which data is shown for each PR: ensure the data you need is present in `AggregePRInfo` (see above); then edit `compute_pr_entries` as desired
+- change which data is shown for each PR: ensure the data you need is present in `AggregatePRInfo` (see above); then edit `compute_pr_entries` as desired
 
 - add a new dashboard:
   - if additional data needs to be added, see the step above.
