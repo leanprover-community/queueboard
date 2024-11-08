@@ -670,7 +670,6 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
             Dashboard.Queue, Dashboard.QueueEasy, Dashboard.QueueNewContributor, Dashboard.QueueTechDebt,
             Dashboard.QueueStaleUnassigned, Dashboard.QueueStaleAssigned,
             Dashboard.AllMaintainerMerge, Dashboard.StaleMaintainerMerge, Dashboard.StaleDelegated, Dashboard.AllReadyToMerge, Dashboard.StaleReadyToMerge,
-            Dashboard.Approved,
             Dashboard.NeedsHelp
         ]
         if kind in kinds:
