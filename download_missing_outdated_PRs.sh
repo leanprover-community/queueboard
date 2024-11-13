@@ -39,9 +39,11 @@ done
 echo "" > redownload.txt
 echo "Successfully re-downloaded all planned PRs (if any)"
 
-# In case there are PRs which got "missed" somehow, backfill data for up to one of them.
+# In case there are PRs which got "missed" somehow, backfill data for up to two of them.
+# HACK: ask for many to avoid broken data "blocking the pipe"
 # NB. This assumes each such PR is not stubborn --- need to ensure "missing_prs.txt" doesn't contain stubborn PRs!
-for pr in $(cat "missing_prs.txt" | head --lines 1); do
+i=0
+for pr in $(cat "missing_prs.txt" | head --lines 20); do
   # Check if the directory exists
   if [ -d "data/$pr" ]; then
     echo "[skip] Data exists for #$pr: $CURRENT_TIME"
@@ -50,6 +52,10 @@ for pr in $(cat "missing_prs.txt" | head --lines 1); do
   echo "Attempting to backfill data for PR $pr"
   dir="data/$pr"
   mkdir -p "$dir"
+  i=$((i+1))
+  if [ $i -eq 2 ]; then
+    break;
+  fi
   # Run pr_info.sh and pr_reactions.sh and save the output.
   ./pr_info.sh "$pr" | jq '.' > "$dir/pr_info.json"
   ./pr_reactions.sh "$pr" | jq '.' > "$dir/pr_reactions.json"
