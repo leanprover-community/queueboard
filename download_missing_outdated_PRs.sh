@@ -64,13 +64,18 @@ for pr in $(cat "missing_prs.txt" | head --lines 20); do
 done
 echo "Backfilled at most one PR successfully"
 
-# Do the same for at most 2 stubborn PRs.
-for pr in $(cat "stubborn_prs.txt" | grep --invert-match "^--" | head --lines 2); do
+# Do the same for at most 2 stubborn PRs. (Using `head --lines 2` is *not* equivalent!)
+i=0
+for pr in $(cat "stubborn_prs.txt" | grep --invert-match "^--"); do
   dir="data/$pr-basic"
   # Check if the directory exists.
   if [ -d $dir ]; then
     echo "[skip] Data exists for 'stubborn' PR #$pr: $CURRENT_TIME"
     continue
+  fi
+  i=$((i+1))
+  if [ $i -eq 2]; then
+    break;
   fi
   echo "Attempting to backfill data for 'stubborn' PR $pr"
   mkdir -p "$dir"
