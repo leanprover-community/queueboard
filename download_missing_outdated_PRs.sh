@@ -74,7 +74,7 @@ for pr in $(cat "stubborn_prs.txt" | grep --invert-match "^--"); do
     continue
   fi
   i=$((i+1))
-  if [ $i -eq 2]; then
+  if [ $i -eq 2 ]; then
     break;
   fi
   echo "Attempting to backfill data for 'stubborn' PR $pr"
