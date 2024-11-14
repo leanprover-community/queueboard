@@ -234,14 +234,14 @@ def main() -> None:
             content2 = file.readlines()
         if content2 is None:
             return
-        if len(content2) != 3 and len(content2) > 1:
+        if len(content2) != 2 and len(content2) > 1:
             return
         with open("redownload.txt", "w") as file:
             # Shuffle the list of outdated PRs, to avoid this getting stuck in a loop
             # of trying and failing to re-download the same PR over and over.
             import random
             random.shuffle(outdated_prs)
-            new = ['\n'.join([str(n) for n in outdated_prs[:min(3, len(outdated_prs))]]) + '\n']
+            new = ['\n'.join([str(n) for n in outdated_prs[:min(2, len(outdated_prs))]]) + '\n']
             file.writelines(new)
     else:
         print("All PR aggregate data appears up to date, congratulations!")

@@ -39,7 +39,7 @@ done
 echo "" > redownload.txt
 echo "Successfully re-downloaded all planned PRs (if any)"
 
-# In case there are PRs which got "missed" somehow, backfill data for up to two of them.
+# In case there are PRs which got "missed" somehow, backfill data for up to one of them.
 # HACK: ask for many to avoid broken data "blocking the pipe"
 # NB. This assumes each such PR is not stubborn --- need to ensure "missing_prs.txt" doesn't contain stubborn PRs!
 i=0
@@ -49,7 +49,7 @@ for pr in $(cat "missing_prs.txt" | head --lines 20); do
     echo "[skip] Data exists for #$pr: $CURRENT_TIME"
     continue
   fi
-  if [ $i -eq 2 ]; then
+  if [ $i -eq 1 ]; then
     break;
   fi
   i=$((i+1))
