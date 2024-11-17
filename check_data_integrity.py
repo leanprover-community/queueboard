@@ -237,7 +237,7 @@ def main() -> None:
             print("  Scheduled all PRs for backfilling")
     if outdated_prs:
         print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{sorted(outdated_prs)}")
-        # Batch the PRs to to re-download: write the first N PRs into redownload.txt,
+        # Batch the PRs to to re-download: write the first 4 PRs into redownload.txt,
         # if that file is basically empty (i.e. no other files to already handle).
         # The next run of this script will pick this up and try to download them.
         content2 = None
@@ -245,14 +245,14 @@ def main() -> None:
             content2 = file.readlines()
         if content2 is None:
             return
-        if len(content2) != 3 and len(content2) > 1:
+        if len(content2) != 4 and len(content2) > 1:
             return
         with open("redownload.txt", "w") as file:
             # Shuffle the list of outdated PRs, to avoid this getting stuck in a loop
             # of trying and failing to re-download the same PR over and over.
             import random
             random.shuffle(outdated_prs)
-            new = ['\n'.join([str(n) for n in outdated_prs[:min(3, len(outdated_prs))]]) + '\n']
+            new = ['\n'.join([str(n) for n in outdated_prs[:min(4, len(outdated_prs))]]) + '\n']
             file.writelines(new)
     else:
         print("All PR aggregate data appears up to date, congratulations!")
