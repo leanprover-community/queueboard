@@ -59,7 +59,7 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
     # Names of all labels applied to this PR: missing the background colour!
     labels = [lab["name"] for lab in inner["labels"]["nodes"]]
     assignees = [ass["login"] for ass in inner["assignees"]["nodes"]]
-    # Get information about the latest CI run. We just look at the "summary job".
+    # Get information about the latest CI run.
     CI_status = determine_ci_status(number, inner["statusCheckRollup"]["contexts"]["nodes"])
     # github usernames of everyone who left an "approving" review on this PR.
     approvals = []
