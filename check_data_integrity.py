@@ -110,6 +110,8 @@ def check_data_directory_contents() -> bool:
 class AggregateData(NamedTuple):
     last_updated: str
     is_CI_running: bool
+    # either "open" or "closed"
+    state: str
 
 
 # Is there valid and complete PR data for a PR numbered `number`?
@@ -161,19 +163,21 @@ def main() -> None:
     current_last_updated = extract_last_update_from_input()
     # "Last updated" information as found in the aggregate data file.
     check_data_directory_contents()
-    aggregate_last_updated = dict()
+    aggregate_last_updated: dict[int, AggregateData] = dict()
     with open(os.path.join("processed_data", "aggregate_pr_data.json"), "r") as aggregate_file:
         data = json.load(aggregate_file)
         for pr in data["pr_statusses"]:
             updated = pr["last_updated"]
             ci = pr["CI_status"]
-            aggregate_last_updated[pr["number"]] = AggregateData(updated, ci == "running")
+            state = pr["state"]
+            aggregate_last_updated[pr["number"]] = AggregateData(updated, ci == "running", state)
 
     # Prune superfluous entries from 'missing_prs.txt'. We conciously run this check
     # before the others, and not in the same step as downloading the missing data
     # to increase resilience against push races or other unforeseen events.
     # Any superfluous entries observed here are actually present in the repository.
-    # XXX. actually, that's nonsense --- downloading missing data happens before this step. Hm... but this is fine, if committing fails, so does this update...
+    # XXX. actually, that's nonsense --- downloading missing data happens before this step.
+    #  Hm... but this is fine, if committing fails, so does this update...
     prune_missing_prs_file()
 
     # All PRs whose aggregate data is at least 10 minutes older than github's current "last update".
@@ -195,6 +199,13 @@ def main() -> None:
             print(f'mismatch: the aggregate file for PR {pr_number} is outdated by {delta}, please re-download!')
             print(f"  the aggregate file says {aggregate_updated}, current last update is {current_updated}")
             outdated_prs.append(pr_number)
+
+    # Check for PRs which are still marked as open in the aggregate data, but are in reality closed.
+    for pr_number in aggregate_last_updated:
+        if aggregate_last_updated[pr_number].state == "open":
+            if pr_number not in current_last_updated:
+                print(f"mismatch: the aggregate file says PR {pr_number} is still open, while in reality it is closed!")
+                outdated_prs.append(pr_number)
 
     # Also check for PRs whose aggregate data says CI is "running", but whose last update
     # was at least 60 minutes old. In that case, some data also didn't get updated.
