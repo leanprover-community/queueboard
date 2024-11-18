@@ -200,11 +200,12 @@ def main() -> None:
             print(f"  the aggregate file says {aggregate_updated}, current last update is {current_updated}")
             outdated_prs.append(pr_number)
 
-    # Check for PRs which are still marked as open in the aggregate data, but are in reality closed.
+    # Check for PRs which are still marked as open in the aggregate data,
+    # but are in reality closed (or merged, if into a non-master branch).
     for pr_number in aggregate_last_updated:
         if aggregate_last_updated[pr_number].state == "open":
             if pr_number not in current_last_updated:
-                print(f"mismatch: the aggregate file says PR {pr_number} is still open, while in reality it is closed!")
+                print(f"mismatch: the aggregate file says PR {pr_number} is still open, while is wrong.")
                 outdated_prs.append(pr_number)
 
     # Also check for PRs whose aggregate data says CI is "running", but whose last update
