@@ -191,7 +191,7 @@ class BasicPRInformation(NamedTuple):
 # Keep this in sync with the actual file, extending this once new data is added!
 class AggregatePRInfo(NamedTuple):
     is_draft: bool
-    # "pass", "fail" or "running"
+    # "pass", "fail", "running" or "null" (hopefully rare)
     CI_status: str
     # The branch this PR is opened against: should be 'master' (for most PRs)
     base_branch: str
