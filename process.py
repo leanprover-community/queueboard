@@ -10,8 +10,8 @@ we list
 """
 
 import json
-import os
 import sys
+from os import listdir, path
 from datetime import datetime, timezone
 from typing import List
 
@@ -117,11 +117,11 @@ def main() -> None:
             if not line.startswith("--"):
                 known_erronerous.append(line.rstrip())
     # Read all pr info files in the data directory.
-    pr_dirs: List[str] = sorted(os.listdir("data"))
+    pr_dirs: List[str] = sorted(listdir("data"))
     for pr_dir in pr_dirs:
         only_basic_info = "basic" in pr_dir
         pr_number = pr_dir.removesuffix("-basic")
-        filename = f"data/{pr_dir}/basic_pr_info.json" if only_basic_info else f"data/{pr_dir}/pr_info.json"
+        filename = path.join("data", pr_dir, "basic_pr_info.json") if only_basic_info else path.join("data", pr_dir, "pr_info.json")
         match parse_json_file(filename, pr_number):
             case str(err):
                 if pr_number not in known_erronerous:
@@ -140,7 +140,7 @@ def main() -> None:
                 pr_data.append(get_aggregate_data(data, only_basic_info))
     output["label_colours"] = dict(sorted(label_colours.items()))
     output["pr_statusses"] = pr_data
-    with open("processed_data/aggregate_pr_data.json", "w") as f:
+    with open(path.join("processed_data", "aggregate_pr_data.json"), "w") as f:
         print(json.dumps(output, indent=4), file=f)
 
 
