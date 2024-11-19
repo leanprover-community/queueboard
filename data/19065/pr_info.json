@@ -11,7 +11,7 @@
         },
         "autoMergeRequest": null,
         "baseRefName": "master",
-        "body": "In the current design of concrete categories in mathlib, there are two sources of `erw`s:\r\n\r\n- Def-Eq abuse of `A ⟶ B` and `A →ₐ [R] B`: The type of `A ⟶ B` is by definition `A →ₐ [R] B`, but this def-eq is not reducible. So it happens that one `rw` lemma transforms a term in a form, where the next `rw` expects `A →ₐ B`. By supplying explicit `show` lines (copying the output of the pretty-printer), Lean correctly re-synthesizes the type to be `A →ₐ B` and the `rw` succeeds. This def-eq abuse hence always causes issues in the case where a lemma from the non-category theoretic part of the library should be applied. An insightful example is the following proof excerpt from current master (proof of `AlgebraCat.adj`):\r\n```lean4\r\nimport Mathlib.Algebra.Category.AlgebraCat.Basic\r\nopen CategoryTheory AlgebraCat\r\nvariable {R : Type u} [CommRing R]\r\nset_option pp.analyze true\r\n\r\nexample : free.{u} R ⊣ forget (AlgebraCat.{u} R) :=\r\n  Adjunction.mkOfHomEquiv\r\n    { homEquiv := fun _ _ => (FreeAlgebra.lift _).symm\r\n      homEquiv_naturality_left_symm := by\r\n        intro X Y Z f g\r\n        apply FreeAlgebra.hom_ext\r\n        ext x\r\n        simp only [Equiv.symm_symm, Function.comp_apply, free_map]\r\n        /- Eq (α := Z)\r\n             (((FreeAlgebra.lift R) (f ≫ g) :\r\n               Prefunctor.obj (Functor.toPrefunctor (free R)) X ⟶ Z) (FreeAlgebra.ι R x) : ↑Z) _\r\n        -/\r\n        erw [FreeAlgebra.lift_ι_apply]\r\n        sorry\r\n      homEquiv_naturality_right := sorry }\r\n```\r\nThe `simp` lemma `FreeAlgebra.lift_ι_apply` expects an `AlgHom`, but as the `pp.analyze` shows, the type is synthesized as a `⟶`. With a show line before the `erw`, Lean correctly synthesizes the type as an `AlgHom` again and the `rw` succeeds. The solution is to strictly distinguish between `A ⟶ B` and `A →ₐ[R] B`: We define a new `AlgebraCat.Hom` structure with a single field `hom : A →ₐ[R] B`. The above proof is mostly solved by `ext; simp` then, except for the `ext` lemma `FreeAlgebra.hom_ext` not applying. This is because now the type is `AlgebraCat.of R (FreeAlgebra R X) →ₐ[R] _` and Lean can't see through the `AlgebraCat.of` at reducible transparency. Hence the solution is to make `AlgebraCat.of` an `abbrev`. Finally, the proof is `by ext; simp` or even `by aesop`.\r\n\r\n- `FunLike`: An intermediate design adapted the changes from the first point, but with keeping a `FunLike` and an `AlgHomClass` instance on `A ⟶ B`. This lead to many additional `coe` lemmas for composition of morphisms, where it mattered which of the three appearing terms of `AlgebraCat` where of the form `AlgebraCat.of R A`. Eric Wieser suggested to replace the `FunLike` by a `CoeFun` which is inlined, so an invocation of `f x` turns into `f.hom x`. This has then worked very smoothly.\r\n\r\nSo the key points are:\r\n- Homs in concrete categories should be one-field structures to maintain a strict type distinction.\r\n- Use `CoeFun` instead of `FunLike`, since the latter is automatically inlined.\r\n- Make `.of` constructors an `abbrev` to obtain the def-eq `↑(AlgebraCat.of R A) = A` at reducible transparency.\r\n\r\nFor more details, see the [Zulip discussion](https://leanprover.zulipchat.com/#narrow/channel/287929-mathlib4/topic/Fixing.20the.20.60erw.60.20hell.20around.20concrete.20categories).\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nFor details on the \"pull request lifecycle\" in mathlib, please see:\r\nhttps://leanprover-community.github.io/contribute/index.html\r\n\r\nIn particular, note that most reviewers will only notice your PR\r\nif it passes the continuous integration checks.\r\nPlease ask for help on https://leanprover.zulipchat.com if needed.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nIf you are moving or deleting declarations, please include these lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nMoves:\r\n- Vector.* -> Mathlib.Vector.*\r\n- ...\r\n\r\nDeletions:\r\n- Nat.bit1_add_bit1\r\n- ...\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "body": "In the current design of concrete categories in mathlib, there are two sources of `erw`s:\r\n\r\n- Def-Eq abuse of `A ⟶ B` and `A →ₐ [R] B`: The type of `A ⟶ B` is by definition `A →ₐ[R] B`, but not at reducible transparency. So it happens that one `rw` lemma transforms a term in a form, where the next `rw` expects `A →ₐ B`. By supplying explicit `show` lines (copying the output of the pretty-printer), Lean correctly re-synthesizes the type to be `A →ₐ B` and the `rw` succeeds. This def-eq abuse hence always causes issues in the case where a lemma from the non-category theoretic part of the library should be applied. An insightful example is the following proof excerpt from current master (proof of `AlgebraCat.adj`):\r\n```lean4\r\nimport Mathlib.Algebra.Category.AlgebraCat.Basic\r\nopen CategoryTheory AlgebraCat\r\nvariable {R : Type u} [CommRing R]\r\nset_option pp.analyze true\r\n\r\nexample : free.{u} R ⊣ forget (AlgebraCat.{u} R) :=\r\n  Adjunction.mkOfHomEquiv\r\n    { homEquiv := fun _ _ => (FreeAlgebra.lift _).symm\r\n      homEquiv_naturality_left_symm := by\r\n        intro X Y Z f g\r\n        apply FreeAlgebra.hom_ext\r\n        ext x\r\n        simp only [Equiv.symm_symm, Function.comp_apply, free_map]\r\n        /- Eq (α := Z)\r\n             (((FreeAlgebra.lift R) (f ≫ g) :\r\n               Prefunctor.obj (Functor.toPrefunctor (free R)) X ⟶ Z) (FreeAlgebra.ι R x) : ↑Z) _\r\n        -/\r\n        erw [FreeAlgebra.lift_ι_apply]\r\n        sorry\r\n      homEquiv_naturality_right := sorry }\r\n```\r\nThe `simp` lemma `FreeAlgebra.lift_ι_apply` expects an `AlgHom`, but as the `pp.analyze` shows, the type is synthesized as a `⟶`. With a show line before the `erw`, Lean correctly synthesizes the type as an `AlgHom` again and the `rw` succeeds. The solution is to strictly distinguish between `A ⟶ B` and `A →ₐ[R] B`: We define a new `AlgebraCat.Hom` structure with a single field `hom : A →ₐ[R] B`. The above proof is mostly solved by `ext; simp` then, except for the `ext` lemma `FreeAlgebra.hom_ext` not applying. This is because now the type is `AlgebraCat.of R (FreeAlgebra R X) →ₐ[R] _` and Lean can't see through the `AlgebraCat.of` at reducible transparency. Hence the solution is to make `AlgebraCat.of` an `abbrev`. Finally, the proof is `by ext; simp` or even `by aesop`.\r\n\r\n- `FunLike`: An intermediate design adapted the changes from the first point, but with keeping a `FunLike` and an `AlgHomClass` instance on `A ⟶ B`. This lead to many additional `coe` lemmas for composition of morphisms, where it mattered which of the three appearing terms of `AlgebraCat` where of the form `AlgebraCat.of R A`. Eric Wieser suggested to replace the `FunLike` by a `CoeFun` which is inlined, so an invocation of `f x` turns into `f.hom x`. This has then worked very smoothly.\r\n\r\nSo the key points are:\r\n- Homs in concrete categories should be one-field structures to maintain a strict type distinction.\r\n- Use `CoeFun` instead of `FunLike`, since the latter is automatically inlined.\r\n- Make `.of` constructors an `abbrev` to obtain the def-eq `↑(AlgebraCat.of R A) = A` at reducible transparency.\r\n\r\nFor more details, see the [Zulip discussion](https://leanprover.zulipchat.com/#narrow/channel/287929-mathlib4/topic/Fixing.20the.20.60erw.60.20hell.20around.20concrete.20categories).\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nFor details on the \"pull request lifecycle\" in mathlib, please see:\r\nhttps://leanprover-community.github.io/contribute/index.html\r\n\r\nIn particular, note that most reviewers will only notice your PR\r\nif it passes the continuous integration checks.\r\nPlease ask for help on https://leanprover.zulipchat.com if needed.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nIf you are moving or deleting declarations, please include these lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nMoves:\r\n- Vector.* -> Mathlib.Vector.*\r\n- ...\r\n\r\nDeletions:\r\n- Nat.bit1_add_bit1\r\n- ...\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
         "changedFiles": 7,
         "closed": false,
         "closedAt": null,
@@ -255,6 +255,38 @@
               "createdAt": "2024-11-19T15:15:18Z",
               "author": {
                 "login": "mattrobball"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6ULqMW",
+              "body": "!bench",
+              "createdAt": "2024-11-19T15:48:14Z",
+              "author": {
+                "login": "chrisflav"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6ULqqC",
+              "body": "> Can you update your PR description to explain the changes and reasoning for posterity?\r\n> \r\n> Let's also do one more run of benchmarking. I think I am satisfied.\r\n\r\nUpdated the PR description.",
+              "createdAt": "2024-11-19T15:48:57Z",
+              "author": {
+                "login": "chrisflav"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6UL9Mj",
+              "body": "Here are the [benchmark results](http://speed.lean-fro.org/mathlib4/run-detail/d1434ece-31bb-43e2-b333-4547de0036b2) for commit 24c84a48e912ec1672dce3dd8a5e7186caff25f8.\nThere were [significant changes](http://speed.lean-fro.org/mathlib4/compare/3592a324-de1b-439e-81e0-6f7ffafff991/to/d1434ece-31bb-43e2-b333-4547de0036b2) against commit 54d12203eb2afd003111899bd0a35c3ee74bb6af:\n```diff\n  Benchmark                                    Metric         Change\n  ==================================================================\n- ~Mathlib.Algebra.Category.AlgebraCat.Basic   instructions    73.0%\n```",
+              "createdAt": "2024-11-19T16:18:00Z",
+              "author": {
+                "login": "leanprover-bot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6UL9hj",
+              "body": "|File|Instructions|%|\n|-|-:|:-:|\n|`build`|+25.510⬝10⁹|(+0.01%)|\n|`Mathlib.Algebra.Category.AlgebraCat.Basic`|+21.816⬝10⁹|(+72.97%)|\n|`Mathlib.Algebra.Category.AlgebraCat.Limits`|+8.722⬝10⁹|(+15.44%)|\n|`Mathlib.LinearAlgebra.CliffordAlgebra.CategoryTheory`|+1.237⬝10⁹|(+26.14%)|\n|`Mathlib.CategoryTheory.Monoidal.Internal.Module`|-6.52⬝10⁹|(-3.88%)|",
+              "createdAt": "2024-11-19T16:18:28Z",
+              "author": {
+                "login": "github-actions"
               }
             }
           ]
@@ -4934,6 +4966,30 @@
                       },
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHu8RmCg",
+                        "name": "Add ready-to-merge label",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918172787/job/33214981642"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHu8idhg",
+                        "name": "Add ready-to-merge label",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918253425/job/33215257990"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHu8pH3g",
+                        "name": "Add ready-to-merge label",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918285252/job/33215367134"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAHu1byeA",
                         "name": "Fix style issues from lint",
                         "conclusion": "SKIPPED",
@@ -4955,6 +5011,30 @@
                         "conclusion": "SKIPPED",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11916224761/job/33208376054"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHu8Ri-g",
+                        "name": "Fix style issues from lint",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918172789/job/33214980858"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHu8iZ4A",
+                        "name": "Fix style issues from lint",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918253422/job/33215257056"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHu8pHWA",
+                        "name": "Fix style issues from lint",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918285244/job/33215367000"
                       },
                       {
                         "__typename": "CheckRun",
@@ -4987,6 +5067,30 @@
                         "conclusion": "SUCCESS",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11916224784/job/33208376113"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHu8Ri3g",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918172793/job/33214980830"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHu8ia9w",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918253439/job/33215257335"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHu8pFYg",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918285259/job/33215366498"
                       },
                       {
                         "__typename": "CheckRun",
@@ -5043,6 +5147,30 @@
                         "conclusion": "SKIPPED",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11916224763/job/33208376736"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHu8RjYQ",
+                        "name": "Add delegated label",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918172787/job/33214980961"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHu8iapw",
+                        "name": "Add delegated label",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918253425/job/33215257255"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAHu8pFqA",
+                        "name": "Add delegated label",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918285252/job/33215366568"
                       },
                       {
                         "__typename": "CheckRun",
@@ -5195,13 +5323,13 @@
         "latestReviews": {
           "nodes": [
             {
-              "id": "PRR_kwDOFcwZ1c6RyC48",
+              "id": "PRR_kwDOFcwZ1c6RzOV5",
               "body": "",
               "state": "COMMENTED",
               "author": {
                 "login": "mattrobball"
               },
-              "submittedAt": "2024-11-19T15:24:21Z"
+              "submittedAt": "2024-11-19T17:18:25Z"
             },
             {
               "id": "PRR_kwDOFcwZ1c6Rw7Ux",
@@ -5213,13 +5341,13 @@
               "submittedAt": "2024-11-19T13:44:19Z"
             },
             {
-              "id": "PRR_kwDOFcwZ1c6Rx79f",
+              "id": "PRR_kwDOFcwZ1c6RzKk0",
               "body": "",
               "state": "COMMENTED",
               "author": {
                 "login": "eric-wieser"
               },
-              "submittedAt": "2024-11-19T15:15:30Z"
+              "submittedAt": "2024-11-19T17:11:30Z"
             }
           ]
         },
@@ -5232,7 +5360,7 @@
         "milestone": null,
         "number": 19065,
         "potentialMergeCommit": {
-          "oid": "f0649cfc0772faffff0ce5c3804fdbd62e8750ee"
+          "oid": "4d12c3af20687e7e92b35f1bde1b942aa0306f82"
         },
         "projectCards": {
           "nodes": []
@@ -5899,6 +6027,33 @@
                 "login": "mattrobball"
               },
               "submittedAt": "2024-11-19T15:24:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6RzKk0",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2024-11-19T17:11:30Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6RzNPR",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "chrisflav"
+              },
+              "submittedAt": "2024-11-19T17:16:27Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6RzOV5",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "mattrobball"
+              },
+              "submittedAt": "2024-11-19T17:18:25Z"
             }
           ]
         },
@@ -6533,6 +6688,36 @@
                   }
                 ]
               }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5uMadI",
+                    "body": "I claim this was better as\r\n```suggestion\r\n  comp := fun  f g ↦ f.hom.comp g.hom\r\n```\r\nas it avoids inducing `match` terms into the expression (and throughout). I think @mattrobball suggested the opposite though.",
+                    "createdAt": "2024-11-19T17:11:30Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5uMcAm",
+                    "body": "Yes, this was the original version and the change caused slowdowns, which I had reverted and then restored upon request by Matthew.",
+                    "createdAt": "2024-11-19T17:16:27Z",
+                    "author": {
+                      "login": "chrisflav"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5uMcrw",
+                    "body": "I think `simp` has better support for `match` reduction than for eta reduction in situations like this. I linked to a thread on Zulip with a basic example. ",
+                    "createdAt": "2024-11-19T17:18:24Z",
+                    "author": {
+                      "login": "mattrobball"
+                    }
+                  }
+                ]
+              }
             }
           ]
         },
@@ -6597,6 +6782,30 @@
               },
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHu8RmCg",
+                "name": "Add ready-to-merge label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918172787/job/33214981642"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHu8idhg",
+                "name": "Add ready-to-merge label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918253425/job/33215257990"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHu8pH3g",
+                "name": "Add ready-to-merge label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918285252/job/33215367134"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAHu1byeA",
                 "name": "Fix style issues from lint",
                 "conclusion": "SKIPPED",
@@ -6618,6 +6827,30 @@
                 "conclusion": "SKIPPED",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11916224761/job/33208376054"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHu8Ri-g",
+                "name": "Fix style issues from lint",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918172789/job/33214980858"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHu8iZ4A",
+                "name": "Fix style issues from lint",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918253422/job/33215257056"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHu8pHWA",
+                "name": "Fix style issues from lint",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918285244/job/33215367000"
               },
               {
                 "__typename": "CheckRun",
@@ -6650,6 +6883,30 @@
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11916224784/job/33208376113"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHu8Ri3g",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918172793/job/33214980830"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHu8ia9w",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918253439/job/33215257335"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHu8pFYg",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918285259/job/33215366498"
               },
               {
                 "__typename": "CheckRun",
@@ -6706,6 +6963,30 @@
                 "conclusion": "SKIPPED",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11916224763/job/33208376736"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHu8RjYQ",
+                "name": "Add delegated label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918172787/job/33214980961"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHu8iapw",
+                "name": "Add delegated label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918253425/job/33215257255"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAHu8pFqA",
+                "name": "Add delegated label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/11918285252/job/33215366568"
               },
               {
                 "__typename": "CheckRun",
@@ -6783,7 +7064,7 @@
           }
         },
         "title": "refactor(Algebra/Category): turn homs in `AlgebraCat` into a structure",
-        "updatedAt": "2024-11-19T15:46:22Z",
+        "updatedAt": "2024-11-19T17:18:25Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/19065",
         "timelineItems": {
           "nodes": [
@@ -7289,6 +7570,51 @@
               "body": "Can you update your PR description to explain the changes and reasoning for posterity? \r\n\r\nLet's also do one more run of benchmarking. I think I am satisfied. ",
               "author": {
                 "login": "mattrobball"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6ULqMW",
+              "createdAt": "2024-11-19T15:48:14Z",
+              "body": "!bench",
+              "author": {
+                "login": "chrisflav"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6ULqqC",
+              "createdAt": "2024-11-19T15:48:57Z",
+              "body": "> Can you update your PR description to explain the changes and reasoning for posterity?\r\n> \r\n> Let's also do one more run of benchmarking. I think I am satisfied.\r\n\r\nUpdated the PR description.",
+              "author": {
+                "login": "chrisflav"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6UL9Mj",
+              "createdAt": "2024-11-19T16:18:00Z",
+              "body": "Here are the [benchmark results](http://speed.lean-fro.org/mathlib4/run-detail/d1434ece-31bb-43e2-b333-4547de0036b2) for commit 24c84a48e912ec1672dce3dd8a5e7186caff25f8.\nThere were [significant changes](http://speed.lean-fro.org/mathlib4/compare/3592a324-de1b-439e-81e0-6f7ffafff991/to/d1434ece-31bb-43e2-b333-4547de0036b2) against commit 54d12203eb2afd003111899bd0a35c3ee74bb6af:\n```diff\n  Benchmark                                    Metric         Change\n  ==================================================================\n- ~Mathlib.Algebra.Category.AlgebraCat.Basic   instructions    73.0%\n```",
+              "author": {
+                "login": "leanprover-bot"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6UL9hj",
+              "createdAt": "2024-11-19T16:18:28Z",
+              "body": "|File|Instructions|%|\n|-|-:|:-:|\n|`build`|+25.510⬝10⁹|(+0.01%)|\n|`Mathlib.Algebra.Category.AlgebraCat.Basic`|+21.816⬝10⁹|(+72.97%)|\n|`Mathlib.Algebra.Category.AlgebraCat.Limits`|+8.722⬝10⁹|(+15.44%)|\n|`Mathlib.LinearAlgebra.CliffordAlgebra.CategoryTheory`|+1.237⬝10⁹|(+26.14%)|\n|`Mathlib.CategoryTheory.Monoidal.Internal.Module`|-6.52⬝10⁹|(-3.88%)|",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6RzKk0",
+              "createdAt": "2024-11-19T17:11:29Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
               }
             }
           ]
