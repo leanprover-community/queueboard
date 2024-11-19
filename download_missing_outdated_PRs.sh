@@ -64,7 +64,8 @@ for pr in $(cat "missing_prs.txt" | grep --invert-match "^--" | head --lines 20)
 done
 echo "Backfilled at most one PR successfully"
 
-# Do the same for at most 2 stubborn PRs. (Using `head --lines 2` is *not* equivalent!)
+# Do the same for at most 2 stubborn PRs.
+# (Using `head --lines 2` is *not* equivalent, as we want to count *non-skipped* PRs.)
 i=0
 for pr in $(cat "stubborn_prs.txt" | grep --invert-match "^--"); do
   dir="data/$pr-basic"
@@ -73,13 +74,13 @@ for pr in $(cat "stubborn_prs.txt" | grep --invert-match "^--"); do
     echo "[skip] Data exists for 'stubborn' PR #$pr: $CURRENT_TIME"
     continue
   fi
-  i=$((i+1))
-  if [ $i -eq 2 ]; then
-    break;
-  fi
   echo "Attempting to backfill data for 'stubborn' PR $pr"
   mkdir -p "$dir"
   ./basic_pr_info.sh "$pr" | jq '.' > "$dir/basic_pr_info.json"
   echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+  i=$((i+1))
+  if [ $i -eq 2 ]; then
+    break;
+  fi
 done
 echo "Backfilled up to two 'stubborn' PRs successfully"
