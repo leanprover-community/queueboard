@@ -43,7 +43,7 @@ echo "Successfully re-downloaded all planned PRs (if any)"
 # HACK: ask for many to avoid broken data "blocking the pipe"
 # NB. This assumes each such PR is not stubborn --- need to ensure "missing_prs.txt" doesn't contain stubborn PRs!
 i=0
-for pr in $(cat "missing_prs.txt" | head --lines 20); do
+for pr in $(cat "missing_prs.txt" | grep --invert-match "^--" | head --lines 20); do
   # Check if the directory exists
   if [ -d "data/$pr" ]; then
     echo "[skip] Data exists for #$pr: $CURRENT_TIME"
