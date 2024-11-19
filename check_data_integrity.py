@@ -137,23 +137,29 @@ def _has_valid_entries(data_dirs: List[str], number: int) -> bool:
 
 
 # Read the file 'missing_prs.txt', check for entries which can be removed now and writes out the updated file.
+# Take care to keep manual comments in the file.
 def prune_missing_prs_file() -> None:
-    current_numbers: List[str] = []
+    current_lines: List[str] = []
     with open("missing_prs.txt", "r") as file:
-        current_numbers = file.read().strip().splitlines()
-    # Remove empty lines.
-    current_numbers = [n for n in current_numbers if n]
+        current_lines = file.read().strip().splitlines()
+
     data_dirs: List[str] = sorted(os.listdir("data"))
-    # For each PR number in that file, whether there is a well-formed entry for it.
-    is_well_formed = {
-        n: _has_valid_entries(data_dirs, int(n)) for n in current_numbers
-    }
-    superfluous = [n for n in current_numbers if is_well_formed[n]]
+    # Remove all superfluous lines: corresponding to PR numbers which have valid entries now.
+    # Keep the remaining ones unchanged.
+    new_lines = []
+    superfluous = []
+    for line in current_lines:
+        if not line or line.startswith("--"):
+            new_lines.append(line)
+            continue
+        if _has_valid_entries(data_dirs, int(line)):
+            superfluous.append(line)
+        else:
+            new_lines.append(line)
     if superfluous:
         eprint(f"{len(superfluous)} PR(s) marked as missing have present entries now, removing: {superfluous}")
-    prs_to_keep = [n for n in current_numbers if not is_well_formed[n]]
     with open("missing_prs.txt", "w") as file:
-        file.write('\n'.join([str(n) for n in prs_to_keep]) + '\n')
+        file.write('\n'.join(new_lines) + '\n')
 
 
 # Read the last updated fields of the aggregate data file, and compare it with the
@@ -205,7 +211,7 @@ def main() -> None:
     for pr_number in aggregate_last_updated:
         if aggregate_last_updated[pr_number].state == "open":
             if pr_number not in current_last_updated:
-                print(f"mismatch: the aggregate file says PR {pr_number} is still open, while is wrong.")
+                print(f"mismatch: the aggregate file says PR {pr_number} is still open, which is wrong.")
                 outdated_prs.append(pr_number)
 
     # Also check for PRs whose aggregate data says CI is "running", but whose last update
