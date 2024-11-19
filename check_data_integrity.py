@@ -136,9 +136,10 @@ def _has_valid_entries(data_dirs: List[str], number: int) -> bool:
             assert False  # unreachable
 
 
-# Read the file 'missing_prs.txt', check for entries which can be removed now and writes out the updated file.
-# Take care to keep manual comments in the file.
-def prune_missing_prs_file() -> None:
+# Read the file 'missing_prs.txt', check for entries which can be removed now
+# and write out the updated file. Take care to keep manual comments in the file.
+# Return a list of all PR numbers which are in the new file.
+def prune_missing_prs_file() -> List[int]:
     current_lines: List[str] = []
     with open("missing_prs.txt", "r") as file:
         current_lines = file.read().strip().splitlines()
@@ -147,19 +148,22 @@ def prune_missing_prs_file() -> None:
     # Remove all superfluous lines: corresponding to PR numbers which have valid entries now.
     # Keep the remaining ones unchanged.
     new_lines = []
-    superfluous = []
+    current_missing_prs: List[int] = []
+    superfluous: List[int] = []
     for line in current_lines:
         if not line or line.startswith("--"):
             new_lines.append(line)
             continue
         if _has_valid_entries(data_dirs, int(line)):
-            superfluous.append(line)
+            superfluous.append(int(line))
         else:
             new_lines.append(line)
+            current_missing_prs.append(int(line))
     if superfluous:
         eprint(f"{len(superfluous)} PR(s) marked as missing have present entries now, removing: {superfluous}")
     with open("missing_prs.txt", "w") as file:
         file.write('\n'.join(new_lines) + '\n')
+    return current_missing_prs
 
 
 # Read the last updated fields of the aggregate data file, and compare it with the
@@ -223,18 +227,17 @@ def main() -> None:
                 stubborn_prs.append(int(line))
     # Write out the list of missing PRs.
     # Prune superfluous entries from 'missing_prs.txt' first.
-    prune_missing_prs_file()
-    # Future: parse the current list of missing PRs, and add additional missing PRs there.
+    current_missing_entries = prune_missing_prs_file()
     if missing_prs:
         print(f"SUMMARY: found {len(missing_prs)} PR(s) whose aggregate information is missing:\n{sorted(missing_prs)}", file=sys.stderr)
-        content = ""
-        with open("missing_prs.txt", "r") as file:
-            content = file.read()
-        if not content.strip():
-            # No need to shuffle this list: gather_stats.sh skips PRs with existing
-            # broken data, so each PR is tried at most once anyway.
-            with open("missing_prs.txt", "w") as file:
-                file.write('\n'.join([str(n) for n in missing_prs if n not in stubborn_prs]) + '\n')
+        # Append any 'newly' missing PRs to the file.
+        new_missing_entries = [n for n in missing_prs if n not in current_missing_entries and n not in stubborn_prs]
+        print(f"info: adding PR(s) {new_missing_entries} as missing")
+        # No need to shuffle this list: gather_stats.sh skips PRs with existing
+        # broken data, so each PR is tried at most once anyway.
+        if new_missing_entries:
+            with open("missing_prs.txt", "a") as file:
+                file.write('\n'.join([str(n) for n in new_missing_entries]) + '\n')
             print("  Scheduled all PRs for backfilling")
     if outdated_prs:
         print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{sorted(outdated_prs)}")

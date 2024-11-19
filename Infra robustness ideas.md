@@ -23,6 +23,7 @@ hack for CI completed: auto-add awaiting-CI on every new push --- gets removed o
 
 - auto-identify out-of-date data
   - improve the data integrity check, to check old CI results: done
+  - improve the data integrity check, to find closed PRs which are still marked open: done
   - improve data integrity check: make it detect force-pushes
   - switch to full paranoia mode: comparing the key data on all open PRs; *that* paranoia could suffice once a day or so (to only plug the remaining leaks) --- multi-layered approach
 - automatically re-download out of date PRs: that works reasonably well. Remaining improvements are tracked separately.
@@ -41,6 +42,7 @@ hack for CI completed: auto-add awaiting-CI on every new push --- gets removed o
   - if that one also exists, add to stubborn files.
 
 - if a PR is listed as missing, but its data is broken, currently this can block re-queueing of missing PRs. Instead, one should (1) remove the broken data (and incrementing that counter), (2) re-populate that file, (3) if downloading that file works, reset the broken data counter.
+(partially implemented: new entries are appended to the file; auto-removing broken data is not)
 
 - try logic for stubborn PRs: remove broken data, re-queue and try again. That step should generally not fail.
 
