@@ -55,7 +55,8 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
     additions = inner["additions"]
     deletions = inner["deletions"]
     # Number of files modified by this PR.
-    files = inner["changedFiles"]
+    number_modified_files = inner["changedFiles"]
+    modified_files = [n["path"] for n in inner["files"]["nodes"]]
     # Names of all labels applied to this PR: missing the background colour!
     labels = [lab["name"] for lab in inner["labels"]["nodes"]]
     assignees = [ass["login"] for ass in inner["assignees"]["nodes"]]
@@ -84,7 +85,8 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
         "author": author,
         "title": title,
         "label_names": labels,
-        "num_files": files,
+        "num_files": number_modified_files,
+        "files": modified_files,
         "additions": additions,
         "deletions": deletions,
         "assignees": assignees,
