@@ -178,14 +178,6 @@ def main() -> None:
             state = pr["state"]
             aggregate_last_updated[pr["number"]] = AggregateData(updated, ci == "running", state)
 
-    # Prune superfluous entries from 'missing_prs.txt'. We conciously run this check
-    # before the others, and not in the same step as downloading the missing data
-    # to increase resilience against push races or other unforeseen events.
-    # Any superfluous entries observed here are actually present in the repository.
-    # XXX. actually, that's nonsense --- downloading missing data happens before this step.
-    #  Hm... but this is fine, if committing fails, so does this update...
-    prune_missing_prs_file()
-
     # All PRs whose aggregate data is at least 10 minutes older than github's current "last update".
     outdated_prs: List[int] = []
     missing_prs = []
@@ -230,7 +222,9 @@ def main() -> None:
             if not line.startswith("--") and line:
                 stubborn_prs.append(int(line))
     # Write out the list of missing PRs.
-    # XXX why not prune here? Is there some actual race to protect against?
+    # Prune superfluous entries from 'missing_prs.txt' first.
+    prune_missing_prs_file()
+    # Future: parse the current list of missing PRs, and add additional missing PRs there.
     if missing_prs:
         print(f"SUMMARY: found {len(missing_prs)} PR(s) whose aggregate information is missing:\n{sorted(missing_prs)}", file=sys.stderr)
         content = ""
