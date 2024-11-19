@@ -232,10 +232,10 @@ def main() -> None:
         print(f"SUMMARY: found {len(missing_prs)} PR(s) whose aggregate information is missing:\n{sorted(missing_prs)}", file=sys.stderr)
         # Append any 'newly' missing PRs to the file.
         new_missing_entries = [n for n in missing_prs if n not in current_missing_entries and n not in stubborn_prs]
-        print(f"info: adding PR(s) {new_missing_entries} as missing")
         # No need to shuffle this list: gather_stats.sh skips PRs with existing
         # broken data, so each PR is tried at most once anyway.
         if new_missing_entries:
+            print(f"info: adding PR(s) {new_missing_entries} as missing")
             with open("missing_prs.txt", "a") as file:
                 file.write('\n'.join([str(n) for n in new_missing_entries]) + '\n')
             print("  Scheduled all PRs for backfilling")
