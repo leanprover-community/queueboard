@@ -263,7 +263,7 @@ def read_json_files() -> JSONInputData:
             CI_status = {
                 "pass": CIStatus.Pass,
                 "fail": CIStatus.Fail,
-                "fail-inessential": CIStatus.Fail,
+                "fail-inessential": CIStatus.FailInessential,
                 "running": CIStatus.Running,
                 None: CIStatus.Missing,
             }
@@ -477,6 +477,8 @@ def write_on_the_queue_page(
         status_symbol = {
             CIStatus.Pass: f'<a title="CI for this pull request passes">{icon(True)}</a>',
             CIStatus.Fail: f'<a title="CI for this pull request fails">{icon(False)}</a>',
+            # TODO: change symbol, cross with a ?, with underline and explanation!
+            CIStatus.FailInessential: f'<a title="CI for this pull request fails, but the failing jobs are typically spurious or related to mathlib\'s infrastructure. Unless this PR modifies that infrastructure itself, the failure is not the fault of this PR">{icon(False)}?</a>',
             CIStatus.Running: '<a title="CI for this pull request is still running">&#128996;</a>',
             CIStatus.Missing: '<a title="missing information about this PR\'s CI status">???</a>',
         }

@@ -50,8 +50,12 @@ label_categorisation_rules: dict[str, LabelKind] = {
 class CIStatus(Enum):
     # All build jobs pass (or are skipped).
     Pass = auto()
-    # Some build job fails: currently, we don't distinguish *which* jobs fail.
+    # Some build job fails which is not "inessential" (see below).
     Fail = auto()
+    # Some build job fails, but all failing jobs are (usually) spurious failures,
+    # or related to defects in the infrastructure.
+    # Unless a PR actively modifies such infrastructure, this is not a bug in the PR.
+    FailInessential = auto()
     # CI is currently running
     Running = auto()
     # Missing data.
@@ -117,7 +121,10 @@ def label_to_prstatus(label: LabelKind) -> PRStatus:
 def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
     '''Determine a PR's status from its state
     'date' is necessary as the interpretation of the awaiting-review label changes over time'''
-    if state.draft or state.ci in [CIStatus.Fail, CIStatus.Missing]:
+    # TODO: decide what to do with inessential failures for the classification...
+    # for infra PRs, just treating it as "fine" seems wrong.
+    # Perhaps still treat as failing, but expose differently on a dashboard?
+    if state.draft or state.ci in [CIStatus.Fail, CIStatus.FailInessential, CIStatus.Missing]:
         return PRStatus.NotReady
     # Ignore all "other" labels, which are not relevant for this anyway.
     labels = [label for label in state.labels if label != LabelKind.Other]
