@@ -191,8 +191,7 @@ class BasicPRInformation(NamedTuple):
 # Keep this in sync with the actual file, extending this once new data is added!
 class AggregatePRInfo(NamedTuple):
     is_draft: bool
-    # "pass", "fail", "running" or "null" (hopefully rare)
-    CI_status: str
+    CI_status: CIStatus
     # The branch this PR is opened against: should be 'master' (for most PRs)
     base_branch: str
     # The repository this PR was opened from: should be 'leanprover-community',
@@ -219,7 +218,7 @@ class AggregatePRInfo(NamedTuple):
 
 # Missing aggregate information will be replaced by this default item.
 PLACEHOLDER_AGGREGATE_INFO = AggregatePRInfo(
-    False, "fail", "master", "leanprover-community", "open", datetime.now(timezone.utc),
+    False, CIStatus.Missing, "master", "leanprover-community", "open", datetime.now(timezone.utc),
     "unknown", "unknown title", [], -1, -1, -1, [], [], None,
 )
 
@@ -261,8 +260,14 @@ def read_json_files() -> JSONInputData:
                 number_all_comments = pr["number_comments"] + pr["number_review_comments"]
             else:
                 number_all_comments = None
+            CI_status = {
+                "pass": CIStatus.Pass,
+                "fail": CIStatus.Fail,
+                "running": CIStatus.Running,
+                None: CIStatus.Missing,
+            }
             info = AggregatePRInfo(
-                pr["is_draft"], pr["CI_status"], pr["base_branch"], pr["head_repo"]["login"],
+                pr["is_draft"], CI_status[pr["CI_status"]], pr["base_branch"], pr["head_repo"]["login"],
                 pr["state"], date, pr["author"], pr["title"], [toLabel(name) for name in label_names],
                 pr["additions"], pr["deletions"], pr["num_files"], pr["review_approvals"], pr["assignees"], number_all_comments
             )
@@ -352,12 +357,12 @@ def main() -> None:
 
     # The only exception is for the "on the queue" page,
     # which points out missing information explicitly, hence is passed the non-filled in data.
-    CI_status : dict[int, str | None] = dict()
+    CI_status : dict[int, CIStatus] = dict()
     for pr in nondraft_PRs:
         if pr.number in input_data.aggregate_info:
             CI_status[pr.number] = input_data.aggregate_info[pr.number].CI_status
         else:
-            CI_status[pr.number] = None
+            CI_status[pr.number] = CIStatus.Missing
     base_branch: dict[int, str] = dict()
     for pr in nondraft_PRs:
         base_branch[pr.number] = aggregate_info[pr.number].base_branch
@@ -380,7 +385,7 @@ def main() -> None:
     # The review queue consists of all PRs against the master branch, with passing CI,
     # that are not in draft state and not labelled WIP, help-wanted or please-adopt,
     # and have none of the other labels below.
-    master_prs_with_CI = [pr for pr in nondraft_PRs if base_branch[pr.number] == 'master' and (CI_status[pr.number] == "pass")]
+    master_prs_with_CI = [pr for pr in nondraft_PRs if base_branch[pr.number] == 'master' and (CI_status[pr.number] == CIStatus.Pass)]
     master_CI_notfork = [pr for pr in master_prs_with_CI if pr not in prs_from_fork]
     other_labels = [
         # XXX: does the #queue check for all of these labels?
@@ -454,11 +459,10 @@ def main() -> None:
 # Print a webpage "why is my PR not on the queue" to the file "on_the_queue.html".
 # 'prs' is the list of PRs on which to print information;
 # 'prs_from_fork' is the list of such PRs which are opened from a fork of mathlib,
-# 'CI_status' states, for each PR, whether PR passes, fails or is still running.
-# If no detailed information was available for a given value, 'None' is returned.
+# 'CI_status' states, for each PR, whether PR passes, fails or is still running (or we are missing information).
 # 'base_branch' returns the pase branch of each PR.
 def write_on_the_queue_page(
-    prs: List[BasicPRInformation], prs_from_fork: List[BasicPRInformation], CI_status: dict[int, str | None], base_branch: dict[int, str]
+    prs: List[BasicPRInformation], prs_from_fork: List[BasicPRInformation], CI_status: dict[int, CIStatus], base_branch: dict[int, str]
 ) -> None:
     def icon(state: bool | None) -> str:
         """Return a green checkmark emoji if `state` is true, and a red cross emoji otherwise."""
@@ -469,20 +473,17 @@ def write_on_the_queue_page(
         if base_branch[pr.number] != "master":
             continue
         from_fork = pr in prs_from_fork
-        ci_status = CI_status[pr.number]
-        if ci_status == "pass":
-            status_symbol = f'<a title="CI for this pull request passes">{icon(True)}</a>'
-        elif ci_status == "fail":
-            status_symbol = f'<a title="CI for this pull request fails">{icon(False)}</a>'
-        elif ci_status == "running":
-            status_symbol = '<a title="CI for this pull request is still running">&#128996;</a>'
-        else:
-            status_symbol = "???"
+        status_symbol = {
+            CIStatus.Pass: f'<a title="CI for this pull request passes">{icon(True)}</a>',
+            CIStatus.Fail: f'<a title="CI for this pull request fails">{icon(False)}</a>',
+            CIStatus.Running: '<a title="CI for this pull request is still running">&#128996;</a>',
+            CIStatus.Missing: '<a title="missing information about this PR\'s CI status">???</a>',
+        }
         is_blocked = any(lab.name in ["blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR"] for lab in pr.labels)
         has_merge_conflict = "merge-conflict" in [lab.name for lab in pr.labels]
         is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
         review = not (any(lab.name in ["awaiting-CI", "awaiting-author", "awaiting-zulip"] for lab in pr.labels))
-        overall = (ci_status == "pass") and (not is_blocked) and (not has_merge_conflict) and is_ready and review
+        overall = (CI_status[pr.number] == CIStatus.Pass) and (not is_blocked) and (not has_merge_conflict) and is_ready and review
         if "login" in pr.author:
             author = pr.author
         else:
@@ -491,7 +492,7 @@ def write_on_the_queue_page(
             author = { "login": "dependabot(?)", "url": "https://github.com/dependabot"}
         entries = [
             pr_link(pr.number, pr.url), user_link(author), title_link(pr.title, pr.url),
-            _write_labels(pr.labels), icon(not from_fork), status_symbol,
+            _write_labels(pr.labels), icon(not from_fork), status_symbol[CI_status[pr.number]],
             icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall)
         ]
         result = _write_table_row(entries, "    ")
@@ -729,9 +730,7 @@ def compute_pr_statusses(aggregate_info: dict[int, AggregatePRInfo], prs: List[B
     def determine_status(aggregate_info: AggregatePRInfo, info: BasicPRInformation) -> PRStatus:
         # Ignore all "other" labels, which are not relevant for this anyway.
         labels = [label_categorisation_rules[lab.name] for lab in info.labels if lab.name in label_categorisation_rules]
-        translate = { "pass": CIStatus.Pass, "fail": CIStatus.Fail, "running": CIStatus.Running }
-        ci_status = translate[aggregate_info.CI_status]
-        state = PRState(labels, ci_status, aggregate_info.is_draft)
+        state = PRState(labels, aggregate_info.CI_status, aggregate_info.is_draft)
         return determine_PR_status(datetime.now(timezone.utc), state)
     return {info.number: determine_status(aggregate_info[info.number] or PLACEHOLDER_AGGREGATE_INFO, info) for info in prs}
 

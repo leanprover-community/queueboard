@@ -48,9 +48,14 @@ label_categorisation_rules: dict[str, LabelKind] = {
 
 
 class CIStatus(Enum):
+    # All build jobs pass (or are skipped).
     Pass = auto()
+    # Some build job fails: currently, we don't distinguish *which* jobs fail.
     Fail = auto()
+    # CI is currently running
     Running = auto()
+    # Missing data.
+    Missing = auto()
 
 
 # All relevant state of a PR at each point in time.
@@ -112,7 +117,7 @@ def label_to_prstatus(label: LabelKind) -> PRStatus:
 def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
     '''Determine a PR's status from its state
     'date' is necessary as the interpretation of the awaiting-review label changes over time'''
-    if state.draft or state.ci == CIStatus.Fail:
+    if state.draft or state.ci in [CIStatus.Fail, CIStatus.Missing]:
         return PRStatus.NotReady
     # Ignore all "other" labels, which are not relevant for this anyway.
     labels = [label for label in state.labels if label != LabelKind.Other]
@@ -198,6 +203,10 @@ def test_determine_status() -> None:
     check2(PRState([], CIStatus.Running, False), PRStatus.AwaitingReview)
     check2(PRState([LabelKind.WIP], CIStatus.Fail, False), PRStatus.NotReady)
     check2(PRState([LabelKind.MergeConflict], CIStatus.Fail, False), PRStatus.NotReady)
+    # Missing CI status is treated as "failing" for the purposes of the classification.
+    check2(PRState([], CIStatus.Missing, False), PRStatus.AwaitingReview)
+    check2(PRState([LabelKind.WIP], CIStatus.Missing, False), PRStatus.NotReady)
+    check2(PRState([LabelKind.MergeConflict], CIStatus.Missing, False), PRStatus.NotReady)
 
     # All label kinds we distinguish.
     ALL = LabelKind._member_map_.values()
