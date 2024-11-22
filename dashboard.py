@@ -46,6 +46,9 @@ class Dashboard(Enum):
     NeedsDecision = auto()
     # PRs passes, but just has a merge conflict: same labels as for review, except we do require a merge conflict
     NeedsMerge = auto()
+    # PR would be ready for review, except for a failure of some infrastructure-related CI job:
+    # unless this CI modifies some mathlib infrastructure, this is not this PRs fault.
+    InessentialCIFails = auto()
     StaleNewContributor = auto()
     # Labelled please-adopt or help-wanted
     NeedsHelp = auto()
@@ -80,6 +83,7 @@ def short_description(kind: Dashboard) -> str:
         Dashboard.TechDebt: "ready PRs labelled with 'tech debt' or 'longest-pole'",
         Dashboard.NeedsDecision: "PRs blocked on a zulip discussion or similar",
         Dashboard.NeedsMerge: "PRs which just have a merge conflict",
+        Dashboard.InessentialCIFails: "PRs with just an infrastructure-related CI failure",
         Dashboard.StaleNewContributor: "stale PRs by new contributors",
         Dashboard.NeedsHelp: "PRs which are looking for a help",
         Dashboard.OtherBase: "ready PRs into a non-master branch",
@@ -103,6 +107,7 @@ def long_description(kind: Dashboard) -> str:
         Dashboard.QueueStaleAssigned: "all assigned PRs on the queue which have not been updated at all in the past two weeks",
         Dashboard.QueueStaleUnassigned: "all PRs on the queue which are unassigned and have not been updated in the past two weeks",
         Dashboard.NeedsMerge: "all PRs which have a merge conflict, but otherwise fit the review queue",
+        Dashboard.InessentialCIFails: "all PRs with just a failure of some infrastructure-related CI job (usually not this PR's fault), but are otherwise ready for review",
         Dashboard.StaleDelegated: f"all PRs labelled 'delegated' {notupdated} 24 hours",
         Dashboard.AllReadyToMerge: "all PRs labelled 'auto-merge-after-CI' or 'ready-to-merge'",
         Dashboard.StaleReadyToMerge: f"all PRs labelled 'auto-merge-after-CI' or 'ready-to-merge' {notupdated} 24 hours",
@@ -155,6 +160,7 @@ def getIdTitle(kind: Dashboard) -> Tuple[str, str]:
             "PRs blocked on a zulip discussion",
         ),
         Dashboard.NeedsMerge: ("needs-merge", "PRs with just a merge conflict"),
+        Dashboard.InessentialCIFails: ("inessential-CI-fails", "PRs with just failing CI, but only often-spurious jobs"),
         Dashboard.NeedsHelp: ("needs-owner", "PRs looking for help"),
         Dashboard.OtherBase: ("other-base", "PRs not into the master branch"),
         Dashboard.FromFork: ("from-fork", "PRs from a fork of mathlib"),
@@ -397,6 +403,10 @@ def main() -> None:
     prs_to_list[Dashboard.NeedsMerge] = prs_with_label(queue_or_merge_conflict, "merge-conflict")
     queue_prs = prs_without_label(queue_or_merge_conflict, "merge-conflict")
 
+    interesting_CI = [pr for pr in nondraft_PRs if CI_status[pr.number] == CIStatus.FailInessential]
+    foo = [pr for pr in interesting_CI if base_branch[pr.number] == 'master' and pr not in prs_from_fork]
+    prs_to_list[Dashboard.InessentialCIFails] = prs_without_any_label(foo, other_labels + ['merge-conflict'])
+
     queue_prs2 = None
     with open("queue.json", "r") as queuefile:
         queue_prs2 = _extract_prs(json.load(queuefile))
@@ -589,8 +599,9 @@ def write_help_out_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRI
     title = "  <h1>Helping out: short tasks</h1>"
     welcome = "<p>Would you like to help out at a PR, differently from reviewing? Here are some ideas:</p>"
     items = [
+        (Dashboard.InessentialCIFails, "take a look at ", "PRs with just some mathlib-infrastructure-related CI failure: unless it's an infrastructure PR, these are spurious/not the PRs fault", ""),
         (Dashboard.NeedsHelp, "take a look at ", "PRs labelled help-wanted or please-adopt", ""),
-        (Dashboard.NeedsMerge, "If the author hasn't noticed, you can ask in a PR which ", 'just has a merge conflict, but would be reviewable otherwise', ". (Remember, that most contributors to mathlib are volunteers/contribute in their free time, often have other commitments — and that real-life events can happen!)"),
+        (Dashboard.NeedsMerge, "If the author hasn't noticed, you can ask in a PR which ", 'just has a merge conflict, but would be reviewable otherwise', ". (Remember, that most contributors to mathlib are volunteers, contribute in their free time and often have other commitments — and that real-life events can happen!)"),
         # Future: add "just CI failing" here
         (Dashboard.FromFork, "post a comment on a ", "PR made from a fork", ", nicely asking them to re-submit it from a mathlib branch instead"),
         (Dashboard.StaleNewContributor, "check if any ", "'stale' PR by a new contributor", " benefits from support, such as help with failing CI or providing feedback on the code"),
@@ -671,7 +682,7 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
 
     # TODO: add the statistics here, or to the overview page? or hide temporarily?
-    items = []
+    items = [(Dashboard.InessentialCIFails, "", long_description(kind), "")]
     for kind in Dashboard._member_map_.values():
         kinds_to_hide = [
             Dashboard.Queue, Dashboard.QueueEasy, Dashboard.QueueNewContributor, Dashboard.QueueTechDebt,
