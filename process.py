@@ -29,9 +29,9 @@ def determine_ci_status(number, CI_check_nodes: dict) -> str:
         "label-new-contributor", "label-and-report-new-contributor", "New Contributor Check",
         "Add delegated label", "Add topic label", "apply_one_t_label", "Add ready-to-merge label", "Add ready-to-merge or delegated label",
         "Ping maintainers on Zulip",
-        # This is HORRIBLY named (PR pending), but I believe this is the "Post or update summary comment" job.
-        # (We compare *job names*, not workflow step names.)
-        "build",
+        # This was an old name for the "Post or update summary comment" job, which has since been given a name.
+        # Recall that this check looks at names of CI *jobs*, not *workflow steps*.
+        "post-or-update-summary-comment", "build",
         ]
     # We consider CI to be passing if no job fails, and every job succeeds or is skipped.
     # If no job fails, but some are still running, we return "running".
