@@ -234,6 +234,9 @@ class JSONInputData(NamedTuple):
 # Validate the command-line arguments and try to read all data passed in via JSON files.
 # Any number of JSON files passed in is fine; we interpret them all as containing open PRs.
 def read_json_files() -> JSONInputData:
+    if len(sys.argv) == 1:
+        print("error: need to pass in some JSON files with open PRs")
+        sys.exit(1)
     all_open_prs = []
     for i in range(1, len(sys.argv)):
         with open(sys.argv[i]) as prfile:
