@@ -32,6 +32,7 @@ def determine_ci_status(number, CI_check_nodes: dict) -> str:
         # This was an old name for the "Post or update summary comment" job, which has since been given a name.
         # Recall that this check looks at names of CI *jobs*, not *workflow steps*.
         "post-or-update-summary-comment", "build",
+        "Cross off linked issues",
         ]
     # We consider CI to be passing if no job fails, and every job succeeds or is skipped.
     # If no job fails, but some are still running, we return "running".
