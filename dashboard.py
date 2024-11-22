@@ -682,7 +682,7 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
 
     # TODO: add the statistics here, or to the overview page? or hide temporarily?
-    items = [(Dashboard.InessentialCIFails, "", long_description(kind), "")]
+    items = [(Dashboard.InessentialCIFails, "", long_description(Dashboard.InessentialCIFails), "")]
     for kind in Dashboard._member_map_.values():
         kinds_to_hide = [
             Dashboard.Queue, Dashboard.QueueEasy, Dashboard.QueueNewContributor, Dashboard.QueueTechDebt,
