@@ -263,6 +263,7 @@ def read_json_files() -> JSONInputData:
             CI_status = {
                 "pass": CIStatus.Pass,
                 "fail": CIStatus.Fail,
+                "fail-inessential": CIStatus.Fail,
                 "running": CIStatus.Running,
                 None: CIStatus.Missing,
             }

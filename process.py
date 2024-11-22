@@ -18,27 +18,48 @@ from typing import List
 from util import eprint, parse_json_file
 
 
-# Determine a PR's CI status: the return value is one of "pass", "fail" and "running".
+# Determine a PR's CI status: the return value is one of "pass", "fail", "fail-inessential" and "running".
 # (Queued or waiting also count as running, cancelled CI counts as failing.)
 # 'CI_check_nodes' is an array of JSON data of all checks for all the commits.
 def determine_ci_status(number, CI_check_nodes: dict) -> str:
-    # We consider CI to be passing if no job fails, and every job succeeds
-    # or is skipped. (In the future, we may exclude inessential runs.)
+    # If an inessential job fails, this is usually spurious (e.g. network issues/github rate limits)
+    # or indicates a general problem with CI, and not this PR.
+    # (Except when this PR modifies CI, of course: currently, we don't check for this.)
+    inessential_jobs = [
+        "label-new-contributor", "label-and-report-new-contributor", "New Contributor Check",
+        "Add delegated label", "Add topic label", "apply_one_t_label", "Add ready-to-merge label", "Add ready-to-merge or delegated label",
+        "Ping maintainers on Zulip",
+        # This is HORRIBLY named (PR pending), but I believe this is the "Post or update summary comment" job.
+        # (We compare *job names*, not workflow step names.)
+        "build",
+        ]
+    # We consider CI to be passing if no job fails, and every job succeeds or is skipped.
+    # If no job fails, but some are still running, we return "running".
+    # If some job fails, we check if this is an inessential job or not.
     in_progress = False
+    inessential_failure = False
     for r in CI_check_nodes:
         # Ignore bors runs: these don't contain status information (and are not interesting for us).
         if "context" in r:
             continue
+        if "label" in r["name"] and r["name"] not in inessential_jobs:
+            print(f"info: job name {r['name']} contains the word label, but is not listed as inessential")
         if r["conclusion"] in ["FAILURE", "CANCELLED"]:
-            # Future: exclude "inessential" runs?
-            return "fail"
+            if r["name"] not in inessential_jobs:
+                return "fail"
+            inessential_failure = True
         elif r["conclusion"] in ["SUCCESS", "SKIPPED", "NEUTRAL"]:
             continue
         elif r["conclusion"] is None and r["status"] in ["IN_PROGRESS", "QUEUED"]:
             in_progress = True
         else:
             print(f'CI run \"{r["name"]}\" for PR {number} has interesting data: {r}"')
-    return "running" if in_progress else "pass"
+    if inessential_failure:
+        return "fail-inessential"
+    elif in_progress:
+        return "running"
+    else:
+        return "pass"
 
 
 def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
