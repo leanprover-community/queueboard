@@ -126,11 +126,9 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
 
 
 def main() -> None:
-    output = dict()
     updated = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    output["timestamp"] = updated
     label_colours: dict[str, str] = dict()
-    pr_data = []
+    all_pr_data = []
     # A few files are known to have broken detailed information.
     # They can be found in the file "stubborn_prs.txt".
     known_erronerous: List[str] = []
@@ -159,11 +157,13 @@ def main() -> None:
                             eprint(f"warning: label {name} is assigned colours {colour} and {label_colours[name]}")
                         else:
                             label_colours[name] = colour
-                pr_data.append(get_aggregate_data(data, only_basic_info))
-    output["label_colours"] = dict(sorted(label_colours.items()))
-    output["pr_statusses"] = pr_data
+                all_pr_data.append(get_aggregate_data(data, only_basic_info))
+    all_pr_data = {
+        "timestamp": updated,
+        "label_colours": dict(sorted(label_colours.items())),
+        "pr_statusses": all_pr_data,
+    }
     with open(path.join("processed_data", "aggregate_pr_data.json"), "w") as f:
-        print(json.dumps(output, indent=4), file=f)
-
+        print(json.dumps(all_pr_data, indent=4), file=f)
 
 main()
