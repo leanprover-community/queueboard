@@ -193,7 +193,7 @@ class BasicPRInformation(NamedTuple):
     updatedAt: str
 
 
-# All information about a single PR contained in `all_pr_info.json`.
+# All information about a single PR contained in `open_pr_info.json`.
 # Keep this in sync with the actual file, extending this once new data is added!
 class AggregatePRInfo(NamedTuple):
     is_draft: bool
@@ -247,7 +247,7 @@ def read_json_files() -> JSONInputData:
         with open(sys.argv[i]) as prfile:
             open_prs = _extract_prs(json.load(prfile))
             all_open_prs.extend(open_prs)
-    with open(path.join("processed_data", "all_pr_data.json"), "r") as f:
+    with open(path.join("processed_data", "open_pr_data.json"), "r") as f:
         data = json.load(f)
         label_colours = data["label_colours"]
         def toLabel(name: str) -> Label:
