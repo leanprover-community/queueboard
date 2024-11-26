@@ -158,12 +158,18 @@ def main() -> None:
                         else:
                             label_colours[name] = colour
                 all_pr_data.append(get_aggregate_data(data, only_basic_info))
-    all_pr_data = {
+    all_prs = {
         "timestamp": updated,
         "label_colours": dict(sorted(label_colours.items())),
         "pr_statusses": all_pr_data,
     }
-    with open(path.join("processed_data", "aggregate_pr_data.json"), "w") as f:
-        print(json.dumps(all_pr_data, indent=4), file=f)
+    just_open_prs = {
+        "timestamp": updated,
+        "pr_statusses": [item for item in all_pr_data if item["state"] == "open"],
+    }
+    with open(path.join("processed_data", "all_pr_data.json"), "w") as f:
+        print(json.dumps(all_prs, indent=4), file=f)
+    with open(path.join("processed_data", "open_pr_data.json"), "w") as f:
+        print(json.dumps(just_open_prs, indent=4), file=f)
 
 main()

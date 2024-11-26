@@ -174,7 +174,7 @@ def main() -> None:
     # "Last updated" information as found in the aggregate data file.
     check_data_directory_contents()
     aggregate_last_updated: dict[int, AggregateData] = dict()
-    with open(os.path.join("processed_data", "aggregate_pr_data.json"), "r") as aggregate_file:
+    with open(os.path.join("processed_data", "all_pr_data.json"), "r") as aggregate_file:
         data = json.load(aggregate_file)
         for pr in data["pr_statusses"]:
             updated = pr["last_updated"]

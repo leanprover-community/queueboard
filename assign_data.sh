@@ -9,10 +9,10 @@
 
 jq '
   reduce .pr_statusses[] as $pr (
-    {}; 
+    {};
     reduce $pr.assignees[] as $assignee (
-      .; 
+      .;
       .[$assignee] += [{"number": $pr.number, "state": $pr.state}]
     )
   )
-' processed_data/aggregate_pr_data.json
+' processed_data/all_pr_data.json

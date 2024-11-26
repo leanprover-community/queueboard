@@ -8,7 +8,7 @@
 # Example: ./script.sh 10020
 
 # Get the largest PR number in the dataset
-LARGEST_PR=$(jq '.pr_statusses | max_by(.number) | .number' processed_data/aggregate_pr_data.json)
+LARGEST_PR=$(jq '.pr_statusses | max_by(.number) | .number' processed_data/all_pr_data.json)
 
 # Set N to the user-provided value or default to largest PR number minus 1000
 N=${1:-$((LARGEST_PR - 1000))}
