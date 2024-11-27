@@ -165,6 +165,7 @@ def main() -> None:
     }
     just_open_prs = {
         "timestamp": updated,
+        "label_colours": dict(sorted(label_colours.items())),
         "pr_statusses": [item for item in all_pr_data if item["state"] == "open"],
     }
     with open(path.join("processed_data", "all_pr_data.json"), "w") as f:
