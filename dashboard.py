@@ -961,6 +961,8 @@ def _extract_prs(data: dict) -> List[BasicPRInformation]:
     prs = []
     for page in data["output"]:
         for entry in page["data"]["search"]["nodes"]:
+            if "login" not in entry["author"]:
+                print(f"invalid data: malformed authors field {entry["author"]} in PR entry {entry}", file=sys.stderr)
             labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
             prs.append(BasicPRInformation(
                 entry["number"], entry["author"], entry["title"], entry["url"], labels, entry["updatedAt"]
