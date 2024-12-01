@@ -966,7 +966,7 @@ def _extract_prs(data: dict) -> List[BasicPRInformation]:
                 author = entry_author
             else:
                 # FIXME: fill in the user name from the actual aggregate data, which has this. Then remove the question mark.
-                print(f"warning: missing author information for PR {entry["number"]}, its authors dictionary is {entry_author} --- was this submitted by dependabot?", file=sys.stderr)
+                print(f'warning: missing author information for PR {entry["number"]}, its authors dictionary is {entry_author} --- was this submitted by dependabot?', file=sys.stderr)
                 author = { "login": "dependabot(?)", "url": "https://github.com/dependabot"}
             # if "login" not in entry["author"]:
             #     print(f'invalid data: malformed authors field {entry["author"]} in PR entry {entry}', file=sys.stderr)
