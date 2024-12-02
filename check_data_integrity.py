@@ -140,30 +140,32 @@ def _has_valid_entries(data_dirs: List[str], number: int) -> bool:
 # and write out the updated file. Take care to keep manual comments in the file.
 # Return a list of all PR numbers which are in the new file.
 def prune_missing_prs_file() -> List[int]:
-    current_lines: List[str] = []
-    with open("missing_prs.txt", "r") as file:
-        current_lines = file.read().strip().splitlines()
+    def inner(filename: str) -> List[int]:
+        current_lines: List[str] = []
+        with open(filename, "r") as file:
+            current_lines = file.read().strip().splitlines()
 
-    data_dirs: List[str] = sorted(os.listdir("data"))
-    # Remove all superfluous lines: corresponding to PR numbers which have valid entries now.
-    # Keep the remaining ones unchanged.
-    new_lines = []
-    current_missing_prs: List[int] = []
-    superfluous: List[int] = []
-    for line in current_lines:
-        if not line or line.startswith("--"):
-            new_lines.append(line)
-            continue
-        if _has_valid_entries(data_dirs, int(line)):
-            superfluous.append(int(line))
-        else:
-            new_lines.append(line)
-            current_missing_prs.append(int(line))
-    if superfluous:
-        eprint(f"{len(superfluous)} PR(s) marked as missing have present entries now, removing: {superfluous}")
-    with open("missing_prs.txt", "w") as file:
-        file.write('\n'.join(new_lines) + '\n')
-    return current_missing_prs
+        data_dirs: List[str] = sorted(os.listdir("data"))
+        # Remove all superfluous lines: corresponding to PR numbers which have valid entries now.
+        # Keep the remaining ones unchanged.
+        new_lines = []
+        current_missing_prs: List[int] = []
+        superfluous: List[int] = []
+        for line in current_lines:
+            if not line or line.startswith("--"):
+                new_lines.append(line)
+                continue
+            if _has_valid_entries(data_dirs, int(line)):
+                superfluous.append(int(line))
+            else:
+                new_lines.append(line)
+                current_missing_prs.append(int(line))
+        if superfluous:
+            eprint(f"{len(superfluous)} PR(s) marked as missing have present entries now, removing: {superfluous}")
+        with open(filename, "w") as file:
+            file.write('\n'.join(new_lines) + '\n')
+        return current_missing_prs
+    return inner("missing_prs.txt")
 
 
 # Read the last updated fields of the aggregate data file, and compare it with the
