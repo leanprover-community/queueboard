@@ -16,6 +16,10 @@ CURRENT_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 # but for our purposes, that is fine.
 stubborn_prs=$(cat "stubborn_prs.txt" | grep --invert-match "^--")
 
+# FIXME: refactor this script to reduce code duplication
+# There should be two primitives: download a stubborn PR, download a normal PR
+# and perhaps "download a PR and check which one it is".
+
 # Re-download data if missing. Take care to not ask for too much at once!
 # FIXME: this is only somewhat robust --- improve this to ensure to avoid
 # re-re-downloading in a loop!
@@ -43,7 +47,7 @@ echo "Successfully re-downloaded all planned PRs (if any)"
 # HACK: ask for many to avoid broken data "blocking the pipe"
 # NB. This assumes each such PR is not stubborn --- need to ensure "missing_prs.txt" doesn't contain stubborn PRs!
 i=0
-for pr in $(cat "missing_prs.txt" | grep --invert-match "^--" | head --lines 20); do
+for pr in $(cat "missing_prs.txt" | grep --invert-match "^--" | head --lines 50); do
   # Check if the directory exists
   if [ -d "data/$pr" ]; then
     echo "[skip] Data exists for #$pr: $CURRENT_TIME"
@@ -62,6 +66,25 @@ for pr in $(cat "missing_prs.txt" | grep --invert-match "^--" | head --lines 20)
   # Save the current timestamp.
   echo "$CURRENT_TIME" > "$dir/timestamp.txt"
 done
+# If there was no "missing" PR to backfill, backfill at most one PR from `closed_prs_to_backfill.txt`.
+if [ $i -eq 0 ]; then
+  for pr in $(cat "closed_prs_to_backfill.txt" | grep --invert-match "^--" | head --lines 50); do
+    # Check if the directory exists
+    if [ -d "data/$pr" ]; then
+      echo "[skip] Data exists for #$pr: $CURRENT_TIME"
+      continue
+    fi
+    echo "Attempting to backfill data for PR $pr"
+    dir="data/$pr"
+    mkdir -p "$dir"
+    # Run pr_info.sh and pr_reactions.sh and save the output.
+    ./pr_info.sh "$pr" | jq '.' > "$dir/pr_info.json"
+    ./pr_reactions.sh "$pr" | jq '.' > "$dir/pr_reactions.json"
+    # Save the current timestamp.
+    echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+    break
+  done
+fi
 echo "Backfilled at most one PR successfully"
 
 # Do the same for at most 2 stubborn PRs.
