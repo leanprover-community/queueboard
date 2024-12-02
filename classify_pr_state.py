@@ -1,4 +1,5 @@
-'''Helper utilities for determining the current state of a pull request from e.g. its labels.'''
+"""Helper utilities for determining the current state of a pull request from e.g. its labels."""
+
 from datetime import datetime
 from enum import Enum, auto
 from typing import List, NamedTuple
@@ -70,8 +71,8 @@ class PRState(NamedTuple):
     """True if and only if this PR is marked as draft."""
 
     @staticmethod
-    def with_labels(labels : List[LabelKind]):
-        '''Create a PR state with just these labels, passing CI and ready for review'''
+    def with_labels(labels: List[LabelKind]):
+        """Create a PR state with just these labels, passing CI and ready for review"""
         return PRState(labels, CIStatus.Pass, False)
 
 
@@ -119,8 +120,8 @@ def label_to_prstatus(label: LabelKind) -> PRStatus:
 
 
 def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
-    '''Determine a PR's status from its state
-    'date' is necessary as the interpretation of the awaiting-review label changes over time'''
+    """Determine a PR's status from its state
+    'date' is necessary as the interpretation of the awaiting-review label changes over time"""
     # TODO: decide what to do with inessential failures for the classification...
     # for infra PRs, just treating it as "fine" seems wrong.
     # Perhaps still treat as failing, but expose differently on a dashboard?
@@ -147,8 +148,20 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
     else:
         # Some label combinations are contradictory. We mark the PR as in a "contradictory" state.
         # awaiting-decision is exclusive with any of waiting on review, author, delegation and sent to bors.
-        if LabelKind.Decision in labels and any([label for label in labels if
-                label in [LabelKind.Author, LabelKind.Review, LabelKind.Delegated, LabelKind.Bors, LabelKind.WIP]]):
+        if LabelKind.Decision in labels and any(
+            [
+                label
+                for label in labels
+                if label
+                in [
+                    LabelKind.Author,
+                    LabelKind.Review,
+                    LabelKind.Delegated,
+                    LabelKind.Bors,
+                    LabelKind.WIP,
+                ]
+            ]
+        ):
             return PRStatus.Contradictory
         # Work in progress contradicts "awaiting review" and "ready for bors".
         if LabelKind.WIP in labels and any([label for label in labels if label in [LabelKind.Review, LabelKind.Bors]]):
@@ -185,14 +198,17 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
 def test_determine_status() -> None:
     # NB: this only tests the new handling of awaiting-review status.
     default_date = datetime(2024, 8, 1)
+
     def check(labels: List[LabelKind], expected: PRStatus) -> None:
         state = PRState.with_labels(labels)
         actual = determine_PR_status(default_date, state)
         assert expected == actual, f"expected PR status {expected} from labels {labels}, got {actual}"
+
     # This version takes a PR state instead.
     def check2(state: PRState, expected: PRStatus) -> None:
         actual = determine_PR_status(default_date, state)
         assert expected == actual, f"expected PR status {expected} from state {state}, got {actual}"
+
     # Check if the PR status on a given list of labels in one of several allowed values.
     # If successful, returns the actual PR status computed.
     def check_flexible(labels: List[LabelKind], allowed: List[PRStatus]) -> PRStatus:

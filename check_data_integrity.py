@@ -40,7 +40,7 @@ def _check_timestamp_file(path: str) -> bool:
     is_valid = True
     with open(path, "r") as file:
         content = file.read()
-        if not content.endswith('\n'):
+        if not content.endswith("\n"):
             eprint(f'error: timestamp file at path "{path}" should end with a newline')
             is_valid = False
         content = content.removesuffix("\n")
@@ -61,7 +61,7 @@ def _check_directory(dir: str, pr_number: int, files: List[str]) -> bool:
         if file == "timestamp.txt":
             is_valid = is_valid and _check_timestamp_file(os.path.join(dir, file))
         else:
-            assert file.endswith('.json')
+            assert file.endswith(".json")
             match parse_json_file(os.path.join(dir, file), str(pr_number)):
                 case str(err):
                     eprint(err)
@@ -164,8 +164,9 @@ def prune_missing_prs_files() -> List[int]:
         if superfluous:
             eprint(f"{len(superfluous)} PR(s) marked as missing have present entries now, removing: {superfluous}")
         with open(filename, "w") as file:
-            file.write('\n'.join(new_lines) + '\n')
+            file.write("\n".join(new_lines) + "\n")
         return current_missing_prs
+
     _unused = inner("closed_prs_to_backfill.txt")
     return inner("missing_prs.txt")
 
@@ -193,7 +194,7 @@ def main() -> None:
     for pr_number in current_last_updated:
         current_updated = parser.isoparse(current_last_updated[pr_number])
         if pr_number not in aggregate_last_updated:
-            print(f'mismatch: missing data for PR {pr_number}')
+            print(f"mismatch: missing data for PR {pr_number}")
             missing_prs.append(pr_number)
             continue
         aggregate_updated = parser.isoparse(aggregate_last_updated[pr_number].last_updated)
@@ -202,7 +203,7 @@ def main() -> None:
         # aggregate_updated is allowed to lag behind by at most 10 minutes.
         if aggregate_updated < current_updated - timedelta(minutes=10):
             delta = current_updated - aggregate_updated
-            print(f'mismatch: the aggregate file for PR {pr_number} is outdated by {delta}, please re-download!')
+            print(f"mismatch: the aggregate file for PR {pr_number} is outdated by {delta}, please re-download!")
             print(f"  the aggregate file says {aggregate_updated}, current last update is {current_updated}")
             outdated_prs.append(pr_number)
 
@@ -220,7 +221,8 @@ def main() -> None:
     for pr_number in aggregate_last_updated:
         is_running = aggregate_last_updated[pr_number].is_CI_running
         if is_running and aggregate_updated < datetime.now(timezone.utc) - timedelta(minutes=ci_limit):
-            print(f"outdated data: the aggregate data for PR {pr_number} claims CI is still running, but was last updated more than {ci_limit} minutes ago")
+            print(f"outdated data: the aggregate data for PR {pr_number} claims CI is still running, "
+              "but was last updated more than {ci_limit} minutes ago")
             outdated_prs.append(pr_number)
 
     # Some PRs are marked as stubborn: for them, only basic information is downloaded.
@@ -241,7 +243,7 @@ def main() -> None:
         if new_missing_entries:
             print(f"info: adding PR(s) {new_missing_entries} as missing")
             with open("missing_prs.txt", "a") as file:
-                file.write('\n'.join([str(n) for n in new_missing_entries]) + '\n')
+                file.write("\n".join([str(n) for n in new_missing_entries]) + "\n")
             print("  Scheduled all PRs for backfilling")
     if outdated_prs:
         print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{sorted(outdated_prs)}")
@@ -259,8 +261,9 @@ def main() -> None:
             # Shuffle the list of outdated PRs, to avoid this getting stuck in a loop
             # of trying and failing to re-download the same PR over and over.
             import random
+
             random.shuffle(outdated_prs)
-            new = ['\n'.join([str(n) for n in outdated_prs[:min(4, len(outdated_prs))]]) + '\n']
+            new = ["\n".join([str(n) for n in outdated_prs[: min(4, len(outdated_prs))]]) + "\n"]
             file.writelines(new)
     else:
         print("All PR aggregate data appears up to date, congratulations!")

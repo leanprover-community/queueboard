@@ -13,8 +13,13 @@ from typing import Dict, List, NamedTuple, Tuple
 
 from dateutil import parser, relativedelta
 
-from classify_pr_state import (CIStatus, PRState, PRStatus,
-                               determine_PR_status, label_categorisation_rules)
+from classify_pr_state import (
+    CIStatus,
+    PRState,
+    PRStatus,
+    determine_PR_status,
+    label_categorisation_rules,
+)
 from util import my_assert_eq
 
 
@@ -137,8 +142,14 @@ def getIdTitle(kind: Dashboard) -> Tuple[str, str]:
         ),
         Dashboard.QueueEasy: ("queue-easy", "PRs on the review queue labelled 'easy'"),
         Dashboard.QueueTechDebt: ("queue-tech-debt", "PRs on the review queue labelled 'tech debt' or 'longest-pole'"),
-        Dashboard.QueueStaleAssigned: ("queue-stale-unassigned", "Assigned PRs on the review queue without updates in the past two weeks"),
-        Dashboard.QueueStaleUnassigned: ("queue-stale-unassigned", "Unassigned PRs on the review queue without updates in the past two weeks"),
+        Dashboard.QueueStaleAssigned: (
+            "queue-stale-unassigned",
+            "Assigned PRs on the review queue without updates in the past two weeks",
+        ),
+        Dashboard.QueueStaleUnassigned: (
+            "queue-stale-unassigned",
+            "Unassigned PRs on the review queue without updates in the past two weeks",
+        ),
         Dashboard.StaleDelegated: ("stale-delegated", "Stale delegated PRs"),
         Dashboard.StaleNewContributor: (
             "stale-new-contributor",
@@ -250,6 +261,7 @@ def read_json_files() -> JSONInputData:
     with open(path.join("processed_data", "open_pr_data.json"), "r") as f:
         data = json.load(f)
         label_colours = data["label_colours"]
+
         def toLabel(name: str) -> Label:
             url = f"https://github.com/leanprover-community/mathlib4/labels/{name}"
             if name.startswith("t-"):
@@ -257,6 +269,7 @@ def read_json_files() -> JSONInputData:
             elif name.startswith("blocked-by"):
                 name = "blocked-by-other-PR"
             return Label(name, label_colours[name], url)
+
         aggregate_info = dict()
         for pr in data["pr_statusses"]:
             date = parser.isoparse(pr["last_updated"])
@@ -359,12 +372,15 @@ def main() -> None:
         nondraft_numbers2 = [pr.number for pr in nondraft_prs2]
     msg = "this page's list of non-draft PRs (left) with the Github API query for non-draft PRs (right)"
     if my_assert_eq(msg, [pr.number for pr in nondraft_PRs], nondraft_numbers2):
-        print("Aggregate non-draft PRs and Github REST API's non-draft PRs match, hooray!", file=sys.stderr)
+        print(
+            "Aggregate non-draft PRs and Github REST API's non-draft PRs match, hooray!",
+            file=sys.stderr,
+        )
     assert len(draft_PRs) + len(nondraft_PRs) == len(input_data.all_open_prs)
 
     # The only exception is for the "on the queue" page,
     # which points out missing information explicitly, hence is passed the non-filled in data.
-    CI_status : dict[int, CIStatus] = dict()
+    CI_status: dict[int, CIStatus] = dict()
     for pr in nondraft_PRs:
         if pr.number in input_data.aggregate_info:
             CI_status[pr.number] = input_data.aggregate_info[pr.number].CI_status
@@ -377,35 +393,46 @@ def main() -> None:
     approved = [pr for pr in nondraft_PRs if aggregate_info[pr.number].approvals]
     write_on_the_queue_page(nondraft_PRs, prs_from_fork, CI_status, base_branch)
 
-    prs_to_list : dict[Dashboard, List[BasicPRInformation]] = dict()
+    prs_to_list: dict[Dashboard, List[BasicPRInformation]] = dict()
     # The 'tech debt', 'other base' and 'from fork' boards are obtained
     # from filtering the list of all non-draft PRs (without the WIP label).
-    all_ready_prs = prs_without_label(nondraft_PRs, 'WIP')
-    prs_to_list[Dashboard.TechDebt] = prs_with_any_label(all_ready_prs, ['tech debt', 'longest-pole'])
-    prs_to_list[Dashboard.OtherBase] = [pr for pr in nondraft_PRs if base_branch[pr.number] != 'master']
+    all_ready_prs = prs_without_label(nondraft_PRs, "WIP")
+    prs_to_list[Dashboard.TechDebt] = prs_with_any_label(all_ready_prs, ["tech debt", "longest-pole"])
+    prs_to_list[Dashboard.OtherBase] = [pr for pr in nondraft_PRs if base_branch[pr.number] != "master"]
     prs_to_list[Dashboard.FromFork] = prs_from_fork
 
-    prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(nondraft_PRs, ['help-wanted', 'please_adopt'])
-    prs_to_list[Dashboard.NeedsDecision] = prs_with_label(nondraft_PRs, 'awaiting-zulip')
+    prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(nondraft_PRs, ["help-wanted", "please_adopt"])
+    prs_to_list[Dashboard.NeedsDecision] = prs_with_label(nondraft_PRs, "awaiting-zulip")
 
     # Compute all PRs on the review queue (and well as several sub-filters).
     # The review queue consists of all PRs against the master branch, with passing CI,
     # that are not in draft state and not labelled WIP, help-wanted or please-adopt,
     # and have none of the other labels below.
-    master_prs_with_CI = [pr for pr in nondraft_PRs if base_branch[pr.number] == 'master' and (CI_status[pr.number] == CIStatus.Pass)]
+    master_prs_with_CI = [pr for pr in nondraft_PRs if base_branch[pr.number] == "master" and (CI_status[pr.number] == CIStatus.Pass)]
     master_CI_notfork = [pr for pr in master_prs_with_CI if pr not in prs_from_fork]
     other_labels = [
         # XXX: does the #queue check for all of these labels?
-        "blocked-by-other-PR", "blocked-by-core-PR", "blocked-by-batt-PR", "blocked-by-qq-PR",
-        "awaiting-CI", "awaiting-author", "awaiting-zulip", "please-adopt", "help-wanted", "WIP",
-        "delegated", "auto-merge-after-CI", "ready-to-merge"]
+        "blocked-by-other-PR",
+        "blocked-by-core-PR",
+        "blocked-by-batt-PR",
+        "blocked-by-qq-PR",
+        "awaiting-CI",
+        "awaiting-author",
+        "awaiting-zulip",
+        "please-adopt",
+        "help-wanted",
+        "WIP",
+        "delegated",
+        "auto-merge-after-CI",
+        "ready-to-merge",
+    ]
     queue_or_merge_conflict = prs_without_any_label(master_CI_notfork, other_labels)
     prs_to_list[Dashboard.NeedsMerge] = prs_with_label(queue_or_merge_conflict, "merge-conflict")
     queue_prs = prs_without_label(queue_or_merge_conflict, "merge-conflict")
 
     interesting_CI = [pr for pr in nondraft_PRs if CI_status[pr.number] == CIStatus.FailInessential]
-    foo = [pr for pr in interesting_CI if base_branch[pr.number] == 'master' and pr not in prs_from_fork]
-    prs_to_list[Dashboard.InessentialCIFails] = prs_without_any_label(foo, other_labels + ['merge-conflict'])
+    foo = [pr for pr in interesting_CI if base_branch[pr.number] == "master" and pr not in prs_from_fork]
+    prs_to_list[Dashboard.InessentialCIFails] = prs_without_any_label(foo, other_labels + ["merge-conflict"])
 
     queue_prs2 = None
     with open("queue.json", "r") as queuefile:
@@ -427,22 +454,22 @@ def main() -> None:
     # TODO: try to switch back to 'queue_prs' again, once the root causes for PR getting 'dropped'
     # by 'gather_stats.sh' are all identified and fixed.
     prs_to_list[Dashboard.Queue] = queue_prs2
-    prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs2, 'new-contributor')
-    prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs2, 'easy')
-    prs_to_list[Dashboard.QueueTechDebt] = prs_with_any_label(queue_prs2, ['tech debt', 'longest-pole'])
+    prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs2, "new-contributor")
+    prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs2, "easy")
+    prs_to_list[Dashboard.QueueTechDebt] = prs_with_any_label(queue_prs2, ["tech debt", "longest-pole"])
 
     a_day_ago = datetime.now(timezone.utc) - timedelta(days=1)
     a_week_ago = datetime.now(timezone.utc) - timedelta(days=7)
     two_weeks_ago = datetime.now(timezone.utc) - timedelta(days=14)
     one_day_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_day_ago]
     one_week_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_week_ago]
-    prs_to_list[Dashboard.AllReadyToMerge] = prs_with_any_label(nondraft_PRs, ['ready-to-merge', 'auto-merge-after-CI'])
-    prs_to_list[Dashboard.StaleReadyToMerge] = prs_with_any_label(one_day_stale, ['ready-to-merge', 'auto-merge-after-CI'])
-    prs_to_list[Dashboard.StaleDelegated] = prs_with_label(one_day_stale, 'delegated')
-    mm_prs = prs_with_label(one_day_stale, 'maintainer-merge')
-    prs_to_list[Dashboard.StaleMaintainerMerge] = prs_without_label(mm_prs, 'ready-to-merge')
-    prs_to_list[Dashboard.AllMaintainerMerge] = prs_without_label(prs_with_label(nondraft_PRs, 'maintainer-merge'), 'ready-to-merge')
-    prs_to_list[Dashboard.StaleNewContributor] = prs_with_label(one_week_stale, 'new-contributor')
+    prs_to_list[Dashboard.AllReadyToMerge] = prs_with_any_label(nondraft_PRs, ["ready-to-merge", "auto-merge-after-CI"])
+    prs_to_list[Dashboard.StaleReadyToMerge] = prs_with_any_label(one_day_stale, ["ready-to-merge", "auto-merge-after-CI"])
+    prs_to_list[Dashboard.StaleDelegated] = prs_with_label(one_day_stale, "delegated")
+    mm_prs = prs_with_label(one_day_stale, "maintainer-merge")
+    prs_to_list[Dashboard.StaleMaintainerMerge] = prs_without_label(mm_prs, "ready-to-merge")
+    prs_to_list[Dashboard.AllMaintainerMerge] = prs_without_label(prs_with_label(nondraft_PRs, "maintainer-merge"), "ready-to-merge")
+    prs_to_list[Dashboard.StaleNewContributor] = prs_with_label(one_week_stale, "new-contributor")
 
     stale_queue = [pr for pr in queue_prs2 if aggregate_info[pr.number].last_updated < two_weeks_ago]
     prs_to_list[Dashboard.QueueStaleUnassigned] = [pr for pr in stale_queue if not aggregate_info[pr.number].assignees]
@@ -473,7 +500,10 @@ def main() -> None:
 # 'CI_status' states, for each PR, whether PR passes, fails or is still running (or we are missing information).
 # 'base_branch' returns the pase branch of each PR.
 def write_on_the_queue_page(
-    prs: List[BasicPRInformation], prs_from_fork: List[BasicPRInformation], CI_status: dict[int, CIStatus], base_branch: dict[int, str]
+    prs: List[BasicPRInformation],
+    prs_from_fork: List[BasicPRInformation],
+    CI_status: dict[int, CIStatus],
+    base_branch: dict[int, str],
 ) -> None:
     def icon(state: bool | None) -> str:
         """Return a green checkmark emoji if `state` is true, and a red cross emoji otherwise."""
@@ -522,14 +552,13 @@ def write_on_the_queue_page(
     table = f"  <table>\n{head}{body}  </table>"
     # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
-    start = ("  <h1>Why is my PR not on the queue?</h1>\n"
-      f"  <small>This page was last updated on: {updated}</small>")
+    start = f"  <h1>Why is my PR not on the queue?</h1>\n  <small>This page was last updated on: {updated}</small>"
     write_webpage(f"{start}\n{EXPLANATION}\n{table}", "on_the_queue.html")
 
 
 def write_overview_page(updated: str) -> None:
     title = "  <h1>Mathlib review and triage dashboard</h1>"
-    welcome = '''<p>Welcome to the mathlib review and triage webpage! There are many ways to help, what are you looking for in particular?</p>
+    welcome = """<p>Welcome to the mathlib review and triage webpage! There are many ways to help, what are you looking for in particular?</p>
 
 <div class="btn-group">
   <button><a href="review_dashboard.html">Review queue</a></button>
@@ -551,7 +580,7 @@ def write_overview_page(updated: str) -> None:
     <li>Are you coming here for <strong>PR triage</strong>: looking for PRs stuck in some state, and would like to move them along? The <a href="triage.html">triage dashboard</a> has the ultimate collection of all public information.</li>
   <!-- hidden page for maintainers to assign reviewers is not public -->
   </ul>
-</details>'''
+</details>"""
     welcome = "\n  ".join(welcome.splitlines())
     welcome += '\n  <p>For the <strong>old main page</strong> with all tables at one glance, <a href="index-old.html">look here</a>.</p>'
     feedback = '<p>Feedback (including bug reports and ideas for improvements) on this dashboard is very welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.</p>'
@@ -559,62 +588,108 @@ def write_overview_page(updated: str) -> None:
     write_webpage(body, "index.html")
 
 
-def write_review_queue_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]], aggregate_info: dict[int, AggregatePRInfo]) -> None:
+def write_review_queue_page(
+    updated: str,
+    prs_to_list: dict[Dashboard, List[BasicPRInformation]],
+    aggregate_info: dict[int, AggregatePRInfo],
+) -> None:
     title = "  <h1>The mathlib review queue</h1>"
     welcome = "<p>Welcome to the mathlib review page. Everybody's help with reviewing is appreciated. Reviewing contributions is important, and everybody is welcome to review pull requests! If you're not sure how, the <a href=\"https://leanprover-community.github.io/contribute/pr-review.html\">pull request review guide</a> is there to help you.<br>\n  This page contains tables of</p>"
     items = [
         (Dashboard.Queue, "all PRs ready for review", ""),
-        (Dashboard.QueueNewContributor, 'among these, all PRs written by "new contributors"', " (i.e., everybody who has had at most five PRs merged to mathlib)"),
+        (
+            Dashboard.QueueNewContributor,
+            'among these, all PRs written by "new contributors"',
+            " (i.e., everybody who has had at most five PRs merged to mathlib)",
+        ),
         (Dashboard.QueueEasy, 'just the PRs labelled "easy"', ""),
         (Dashboard.QueueTechDebt, "just the PRs addressing technical debt", ""),
     ]
-    list_items = [f'<li><a href="#{getIdTitle(kind)[0]}">{description}</a>{unlinked}</li>\n' for (kind, description, unlinked) in items]
+    list_items = [
+        f'<li><a href="#{getIdTitle(kind)[0]}">{description}</a>{unlinked}</li>\n' for (kind, description, unlinked) in items
+    ]
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
     dashboards = [write_dashboard(prs_to_list[kind], aggregate_info, kind) for (kind, _, _) in items]
-    body += '\n'.join(dashboards) + '\n'
+    body += "\n".join(dashboards) + "\n"
     write_webpage(body, "review_dashboard.html")
 
 
-def write_maintainers_quick_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]], aggregate_info: dict[int, AggregatePRInfo]) -> None:
+def write_maintainers_quick_page(
+    updated: str,
+    prs_to_list: dict[Dashboard, List[BasicPRInformation]],
+    aggregate_info: dict[int, AggregatePRInfo],
+) -> None:
     title = "  <h1>Maintainers page: short tasks</h1>"
     welcome = "<p>Are you a maintainer with just a short amount of time? The following kinds of pull requests could be relevant for you.</p>"
     items = [
         (Dashboard.StaleReadyToMerge, "stale PRs ready-to-merge", ""),
         (Dashboard.StaleMaintainerMerge, 'stale PRs labelled "maintainer merge"', ""),
         (Dashboard.AllMaintainerMerge, "all PRs labelled 'maintainer merge'", ""),
-        (Dashboard.FromFork, 'all PRs made from a fork', ""),
-        (Dashboard.NeedsDecision, 'all PRs waiting on finding consensus on zulip', ""),
+        (Dashboard.FromFork, "all PRs made from a fork", ""),
+        (Dashboard.NeedsDecision, "all PRs waiting on finding consensus on zulip", ""),
         # XXX: should this one be here? can be changed upon discussion
         (Dashboard.QueueTechDebt, "just the PRs addressing technical debt", ""),
     ]
-    list_items = [f'<li><a href="#{getIdTitle(kind)[0]}">{description}</a>{unlinked}</li>\n' for (kind, description, unlinked) in items]
+    list_items = [
+        f'<li><a href="#{getIdTitle(kind)[0]}">{description}</a>{unlinked}</li>\n' for (kind, description, unlinked) in items
+    ]
     post = 'If you realise you actually have a bit more time, you can also look at the <a href="review_dashboard.html">page for reviewers</a>, or look at the <a href="triage.html">triage page!</a>'
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  {post}<br>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
     dashboards = [write_dashboard(prs_to_list[kind], aggregate_info, kind) for (kind, _, _) in items]
-    body += '\n'.join(dashboards) + '\n'
+    body += "\n".join(dashboards) + "\n"
     write_webpage(body, "maintainers_quick.html")
 
 
-def write_help_out_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]], aggregate_info: dict[int, AggregatePRInfo]) -> None:
+def write_help_out_page(
+    updated: str,
+    prs_to_list: dict[Dashboard, List[BasicPRInformation]],
+    aggregate_info: dict[int, AggregatePRInfo],
+) -> None:
     title = "  <h1>Helping out: short tasks</h1>"
     welcome = "<p>Would you like to help out at a PR, differently from reviewing? Here are some ideas:</p>"
     items = [
-        (Dashboard.InessentialCIFails, "take a look at ", "PRs with just some mathlib-infrastructure-related CI failure: unless it's an infrastructure PR, these are spurious/not the PRs fault", ""),
+        (
+            Dashboard.InessentialCIFails,
+            "take a look at ",
+            "PRs with just some mathlib-infrastructure-related CI failure: unless it's an infrastructure PR, these are spurious/not the PRs fault",
+            "",
+        ),
         (Dashboard.NeedsHelp, "take a look at ", "PRs labelled help-wanted or please-adopt", ""),
-        (Dashboard.NeedsMerge, "If the author hasn't noticed, you can ask in a PR which ", 'just has a merge conflict, but would be reviewable otherwise', ". (Remember, that most contributors to mathlib are volunteers, contribute in their free time and often have other commitments — and that real-life events can happen!)"),
+        (
+            Dashboard.NeedsMerge,
+            "If the author hasn't noticed, you can ask in a PR which ",
+            "just has a merge conflict, but would be reviewable otherwise",
+            ". (Remember, that most contributors to mathlib are volunteers, contribute in their free time and often have other commitments — and that real-life events can happen!)",
+        ),
         # Future: add "just CI failing" here
-        (Dashboard.FromFork, "post a comment on a ", "PR made from a fork", ", nicely asking them to re-submit it from a mathlib branch instead"),
-        (Dashboard.StaleNewContributor, "check if any ", "'stale' PR by a new contributor", " benefits from support, such as help with failing CI or providing feedback on the code"),
+        (
+            Dashboard.FromFork,
+            "post a comment on a ",
+            "PR made from a fork",
+            ", nicely asking them to re-submit it from a mathlib branch instead",
+        ),
+        (
+            Dashboard.StaleNewContributor,
+            "check if any ",
+            "'stale' PR by a new contributor",
+            " benefits from support, such as help with failing CI or providing feedback on the code",
+        ),
         # XXX: add all stale delegated PRs here?
     ]
-    list_items = [f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items]
+    list_items = [
+        f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items
+    ]
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
     dashboards = [write_dashboard(prs_to_list[kind], aggregate_info, kind) for (kind, _, _, _) in items]
-    body += '\n'.join(dashboards) + '\n'
+    body += "\n".join(dashboards) + "\n"
     write_webpage(body, "help_out.html")
 
 
-def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInformation]], aggregate_info: dict[int, AggregatePRInfo]) -> None:
+def write_triage_page(
+    updated: str,
+    prs_to_list: dict[Dashboard, List[BasicPRInformation]],
+    aggregate_info: dict[int, AggregatePRInfo],
+) -> None:
     title = "  <h1>Mathlib triage dashboard</h1>"
     welcome = "<p>Welcome to the PR triage page! This page is perfect if you intend to look for pull request which seem to have stalled.<br>TODO: this page is still under construction!</p>"
     welcome += f"\n  <small>This dashboard was last updated on: {updated}</small>"
@@ -622,14 +697,14 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     some_stale = f": <strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> of them are stale, and merit another look</li>\n"
     some_stale += write_dashboard(prs_to_list[Dashboard.StaleReadyToMerge], aggregate_info, Dashboard.StaleReadyToMerge, False)
     no_stale = ", including <strong>no</strong> stale ones, congratulations!</li>"
-    ready_to_merge = f"<strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> PRs are ready to merge{some_stale if prs_to_list[Dashboard.StaleReadyToMerge] else no_stale}" # TODO: add AllReadyToMerge
+    ready_to_merge = f"<strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> PRs are ready to merge{some_stale if prs_to_list[Dashboard.StaleReadyToMerge] else no_stale}"  # TODO: add AllReadyToMerge
 
     stale_mm = f'of which <strong>{len(prs_to_list[Dashboard.StaleMaintainerMerge])}</strong> have not been updated in a day (<a href="maintainers_quick.html#stale-maintainer-merge">these</a>)'
     no_stale_mm = "<strong>none of which</strong> has been pending for more than a day. Congratulations!"
     mm = f'<strong>{len(prs_to_list[Dashboard.AllMaintainerMerge])}</strong> PRs are waiting on maintainer approval (<a href="maintainers_quick.html#all-maintainer-merge">these</a>), {stale_mm if prs_to_list[Dashboard.StaleMaintainerMerge] else no_stale_mm}'
 
     no_stale_delegated = "<strong>no</strong> PRs have been delegated and not updated in a day, congratulations!</li>"
-    stale_delegated = f'<strong>{len(prs_to_list[Dashboard.StaleDelegated])}</strong> PRs have been delegated and not updated in a day:</li>\n  {write_dashboard(prs_to_list[Dashboard.StaleDelegated], aggregate_info, Dashboard.StaleDelegated, False)}'
+    stale_delegated = f"<strong>{len(prs_to_list[Dashboard.StaleDelegated])}</strong> PRs have been delegated and not updated in a day:</li>\n  {write_dashboard(prs_to_list[Dashboard.StaleDelegated], aggregate_info, Dashboard.StaleDelegated, False)}"
 
     notlanded = f"""<h2>Approved, not yet landed PRs</h2>
 
@@ -661,16 +736,16 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
     # Write a dashboard of unassigned PRs: we can safely skip the "assignee" column.
     # (This code is manually inlined, and then slightly tweaked, from write_dashboard.)
     (id, title) = getIdTitle(Dashboard.QueueStaleUnassigned)
-    title = f"<h2 id=\"{id}\"><a href=\"#{id}\" title=\"{long_description(Dashboard.QueueStaleUnassigned)}\">{title}</a></h2>"
+    title = f'<h2 id="{id}"><a href="#{id}" title="{long_description(Dashboard.QueueStaleUnassigned)}">{title}</a></h2>'
     if not unassigned:
-        stale_unassigned = f'{title}\nCurrently, <strong>every</strong> unassigned PR on the review queue was updated within the past two weeks.\n'
+        stale_unassigned = f"{title}\nCurrently, <strong>every</strong> unassigned PR on the review queue was updated within the past two weeks.\n"
     else:
         headings = [
             "Number", "Author", "Title", "Labels",
             '<a title="number of added/deleted lines">+/-</a>',
             '<a title="number of files modified">&#128221;</a>',
             '<a title="number of standard or review comments on this PR">&#128172;</a>',
-            'Updated'
+            "Updated",
         ]
         head = _write_table_header(headings, "    ")
         body = _compute_pr_entries(prs_to_list[Dashboard.QueueStaleUnassigned], aggregate_info, False)
@@ -701,14 +776,17 @@ def write_triage_page(updated: str, prs_to_list: dict[Dashboard, List[BasicPRInf
 
     body = f"{title}\n  {welcome}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {other_PRs}\n"
     dashboards = [write_dashboard(prs_to_list[kind], aggregate_info, kind) for (kind, _, _, _) in items]
-    body += '\n'.join(dashboards) + '\n'
+    body += "\n".join(dashboards) + "\n"
     write_webpage(body, "triage.html")
 
 
 # Write the main page for the dashboard to the file index-old.html.
 def write_main_page(
-    aggregate_info: dict[int, AggregatePRInfo], prs_to_list: dict[Dashboard, List[BasicPRInformation]],
-    nondraft_PRs: list[BasicPRInformation], draft_PRs: list[BasicPRInformation], updated: str
+    aggregate_info: dict[int, AggregatePRInfo],
+    prs_to_list: dict[Dashboard, List[BasicPRInformation]],
+    nondraft_PRs: list[BasicPRInformation],
+    draft_PRs: list[BasicPRInformation],
+    updated: str,
 ) -> None:
     title = "  <h1>Mathlib review and triage dashboard</h1>"
     welcome = '<p>Welcome to the mathlib review and triage dashboard. This is a prototype for better exposing the currently open PRs to mathlib. Feedback (including bug reports and ideas for improvements) on this dashboard is very welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.<br>'
@@ -721,7 +799,7 @@ def write_main_page(
         if kind in [Dashboard.QueueTechDebt, Dashboard.AllMaintainerMerge]:
             continue
         (id, _title) = getIdTitle(kind)
-        links.append(f"<a href=\"#{id}\" title=\"{short_description(kind)}\" target=\"_self\">{id}</a>")
+        links.append(f'<a href="#{id}" title="{short_description(kind)}" target="_self">{id}</a>')
     body += f"<br><p>\n<b>Quick links:</b> <a href=\"#statistics\" target=\"_self\">PR statistics</a> | {str.join(' | ', links)}</p>\n"
 
     body += gather_pr_statistics(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs)
@@ -746,6 +824,7 @@ def compute_pr_statusses(aggregate_info: dict[int, AggregatePRInfo], prs: List[B
         labels = [label_categorisation_rules[lab.name] for lab in info.labels if lab.name in label_categorisation_rules]
         state = PRState(labels, aggregate_info.CI_status, aggregate_info.is_draft)
         return determine_PR_status(datetime.now(timezone.utc), state)
+
     return {info.number: determine_status(aggregate_info[info.number] or PLACEHOLDER_AGGREGATE_INFO, info) for info in prs}
 
 
@@ -825,18 +904,18 @@ def gather_pr_statistics(
         PRStatus.NotReady: "#e899cd",
     }
     assert set(color.keys()) == set(statusses)
-    details = '\n'.join([f"  <li><b>{number_percent(number_prs[s], number_all, color[s])}</b> {instatus[s]}</li>" for s in statusses])
+    details = "\n".join([f"  <li><b>{number_percent(number_prs[s], number_all, color[s])}</b> {instatus[s]}</li>" for s in statusses])
     # Generate a simple pie chart showing the distribution of PR statusses.
     # Doing so requires knowing the cumulative sums, of all statusses so far.
     numbers = [number_prs[s] for s in statusses]
-    cumulative = [sum(numbers[:i+1]) for i in range(len(numbers))]
-    piechart = ', '.join([f'{color[s]} 0 {cumulative[i] * 360 // number_all}deg' for (i, s) in enumerate(statusses)])
-    piechart_style=f"width: 200px;height: 200px;border-radius: 50%;border: 1px solid black;background-image: conic-gradient( {piechart} );"
+    cumulative = [sum(numbers[: i + 1]) for i in range(len(numbers))]
+    piechart = ", ".join([f"{color[s]} 0 {cumulative[i] * 360 // number_all}deg" for (i, s) in enumerate(statusses)])
+    piechart_style = f"width: 200px;height: 200px;border-radius: 50%;border: 1px solid black;background-image: conic-gradient( {piechart} );"
     if cumulative[-1] != number_all:
-        dict = '{' + ', '.join([f"{s}: {number_prs[s]}" for s in statusses]) + '}'
-        msg = f'''error: statistics calculation is inconsistent, all PR kinds do not add up!
+        dict = "{" + ", ".join([f"{s}: {number_prs[s]}" for s in statusses]) + "}"
+        msg = f"""error: statistics calculation is inconsistent, all PR kinds do not add up!
             cumulative sum of PRs is {cumulative[-1]}, while there are {number_all} PRs in total
-            detailed stats dictionary is {dict}'''
+            detailed stats dictionary is {dict}"""
         print(msg, file=sys.stderr)
         # TODO: compare these lists of PRs in detail, to verify if this exposes anything other than outdated data!
         # assert False
@@ -952,9 +1031,11 @@ def time_info(updatedAt: str) -> str:
     s = updated.strftime("%Y-%m-%d %H:%M")
     return f"{s} ({format_delta(delta)} ago)"
 
+
 from dateutil import tz
 
 assert parser.isoparse("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 51, tzinfo=tz.tzutc())
+
 
 # Extract all PRs mentioned in a data file.
 def _extract_prs(data: dict) -> List[BasicPRInformation]:
@@ -966,14 +1047,15 @@ def _extract_prs(data: dict) -> List[BasicPRInformation]:
                 author = entry_author
             else:
                 # FIXME: fill in the user name from the actual aggregate data, which has this. Then remove the question mark.
-                print(f'warning: missing author information for PR {entry["number"]}, its authors dictionary is {entry_author} --- was this submitted by dependabot?', file=sys.stderr)
-                author = { "login": "dependabot(?)", "url": "https://github.com/dependabot"}
+                print(
+                    f'warning: missing author information for PR {entry["number"]}, its authors dictionary is {entry_author} --- was this submitted by dependabot?',
+                    file=sys.stderr,
+                )
+                author = {"login": "dependabot(?)", "url": "https://github.com/dependabot"}
             # if "login" not in entry["author"]:
             #     print(f'invalid data: malformed authors field {entry["author"]} in PR entry {entry}', file=sys.stderr)
             labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
-            prs.append(BasicPRInformation(
-                entry["number"], author, entry["title"], entry["url"], labels, entry["updatedAt"]
-            ))
+            prs.append(BasicPRInformation(entry["number"], author, entry["title"], entry["url"], labels, entry["updatedAt"]))
     return prs
 
 
@@ -982,7 +1064,9 @@ def _extract_prs(data: dict) -> List[BasicPRInformation]:
 # (and may contain information on PRs not to be printed).
 # TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
 # in the latter is always kept updated.
-def _compute_pr_entries(prs: List[BasicPRInformation], aggregate_information: dict[int, AggregatePRInfo], show_assignee=True) -> str:
+def _compute_pr_entries(
+    prs: List[BasicPRInformation], aggregate_information: dict[int, AggregatePRInfo], show_assignee=True
+) -> str:
     result = ""
     for pr in prs:
         entries = [pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url), _write_labels(pr.labels)]
@@ -1023,16 +1107,18 @@ def _compute_pr_entries(prs: List[BasicPRInformation], aggregate_information: di
 # TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
 # in the latter is always kept updated.
 # If 'header' is false, a table header is omitted and just the dashboard is printed.
-def write_dashboard(prs : List[BasicPRInformation], aggregate_info: dict[int, AggregatePRInfo], kind: Dashboard, header=True) -> str:
+def write_dashboard(
+    prs: List[BasicPRInformation], aggregate_info: dict[int, AggregatePRInfo], kind: Dashboard, header=True
+) -> str:
     # Title of each list, and the corresponding HTML anchor.
     # Explain what each dashboard contains upon hovering the heading.
     if header:
         (id, title) = getIdTitle(kind)
-        title = f"<h2 id=\"{id}\"><a href=\"#{id}\" title=\"{long_description(kind)}\">{title}</a></h2>"
+        title = f'<h2 id="{id}"><a href="#{id}" title="{long_description(kind)}">{title}</a></h2>'
         # If there are no PRs, skip the table header and print a bold notice such as
         # "There are currently **no** stale `delegated` PRs. Congratulations!".
         if not prs:
-            return f'{title}\nThere are currently <b>no</b> {short_description(kind)}. Congratulations!\n'
+            return f"{title}\nThere are currently <b>no</b> {short_description(kind)}. Congratulations!\n"
     else:
         title = ""
     headings = [
@@ -1041,7 +1127,7 @@ def write_dashboard(prs : List[BasicPRInformation], aggregate_info: dict[int, Ag
         '<a title="number of files modified">&#128221;</a>',
         '<a title="number of standard or review comments on this PR">&#128172;</a>',
         '<a title="github user(s) this PR is assigned to (if any)">Assignee(s)</a>',
-        'Updated'
+        "Updated",
     ]
     head = _write_table_header(headings, "    ")
     body = _compute_pr_entries(prs, aggregate_info)
@@ -1052,21 +1138,26 @@ def write_dashboard(prs : List[BasicPRInformation], aggregate_info: dict[int, Ag
 def _has_label(pr: BasicPRInformation, name: str) -> bool:
     return name in [label.name for label in pr.labels]
 
+
 # Extract all PRs from a given list which have a certain label.
 def prs_with_label(prs: List[BasicPRInformation], label_name: str) -> List[BasicPRInformation]:
     return [prinfo for prinfo in prs if _has_label(prinfo, label_name)]
+
 
 # Extract all PRs from a given list which have any label in a certain list.
 def prs_with_any_label(prs: List[BasicPRInformation], label_names: List[str]) -> List[BasicPRInformation]:
     return [prinfo for prinfo in prs if any([_has_label(prinfo, name) for name in label_names])]
 
+
 # Extract all PRs from a given list which do not have a certain label.
 def prs_without_label(prs: List[BasicPRInformation], label_name: str) -> List[BasicPRInformation]:
     return [prinfo for prinfo in prs if not _has_label(prinfo, label_name)]
 
+
 # Extract all PRs from a given list which do not have any label among a given list.
 def prs_without_any_label(prs: List[BasicPRInformation], label_names: List[str]) -> List[BasicPRInformation]:
     return [prinfo for prinfo in prs if all([not _has_label(prinfo, name) for name in label_names])]
+
 
 def has_contradictory_labels(pr: BasicPRInformation) -> bool:
     # Combine common labels.
@@ -1076,11 +1167,12 @@ def has_contradictory_labels(pr: BasicPRInformation) -> bool:
     }
     normalised_labels = [(canonicalise[label.name] if label.name in canonicalise else label.name) for label in pr.labels]
     # Test for contradictory label combinations.
-    if 'awaiting-review-DONT-USE' in normalised_labels:
+    if "awaiting-review-DONT-USE" in normalised_labels:
         return True
     # Waiting for a decision contradicts most other labels.
     elif "awaiting-zulip" in normalised_labels and any(
-            [lab for lab in normalised_labels if lab in ["awaiting-author", "delegated", "bors", "WIP"]]):
+        [lab for lab in normalised_labels if lab in ["awaiting-author", "delegated", "bors", "WIP"]]
+    ):
         return True
     elif "WIP" in normalised_labels and ("awaiting-review" in normalised_labels or "bors" in normalised_labels):
         return True
@@ -1090,20 +1182,26 @@ def has_contradictory_labels(pr: BasicPRInformation) -> bool:
         return True
     return False
 
+
 # Determine all PRs in `prs` which are not labelled `WIP` and
 # - are feature PRs without a topic label,
 # - have a badly formatted title (we currently only check some of the conditions in the guidelines),
 # - have contradictory labels.
-def compute_dashboards_bad_labels_title(prs : List[BasicPRInformation]) -> Tuple[List[BasicPRInformation], List[BasicPRInformation], List[BasicPRInformation]]:
+def compute_dashboards_bad_labels_title(
+    prs: List[BasicPRInformation],
+) -> Tuple[List[BasicPRInformation], List[BasicPRInformation], List[BasicPRInformation]]:
     # Filter out all PRs which have a WIP label.
-    nonwip_prs = prs_without_label(prs, 'WIP')
+    nonwip_prs = prs_without_label(prs, "WIP")
     with_bad_title = [pr for pr in nonwip_prs if not pr.title.startswith(("feat", "chore", "perf", "refactor", "style", "fix", "doc"))]
+
     # Whether a PR has a "topic" label.
     def has_topic_label(pr: BasicPRInformation) -> bool:
-        topic_labels = [label for label in pr.labels if label.name in ['CI', 'IMO'] or label.name.startswith("t-")]
+        topic_labels = [label for label in pr.labels if label.name in ["CI", "IMO"] or label.name.startswith("t-")]
         return len(topic_labels) >= 1
+
     prs_without_topic_label = [pr for pr in nonwip_prs if pr.title.startswith("feat") and not has_topic_label(pr)]
     prs_with_contradictory_labels = [pr for pr in nonwip_prs if has_contradictory_labels(pr)]
     return (with_bad_title, prs_without_topic_label, prs_with_contradictory_labels)
+
 
 main()

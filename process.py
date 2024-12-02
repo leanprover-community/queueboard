@@ -11,8 +11,8 @@ we list
 
 import json
 import sys
-from os import listdir, path
 from datetime import datetime, timezone
+from os import listdir, path
 from typing import List
 
 from util import eprint, parse_json_file
@@ -26,14 +26,21 @@ def determine_ci_status(number, CI_check_nodes: dict) -> str:
     # or indicates a general problem with CI, and not this PR.
     # (Except when this PR modifies CI, of course: currently, we don't check for this.)
     inessential_jobs = [
-        "label-new-contributor", "label-and-report-new-contributor", "New Contributor Check",
-        "Add delegated label", "Add topic label", "apply_one_t_label", "Add ready-to-merge label", "Add ready-to-merge or delegated label",
+        "label-new-contributor",
+        "label-and-report-new-contributor",
+        "New Contributor Check",
+        "Add delegated label",
+        "Add topic label",
+        "apply_one_t_label",
+        "Add ready-to-merge label",
+        "Add ready-to-merge or delegated label",
         "Ping maintainers on Zulip",
         # This was an old name for the "Post or update summary comment" job, which has since been given a name.
         # Recall that this check looks at names of CI *jobs*, not *workflow steps*.
-        "post-or-update-summary-comment", "build",
+        "post-or-update-summary-comment",
+        "build",
         "Cross off linked issues",
-        ]
+    ]
     # We consider CI to be passing if no job fails, and every job succeeds or is skipped.
     # If no job fails, but some are still running, we return "running".
     # If some job fails, we check if this is an inessential job or not.
@@ -54,7 +61,7 @@ def determine_ci_status(number, CI_check_nodes: dict) -> str:
         elif r["conclusion"] is None and r["status"] in ["IN_PROGRESS", "QUEUED"]:
             in_progress = True
         else:
-            print(f'CI run \"{r["name"]}\" for PR {number} has interesting data: {r}"')
+            print(f'CI run "{r["name"]}" for PR {number} has interesting data: {r}"')
     if inessential_failure:
         return "fail-inessential"
     elif in_progress:
@@ -172,5 +179,6 @@ def main() -> None:
         print(json.dumps(all_prs, indent=4), file=f)
     with open(path.join("processed_data", "open_pr_data.json"), "w") as f:
         print(json.dumps(just_open_prs, indent=4), file=f)
+
 
 main()
