@@ -96,6 +96,38 @@
               "author": {
                 "login": "chrisflav"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6VuTG5",
+              "body": "Here are the [benchmark results](http://speed.lean-fro.org/mathlib4/run-detail/698fc869-9376-4049-8627-f1c0e9b2896c) for commit 867bc8212c6d6651ab13f5153cb4748e2e73bd3d.\nThere were [significant changes](http://speed.lean-fro.org/mathlib4/compare/bcf67c94-f0d0-45cd-bab5-2518ad8d3eff/to/698fc869-9376-4049-8627-f1c0e9b2896c) against commit 7f28d7f73f74b31f72449bb9eb240db3ca68fe38:\n```diff\n  Benchmark                                                    Metric         Change\n  ==================================================================================\n- ~Mathlib.Algebra.Category.ModuleCat.Algebra                  instructions   227.7%\n- ~Mathlib.Algebra.Category.ModuleCat.Basic                    instructions    45.8%\n+ ~Mathlib.Algebra.Category.ModuleCat.ChangeOfRings            instructions   -28.9%\n- ~Mathlib.Algebra.Category.ModuleCat.Differentials.Presheaf   instructions    14.3%\n+ ~Mathlib.Algebra.Category.ModuleCat.Presheaf                 instructions   -17.1%\n- ~Mathlib.Algebra.Category.ModuleCat.Presheaf.ChangeOfRings   instructions    28.0%\n+ ~Mathlib.Algebra.Category.ModuleCat.Presheaf.Monoidal        instructions   -18.0%\n- ~Mathlib.Algebra.Category.ModuleCat.Presheaf.Pushforward     instructions    18.2%\n+ ~Mathlib.Algebra.Category.ModuleCat.Presheaf.Sheafify        instructions   -12.5%\n- ~Mathlib.Algebra.Category.ModuleCat.Sheaf.Colimits           instructions    61.2%\n- ~Mathlib.Algebra.Homology.ShortComplex.ModuleCat             instructions    66.2%\n- ~Mathlib.AlgebraicGeometry.Modules.Tilde                     instructions    25.4%\n+ ~Mathlib.CategoryTheory.Monoidal.Internal.Module             instructions    -9.3%\n- ~Mathlib.RepresentationTheory.Rep                            instructions    12.4%\n```",
+              "createdAt": "2024-12-02T16:05:35Z",
+              "author": {
+                "login": "leanprover-bot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6Vuf1G",
+              "body": "Hmm, a very mixed result. The really big slowdowns were in files that had a lot of manual proofs replaced with automation, but still `Mathlib.Algebra.Category.ModuleCat.Sheaf.Colimits` +61.2% with no changed lines is scary. Let me see if I can discover what is slow...",
+              "createdAt": "2024-12-02T16:15:48Z",
+              "author": {
+                "login": "Vierkantor"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6VunlK",
+              "body": "The +227% one can be safely ignored, its a 60L file with one proof. Why do we not get the nice summary with all the instruction increases starting from 10^9? Does this mean, all of the changes are below that threshold? If yes, I think everything is fine.",
+              "createdAt": "2024-12-02T16:19:59Z",
+              "author": {
+                "login": "chrisflav"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6VutBq",
+              "body": "`Mathlib.Algebra.Category.ModuleCat.Sheaf.Colimits` is also a one-proof file. If I can trust `set_option trace.profiler true` somewhat, then it looks like elaboration of that proof takes slightly less than `50%` longer, and kernel typechecking twice as long. But there is no obvious change in the steps taken to get there, just a bit of slowdown at every level...\r\n",
+              "createdAt": "2024-12-02T16:26:47Z",
+              "author": {
+                "login": "Vierkantor"
+              }
             }
           ]
         },
@@ -2944,6 +2976,10 @@
               "login": "chrisflav"
             },
             {
+              "id": "MDQ6VXNlcjg1NjY4Mzk0",
+              "login": "leanprover-bot"
+            },
+            {
               "id": "MDQ6VXNlcjU2MzY3MDU=",
               "login": "jcommelin"
             },
@@ -3097,7 +3133,7 @@
           }
         },
         "title": "refactor(Algebra/Category/ModuleCat): make `ModuleCat.Hom` a structure",
-        "updatedAt": "2024-12-02T15:36:58Z",
+        "updatedAt": "2024-12-02T16:26:49Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/19511",
         "timelineItems": {
           "nodes": [
@@ -3416,6 +3452,42 @@
               "body": "!bench",
               "author": {
                 "login": "chrisflav"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6VuTG5",
+              "createdAt": "2024-12-02T16:05:35Z",
+              "body": "Here are the [benchmark results](http://speed.lean-fro.org/mathlib4/run-detail/698fc869-9376-4049-8627-f1c0e9b2896c) for commit 867bc8212c6d6651ab13f5153cb4748e2e73bd3d.\nThere were [significant changes](http://speed.lean-fro.org/mathlib4/compare/bcf67c94-f0d0-45cd-bab5-2518ad8d3eff/to/698fc869-9376-4049-8627-f1c0e9b2896c) against commit 7f28d7f73f74b31f72449bb9eb240db3ca68fe38:\n```diff\n  Benchmark                                                    Metric         Change\n  ==================================================================================\n- ~Mathlib.Algebra.Category.ModuleCat.Algebra                  instructions   227.7%\n- ~Mathlib.Algebra.Category.ModuleCat.Basic                    instructions    45.8%\n+ ~Mathlib.Algebra.Category.ModuleCat.ChangeOfRings            instructions   -28.9%\n- ~Mathlib.Algebra.Category.ModuleCat.Differentials.Presheaf   instructions    14.3%\n+ ~Mathlib.Algebra.Category.ModuleCat.Presheaf                 instructions   -17.1%\n- ~Mathlib.Algebra.Category.ModuleCat.Presheaf.ChangeOfRings   instructions    28.0%\n+ ~Mathlib.Algebra.Category.ModuleCat.Presheaf.Monoidal        instructions   -18.0%\n- ~Mathlib.Algebra.Category.ModuleCat.Presheaf.Pushforward     instructions    18.2%\n+ ~Mathlib.Algebra.Category.ModuleCat.Presheaf.Sheafify        instructions   -12.5%\n- ~Mathlib.Algebra.Category.ModuleCat.Sheaf.Colimits           instructions    61.2%\n- ~Mathlib.Algebra.Homology.ShortComplex.ModuleCat             instructions    66.2%\n- ~Mathlib.AlgebraicGeometry.Modules.Tilde                     instructions    25.4%\n+ ~Mathlib.CategoryTheory.Monoidal.Internal.Module             instructions    -9.3%\n- ~Mathlib.RepresentationTheory.Rep                            instructions    12.4%\n```",
+              "author": {
+                "login": "leanprover-bot"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6Vuf1G",
+              "createdAt": "2024-12-02T16:15:48Z",
+              "body": "Hmm, a very mixed result. The really big slowdowns were in files that had a lot of manual proofs replaced with automation, but still `Mathlib.Algebra.Category.ModuleCat.Sheaf.Colimits` +61.2% with no changed lines is scary. Let me see if I can discover what is slow...",
+              "author": {
+                "login": "Vierkantor"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6VunlK",
+              "createdAt": "2024-12-02T16:19:59Z",
+              "body": "The +227% one can be safely ignored, its a 60L file with one proof. Why do we not get the nice summary with all the instruction increases starting from 10^9? Does this mean, all of the changes are below that threshold? If yes, I think everything is fine.",
+              "author": {
+                "login": "chrisflav"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6VutBq",
+              "createdAt": "2024-12-02T16:26:47Z",
+              "body": "`Mathlib.Algebra.Category.ModuleCat.Sheaf.Colimits` is also a one-proof file. If I can trust `set_option trace.profiler true` somewhat, then it looks like elaboration of that proof takes slightly less than `50%` longer, and kernel typechecking twice as long. But there is no obvious change in the steps taken to get there, just a bit of slowdown at every level...\r\n",
+              "author": {
+                "login": "Vierkantor"
               }
             }
           ]
