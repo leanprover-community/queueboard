@@ -139,7 +139,8 @@ def _has_valid_entries(data_dirs: List[str], number: int) -> bool:
 # Read the file 'missing_prs.txt', check for entries which can be removed now
 # and write out the updated file. Take care to keep manual comments in the file.
 # Return a list of all PR numbers which are in the new file.
-def prune_missing_prs_file() -> List[int]:
+# Also prune 'closed_prs_to_backfill.txt' in a similar way.
+def prune_missing_prs_files() -> List[int]:
     def inner(filename: str) -> List[int]:
         current_lines: List[str] = []
         with open(filename, "r") as file:
@@ -165,6 +166,7 @@ def prune_missing_prs_file() -> List[int]:
         with open(filename, "w") as file:
             file.write('\n'.join(new_lines) + '\n')
         return current_missing_prs
+    _unused = inner("closed_prs_to_backfill.txt")
     return inner("missing_prs.txt")
 
 
@@ -229,7 +231,7 @@ def main() -> None:
                 stubborn_prs.append(int(line))
     # Write out the list of missing PRs.
     # Prune superfluous entries from 'missing_prs.txt' first.
-    current_missing_entries = prune_missing_prs_file()
+    current_missing_entries = prune_missing_prs_files()
     if missing_prs:
         print(f"SUMMARY: found {len(missing_prs)} PR(s) whose aggregate information is missing:\n{sorted(missing_prs)}", file=sys.stderr)
         # Append any 'newly' missing PRs to the file.
