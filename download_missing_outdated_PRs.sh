@@ -16,9 +16,25 @@ CURRENT_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 # but for our purposes, that is fine.
 stubborn_prs=$(cat "stubborn_prs.txt" | grep --invert-match "^--")
 
-# FIXME: refactor this script to reduce code duplication
-# There should be two primitives: download a stubborn PR, download a normal PR
-# and perhaps "download a PR and check which one it is".
+# 'download_normal $pr' downloads 'normal' info for the PR '$pr' into the appropriate directory.
+# Do not use with stubborn PRs: usually, this would time out.
+function download_normal {
+    dir="data/$1"
+    echo mkdir -p "$dir"
+    # Run pr_info.sh and pr_reactions.sh and save the output.
+    echo ./pr_info.sh "$1" | jq '.' > "$dir/pr_info.json"
+    echo ./pr_reactions.sh "$1" | jq '.' > "$dir/pr_reactions.json"
+    # Save the current timestamp.
+    echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+}
+
+# 'download_stubborn $pr' downloads "stubborn" info for the PR '$pr' into the appropriate directory.
+function download_stubborn {
+  echo dir="data/$1-basic"
+  echo mkdir -p "$dir"
+  echo ./basic_pr_info.sh "$1" | jq '.' > "$dir/basic_pr_info.json"
+  echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+}
 
 # Re-download data if missing. Take care to not ask for too much at once!
 # FIXME: this is only somewhat robust --- improve this to ensure to avoid
@@ -26,25 +42,15 @@ stubborn_prs=$(cat "stubborn_prs.txt" | grep --invert-match "^--")
 for pr in $(cat "redownload.txt"); do
   echo "About to re-download PR $pr"
   if [[ $stubborn_prs == *$pr* ]]; then
-    dir="data/$pr-basic"
-    mkdir -p "$dir"
-    ./basic_pr_info.sh "$pr" | jq '.' > "$dir/basic_pr_info.json"
-    echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+    download_stubborn $pr
   else
-    dir="data/$pr"
-    mkdir -p "$dir"
-    # Run pr_info.sh and pr_reactions.sh and save the output.
-    ./pr_info.sh "$pr" | jq '.' > "$dir/pr_info.json"
-    ./pr_reactions.sh "$pr" | jq '.' > "$dir/pr_reactions.json"
-    # Save the current timestamp.
-    echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+    download_normal $pr
   fi
 done
 echo "" > redownload.txt
 echo "Successfully re-downloaded all planned PRs (if any)"
 
 # In case there are PRs which got "missed" somehow, backfill data for up to one of them.
-# HACK: ask for many to avoid broken data "blocking the pipe"
 # NB. This assumes each such PR is not stubborn --- need to ensure "missing_prs.txt" doesn't contain stubborn PRs!
 i=0
 for pr in $(cat "missing_prs.txt" | grep --invert-match "^--" | head --lines 50); do
@@ -58,13 +64,7 @@ for pr in $(cat "missing_prs.txt" | grep --invert-match "^--" | head --lines 50)
   fi
   i=$((i+1))
   echo "Attempting to backfill data for PR $pr"
-  dir="data/$pr"
-  mkdir -p "$dir"
-  # Run pr_info.sh and pr_reactions.sh and save the output.
-  ./pr_info.sh "$pr" | jq '.' > "$dir/pr_info.json"
-  ./pr_reactions.sh "$pr" | jq '.' > "$dir/pr_reactions.json"
-  # Save the current timestamp.
-  echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+  download_normal $pr
 done
 # If there was no "missing" PR to backfill, backfill at most one PR from `closed_prs_to_backfill.txt`.
 if [ $i -eq 0 ]; then
@@ -75,13 +75,7 @@ if [ $i -eq 0 ]; then
       continue
     fi
     echo "Attempting to backfill data for PR $pr"
-    dir="data/$pr"
-    mkdir -p "$dir"
-    # Run pr_info.sh and pr_reactions.sh and save the output.
-    ./pr_info.sh "$pr" | jq '.' > "$dir/pr_info.json"
-    ./pr_reactions.sh "$pr" | jq '.' > "$dir/pr_reactions.json"
-    # Save the current timestamp.
-    echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+    download_normal $pr
     break
   done
 fi
@@ -98,9 +92,7 @@ for pr in $(cat "stubborn_prs.txt" | grep --invert-match "^--"); do
     continue
   fi
   echo "Attempting to backfill data for 'stubborn' PR $pr"
-  mkdir -p "$dir"
-  ./basic_pr_info.sh "$pr" | jq '.' > "$dir/basic_pr_info.json"
-  echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+  download_stubborn $pr
   i=$((i+1))
   if [ $i -eq 2 ]; then
     break;
