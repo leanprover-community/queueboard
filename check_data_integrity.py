@@ -295,7 +295,7 @@ def main() -> None:
         is_running = aggregate_last_updated[pr_number].is_CI_running
         if is_running and aggregate_updated < datetime.now(timezone.utc) - timedelta(minutes=ci_limit):
             print(f"outdated data: the aggregate data for PR {pr_number} claims CI is still running, "
-              "but was last updated more than {ci_limit} minutes ago")
+              f"but was last updated more than {ci_limit} minutes ago")
             outdated_prs.append(pr_number)
 
     # Some PRs are marked as stubborn: for them, only basic information is downloaded.
