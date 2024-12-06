@@ -34,16 +34,6 @@ hack for CI completed: auto-add awaiting-CI on every new push --- gets removed o
     partial fix implement (shuffling PRs, so new PRs will still tend to this)
    => auto-classify re-downloaded PRs as stubborns also, perhaps after 5 attempts? delete once successful?
 
-- auto-classify "missing" PRs as stubborn
-   run a period clean-up job, perhaps once a day?
-   if one detects broken data, delete the broken data and create a file broken-number-full-1.txt
-  - if that file already exists, create a file ...-2.txt
-  - if that one already exists, create a file ...-3.txt
-  - if that one also exists, add to stubborn files.
-
-- if a PR is listed as missing, but its data is broken, currently this can block re-queueing of missing PRs. Instead, one should (1) remove the broken data (and incrementing that counter), (2) re-populate that file, (3) if downloading that file works, reset the broken data counter.
-(partially implemented: new entries are appended to the file; auto-removing broken data is not)
-
 - try logic for stubborn PRs: remove broken data, re-queue and try again. That step should generally not fail.
 
 small observations, might not be worth fixing yet
