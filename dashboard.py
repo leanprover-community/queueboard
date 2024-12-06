@@ -247,6 +247,41 @@ class JSONInputData(NamedTuple):
     all_open_prs: List[BasicPRInformation]
 
 
+# Parse the contents |data| of an aggregate json file into a dictionary pr number -> AggregatePRInfo.
+def parse_aggregate_file(data: dict) -> dict[int, AggregatePRInfo]:
+    label_colours = data["label_colours"]
+    def toLabel(name: str) -> Label:
+        url = f"https://github.com/leanprover-community/mathlib4/labels/{name}"
+        if name.startswith("t-"):
+            name = "t-analysis"
+        elif name.startswith("blocked-by"):
+            name = "blocked-by-other-PR"
+        return Label(name, label_colours[name], url)
+    aggregate_info = dict()
+    for pr in data["pr_statusses"]:
+        date = parser.isoparse(pr["last_updated"])
+        label_names = pr["label_names"]
+        # Some PRs only have basic information present: fill in suitable placeholder values.
+        if "number_comments" in pr:
+            number_all_comments = pr["number_comments"] + pr["number_review_comments"]
+        else:
+            number_all_comments = None
+        CI_status = {
+            "pass": CIStatus.Pass,
+            "fail": CIStatus.Fail,
+            "fail-inessential": CIStatus.FailInessential,
+            "running": CIStatus.Running,
+            None: CIStatus.Missing,
+        }
+        info = AggregatePRInfo(
+            pr["is_draft"], CI_status[pr["CI_status"]], pr["base_branch"], pr["head_repo"]["login"],
+            pr["state"], date, pr["author"], pr["title"], [toLabel(name) for name in label_names],
+            pr["additions"], pr["deletions"], pr["num_files"], pr["review_approvals"], pr["assignees"], number_all_comments
+        )
+        aggregate_info[pr["number"]] = info
+    return aggregate_info
+
+
 # Validate the command-line arguments and try to read all data passed in via JSON files.
 # Any number of JSON files passed in is fine; we interpret them all as containing open PRs.
 def read_json_files() -> JSONInputData:
@@ -259,39 +294,7 @@ def read_json_files() -> JSONInputData:
             open_prs = _extract_prs(json.load(prfile))
             all_open_prs.extend(open_prs)
     with open(path.join("processed_data", "open_pr_data.json"), "r") as f:
-        data = json.load(f)
-        label_colours = data["label_colours"]
-
-        def toLabel(name: str) -> Label:
-            url = f"https://github.com/leanprover-community/mathlib4/labels/{name}"
-            if name.startswith("t-"):
-                name = "t-analysis"
-            elif name.startswith("blocked-by"):
-                name = "blocked-by-other-PR"
-            return Label(name, label_colours[name], url)
-
-        aggregate_info = dict()
-        for pr in data["pr_statusses"]:
-            date = parser.isoparse(pr["last_updated"])
-            label_names = pr["label_names"]
-            # Some PRs only have basic information present: fill in suitable placeholder values.
-            if "number_comments" in pr:
-                number_all_comments = pr["number_comments"] + pr["number_review_comments"]
-            else:
-                number_all_comments = None
-            CI_status = {
-                "pass": CIStatus.Pass,
-                "fail": CIStatus.Fail,
-                "fail-inessential": CIStatus.FailInessential,
-                "running": CIStatus.Running,
-                None: CIStatus.Missing,
-            }
-            info = AggregatePRInfo(
-                pr["is_draft"], CI_status[pr["CI_status"]], pr["base_branch"], pr["head_repo"]["login"],
-                pr["state"], date, pr["author"], pr["title"], [toLabel(name) for name in label_names],
-                pr["additions"], pr["deletions"], pr["num_files"], pr["review_approvals"], pr["assignees"], number_all_comments
-            )
-            aggregate_info[pr["number"]] = info
+        aggregate_info = parse_aggregate_file(json.load(f))
     return JSONInputData(aggregate_info, all_open_prs)
 
 
