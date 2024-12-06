@@ -84,7 +84,7 @@ echo "Backfilled at most one PR successfully"
 # Do the same for at most 2 stubborn PRs.
 # (Using `head --lines 2` is *not* equivalent, as we want to count *non-skipped* PRs.)
 i=0
-for pr in $(cat "stubborn_prs.txt" | grep --invert-match "^--"); do
+for pr in $stubborn_prs; do
   dir="data/$pr-basic"
   # Check if the directory exists.
   if [ -d $dir ]; then
