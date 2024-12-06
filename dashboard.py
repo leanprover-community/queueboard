@@ -197,7 +197,8 @@ class Label(NamedTuple):
 class BasicPRInformation(NamedTuple):
     number: int  # PR number, non-negative
     # Just the author's github handle; the corresponding URL is determined automatically.
-    author_name: str
+    # For dependabot PRs, this can be `None` due to quirks in the data returned by Github's rest API.
+    author_name: str | None
     title: str
     url: str
     labels: List[Label]
@@ -531,8 +532,13 @@ def write_on_the_queue_page(
         is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
         review = not (any(lab.name in ["awaiting-CI", "awaiting-author", "awaiting-zulip"] for lab in pr.labels))
         overall = (CI_status[pr.number] == CIStatus.Pass) and (not is_blocked) and (not has_merge_conflict) and is_ready and review
+        name = pr.author_name
+        if name is None:
+            # TODO: take the author from the aggregate information instead
+            # requires refactoring this function accordingly
+            name = "dependabot(?)"
         entries = [
-            pr_link(pr.number, pr.url), user_link(pr.author_name), title_link(pr.title, pr.url),
+            pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url),
             _write_labels(pr.labels), icon(not from_fork), status_symbol[CI_status[pr.number]],
             icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall)
         ]
@@ -1039,19 +1045,13 @@ def _extract_prs(data: dict) -> List[BasicPRInformation]:
     prs = []
     for page in data["output"]:
         for entry in page["data"]["search"]["nodes"]:
-            entry_author = entry["author"]
-            if "login" in entry_author:
-                author = entry_author["login"]
-            else:
-                # FIXME: fill in the user name from the actual aggregate data, which has this. Then remove the question mark.
+            if "login" not in entry["author"]:
                 print(
-                    f'warning: missing author information for PR {entry["number"]}, its authors dictionary is {entry_author} --- was this submitted by dependabot?',
+                    f'warning: missing author information for PR {entry["number"]}, its authors dictionary is {entry["author"]} --- was this submitted by dependabot?',
                     file=sys.stderr,
                 )
-                author = "dependabot(?)"
-                #author = {"login": "dependabot(?)", "url": "https://github.com/dependabot"}
             labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
-            prs.append(BasicPRInformation(entry["number"], author, entry["title"], entry["url"], labels, entry["updatedAt"]))
+            prs.append(BasicPRInformation(entry["number"], entry.get("author"), entry["title"], entry["url"], labels, entry["updatedAt"]))
     return prs
 
 
@@ -1065,7 +1065,9 @@ def _compute_pr_entries(
 ) -> str:
     result = ""
     for pr in prs:
-        entries = [pr_link(pr.number, pr.url), user_link(pr.author_name), title_link(pr.title, pr.url), _write_labels(pr.labels)]
+        # XXX: compare the basic and aggregate author names to see if there are any differences
+        name = aggregate_information[pr.number].author
+        entries = [pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url), _write_labels(pr.labels)]
         # Detailed information about the current PR.
         pr_info = None
         if pr.number in aggregate_information:
