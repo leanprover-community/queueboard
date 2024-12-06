@@ -79,6 +79,12 @@ if [ $i -eq 0 ]; then
     if [ -d "data/$pr" ]; then
       echo "[skip] Data exists for #$pr: $CURRENT_TIME"
       continue
+    elif [ -d "data/$pr-basic" ]; then
+      # If such a PR is ever classified as stubborn, it should be removed from this file:
+      # this scenario should never happen. Let's be extra safe just in case.
+      echo "unexpected: closed PR to backfill is stubborn!"
+      echo "[skip] Data exists for 'stubborn' PR $pr: $CURRENT_TIME"
+      continue
     fi
     echo "Attempting to backfill data for PR $pr"
     download_normal $pr
@@ -91,9 +97,8 @@ echo "Backfilled at most one PR successfully"
 # (Using `head --lines 2` is *not* equivalent, as we want to count *non-skipped* PRs.)
 i=0
 for pr in $stubborn_prs; do
-  dir="data/$pr-basic"
   # Check if the directory exists.
-  if [ -d $dir ]; then
+  if [ -d "data/$pr-basic" ]; then
     echo "[skip] Data exists for 'stubborn' PR #$pr: $CURRENT_TIME"
     continue
   fi
