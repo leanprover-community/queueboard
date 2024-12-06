@@ -16,6 +16,7 @@ from typing import List, NamedTuple, Tuple
 
 from dateutil import parser
 
+from classify_pr_state import CIStatus
 from util import eprint, parse_json_file
 
 
@@ -115,7 +116,7 @@ def check_data_directory_contents() -> Tuple[List[int], List[int]]:
 # All data we are currently extracting from each PR's aggregate info.
 class AggregateData(NamedTuple):
     last_updated: str
-    is_CI_running: bool
+    ci_status: CIStatus
     # either "open" or "closed"
     state: str
 
@@ -262,7 +263,7 @@ def main() -> None:
             updated = pr["last_updated"]
             ci = pr["CI_status"]
             state = pr["state"]
-            aggregate_last_updated[pr["number"]] = AggregateData(updated, ci == "running", state)
+            aggregate_last_updated[pr["number"]] = AggregateData(updated, CIStatus.from_string(ci), state)
 
     # All PRs whose aggregate data is at least 10 minutes older than github's current "last update".
     outdated_prs: List[int] = []
@@ -292,14 +293,19 @@ def main() -> None:
                 print(f"mismatch: the aggregate file says PR {pr_number} is still open, which is wrong.")
                 outdated_prs.append(pr_number)
 
-    # Also check for PRs whose aggregate data says CI is "running", but whose last update
-    # was at least 60 minutes old. In that case, some data also didn't get updated.
+    # Also check for PRs whose aggregate CI data needs is "almost surely not up to date".
+    # Most commonly, this is about CI which is "running", but whose last update was at least 60 minutes old.
+    # (Such runs are almost certainly already complete. 60 minutes is rather conservative).
+    # Another, very rare, possibility is PR whose CI data is `None`. In both cases, we ask for re-downloading.
     ci_limit = 60
     for pr_number in aggregate_last_updated:
-        is_running = aggregate_last_updated[pr_number].is_CI_running
-        if is_running and aggregate_updated < datetime.now(timezone.utc) - timedelta(minutes=ci_limit):
+        ci_status = aggregate_last_updated[pr_number].ci_status
+        if ci_status == CIStatus.Running and aggregate_updated < datetime.now(timezone.utc) - timedelta(minutes=ci_limit):
             print(f"outdated data: the aggregate data for PR {pr_number} claims CI is still running, "
               f"but was last updated more than {ci_limit} minutes ago")
+            outdated_prs.append(pr_number)
+        elif ci_status == CIStatus.Missing:
+            print(f"outdated data: PR {pr_number} has missing CI data")
             outdated_prs.append(pr_number)
 
     # Some PRs are marked as stubborn: for them, only basic information is downloaded.

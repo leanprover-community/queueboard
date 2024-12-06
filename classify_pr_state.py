@@ -62,6 +62,16 @@ class CIStatus(Enum):
     # Missing data.
     Missing = auto()
 
+    @staticmethod
+    def from_string(s: str) -> str:
+        return {
+            "pass": CIStatus.Pass,
+            "fail": CIStatus.Fail,
+            "fail-inessential": CIStatus.FailInessential,
+            "running": CIStatus.Running,
+            None: CIStatus.Missing,
+        }[s]
+
 
 # All relevant state of a PR at each point in time.
 class PRState(NamedTuple):

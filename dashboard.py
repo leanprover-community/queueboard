@@ -268,15 +268,8 @@ def parse_aggregate_file(data: dict) -> dict[int, AggregatePRInfo]:
             number_all_comments = pr["number_comments"] + pr["number_review_comments"]
         else:
             number_all_comments = None
-        CI_status = {
-            "pass": CIStatus.Pass,
-            "fail": CIStatus.Fail,
-            "fail-inessential": CIStatus.FailInessential,
-            "running": CIStatus.Running,
-            None: CIStatus.Missing,
-        }
         info = AggregatePRInfo(
-            pr["is_draft"], CI_status[pr["CI_status"]], pr["base_branch"], pr["head_repo"]["login"],
+            pr["is_draft"], CIStatus.from_string(pr["CI_status"]), pr["base_branch"], pr["head_repo"]["login"],
             pr["state"], date, pr["author"], pr["title"], [toLabel(name) for name in label_names],
             pr["additions"], pr["deletions"], pr["num_files"], pr["review_approvals"], pr["assignees"], number_all_comments
         )
