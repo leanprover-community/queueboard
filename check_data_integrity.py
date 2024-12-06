@@ -20,6 +20,7 @@ from util import eprint, parse_json_file
 
 # Read the input JSON files, return a dictionary mapping each PR number
 # to the (current) last update data github provides.
+# This operation is (supposed to be) infallible.
 def extract_last_update_from_input() -> dict[int, str]:
     output = dict()
     with open("all-open-PRs-1.json", "r") as file1, open("all-open-PRs-2.json", "r") as file2:
@@ -75,35 +76,36 @@ def _check_directory(dir: str, pr_number: int, files: List[str]) -> bool:
 # - this contains only directories of the form "PR_number" or "PR_number-basic",
 # - no PR has both forms present,
 # - each directory only contains the expected files, and these parse successfully.
-# Return if all data was well-formed, as above.
-def check_data_directory_contents() -> bool:
-    is_wellformed = True
+# Return all PR numbers whose data was mal-formed (if any).
+def check_data_directory_contents() -> List[int]:
     data_dirs: List[str] = sorted(os.listdir("data"))
+    prs_with_errors = []
     for dir in data_dirs:
         if dir.endswith("-basic"):
             number = dir.removesuffix("-basic")
             if number in data_dirs:
                 eprint(f"error: there is both a normal and a 'basic' data directory for PR {number}")
-                is_wellformed = False
+                prs_with_errors.append(number)
             expected = ["basic_pr_info.json", "timestamp.txt"]
             files = sorted(os.listdir(os.path.join("data", dir)))
             if files != expected:
                 eprint(f"files for PR {number} did not match what I wanted: expected {expected}, got {files}")
-                is_wellformed = False
+                prs_with_errors.append(number)
                 continue
-            is_wellformed = is_wellformed and _check_directory(os.path.join("data", dir), int(number), files)
+            if not _check_directory(os.path.join("data", dir), int(number), files):
+                prs_with_errors.append(number)
         elif dir.isnumeric():
             expected = ["pr_info.json", "pr_reactions.json", "timestamp.txt"]
             files = sorted(os.listdir(os.path.join("data", dir)))
             if files != expected:
                 eprint(f"files for PR {dir} did not match what I wanted: expected {expected}, got {files}")
-                is_wellformed = False
+                prs_with_errors.append(number)
                 continue
-            is_wellformed = is_wellformed and _check_directory(os.path.join("data", dir), int(dir), files)
+            if not _check_directory(os.path.join("data", dir), int(dir), files):
+                prs_with_errors.append(number)
         else:
             eprint("error: found directory {dir}, which was unexpected")
-            is_wellformed = False
-    return is_wellformed
+    return sorted(prs_with_errors).dedup
 
 
 # All data we are currently extracting from each PR's aggregate info.
@@ -177,7 +179,8 @@ def main() -> None:
     # "Last updated" information as returned from a fresh github query.
     current_last_updated = extract_last_update_from_input()
     # "Last updated" information as found in the aggregate data file.
-    check_data_directory_contents()
+    prs_with_errors = check_data_directory_contents()
+    print(f"info: found {len(prs_with_errors)} PRs with broken data")
     aggregate_last_updated: dict[int, AggregateData] = dict()
     with open(os.path.join("processed_data", "all_pr_data.json"), "r") as aggregate_file:
         data = json.load(aggregate_file)
