@@ -1207,4 +1207,5 @@ def compute_dashboards_bad_labels_title(
     return (with_bad_title, prs_without_topic_label, prs_with_contradictory_labels)
 
 
-main()
+if __name__ == '__main__':
+    main()
