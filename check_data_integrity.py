@@ -140,9 +140,12 @@ def _has_valid_entries(data_dirs: List[str], number: int) -> bool:
             assert False  # unreachable
 
 
+comment_second = "-- second attempt for "
+comment_third = "-- third attempt for "
+
 # Read the file 'missing_prs.txt', check for entries which can be removed now
 # and write out the updated file. Take care to keep manual comments in the file
-# (except for obsolete '-- third attempt for <N>' lines).
+# (except for obsolete '-- second attempt for <N>', or third attempt, lines).
 # Return a list of all PR numbers which are in the new file.
 # Also prune 'closed_prs_to_backfill.txt' in a similar way.
 def prune_missing_prs_files() -> List[int]:
@@ -174,13 +177,13 @@ def prune_missing_prs_files() -> List[int]:
                 new_lines.append(line)
                 current_missing_prs.append(int(line))
         for comment in comments:
-            if comment.startswith("-- second attempt for "):
-                nstr = comment.removeprefix("-- second attempt for ")
+            if comment.startswith(comment_second):
+                nstr = comment.removeprefix(comment_second)
                 if int(nstr) not in current_missing_prs and nstr not in closed_pr_lines:
                     print(f"PR {nstr} is marked as 'second attempt', but is fine now --- removing the comment")
                     new_lines.remove(comment)
-            elif comment.startswith("-- third attempt for "):
-                nstr = comment.removeprefix("-- third attempt for ")
+            elif comment.startswith(comment_third):
+                nstr = comment.removeprefix(comment_third)
                 if int(nstr) not in current_missing_prs and nstr not in closed_pr_lines:
                     print(f"PR {nstr} is marked as 'third attempt', but is fine now --- removing the comment")
                     new_lines.remove(comment)
@@ -209,18 +212,18 @@ def remove_broken_data(number: int) -> None:
     if not previous_comment:
         shutil.rmtree(dir)
         with open(filename, "a") as fi:
-            fi.write(f"-- second attempt for {number}\n")
+            fi.write(f"{comment_second}{number}\n")
     else:
         assert len(previous_comment) == 1
         new_content = content[:]
         new_content.remove(previous_comment[0])
-        if previous_comment[0].startswith("-- second attempt for "):
+        if previous_comment[0].startswith(comment_second):
             # Replace "second" by "third" in that line; remove broken data.
-            new_content.append(f"-- third attempt for {number}")
+            new_content.append(f"{comment_third}{number}")
             with open(filename, "w") as fi:
                 fi.writelines(new_content)
             shutil.rmtree(dir)
-        elif previous_comment[0].startswith("-- second attempt for "):
+        elif previous_comment[0].startswith(comment_third):
             # Also remove the PR number from the file;
             # write an entry to stubborn_prs.txt instead.
             new_content = [line for line in content if line != str(number)]
