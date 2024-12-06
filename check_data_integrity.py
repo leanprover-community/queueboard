@@ -208,7 +208,7 @@ def remove_broken_data(number: int) -> None:
 
     with open(filename, "r") as fi:
         content = fi.readlines()
-    previous_comment = list(filter(lambda s: s.startswith("-- ") and s.endswith(str(number)), content))
+    previous_comment = list(filter(lambda s: s.startswith("-- ") and s.rstrip().endswith(str(number)), content))
     if not previous_comment:
         # No comment about the file: just write a comment 'second' time.
         shutil.rmtree(dir)
