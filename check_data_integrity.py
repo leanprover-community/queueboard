@@ -210,6 +210,7 @@ def remove_broken_data(number: int) -> None:
         content = fi.readlines()
     previous_comment = list(filter(lambda s: s.startswith("-- ") and s.endswith(str(number)), content))
     if not previous_comment:
+        # No comment about the file: just write a comment 'second' time.
         shutil.rmtree(dir)
         with open(filename, "a") as fi:
             fi.write(f"{comment_second}{number}\n")
@@ -224,7 +225,7 @@ def remove_broken_data(number: int) -> None:
                 fi.writelines(new_content)
             shutil.rmtree(dir)
         elif previous_comment[0].startswith(comment_third):
-            # Also remove the PR number from the file;
+            # Remove the comment; remove the PR number from the file (any number of times);
             # write an entry to stubborn_prs.txt instead.
             new_content = [line for line in content if line != str(number)]
             with open(filename, "w") as fi:
