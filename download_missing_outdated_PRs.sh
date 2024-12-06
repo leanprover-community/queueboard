@@ -16,19 +16,20 @@ CURRENT_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 # but for our purposes, that is fine.
 stubborn_prs=$(cat "stubborn_prs.txt" | grep --invert-match "^--")
 
-# 'download_normal $pr' downloads 'normal' info for the PR '$pr' into the appropriate directory.
+# |download_normal $pr| downloads 'normal' info for the PR '$pr' into the appropriate directory.
 # Do not use with stubborn PRs: usually, this would time out.
 function download_normal {
     local dir="data/$1"
     mkdir -p "$dir"
     # Run pr_info.sh and pr_reactions.sh and save the output.
+    # "parse error: Invalid numeric literal at line N, column M'" comes from jq complaining about e.g. an empty file
     ./pr_info.sh "$1" | jq '.' > "$dir/pr_info.json"
     ./pr_reactions.sh "$1" | jq '.' > "$dir/pr_reactions.json"
     # Save the current timestamp.
     echo "$CURRENT_TIME" > "$dir/timestamp.txt"
 }
 
-# 'download_stubborn $pr' downloads "stubborn" info for the PR '$pr' into the appropriate directory.
+# |download_stubborn $pr| downloads "stubborn" info for the PR '$pr' into the appropriate directory.
 function download_stubborn {
   local dir="data/$1-basic"
   mkdir -p "$dir"
@@ -36,22 +37,27 @@ function download_stubborn {
   echo "$CURRENT_TIME" > "$dir/timestamp.txt"
 }
 
+# |download_pr $pr| downloads information for the PR $pr into the appropriate directory.
+# It consults $stubborn_prs to determine whether to treat a PR as stubborn or not.
+function download_pr {
+  if [[ $stubborn_prs == *$1* ]]; then
+    download_stubborn $1
+  else
+    download_normal $1
+  fi
+}
+
 # Re-download data if missing. Take care to not ask for too much at once!
 # FIXME: this is only somewhat robust --- improve this to ensure to avoid
 # re-re-downloading in a loop!
 for pr in $(cat "redownload.txt"); do
   echo "About to re-download PR $pr"
-  if [[ $stubborn_prs == *$pr* ]]; then
-    download_stubborn $pr
-  else
-    download_normal $pr
-  fi
+  download_pr $pr
 done
 echo "" > redownload.txt
 echo "Successfully re-downloaded all planned PRs (if any)"
 
 # In case there are PRs which got "missed" somehow, backfill data for up to one of them.
-# NB. This assumes each such PR is not stubborn --- need to ensure "missing_prs.txt" doesn't contain stubborn PRs!
 i=0
 for pr in $(cat "missing_prs.txt" | grep --invert-match "^--" | head --lines 50); do
   # Check if the directory exists
@@ -64,7 +70,7 @@ for pr in $(cat "missing_prs.txt" | grep --invert-match "^--" | head --lines 50)
   fi
   i=$((i+1))
   echo "Attempting to backfill data for PR $pr"
-  download_normal $pr
+  download_pr $pr
 done
 # If there was no "missing" PR to backfill, backfill at most one PR from `closed_prs_to_backfill.txt`.
 if [ $i -eq 0 ]; then
