@@ -196,7 +196,8 @@ class Label(NamedTuple):
 # Basic information about a PR: does not contain the diff size, which is contained in pr_info.json instead.
 class BasicPRInformation(NamedTuple):
     number: int  # PR number, non-negative
-    author: dict
+    # Just the author's github handle; the corresponding URL is determined automatically.
+    author_name: str
     title: str
     url: str
     labels: List[Label]
@@ -530,14 +531,8 @@ def write_on_the_queue_page(
         is_ready = not (any(lab.name in ["WIP", "help-wanted", "please-adopt"] for lab in pr.labels))
         review = not (any(lab.name in ["awaiting-CI", "awaiting-author", "awaiting-zulip"] for lab in pr.labels))
         overall = (CI_status[pr.number] == CIStatus.Pass) and (not is_blocked) and (not has_merge_conflict) and is_ready and review
-        if "login" in pr.author:
-            author = pr.author
-        else:
-            # FIXME: fill in the user name from the actual aggregate data, which has this. Then remove the question mark.
-            print(f"warning: missing author information for PR {pr.number}, its authors dictionary is {pr.author} --- was this submitted by dependabot?", file=sys.stderr)
-            author = { "login": "dependabot(?)", "url": "https://github.com/dependabot"}
         entries = [
-            pr_link(pr.number, pr.url), user_link(author), title_link(pr.title, pr.url),
+            pr_link(pr.number, pr.url), user_link(pr.author_name), title_link(pr.title, pr.url),
             _write_labels(pr.labels), icon(not from_fork), status_symbol[CI_status[pr.number]],
             icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall)
         ]
@@ -980,10 +975,9 @@ def pr_link(number: int, url: str) -> str:
 
 
 # An HTML link to a GitHub user profile
-def user_link(author: dict) -> str:
-    login = author["login"]
-    url = author["url"]
-    return f"<a href='{url}'>{login}</a>"
+def user_link(author_name: str) -> str:
+    url = f"https://github.com/{author_name}"
+    return f"<a href='{url}'>{author_name}</a>"
 
 
 # An HTML link to a mathlib PR from the PR title
@@ -1047,16 +1041,15 @@ def _extract_prs(data: dict) -> List[BasicPRInformation]:
         for entry in page["data"]["search"]["nodes"]:
             entry_author = entry["author"]
             if "login" in entry_author:
-                author = entry_author
+                author = entry_author["login"]
             else:
                 # FIXME: fill in the user name from the actual aggregate data, which has this. Then remove the question mark.
                 print(
                     f'warning: missing author information for PR {entry["number"]}, its authors dictionary is {entry_author} --- was this submitted by dependabot?',
                     file=sys.stderr,
                 )
-                author = {"login": "dependabot(?)", "url": "https://github.com/dependabot"}
-            # if "login" not in entry["author"]:
-            #     print(f'invalid data: malformed authors field {entry["author"]} in PR entry {entry}', file=sys.stderr)
+                author = "dependabot(?)"
+                #author = {"login": "dependabot(?)", "url": "https://github.com/dependabot"}
             labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
             prs.append(BasicPRInformation(entry["number"], author, entry["title"], entry["url"], labels, entry["updatedAt"]))
     return prs
@@ -1072,7 +1065,7 @@ def _compute_pr_entries(
 ) -> str:
     result = ""
     for pr in prs:
-        entries = [pr_link(pr.number, pr.url), user_link(pr.author), title_link(pr.title, pr.url), _write_labels(pr.labels)]
+        entries = [pr_link(pr.number, pr.url), user_link(pr.author_name), title_link(pr.title, pr.url), _write_labels(pr.labels)]
         # Detailed information about the current PR.
         pr_info = None
         if pr.number in aggregate_information:
