@@ -220,7 +220,7 @@ def remove_broken_data(number: int) -> None:
         new_content.remove(previous_comment[0])
         if previous_comment[0].startswith(comment_second):
             # Replace "second" by "third" in that line; remove broken data.
-            new_content.append(f"{comment_third}{number}")
+            new_content.append(f"{comment_third}{number}\n")
             with open(filename, "w") as fi:
                 fi.writelines(new_content)
             shutil.rmtree(dir)
@@ -231,7 +231,7 @@ def remove_broken_data(number: int) -> None:
             with open(filename, "w") as fi:
                 fi.writelines(new_content)
             with open("stubborn_prs.txt", "a") as fi:
-                fi.write(f"{number}\n")
+                fi.write(f"\n{number}\n")
             shutil.rmtree(dir)
         else:
             print(f"error: comment {previous_comment} for PR {number} is unexpected; aborting!")
