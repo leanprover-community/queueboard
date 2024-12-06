@@ -174,7 +174,12 @@ def prune_missing_prs_files() -> List[int]:
                 new_lines.append(line)
                 current_missing_prs.append(int(line))
         for comment in comments:
-            if comment.startswith("-- third attempt for "):
+            if comment.startswith("-- second attempt for "):
+                nstr = comment.removeprefix("-- second attempt for ")
+                if int(nstr) not in current_missing_prs and nstr not in closed_pr_lines:
+                    print(f"PR {nstr} is marked as 'second attempt', but is fine now --- removing the comment")
+                    new_lines.remove(comment)
+            elif comment.startswith("-- third attempt for "):
                 nstr = comment.removeprefix("-- third attempt for ")
                 if int(nstr) not in current_missing_prs and nstr not in closed_pr_lines:
                     print(f"PR {nstr} is marked as 'third attempt', but is fine now --- removing the comment")
