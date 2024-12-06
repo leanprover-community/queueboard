@@ -91,8 +91,8 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
     assignees = [ass["login"] for ass in inner["assignees"]["nodes"]]
     # Get information about the latest CI run; `None` if that information seems missing.
     if inner["statusCheckRollup"] is None:
-        print(f"warning: PR {number} has 'null' report for CI status checks")
-        CI_status = "null"
+        print(f'warning: PR {number} has missing information "null") for CI status checks')
+        CI_status = None
     else:
         CI_status = determine_ci_status(number, inner["statusCheckRollup"]["contexts"]["nodes"])
     # github usernames of everyone who left an "approving" review on this PR.
