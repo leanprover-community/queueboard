@@ -245,7 +245,7 @@ def main() -> None:
     prs_with_errors = check_data_directory_contents()
     # Prune broken data for all PRs, and remove superfluous entries from 'missing_prs.txt'.
     for pr in prs_with_errors:
-        remove_broken_data(pr)
+        pass # FIXME: re-enable remove_broken_data(pr)
     current_missing_entries = prune_missing_prs_files()
     print(f"info: found {len(prs_with_errors)} PRs with broken data")
 
