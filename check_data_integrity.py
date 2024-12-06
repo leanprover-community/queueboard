@@ -12,7 +12,7 @@ import os
 import shutil
 import sys
 from datetime import datetime, timedelta, timezone
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Tuple
 
 from dateutil import parser
 
@@ -77,37 +77,39 @@ def _check_directory(dir: str, pr_number: int, files: List[str]) -> bool:
 # - this contains only directories of the form "PR_number" or "PR_number-basic",
 # - no PR has both forms present,
 # - each directory only contains the expected files, and these parse successfully.
-# Return all PR numbers whose data was mal-formed (if any).
-def check_data_directory_contents() -> List[int]:
+# Return a tuple (normal, stubborn) of all PR numbers whose data was mal-formed (if any):
+# first all normal PRs, then all "stubborn" PRs.
+def check_data_directory_contents() -> Tuple[List[int], List[int]]:
     data_dirs: List[str] = sorted(os.listdir("data"))
-    prs_with_errors = []
+    normal_prs_with_errors = []
+    stubborn_prs_with_errors = []
     for dir in data_dirs:
         if dir.endswith("-basic"):
             number = dir.removesuffix("-basic")
             if number in data_dirs:
                 eprint(f"error: there is both a normal and a 'basic' data directory for PR {number}")
-                prs_with_errors.append(int(number))
+                normal_prs_with_errors.append(int(number))
             expected = ["basic_pr_info.json", "timestamp.txt"]
             files = sorted(os.listdir(os.path.join("data", dir)))
             if files != expected:
                 eprint(f"files for PR {number} did not match what I wanted: expected {expected}, got {files}")
-                prs_with_errors.append(int(number))
+                stubborn_prs_with_errors.append(int(number))
                 continue
             if not _check_directory(os.path.join("data", dir), int(number), files):
-                prs_with_errors.append(int(number))
+                stubborn_prs_with_errors.append(int(number))
         elif dir.isnumeric():
             expected = ["pr_info.json", "pr_reactions.json", "timestamp.txt"]
             files = sorted(os.listdir(os.path.join("data", dir)))
             if files != expected:
                 eprint(f"files for PR {dir} did not match what I wanted: expected {expected}, got {files}")
-                prs_with_errors.append(int(dir))
+                normal_prs_with_errors.append(int(dir))
                 continue
             if not _check_directory(os.path.join("data", dir), int(dir), files):
-                prs_with_errors.append(int(dir))
+                normal_prs_with_errors.append(int(dir))
         else:
             eprint("error: found directory {dir}, which was unexpected")
     # Deduplicate the output: the logic above might add a PR twice.
-    return list(set(sorted(prs_with_errors)))
+    return (list(set(sorted(normal_prs_with_errors))), list(set(sorted(stubborn_prs_with_errors))))
 
 
 # All data we are currently extracting from each PR's aggregate info.
@@ -242,12 +244,12 @@ def remove_broken_data(number: int) -> None:
 # dates from querying github.
 def main() -> None:
     # "Last updated" information as found in the aggregate data file.
-    prs_with_errors = check_data_directory_contents()
+    (normal_prs_with_errors, stubborn_prs_with_errors) = check_data_directory_contents()
     # Prune broken data for all PRs, and remove superfluous entries from 'missing_prs.txt'.
-    for pr in prs_with_errors:
-        pass # FIXME: re-enable remove_broken_data(pr)
+    for pr in normal_prs_with_errors:
+        remove_broken_data(pr)
     current_missing_entries = prune_missing_prs_files()
-    print(f"info: found {len(prs_with_errors)} PRs with broken data")
+    print(f"info: found {len(normal_prs_with_errors)} PRs with broken data")
 
     # "Last updated" information as returned from a fresh github query.
     current_last_updated = extract_last_update_from_input()
