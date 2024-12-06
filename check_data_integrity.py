@@ -9,6 +9,7 @@ This script assumes these files exist.
 
 import json
 import os
+import shutil
 import sys
 from datetime import datetime, timedelta, timezone
 from typing import List, NamedTuple
@@ -85,27 +86,28 @@ def check_data_directory_contents() -> List[int]:
             number = dir.removesuffix("-basic")
             if number in data_dirs:
                 eprint(f"error: there is both a normal and a 'basic' data directory for PR {number}")
-                prs_with_errors.append(number)
+                prs_with_errors.append(int(number))
             expected = ["basic_pr_info.json", "timestamp.txt"]
             files = sorted(os.listdir(os.path.join("data", dir)))
             if files != expected:
                 eprint(f"files for PR {number} did not match what I wanted: expected {expected}, got {files}")
-                prs_with_errors.append(number)
+                prs_with_errors.append(int(number))
                 continue
             if not _check_directory(os.path.join("data", dir), int(number), files):
-                prs_with_errors.append(number)
+                prs_with_errors.append(int(number))
         elif dir.isnumeric():
             expected = ["pr_info.json", "pr_reactions.json", "timestamp.txt"]
             files = sorted(os.listdir(os.path.join("data", dir)))
             if files != expected:
                 eprint(f"files for PR {dir} did not match what I wanted: expected {expected}, got {files}")
-                prs_with_errors.append(number)
+                prs_with_errors.append(int(dir))
                 continue
             if not _check_directory(os.path.join("data", dir), int(dir), files):
-                prs_with_errors.append(number)
+                prs_with_errors.append(int(dir))
         else:
             eprint("error: found directory {dir}, which was unexpected")
-    return sorted(prs_with_errors).dedup
+    # Deduplicate the output: the logic above might add a PR twice.
+    return list(set(sorted(prs_with_errors)))
 
 
 # All data we are currently extracting from each PR's aggregate info.
@@ -139,11 +141,14 @@ def _has_valid_entries(data_dirs: List[str], number: int) -> bool:
 
 
 # Read the file 'missing_prs.txt', check for entries which can be removed now
-# and write out the updated file. Take care to keep manual comments in the file.
+# and write out the updated file. Take care to keep manual comments in the file
+# (except for obsolete '-- third attempt for <N>' lines).
 # Return a list of all PR numbers which are in the new file.
 # Also prune 'closed_prs_to_backfill.txt' in a similar way.
 def prune_missing_prs_files() -> List[int]:
     def inner(filename: str) -> List[int]:
+        with open("closed_prs_to_backfill.txt", "r") as file:
+            closed_pr_lines = file.read().strip().splitlines()
         current_lines: List[str] = []
         with open(filename, "r") as file:
             current_lines = file.read().strip().splitlines()
@@ -154,8 +159,13 @@ def prune_missing_prs_files() -> List[int]:
         new_lines = []
         current_missing_prs: List[int] = []
         superfluous: List[int] = []
+        comments = []
         for line in current_lines:
-            if not line or line.startswith("--"):
+            if not line:
+                new_lines.append(line)
+                continue
+            elif line.startswith("--"):
+                comments.append(line)
                 new_lines.append(line)
                 continue
             if _has_valid_entries(data_dirs, int(line)):
@@ -163,6 +173,12 @@ def prune_missing_prs_files() -> List[int]:
             else:
                 new_lines.append(line)
                 current_missing_prs.append(int(line))
+        for comment in comments:
+            if comment.startswith("-- third attempt for "):
+                nstr = comment.removeprefix("-- third attempt for ")
+                if int(nstr) not in current_missing_prs and nstr not in closed_pr_lines:
+                    print(f"PR {nstr} is marked as 'third attempt', but is fine now --- removing the comment")
+                    new_lines.remove(comment)
         if superfluous:
             eprint(f"{len(superfluous)} PR(s) marked as missing have present entries now, removing: {superfluous}")
         with open(filename, "w") as file:
@@ -173,14 +189,59 @@ def prune_missing_prs_files() -> List[int]:
     return inner("missing_prs.txt")
 
 
+# Remove broken data for a "normal" PR with number 'number':
+# - remove the entire directory of this PR's data,
+# - add/update a running comment to 'missing_prs.txt' about this being the second (or third) time this PR is downloaded,
+# - if there was a comment about the third attempt, i.e. a download failed thrice in a row, mark this PR as stubborn.
+# 'prune_missing_prs_files()' ensures that no stale "third attempt" comments are left behind.
+def remove_broken_data(number: int) -> None:
+    filename = "missing_prs.txt"
+    dir = os.path.join("data", str(number))
+
+    with open(filename, "r") as fi:
+        content = fi.readlines()
+    previous_comment = list(filter(lambda s: s.startswith("-- ") and s.endswith(str(number)), content))
+    if not previous_comment:
+        shutil.rmtree(dir)
+        with open(filename, "a") as fi:
+            fi.write(f"-- second attempt for {number}\n")
+    else:
+        assert len(previous_comment) == 1
+        new_content = content[:]
+        new_content.remove(previous_comment[0])
+        if previous_comment[0].startswith("-- second attempt for "):
+            # Replace "second" by "third" in that line; remove broken data.
+            new_content.append(f"-- third attempt for {number}")
+            with open(filename, "w") as fi:
+                fi.writelines(new_content)
+            shutil.rmtree(dir)
+        elif previous_comment[0].startswith("-- second attempt for "):
+            # Also remove the PR number from the file;
+            # write an entry to stubborn_prs.txt instead.
+            new_content = [line for line in content if line != str(number)]
+            with open(filename, "w") as fi:
+                fi.writelines(new_content)
+            with open("stubborn_prs.txt", "a") as fi:
+                fi.write(f"{number}\n")
+            shutil.rmtree(dir)
+        else:
+            print(f"error: comment {previous_comment} for PR {number} is unexpected; aborting!")
+            return
+
+
 # Read the last updated fields of the aggregate data file, and compare it with the
 # dates from querying github.
 def main() -> None:
-    # "Last updated" information as returned from a fresh github query.
-    current_last_updated = extract_last_update_from_input()
     # "Last updated" information as found in the aggregate data file.
     prs_with_errors = check_data_directory_contents()
+    # Prune broken data for all PRs, and remove superfluous entries from 'missing_prs.txt'.
+    for pr in prs_with_errors:
+        remove_broken_data(pr)
+    current_missing_entries = prune_missing_prs_files()
     print(f"info: found {len(prs_with_errors)} PRs with broken data")
+
+    # "Last updated" information as returned from a fresh github query.
+    current_last_updated = extract_last_update_from_input()
     aggregate_last_updated: dict[int, AggregateData] = dict()
     with open(os.path.join("processed_data", "all_pr_data.json"), "r") as aggregate_file:
         data = json.load(aggregate_file)
@@ -235,8 +296,6 @@ def main() -> None:
             if not line.startswith("--") and line:
                 stubborn_prs.append(int(line))
     # Write out the list of missing PRs.
-    # Prune superfluous entries from 'missing_prs.txt' first.
-    current_missing_entries = prune_missing_prs_files()
     if missing_prs:
         print(f"SUMMARY: found {len(missing_prs)} PR(s) whose aggregate information is missing:\n{sorted(missing_prs)}", file=sys.stderr)
         # Append any 'newly' missing PRs to the file.
