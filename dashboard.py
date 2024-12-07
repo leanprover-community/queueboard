@@ -1085,7 +1085,7 @@ def _compute_pr_entries(
         name = aggregate_information[pr.number].author
         if pr.url != infer_pr_url(pr.number):
             print(f"warning: PR {pr.number} has url differing from the inferred one:\n  actual:   {pr.url}\n  inferred: {infer_pr_url(pr.number)}", file=sys.stderr)
-        entries = [pr_link(pr.number, pr.url), user_link(name), title_link(pr.title), _write_labels(pr.labels)]
+        entries = [pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url), _write_labels(pr.labels)]
         # Detailed information about the current PR.
         pr_info = None
         if pr.number in aggregate_information:
