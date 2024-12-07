@@ -976,9 +976,10 @@ def pr_link(number: int, url: str) -> str:
 
 
 # An HTML link to a GitHub user profile
-def user_link(author_name: str) -> str:
+def user_link(author_name: str, details: str | None=None) -> str:
     url = f"https://github.com/{author_name}"
-    return f"<a href='{url}'>{author_name}</a>"
+    title = f" title='{details}'" if details else ""
+    return f"<a href='{url}'{title}>{author_name}</a>"
 
 
 # An HTML link to a mathlib PR from the PR title
