@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 
+"""
+Generate a webpage
+- displaying statistics about how many reviewers have how many PR assigned to them,
+- suggesting potential reviewers for unassigned PRs, based on their self-indicated areas of competence/interest
+
+"""
+
 import json
 from os import path
 import sys
