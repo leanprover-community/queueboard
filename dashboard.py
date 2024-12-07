@@ -1105,10 +1105,15 @@ def _compute_pr_entries(
             pr_info = aggregate_information[pr.number]
         if pr_info is None:
             print(f"main dashboard: found no aggregate information for PR {pr.number}", file=sys.stderr)
-            # TODO: need to make sure this number matches up!
-            entries.extend(["-1/-1", "-1", "-1", "???"])
+            entries.extend(["-1/-1", "-1", "-1"])
+            if extra_settings.show_assignee:
+                entries.append("???")
+            if extra_settings.show_approvals:
+                entries.append("???")
+            if extra_settings.potential_reviewers and potential_reviewers is not None:
+                entries.append("???")
         else:
-            na = '<a href="no data available">n/a</a>'
+            na = '<a title="no data available">n/a</a>'
             total_comments = na if pr_info.number_total_comments is None else str(pr_info.number_total_comments)
             entries.extend([
                 "{}/{}".format(pr_info.additions, pr_info.deletions),
@@ -1176,7 +1181,7 @@ def write_dashboard(
             headings.append('<a title="github user(s) this PR is assigned to (if any)">Assignee(s)</a>')
         if extra_settings.show_approvals:
             headings.append('<a title="github user(s) who have left an approving review of this PR (if any)">Approval(s)</a>')
-        if extra_settings.potential_reviewers:
+        if extra_settings.potential_reviewers and potential_reviewers is not None:
             headings.append("Potential reviewers")
         if not extra_settings.hide_update:
             headings.append("Updated")
