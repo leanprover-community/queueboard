@@ -129,7 +129,7 @@ def main():
     title = "  <h1>PR assigment overview</h1>"
     welcome = "<p>This is a hidden page, meant for maintainers: it displays information on which PRs are assigned and suggests appropriate reviewers for unassigned PRs. In the future, it could provide the means to contact them. To prevent spam, for now this page is a bit hidden: it has to be generated locally from a script.</p>"
 
-    header = '<h2 id="#assignment-stats"><a href="#assignment-stats">PR assignment statistics</a></h2>'
+    header = '<h2 id="assignment-stats"><a href="#assignment-stats">PR assignment statistics</a></h2>'
     intro = f"The following table contains statistics about all PRs whose number is greater than {threshold}.<br>"
     num_ass_open = len(set(assigned_open_prs))
     stat = (f"Overall, <b>{num_ass_open}</b> of these <b>{number_open_prs}</b> open PRs (<b>{num_ass_open/number_open_prs:.1%}</b>) have at least one assignee. "
@@ -144,7 +144,7 @@ def main():
     table = f"  <table>\n{thead}{tbody}  </table>"
     stats = f"{header}\n{intro}\n{stat}\n{table}"
 
-    header = '<h2 id="#reviewers"><a href="#reviewers">Mathlib reviewers with areas of interest</a></h2>'
+    header = '<h2 id="reviewers"><a href="#reviewers">Mathlib reviewers with areas of interest</a></h2>'
     intro = "The following lists all mathlib reviewers with their (self-declared) topics of interest. (Beware: still need a solution for keep this file in sync with the 'master' data.)"
     # Future: download the raw file from this link, instead of reading a local copy!
     # (This requires fixing the upstream version first: locally, it is easy to just correct the bugs.)
@@ -169,7 +169,7 @@ def main():
     table = f"  <table>\n{thead}{tbody}  </table>"
     reviewers = f"{header}\n{intro}\n{table}"
 
-    header = '<h2 id="#propose-reviewers"><a href="#propose-reviewers">Finding reviewers for unassigned PRs</h2>'
+    header = '<h2 id="propose-reviewers"><a href="#propose-reviewers">Finding reviewers for unassigned PRs</a></h2>'
     pr_lists = compute_pr_list_from_aggregate_data_only(parsed)
     suggestions = {
         pr.number: suggest_reviewers(parsed_reviewers, pr.number, parsed[pr.number])
