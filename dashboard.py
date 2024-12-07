@@ -437,10 +437,12 @@ def _write_labels(labels: List[Label]) -> str:
 
 
 # Write a webpage with body out a file called 'outfile*.
-def write_webpage(body: str, outfile: str) -> None:
+# 'extra_script' is expected to be newline-delimited and appropriately indented.
+def write_webpage(body: str, outfile: str, extra_script: str=None) -> None:
     with open(outfile, "w") as fi:
-        # FIXME: should the footer be adjusted?
-        print(f"{HTML_HEADER}\n{body}\n{HTML_FOOTER}", file=fi)
+        script = (extra_script or "") + STANDARD_SCRIPT
+        footer = f"<script>{script}</script>\n</body>\n</html>"
+        print(f"{HTML_HEADER}\n{body}\n{footer}", file=fi)
 
 
 def main() -> None:
@@ -943,9 +945,7 @@ HTML_HEADER = """
 <body>
 """.strip()
 
-
-HTML_FOOTER = """
-<script>
+STANDARD_SCRIPT = """
   let diff_stat = DataTable.type('diff_stat', {
     detect: function (data) { return false; },
     order: {
@@ -962,10 +962,7 @@ $(document).ready( function () {
     columnDefs: [{ type: 'diff_stat', targets: 4}],
   });
 });
-</script>
-</body>
-</html>
-""".strip()
+"""
 
 
 def infer_pr_url(number: int) -> str:
