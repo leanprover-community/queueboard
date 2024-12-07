@@ -1042,6 +1042,9 @@ class ExtraColumnSettings(NamedTuple):
     # 'Maintainer merge/delegate' comments are inconsistently labelled as approving or not.
     # In practice, this is not an issue as 'maintainer merge'd PRs are shown separately anyway.
     show_approvals: bool
+    # Future possibilities:
+    # - number of (transitive) dependencies (with PR numbers).
+    # - reviewers whose interests match this PR.
 
     @staticmethod
     def default():
