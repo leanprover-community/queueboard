@@ -45,7 +45,9 @@ class ReviewerInfo(NamedTuple):
     comment: str
 
 
-def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: AggregatePRInfo) -> str:
+# Return a tuple (full code, reviewers): the former is used as the webpage table entry,
+# the latter are all potential reviewers suggested (by their github handle).
+def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: AggregatePRInfo) -> Tuple[str, List[str]]:
     # Look at all topic labels of this PR, and find all suitable reviewers.
     topic_labels = [lab.name for lab in info.labels if lab.name.startswith("t-") or lab.name in ['CI', 'IMO']]
     matching_reviewers: List[Tuple[ReviewerInfo, List[str]]] = []
@@ -58,7 +60,7 @@ def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: Aggregat
             matching_reviewers.append((rev, match))
     else:
         print(f"PR {number} is has no topic labels: reviewer suggestions not implemented yet", file=sys.stderr)
-        return "no topic labels: suggestions not implemented yet"
+        return ("no topic labels: suggestions not implemented yet", [])
 
     # Future: decide how to customise and filter the output, lots of possibilities!
     # - no and one reviewer look sensible already
@@ -68,10 +70,10 @@ def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: Aggregat
     # - would showing the full interests (not just the top-level areas) be helpful?
     if not matching_reviewers:
         print(f"found no reviewers with matching interest for PR {number}", file=sys.stderr)
-        return "found no reviewers with matching interest"
+        return ("found no reviewers with matching interest", [])
     elif len(matching_reviewers) == 1:
         rev = matching_reviewers[0]
-        return f"{user_link(rev.github)}"
+        return (f"{user_link(rev.github)}", rev.github)
     else:
         max_score = max([len(n) for (_, n) in matching_reviewers])
         if max_score > 1:
@@ -83,13 +85,16 @@ def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: Aggregat
                 user_link(rev.github, "competent in {}".format(", ".join(areas)))
                 for (rev, areas) in max_reviewers
             ])
+            reviewers = [rev.github for (rev, _areas) in max_reviewers]
         else:
             comment = lambda comment: f"; comments: {comment}" if comment else ""
             formatted = ", ".join([
                 user_link(rev.github, f"areas of competence: {', '.join(rev.top_level)}{comment(rev.comment)}")
                 for (rev, areas) in matching_reviewers if len(areas) > 0
             ])
-        return formatted
+            reviewers = [rev.github for (rev, areas) in matching_reviewers if len(areas) > 0]
+        return (formatted, reviewers)
+
 
 def main():
     with open(path.join("processed_data", "all_pr_data.json"), "r") as fi:

@@ -1087,7 +1087,8 @@ class ExtraColumnSettings(NamedTuple):
 # TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
 # in the latter is always kept updated.
 def _compute_pr_entries(
-    prs: List[BasicPRInformation], aggregate_information: dict[int, AggregatePRInfo], extra_settings: ExtraColumnSettings, potential_reviewers: dict[int, str] | None=None,
+    prs: List[BasicPRInformation], aggregate_information: dict[int, AggregatePRInfo],
+    extra_settings: ExtraColumnSettings, potential_reviewers: dict[int, Tuple[str, List[str]]] | None=None,
 ) -> str:
     result = ""
     for pr in prs:
@@ -1136,7 +1137,7 @@ def _compute_pr_entries(
                 approval_link = f'<a title="{app}">{len(approvals_dedup)}' if approvals_dedup else "none"
                 entries.append(approval_link)
             if extra_settings.potential_reviewers and potential_reviewers is not None:
-                entries.append(potential_reviewers[pr.number])
+                entries.append(potential_reviewers[pr.number][0])
         if not extra_settings.hide_update:
             entries.append(time_info(pr.updatedAt))
         result += _write_table_row(entries, "    ")
@@ -1149,9 +1150,13 @@ def _compute_pr_entries(
 # TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
 # in the latter is always kept updated.
 # If 'header' is false, a table header is omitted and just the dashboard is printed.
+#
+# |potential_reviewers| maps each PR number to a tuple (HTML code, reviewer names).
+# The full string is shown on the webpage; the list of reviewer names is used for offering
+# a contact button.
 def write_dashboard(
     prs: dict[Dashboard, List[BasicPRInformation]], kind: Dashboard, aggregate_info: dict[int, AggregatePRInfo],
-    extra_settings: ExtraColumnSettings | None=None, header=True, potential_reviewers: dict[int, str]|None =None
+    extra_settings: ExtraColumnSettings | None=None, header=True, potential_reviewers: dict[int, Tuple[str, List[str]]]|None =None
 ) -> str:
     def _inner(
         prs: List[BasicPRInformation], kind: Dashboard, aggregate_info: dict[int, AggregatePRInfo],
