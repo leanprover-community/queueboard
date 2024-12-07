@@ -169,13 +169,16 @@ def main():
                 max_reviewers = [(rev, areas) for (rev, areas) in matching_reviewers if len(areas) == max_score]
                 # FIXME: refine which information is actually useful here.
                 # Or also show information if a single (and the PR's only) area matches?
-                details = lambda areas: "competent in {}".format(", ".join(areas))
                 formatted = ", ".join([
-                    f"<a href='https://github.com/{rev.github}' title='{details(areas)}'>{rev.github}</a>"
+                    user_link(rev.github, "competent in {}".format(", ".join(areas)))
                     for (rev, areas) in max_reviewers
                 ])
             else:
-                formatted = ", ".join([f"{user_link(rev.github)}" for (rev, areas) in matching_reviewers if len(areas) > 0])
+                comment = lambda comment: f"; comments: {comment}" if comment else ""
+                formatted = ", ".join([
+                    user_link(rev.github, f"areas of competence: {', '.join(rev.top_level)}{comment(rev.comment)}")
+                    for (rev, areas) in matching_reviewers if len(areas) > 0
+                ])
             entries.append(formatted)
         tbody += _write_table_row(entries, "    ")
     # Future: have another column with a button to select one reviewer
