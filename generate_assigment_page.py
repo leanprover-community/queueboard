@@ -185,7 +185,10 @@ def main():
     settings = ExtraColumnSettings(show_assignee=False, show_approvals=True, potential_reviewers=True, hide_update=True)
     table = write_dashboard(pr_lists, Dashboard.QueueStaleUnassigned, parsed, settings, False, suggestions)
     propose = f"{header}\n{table}\n"
+    # NB. This lines becomes actual JS code, so uses JS string interpolation syntax.
+    msg = "Dear ${name}, I'm triaging unassigned PRs. #${number} matches your interests; would you like to review it? Thanks!"
+    extra = "  function contactMessage(name, number) {\n    alert(`msg`);\n  }".replace("msg", msg)
 
-    write_webpage(f"{title}\n{welcome}\n{stats}\n{reviewers}\n{propose}", "assign-reviewer.html")
+    write_webpage(f"{title}\n{welcome}\n{stats}\n{reviewers}\n{propose}", "assign-reviewer.html", extra_script=extra)
 
 main()

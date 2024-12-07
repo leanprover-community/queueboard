@@ -1137,7 +1137,15 @@ def _compute_pr_entries(
                 approval_link = f'<a title="{app}">{len(approvals_dedup)}' if approvals_dedup else "none"
                 entries.append(approval_link)
             if extra_settings.potential_reviewers and potential_reviewers is not None:
-                entries.append(potential_reviewers[pr.number][0])
+                (reviewer_str, names) = potential_reviewers[pr.number]
+                entries.append(reviewer_str)
+                if names:
+                    # Just allow contacting the first reviewer, for now.
+                    # FUTURE: add a button with a drop-down, for the various options.
+                    fn = f"contactMessage('{names[0]}', {pr.number})"
+                    entries.append(f'<button onclick="{fn}">Ask {names[0]} for review</button>')
+                else:
+                    entries.append("")
         if not extra_settings.hide_update:
             entries.append(time_info(pr.updatedAt))
         result += _write_table_row(entries, "    ")
@@ -1185,6 +1193,7 @@ def write_dashboard(
             headings.append('<a title="github user(s) who have left an approving review of this PR (if any)">Approval(s)</a>')
         if extra_settings.potential_reviewers and potential_reviewers is not None:
             headings.append("Potential reviewers")
+            headings.append("Contact")
         if not extra_settings.hide_update:
             headings.append("Updated")
         head = _write_table_header(headings, "    ")
