@@ -295,7 +295,13 @@ def read_json_files() -> JSONInputData:
     return JSONInputData(aggregate_info, all_open_prs)
 
 
-def determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_info) -> dict[Dashboard, List[BasicPRInformation]]:
+# use_aggregate_queue: if True, determine the review queue (and everything depending on it)
+# from the aggregate data and not queue.json
+def determine_pr_dashboards(
+    nondraft_PRs: List[BasicPRInformation], base_branch: dict[int, str],
+    prs_from_fork: List[BasicPRInformation], CI_status: dict[int, CIStatus],
+    aggregate_info: dict[int, AggregatePRInfo], use_aggregate_queue: bool
+) -> dict[Dashboard, List[BasicPRInformation]]:
     approved = [pr for pr in nondraft_PRs if aggregate_info[pr.number].approvals]
     prs_to_list: dict[Dashboard, List[BasicPRInformation]] = dict()
     # The 'tech debt', 'other base' and 'from fork' boards are obtained
@@ -355,12 +361,11 @@ def determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status,
     # if my_assert_eq(msg, [pr.number for pr in prs_to_list[Dashboard.NeedsMerge]], needs_merge2):
     #     print("Needs merge dashboard: list matches the github API, hooray!", file=sys.stderr)
 
-    # TODO: try to switch back to 'queue_prs' again, once the root causes for PR getting 'dropped'
-    # by 'gather_stats.sh' are all identified and fixed.
-    prs_to_list[Dashboard.Queue] = queue_prs2
-    prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs2, "new-contributor")
-    prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs2, "easy")
-    prs_to_list[Dashboard.QueueTechDebt] = prs_with_any_label(queue_prs2, ["tech debt", "longest-pole"])
+    prs_to_list[Dashboard.Queue] = queue_prs if use_aggregate_queue else queue_prs2
+    queue = prs_to_list[Dashboard.Queue]
+    prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue, "new-contributor")
+    prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue, "easy")
+    prs_to_list[Dashboard.QueueTechDebt] = prs_with_any_label(queue, ["tech debt", "longest-pole"])
 
     a_day_ago = datetime.now(timezone.utc) - timedelta(days=1)
     a_week_ago = datetime.now(timezone.utc) - timedelta(days=7)
@@ -375,7 +380,7 @@ def determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status,
     prs_to_list[Dashboard.AllMaintainerMerge] = prs_without_label(prs_with_label(nondraft_PRs, "maintainer-merge"), "ready-to-merge")
     prs_to_list[Dashboard.StaleNewContributor] = prs_with_label(one_week_stale, "new-contributor")
 
-    stale_queue = [pr for pr in queue_prs2 if aggregate_info[pr.number].last_updated < two_weeks_ago]
+    stale_queue = [pr for pr in queue if aggregate_info[pr.number].last_updated < two_weeks_ago]
     prs_to_list[Dashboard.QueueStaleUnassigned] = [pr for pr in stale_queue if not aggregate_info[pr.number].assignees]
     # TODO/Future: use a more refined measure of activity!
     prs_to_list[Dashboard.QueueStaleAssigned] = [pr for pr in stale_queue if aggregate_info[pr.number].assignees]
@@ -485,8 +490,9 @@ def main() -> None:
     prs_from_fork = [pr for pr in nondraft_PRs if aggregate_info[pr.number].head_repo != "leanprover-community"]
     write_on_the_queue_page(nondraft_PRs, prs_from_fork, CI_status, base_branch)
 
-    prs_to_list = determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_info)
-
+    # TODO: try to enable |use_aggregate_queue| 'queue_prs' again, once all the root causes
+    # for PRs getting 'dropped' by 'gather_stats.sh' are found and fixed.
+    prs_to_list = determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_info, False)
 
     # FUTURE: can this time be displayed in the local time zone of  the user viewing this page?
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
