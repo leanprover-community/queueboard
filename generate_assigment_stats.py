@@ -195,7 +195,7 @@ def main():
     # Future: have another column with a button to send a zulip DM to a
     # potential (e.g. selecting from the suggested ones).
     # table = f"  <table>\n{thead}{tbody}  </table>"
-    settings = ExtraColumnSettings(False, True, True)
+    settings = ExtraColumnSettings(show_assignee=False, show_approvals=True, potential_reviewers=True, hide_update=True)
     table = write_dashboard(pr_lists, Dashboard.QueueStaleUnassigned, parsed, settings, False, suggestions)
     propose = f"{header}\n{table}\n"
 

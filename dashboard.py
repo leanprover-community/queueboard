@@ -750,7 +750,8 @@ def write_triage_page(
     stale_unassigned = write_dashboard(prs_to_list, Dashboard.QueueStaleUnassigned, aggregate_info, config)
 
     # XXX: when updating the definition of "stale assigned" PRs, make sure to update all the dashboard descriptions
-    write_dashboard(prs_to_list, Dashboard.QueueStaleAssigned, aggregate_info, ExtraColumnSettings(True, show_approvals=True, potential_reviewers=False))
+    setting = ExtraColumnSettings.with_approvals(True).with_assignee(True)
+    write_dashboard(prs_to_list, Dashboard.QueueStaleAssigned, aggregate_info, setting)
 
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
 
@@ -773,7 +774,7 @@ def write_triage_page(
     # Also: add a giant table with all PRs, and their status or so!
 
     body = f"{title}\n  {welcome}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {other_PRs}\n"
-    setting = ExtraColumnSettings(True, kind == Dashboard.Approved, False)
+    setting = ExtraColumnSettings.with_approvals(kind == Dashboard.Approved).with_assignee(True)
     dashboards = [write_dashboard(prs_to_list, kind, aggregate_info, setting) for (kind, _, _, _) in items]
     body += "\n".join(dashboards) + "\n"
     write_webpage(body, "triage.html")
@@ -1067,15 +1068,20 @@ class ExtraColumnSettings(NamedTuple):
     # In practice, this is not an issue as 'maintainer merge'd PRs are shown separately anyway.
     show_approvals: bool
     potential_reviewers: bool
+    hide_update: bool
     # Future possibilities:
     # - number of (transitive) dependencies (with PR numbers)
 
     @staticmethod
     def default():
-        return ExtraColumnSettings(True, False, False)
+        return ExtraColumnSettings(True, False, False, False)
     @staticmethod
-    def with_approvals(new: bool):
-        return ExtraColumnSettings(False, True, False)
+    def with_approvals(val: bool):
+        self = ExtraColumnSettings.default()
+        return ExtraColumnSettings(self.show_assignee, val, self.potential_reviewers, self.hide_update)
+    @classmethod
+    def with_assignee(self, val: bool):
+        return ExtraColumnSettings(val, self.show_approvals, self.potential_reviewers, self.hide_update)
 
 
 # Compute the table entries about a sequence of PRs.
@@ -1129,8 +1135,8 @@ def _compute_pr_entries(
                 entries.append(approval_link)
             if extra_settings.potential_reviewers and potential_reviewers is not None:
                 entries.append(potential_reviewers[pr.number])
-
-        entries.append(time_info(pr.updatedAt))
+        if not extra_settings.hide_update:
+            entries.append(time_info(pr.updatedAt))
         result += _write_table_row(entries, "    ")
     return result
 
@@ -1172,7 +1178,8 @@ def write_dashboard(
             headings.append('<a title="github user(s) who have left an approving review of this PR (if any)">Approval(s)</a>')
         if extra_settings.potential_reviewers:
             headings.append("Potential reviewers")
-        headings.append("Updated")
+        if not extra_settings.hide_update:
+            headings.append("Updated")
         head = _write_table_header(headings, "    ")
         body = _compute_pr_entries(prs, aggregate_info, extra_settings, potential_reviewers)
         return f"{title}\n  <table>\n{head}{body}  </table>"
