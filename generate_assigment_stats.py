@@ -6,7 +6,7 @@ import sys
 from typing import List, NamedTuple, Tuple
 
 from classify_pr_state import CIStatus
-from dashboard import AggregatePRInfo, BasicPRInformation, Dashboard, _write_labels, _write_table_header, _write_table_row, determine_pr_dashboards, parse_aggregate_file, pr_link, title_link, user_link, write_webpage
+from dashboard import AggregatePRInfo, BasicPRInformation, Dashboard, _write_labels, _write_table_header, _write_table_row, determine_pr_dashboards, infer_pr_url, parse_aggregate_file, pr_link, title_link, user_link, write_webpage
 
 
 # Assumes the aggregate data is correct: no cross-filling in of placeholder data.
@@ -15,7 +15,7 @@ def compute_pr_list_from_aggregate_data_only(aggregate_data: dict[int, Aggregate
     for (pr_number, data) in aggregate_data.items():
         if data.state == 'open' and not data.is_draft:
             nondraft_PRs.append(BasicPRInformation(
-                pr_number, data.author, data.title, f"https://github.com/leanprover-community/mathlib4/pull/{pr_number}",
+                pr_number, data.author, data.title, infer_pr_url(pr_number),
                 data.labels, data.last_updated
             ))
     CI_status: dict[int, CIStatus] = dict()
@@ -130,7 +130,7 @@ def main():
     thead = _write_table_header(["User", "Open assigned PR(s)", "Number of them", all_recent], "    ")
     tbody = ""
     for (name, (prs, n_open, n_all)) in numbers.items():
-        formatted_prs = [pr_link(int(pr), f"https://github.com/leanprover-community/mathlib4/pull/{pr}") for pr in prs]
+        formatted_prs = [pr_link(int(pr), infer_pr_url(pr)) for pr in prs]
         tbody += _write_table_row([user_link(name), ', '.join(formatted_prs), n_open, n_all], "    ")
     table = f"  <table>\n{thead}{tbody}  </table>"
     stats = f"{header}\n{intro}\n{stat}\n{table}"

@@ -967,6 +967,9 @@ $(document).ready( function () {
 """.strip()
 
 
+def infer_pr_url(number: int) -> str:
+    return f"https://github.com/leanprover-community/mathlib4/pull/{number}"
+
 # An HTML link to a mathlib PR from the PR number
 def pr_link(number: int, url: str) -> str:
     # The PR number is intentionally not prefixed with a #, so it is correctly
@@ -1080,7 +1083,9 @@ def _compute_pr_entries(
     for pr in prs:
         # XXX: compare the basic and aggregate author names to see if there are any differences
         name = aggregate_information[pr.number].author
-        entries = [pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url), _write_labels(pr.labels)]
+        if pr.url != infer_pr_url(pr.number):
+            print(f"warning: PR {pr.number} has url differing from the inferred one:\n  actual:   {pr.url}\n  inferred: {infer_pr_url(pr.number)}", file=sys.stderr)
+        entries = [pr_link(pr.number, pr.url), user_link(name), title_link(pr.title), _write_labels(pr.labels)]
         # Detailed information about the current PR.
         pr_info = None
         if pr.number in aggregate_information:
