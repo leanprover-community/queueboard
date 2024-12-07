@@ -1044,13 +1044,17 @@ def _extract_prs(data: dict) -> List[BasicPRInformation]:
     prs = []
     for page in data["output"]:
         for entry in page["data"]["search"]["nodes"]:
+            name = None
             if "login" not in entry["author"]:
                 print(
                     f'warning: missing author information for PR {entry["number"]}, its authors dictionary is {entry["author"]} --- was this submitted by dependabot?',
                     file=sys.stderr,
                 )
+            else:
+                name = entry["author"]["login"]
             labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
-            prs.append(BasicPRInformation(entry["number"], entry.get("author"), entry["title"], entry["url"], labels, parser.isoparse(entry["updatedAt"])))
+
+            prs.append(BasicPRInformation(entry["number"], name, entry["title"], entry["url"], labels, parser.isoparse(entry["updatedAt"])))
     return prs
 
 
