@@ -2,7 +2,8 @@
 
 import json
 from os import path
-from typing import List, Tuple
+import sys
+from typing import List, NamedTuple, Tuple
 
 from classify_pr_state import CIStatus
 from dashboard import AggregatePRInfo, BasicPRInformation, Dashboard, _write_labels, _write_table_header, _write_table_row, determine_pr_dashboards, parse_aggregate_file, pr_link, title_link, user_link, write_webpage
@@ -11,7 +12,7 @@ from dashboard import AggregatePRInfo, BasicPRInformation, Dashboard, _write_lab
 # Assumes the aggregate data is correct: no cross-filling in of placeholder data.
 def compute_pr_list_from_aggregate_data_only(aggregate_data: dict[int, AggregatePRInfo]):
     nondraft_PRs = []
-    for (pr_number, data) in aggregate_data:
+    for (pr_number, data) in aggregate_data.items():
         if data.state == 'open' and not data.is_draft:
             nondraft_PRs.append(BasicPRInformation(
                 pr_number, data.author, data.title, f"https://github.com/leanprover-community/mathlib4/pull/{pr_number}",
@@ -28,6 +29,13 @@ def compute_pr_list_from_aggregate_data_only(aggregate_data: dict[int, Aggregate
         base_branch[pr_number.number] = aggregate_data[pr_number.number].base_branch
     prs_from_fork = [pr for pr in nondraft_PRs if aggregate_data[pr.number].head_repo != "leanprover-community"]
     return determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_data, True)
+
+
+class ReviewerInfo(NamedTuple):
+    github: str
+    zulip: str
+    top_level: List[str]
+    comment: str
 
 
 def main():
@@ -89,17 +97,91 @@ def main():
     _file_url = "https://raw.githubusercontent.com/leanprover-community/mathlib4/edbf78c660496a4236d23c8c3b74133a59fdf49b/docs/reviewer-topics.json"
     with open("reviewer-topics.json", "r") as fi:
         reviewer_topics = json.load(fi)
+    parsed_reviewers: List[ReviewerInfo] = [
+        ReviewerInfo(entry["github_handle"], entry["zulip_handle"], entry["top_level"], entry["free_form"]) for entry in reviewer_topics
+    ]
     thead = _write_table_header(["Github username", "Zulip handle", "Topic areas", "Comments", "Currently assigned PRs"], "    ")
-    # XXX: clarify the threshold again!
+    # XXX: clarify the threshold by writing something!
     tbody = ""
-    for entry in reviewer_topics:
-        github = entry["github_handle"]
-        topic_areas = entry["top_level"]
-        comment = entry["free_form"]
-        tbody += _write_table_row([github, entry["zulip_handle"], topic_areas, comment, numbers.get(github) or 0], "    ")
+    for rev in parsed_reviewers:
+        tbody += _write_table_row([rev.github, rev.zulip, rev.top_level, rev.comment, numbers.get(rev.github) or 0], "    ")
     table = f"  <table>\n{thead}{tbody}  </table>"
     reviewers = f"{header}\n{intro}\n{table}"
 
-    write_webpage(f"{title}\n{welcome}\n{stats}\n{reviewers}", "assign-reviewer.html")
+    header = "<h2>Finding reviewers for unassigned PRs</h2>"
+    pr_lists = compute_pr_list_from_aggregate_data_only(parsed)
+    stale_unassigned = pr_lists[Dashboard.QueueStaleUnassigned]
+    thead= _write_table_header([
+            "Number", "Author", "Title", "Labels",
+            '<a title="number of added/deleted lines">+/-</a>',
+            '<a title="number of files modified">&#128221;</a>',
+            '<a title="number of standard or review comments on this PR">&#128172;</a>',
+            '<a title="github user(s) who have left an approving review of this PR (if any)">Approval(s)</a>',
+            'Potential reviewers',
+        ], "    ")
+    tbody=""
+    for pr in stale_unassigned:
+        tbody += ""
+        aggregate = parsed[pr.number]
+        name = aggregate.author
+        entries = [
+            pr_link(pr.number, pr.url),
+            user_link(aggregate.author),
+            title_link(pr.title, pr.url),
+            _write_labels(pr.labels),
+            "{}/{}".format(aggregate.additions, aggregate.deletions),
+            str(aggregate.number_modified_files),
+            aggregate.number_total_comments or '<a href="no data available">n/a</a>',
+        ]
+        approvals_dedup = set(aggregate.approvals)
+        approvals = ', '.join(approvals_dedup)
+        entries.append(f'<a title="{approvals}">{len(approvals_dedup)}</a>')
+
+        # Look at all topic labels of this PR, and find all suitable reviewers.
+        topic_labels = [lab.name for lab in aggregate.labels if lab.name.startswith("t-") or lab.name in ['CI', 'IMO']]
+        matching_reviewers: List[Tuple[ReviewerInfo, List[str]]] = []
+        if topic_labels:
+            for rev in parsed_reviewers:
+                reviewer_lab = rev.top_level
+                if "t-metaprogramming" in reviewer_lab:
+                    reviewer_lab.remove("t-metaprogramming"); reviewer_lab.append("t-meta")
+                match = [lab for lab in topic_labels if lab in reviewer_lab]
+                matching_reviewers.append((rev, match))
+        else:
+            print("PR {pr.number} is not a feature PR: reviewer suggestions not implemented yet", file=sys.stderr)
+
+        # Future: decide how to customise and filter the output, lots of possibilities!
+        # - no and one reviewer look sensible already
+        #   (should one show their full interests also? would that be interesting?)
+        # - don't suggest more than five reviewers --- but make clear there was a selection
+        #   perhaps: have two columns "all matching reviewers" and "suggested one(s)" with up to three?
+        # - would showing the full interests (not just the top-level areas) be helpful?
+        if not matching_reviewers:
+            entries.append("found no reviewers with matching interest")
+            print(f"found no reviewers with matching interest for PR {pr.number}", file=sys.stderr)
+        elif len(matching_reviewers) == 1:
+            rev = matching_reviewers[0]
+            entries.append(f"{user_link(rev.github)}")
+        else:
+            max_score = max([len(n) for (_, n) in matching_reviewers])
+            if max_score > 1:
+                # If there are several areas, prefer reviewers which match the highest number of them.
+                max_reviewers = [(rev, areas) for (rev, areas) in matching_reviewers if len(areas) == max_score]
+                # FIXME: refine which information is actually useful here.
+                # Or also show information if a single (and the PR's only) area matches?
+                details = lambda areas: "competent in {}".format(", ".join(areas))
+                formatted = ", ".join([
+                    f"<a href='https://github.com/{rev.github}' title='{details(areas)}'>{rev.github}</a>"
+                    for (rev, areas) in max_reviewers
+                ])
+            else:
+                formatted = ", ".join([f"{user_link(rev.github)}" for (rev, areas) in matching_reviewers if len(areas) > 0])
+            entries.append(formatted)
+        tbody += _write_table_row(entries, "    ")
+    # Future: have another column with a button to select one reviewer
+    table = f"  <table>\n{thead}{tbody}  </table>"
+    propose = f"{header}\n{table}\n"
+
+    write_webpage(f"{title}\n{welcome}\n{stats}\n{reviewers}\n{propose}", "assign-reviewer.html")
 
 main()
