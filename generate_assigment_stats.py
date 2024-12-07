@@ -191,11 +191,12 @@ def main():
         ]
         suggestions[pr.number] = suggest_reviewers(parsed_reviewers, pr.number, aggregate)
         tbody += _write_table_row(entries, "    ")
-    asdf = write_dashboard(pr_lists, Dashboard.QueueStaleUnassigned, parsed, ExtraColumnSettings(False, False, True), False, suggestions)
 
     # Future: have another column with a button to send a zulip DM to a
     # potential (e.g. selecting from the suggested ones).
-    table = f"  <table>\n{thead}{asdf}  </table>"
+    # table = f"  <table>\n{thead}{tbody}  </table>"
+    settings = ExtraColumnSettings(False, True, True)
+    table = write_dashboard(pr_lists, Dashboard.QueueStaleUnassigned, parsed, settings, False, suggestions)
     propose = f"{header}\n{table}\n"
 
     write_webpage(f"{title}\n{welcome}\n{stats}\n{reviewers}\n{propose}", "assign-reviewer.html")
