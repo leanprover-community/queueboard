@@ -166,9 +166,9 @@ def main():
         ], "    ")
     tbody=""
     for pr in stale_unassigned:
-        tbody += ""
         aggregate = parsed[pr.number]
-        name = aggregate.author
+        approvals_dedup = set(aggregate.approvals)
+        (approvals, num) = (', '.join(approvals_dedup), len(approvals_dedup))
         entries = [
             pr_link(pr.number, pr.url),
             user_link(aggregate.author),
@@ -177,13 +177,12 @@ def main():
             "{}/{}".format(aggregate.additions, aggregate.deletions),
             str(aggregate.number_modified_files),
             aggregate.number_total_comments or '<a href="no data available">n/a</a>',
+            f'<a title="{approvals}">{num}</a>',
+            suggest_reviewers(parsed_reviewers, pr.number, aggregate),
         ]
-        approvals_dedup = set(aggregate.approvals)
-        approvals = ', '.join(approvals_dedup)
-        entries.append(f'<a title="{approvals}">{len(approvals_dedup)}</a>')
-        entries.append(suggest_reviewers(parsed_reviewers, pr.number, aggregate))
         tbody += _write_table_row(entries, "    ")
-    # Future: have another column with a button to select one reviewer
+    # Future: have another column with a button to send a zulip DM to a
+    # potential (e.g. selecting from the suggested ones).
     table = f"  <table>\n{thead}{tbody}  </table>"
     propose = f"{header}\n{table}\n"
 
