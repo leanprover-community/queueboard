@@ -692,7 +692,7 @@ def write_triage_page(
     welcome += f"\n  <small>This dashboard was last updated on: {updated}</small>"
 
     some_stale = f": <strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> of them are stale, and merit another look</li>\n"
-    some_stale += write_dashboard(prs_to_list[Dashboard.StaleReadyToMerge], aggregate_info, Dashboard.StaleReadyToMerge, False)
+    some_stale += write_dashboard(prs_to_list[Dashboard.StaleReadyToMerge], aggregate_info, Dashboard.StaleReadyToMerge, header=False)
     no_stale = ", including <strong>no</strong> stale ones, congratulations!</li>"
     ready_to_merge = f"<strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> PRs are ready to merge{some_stale if prs_to_list[Dashboard.StaleReadyToMerge] else no_stale}"  # TODO: add AllReadyToMerge
 
@@ -701,7 +701,7 @@ def write_triage_page(
     mm = f'<strong>{len(prs_to_list[Dashboard.AllMaintainerMerge])}</strong> PRs are waiting on maintainer approval (<a href="maintainers_quick.html#all-maintainer-merge">these</a>), {stale_mm if prs_to_list[Dashboard.StaleMaintainerMerge] else no_stale_mm}'
 
     no_stale_delegated = "<strong>no</strong> PRs have been delegated and not updated in a day, congratulations!</li>"
-    stale_delegated = f"<strong>{len(prs_to_list[Dashboard.StaleDelegated])}</strong> PRs have been delegated and not updated in a day:</li>\n  {write_dashboard(prs_to_list[Dashboard.StaleDelegated], aggregate_info, Dashboard.StaleDelegated, False)}"
+    stale_delegated = f"<strong>{len(prs_to_list[Dashboard.StaleDelegated])}</strong> PRs have been delegated and not updated in a day:</li>\n  {write_dashboard(prs_to_list[Dashboard.StaleDelegated], aggregate_info, Dashboard.StaleDelegated, header=False)}"
 
     notlanded = f"""<h2>Approved, not yet landed PRs</h2>
 
@@ -745,11 +745,11 @@ def write_triage_page(
             "Updated",
         ]
         head = _write_table_header(headings, "    ")
-        body = _compute_pr_entries(prs_to_list[Dashboard.QueueStaleUnassigned], aggregate_info, False)
+        body = _compute_pr_entries(prs_to_list[Dashboard.QueueStaleUnassigned], aggregate_info, ExtraColumnSettings(False))
         stale_unassigned = f"{title}\n  <table>\n{head}{body}  </table>"
 
     # XXX: when updating the definition of "stale assigned" PRs, make sure to update all the dashboard descriptions
-    write_dashboard(prs_to_list[Dashboard.QueueStaleAssigned], aggregate_info, Dashboard.QueueStaleAssigned, True)
+    write_dashboard(prs_to_list[Dashboard.QueueStaleAssigned], aggregate_info, Dashboard.QueueStaleAssigned, header=True)
 
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
 
@@ -1048,13 +1048,23 @@ def _extract_prs(data: dict) -> List[BasicPRInformation]:
     return prs
 
 
+# Settings for which 'extra columns' to display.
+class ExtraColumnSettings(NamedTuple):
+    # Show which github user(s) this PR is assigned to (if any)
+    show_assignee: bool
+
+    @staticmethod
+    def default():
+        return ExtraColumnSettings(True)
+
+
 # Compute the table entries about a sequence of PRs.
 # 'aggregate_information' maps each PR number to the corresponding aggregate information
 # (and may contain information on PRs not to be printed).
 # TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
 # in the latter is always kept updated.
 def _compute_pr_entries(
-    prs: List[BasicPRInformation], aggregate_information: dict[int, AggregatePRInfo], show_assignee=True
+    prs: List[BasicPRInformation], aggregate_information: dict[int, AggregatePRInfo], extra_settings: ExtraColumnSettings
 ) -> str:
     result = ""
     for pr in prs:
@@ -1076,7 +1086,7 @@ def _compute_pr_entries(
                 str(pr_info.number_modified_files),
                 total_comments,
             ])
-            if show_assignee:
+            if extra_settings.show_assignee:
                 match pr_info.assignees:
                     case []:
                         assignees = "nobody"
@@ -1099,8 +1109,11 @@ def _compute_pr_entries(
 # in the latter is always kept updated.
 # If 'header' is false, a table header is omitted and just the dashboard is printed.
 def write_dashboard(
-    prs: List[BasicPRInformation], aggregate_info: dict[int, AggregatePRInfo], kind: Dashboard, header=True
+    prs: List[BasicPRInformation], aggregate_info: dict[int, AggregatePRInfo], kind: Dashboard,
+    extra_settings: ExtraColumnSettings | None=None, header=True
 ) -> str:
+    if extra_settings is None:
+        extra_settings = ExtraColumnSettings.default()
     # Title of each list, and the corresponding HTML anchor.
     # Explain what each dashboard contains upon hovering the heading.
     if header:
@@ -1116,12 +1129,13 @@ def write_dashboard(
         "Number", "Author", "Title", "Labels",
         '<a title="number of added/deleted lines">+/-</a>',
         '<a title="number of files modified">&#128221;</a>',
-        '<a title="number of standard or review comments on this PR">&#128172;</a>',
-        '<a title="github user(s) this PR is assigned to (if any)">Assignee(s)</a>',
-        "Updated",
+        '<a title="number of standard or review comments on this PR">&#128172;</a>'
     ]
+    if extra_settings.show_assignee:
+        headings.append('<a title="github user(s) this PR is assigned to (if any)">Assignee(s)</a>')
+    headings.append("Updated")
     head = _write_table_header(headings, "    ")
-    body = _compute_pr_entries(prs, aggregate_info)
+    body = _compute_pr_entries(prs, aggregate_info, extra_settings)
     return f"{title}\n  <table>\n{head}{body}  </table>"
 
 
