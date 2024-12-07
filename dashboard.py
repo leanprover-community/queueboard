@@ -1088,8 +1088,11 @@ def _compute_pr_entries(
                         assignees = ", ".join(several_users)
                 entries.append(assignees)
             if extra_settings.show_approvals:
-                approvals = ', '.join(pr_info.approvals)
-                entries.append(f'<a title="{approvals}">{len(pr_info.approvals)}</a>')
+                # Deduplicate the users with approving reviews.
+                # FIXME: should one indicate the number of such approvals per user instead?
+                approvals_dedup = set(pr_info.approvals)
+                approvals = ', '.join(approvals_dedup)
+                entries.append(f'<a title="{approvals}">{len(approvals_dedup)}</a>')
 
         entries.append(time_info(pr.updatedAt))
         result += _write_table_row(entries, "    ")
