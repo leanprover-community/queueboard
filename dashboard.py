@@ -293,6 +293,99 @@ def read_json_files() -> JSONInputData:
     return JSONInputData(aggregate_info, all_open_prs)
 
 
+def determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_info) -> dict[Dashboard, List[BasicPRInformation]]:
+    approved = [pr for pr in nondraft_PRs if aggregate_info[pr.number].approvals]
+    prs_to_list: dict[Dashboard, List[BasicPRInformation]] = dict()
+    # The 'tech debt', 'other base' and 'from fork' boards are obtained
+    # from filtering the list of all non-draft PRs (without the WIP label).
+    all_ready_prs = prs_without_label(nondraft_PRs, "WIP")
+    prs_to_list[Dashboard.TechDebt] = prs_with_any_label(all_ready_prs, ["tech debt", "longest-pole"])
+    prs_to_list[Dashboard.OtherBase] = [pr for pr in nondraft_PRs if base_branch[pr.number] != "master"]
+    prs_to_list[Dashboard.FromFork] = prs_from_fork
+
+    prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(nondraft_PRs, ["help-wanted", "please_adopt"])
+    prs_to_list[Dashboard.NeedsDecision] = prs_with_label(nondraft_PRs, "awaiting-zulip")
+
+    # Compute all PRs on the review queue (and well as several sub-filters).
+    # The review queue consists of all PRs against the master branch, with passing CI,
+    # that are not in draft state and not labelled WIP, help-wanted or please-adopt,
+    # and have none of the other labels below.
+    master_prs_with_CI = [pr for pr in nondraft_PRs if base_branch[pr.number] == "master" and (CI_status[pr.number] == CIStatus.Pass)]
+    master_CI_notfork = [pr for pr in master_prs_with_CI if pr not in prs_from_fork]
+    other_labels = [
+        # XXX: does the #queue check for all of these labels?
+        "blocked-by-other-PR",
+        "blocked-by-core-PR",
+        "blocked-by-batt-PR",
+        "blocked-by-qq-PR",
+        "awaiting-CI",
+        "awaiting-author",
+        "awaiting-zulip",
+        "please-adopt",
+        "help-wanted",
+        "WIP",
+        "delegated",
+        "auto-merge-after-CI",
+        "ready-to-merge",
+    ]
+    queue_or_merge_conflict = prs_without_any_label(master_CI_notfork, other_labels)
+    prs_to_list[Dashboard.NeedsMerge] = prs_with_label(queue_or_merge_conflict, "merge-conflict")
+    queue_prs = prs_without_label(queue_or_merge_conflict, "merge-conflict")
+
+    interesting_CI = [pr for pr in nondraft_PRs if CI_status[pr.number] == CIStatus.FailInessential]
+    foo = [pr for pr in interesting_CI if base_branch[pr.number] == "master" and pr not in prs_from_fork]
+    prs_to_list[Dashboard.InessentialCIFails] = prs_without_any_label(foo, other_labels + ["merge-conflict"])
+
+    queue_prs2 = None
+    with open("queue.json", "r") as queuefile:
+        queue_prs2 = _extract_prs(json.load(queuefile))
+        queue_pr_numbers2 = [pr.number for pr in queue_prs2]
+    msg = "comparing this page's review dashboard (left) with the Github #queue (right)"
+    if my_assert_eq(msg, [pr.number for pr in queue_prs], queue_pr_numbers2):
+        print("Review dashboard and #queue match, hooray!", file=sys.stderr)
+    # XXX: When re-visiting the comparison of queues, also re-run this again for a day.
+    # For now, it doesn't expose more useful information, hence disabling this.
+    # needs_merge2 = None
+    # with open("needs-merge.json", "r") as file:
+    #     needs_merge_prs2 = _extract_prs(json.load(file))
+    #     needs_merge2 = [pr.number for pr in needs_merge_prs2]
+    # msg = "comparing this page's 'needs merge' dashboard (left) with the Github REST APi search (right)"
+    # if my_assert_eq(msg, [pr.number for pr in prs_to_list[Dashboard.NeedsMerge]], needs_merge2):
+    #     print("Needs merge dashboard: list matches the github API, hooray!", file=sys.stderr)
+
+    # TODO: try to switch back to 'queue_prs' again, once the root causes for PR getting 'dropped'
+    # by 'gather_stats.sh' are all identified and fixed.
+    prs_to_list[Dashboard.Queue] = queue_prs2
+    prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs2, "new-contributor")
+    prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs2, "easy")
+    prs_to_list[Dashboard.QueueTechDebt] = prs_with_any_label(queue_prs2, ["tech debt", "longest-pole"])
+
+    a_day_ago = datetime.now(timezone.utc) - timedelta(days=1)
+    a_week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    two_weeks_ago = datetime.now(timezone.utc) - timedelta(days=14)
+    one_day_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_day_ago]
+    one_week_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_week_ago]
+    prs_to_list[Dashboard.AllReadyToMerge] = prs_with_any_label(nondraft_PRs, ["ready-to-merge", "auto-merge-after-CI"])
+    prs_to_list[Dashboard.StaleReadyToMerge] = prs_with_any_label(one_day_stale, ["ready-to-merge", "auto-merge-after-CI"])
+    prs_to_list[Dashboard.StaleDelegated] = prs_with_label(one_day_stale, "delegated")
+    mm_prs = prs_with_label(one_day_stale, "maintainer-merge")
+    prs_to_list[Dashboard.StaleMaintainerMerge] = prs_without_label(mm_prs, "ready-to-merge")
+    prs_to_list[Dashboard.AllMaintainerMerge] = prs_without_label(prs_with_label(nondraft_PRs, "maintainer-merge"), "ready-to-merge")
+    prs_to_list[Dashboard.StaleNewContributor] = prs_with_label(one_week_stale, "new-contributor")
+
+    stale_queue = [pr for pr in queue_prs2 if aggregate_info[pr.number].last_updated < two_weeks_ago]
+    prs_to_list[Dashboard.QueueStaleUnassigned] = [pr for pr in stale_queue if not aggregate_info[pr.number].assignees]
+    # TODO/Future: use a more refined measure of activity!
+    prs_to_list[Dashboard.QueueStaleAssigned] = [pr for pr in stale_queue if aggregate_info[pr.number].assignees]
+
+    (bad_title, unlabelled, contradictory) = compute_dashboards_bad_labels_title(nondraft_PRs)
+    prs_to_list[Dashboard.BadTitle] = bad_title
+    prs_to_list[Dashboard.Unlabelled] = unlabelled
+    prs_to_list[Dashboard.ContradictoryLabels] = contradictory
+    prs_to_list[Dashboard.Approved] = approved
+    return prs_to_list
+
+
 EXPLANATION = """
 <p>To appear on the review queue, your open pull request must...</p>
 <ul>
@@ -388,97 +481,11 @@ def main() -> None:
     for pr in nondraft_PRs:
         base_branch[pr.number] = aggregate_info[pr.number].base_branch
     prs_from_fork = [pr for pr in nondraft_PRs if aggregate_info[pr.number].head_repo != "leanprover-community"]
-    approved = [pr for pr in nondraft_PRs if aggregate_info[pr.number].approvals]
     write_on_the_queue_page(nondraft_PRs, prs_from_fork, CI_status, base_branch)
 
-    prs_to_list: dict[Dashboard, List[BasicPRInformation]] = dict()
-    # The 'tech debt', 'other base' and 'from fork' boards are obtained
-    # from filtering the list of all non-draft PRs (without the WIP label).
-    all_ready_prs = prs_without_label(nondraft_PRs, "WIP")
-    prs_to_list[Dashboard.TechDebt] = prs_with_any_label(all_ready_prs, ["tech debt", "longest-pole"])
-    prs_to_list[Dashboard.OtherBase] = [pr for pr in nondraft_PRs if base_branch[pr.number] != "master"]
-    prs_to_list[Dashboard.FromFork] = prs_from_fork
+    prs_to_list = determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_info)
 
-    prs_to_list[Dashboard.NeedsHelp] = prs_with_any_label(nondraft_PRs, ["help-wanted", "please_adopt"])
-    prs_to_list[Dashboard.NeedsDecision] = prs_with_label(nondraft_PRs, "awaiting-zulip")
 
-    # Compute all PRs on the review queue (and well as several sub-filters).
-    # The review queue consists of all PRs against the master branch, with passing CI,
-    # that are not in draft state and not labelled WIP, help-wanted or please-adopt,
-    # and have none of the other labels below.
-    master_prs_with_CI = [pr for pr in nondraft_PRs if base_branch[pr.number] == "master" and (CI_status[pr.number] == CIStatus.Pass)]
-    master_CI_notfork = [pr for pr in master_prs_with_CI if pr not in prs_from_fork]
-    other_labels = [
-        # XXX: does the #queue check for all of these labels?
-        "blocked-by-other-PR",
-        "blocked-by-core-PR",
-        "blocked-by-batt-PR",
-        "blocked-by-qq-PR",
-        "awaiting-CI",
-        "awaiting-author",
-        "awaiting-zulip",
-        "please-adopt",
-        "help-wanted",
-        "WIP",
-        "delegated",
-        "auto-merge-after-CI",
-        "ready-to-merge",
-    ]
-    queue_or_merge_conflict = prs_without_any_label(master_CI_notfork, other_labels)
-    prs_to_list[Dashboard.NeedsMerge] = prs_with_label(queue_or_merge_conflict, "merge-conflict")
-    queue_prs = prs_without_label(queue_or_merge_conflict, "merge-conflict")
-
-    interesting_CI = [pr for pr in nondraft_PRs if CI_status[pr.number] == CIStatus.FailInessential]
-    foo = [pr for pr in interesting_CI if base_branch[pr.number] == "master" and pr not in prs_from_fork]
-    prs_to_list[Dashboard.InessentialCIFails] = prs_without_any_label(foo, other_labels + ["merge-conflict"])
-
-    queue_prs2 = None
-    with open("queue.json", "r") as queuefile:
-        queue_prs2 = _extract_prs(json.load(queuefile))
-        queue_pr_numbers2 = [pr.number for pr in queue_prs2]
-    msg = "comparing this page's review dashboard (left) with the Github #queue (right)"
-    if my_assert_eq(msg, [pr.number for pr in queue_prs], queue_pr_numbers2):
-        print("Review dashboard and #queue match, hooray!", file=sys.stderr)
-    # XXX: When re-visiting the comparison of queues, also re-run this again for a day.
-    # For now, it doesn't expose more useful information, hence disabling this.
-    # needs_merge2 = None
-    # with open("needs-merge.json", "r") as file:
-    #     needs_merge_prs2 = _extract_prs(json.load(file))
-    #     needs_merge2 = [pr.number for pr in needs_merge_prs2]
-    # msg = "comparing this page's 'needs merge' dashboard (left) with the Github REST APi search (right)"
-    # if my_assert_eq(msg, [pr.number for pr in prs_to_list[Dashboard.NeedsMerge]], needs_merge2):
-    #     print("Needs merge dashboard: list matches the github API, hooray!", file=sys.stderr)
-
-    # TODO: try to switch back to 'queue_prs' again, once the root causes for PR getting 'dropped'
-    # by 'gather_stats.sh' are all identified and fixed.
-    prs_to_list[Dashboard.Queue] = queue_prs2
-    prs_to_list[Dashboard.QueueNewContributor] = prs_with_label(queue_prs2, "new-contributor")
-    prs_to_list[Dashboard.QueueEasy] = prs_with_label(queue_prs2, "easy")
-    prs_to_list[Dashboard.QueueTechDebt] = prs_with_any_label(queue_prs2, ["tech debt", "longest-pole"])
-
-    a_day_ago = datetime.now(timezone.utc) - timedelta(days=1)
-    a_week_ago = datetime.now(timezone.utc) - timedelta(days=7)
-    two_weeks_ago = datetime.now(timezone.utc) - timedelta(days=14)
-    one_day_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_day_ago]
-    one_week_stale = [pr for pr in nondraft_PRs if aggregate_info[pr.number].last_updated < a_week_ago]
-    prs_to_list[Dashboard.AllReadyToMerge] = prs_with_any_label(nondraft_PRs, ["ready-to-merge", "auto-merge-after-CI"])
-    prs_to_list[Dashboard.StaleReadyToMerge] = prs_with_any_label(one_day_stale, ["ready-to-merge", "auto-merge-after-CI"])
-    prs_to_list[Dashboard.StaleDelegated] = prs_with_label(one_day_stale, "delegated")
-    mm_prs = prs_with_label(one_day_stale, "maintainer-merge")
-    prs_to_list[Dashboard.StaleMaintainerMerge] = prs_without_label(mm_prs, "ready-to-merge")
-    prs_to_list[Dashboard.AllMaintainerMerge] = prs_without_label(prs_with_label(nondraft_PRs, "maintainer-merge"), "ready-to-merge")
-    prs_to_list[Dashboard.StaleNewContributor] = prs_with_label(one_week_stale, "new-contributor")
-
-    stale_queue = [pr for pr in queue_prs2 if aggregate_info[pr.number].last_updated < two_weeks_ago]
-    prs_to_list[Dashboard.QueueStaleUnassigned] = [pr for pr in stale_queue if not aggregate_info[pr.number].assignees]
-    # TODO/Future: use a more refined measure of activity!
-    prs_to_list[Dashboard.QueueStaleAssigned] = [pr for pr in stale_queue if aggregate_info[pr.number].assignees]
-
-    (bad_title, unlabelled, contradictory) = compute_dashboards_bad_labels_title(nondraft_PRs)
-    prs_to_list[Dashboard.BadTitle] = bad_title
-    prs_to_list[Dashboard.Unlabelled] = unlabelled
-    prs_to_list[Dashboard.ContradictoryLabels] = contradictory
-    prs_to_list[Dashboard.Approved] = approved
     # FUTURE: can this time be displayed in the local time zone of  the user viewing this page?
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
     write_overview_page(updated)
