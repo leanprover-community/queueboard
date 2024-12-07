@@ -128,11 +128,12 @@ def main():
     stat = (f"Overall, <b>{num_ass_open}</b> of these <b>{number_open_prs}</b> open PRs (<b>{num_ass_open/number_open_prs:.1%}</b>) have at least one assignee. "
       f"Among these, <strong>{multiple_assignees}</strong> have more than one assignee.")
     all_recent = f'<a title="number of all assigned PRs whose PR number is greater than {threshold}">Number of all recent PRs</a>'
-    thead = _write_table_header(["User", "Open assigned PR(s)", "Number of them", all_recent], "    ")
+    # NB. Add an empty column to please the formatting script.
+    thead = _write_table_header(["User", "Open assigned PR(s)", "Number of them", all_recent, ""], "    ")
     tbody = ""
     for (name, (prs, n_open, n_all)) in numbers.items():
         formatted_prs = [pr_link(int(pr), infer_pr_url(pr)) for pr in prs]
-        tbody += _write_table_row([user_link(name), ', '.join(formatted_prs), n_open, n_all], "    ")
+        tbody += _write_table_row([user_link(name), ', '.join(formatted_prs), n_open, n_all, ""], "    ")
     table = f"  <table>\n{thead}{tbody}  </table>"
     stats = f"{header}\n{intro}\n{stat}\n{table}"
 
@@ -148,7 +149,8 @@ def main():
         ReviewerInfo(entry["github_handle"], entry["zulip_handle"], entry["top_level"], entry["free_form"]) for entry in reviewer_topics
     ]
     curr = f"<a title='only considering PRs with number > {threshold}'>Currently assigned PRs</a>"
-    thead = _write_table_header(["Github username", "Zulip handle", "Topic areas", "Comments", curr], "    ")
+    # NB. Add an empty column to please the formatting script.
+    thead = _write_table_header(["Github username", "Zulip handle", "Topic areas", "Comments", curr, ""], "    ")
     tbody = ""
     for rev in parsed_reviewers:
         if rev.github in numbers:
@@ -156,7 +158,7 @@ def main():
             numbers = f'<a title="{num[2]} PRs > {threshold} ever assigned">{num[0] or "none"}</a>'
         else:
             numbers = "none ever"
-        tbody += _write_table_row([rev.github, rev.zulip, rev.top_level, rev.comment, numbers], "    ")
+        tbody += _write_table_row([rev.github, rev.zulip, rev.top_level, rev.comment, numbers, ""], "    ")
     table = f"  <table>\n{thead}{tbody}  </table>"
     reviewers = f"{header}\n{intro}\n{table}"
 
