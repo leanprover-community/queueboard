@@ -119,7 +119,7 @@ def main():
                 numbers[ass] = ([pr_number] if data.state == 'open' else [], 1 if data.state == 'open' else 0, 1)
 
     title = "  <h1>PR assigment overview</h1>"
-    welcome = "<p>This is a hidden page, meant for maintainers: it allows seeing which PRs are assigned to whom. In the future, this page will also contains suggestions for appropriate reviewers, or provide the means to contact them.</p>"
+    welcome = "<p>This is a hidden page, meant for maintainers: it displays information on which PRs are assigned and suggests appropriate reviewers for unassigned PRs. In the future, it could provide the means to contact them. To prevent spam, for now this page is a bit hidden: it has to be generated locally from a script.</p>"
 
     header = "<h2>PR assignment statistics</h2>"
     intro = f"The following table contains statistics about all PRs whose number is greater than {threshold}.<br>"
@@ -136,20 +136,26 @@ def main():
     stats = f"{header}\n{intro}\n{stat}\n{table}"
 
     header = "<h2>Mathlib reviewers with areas of interest</h2>"
-    intro = "The following lists all mathlib reviewers with their (self-declared) topics of interest. Beware: need to update the json file with reviewer interests!"
+    intro = "The following lists all mathlib reviewers with their (self-declared) topics of interest. (Beware: still need a solution for keep this file in sync with the 'master' data.)"
     # Future: download the raw file from this link, instead of reading a local copy!
     # (This requires fixing the upstream version first: locally, it is easy to just correct the bugs.)
+    # And perhaps the file could be part of the mathlib repo, or the webpage?
     _file_url = "https://raw.githubusercontent.com/leanprover-community/mathlib4/edbf78c660496a4236d23c8c3b74133a59fdf49b/docs/reviewer-topics.json"
     with open("reviewer-topics.json", "r") as fi:
         reviewer_topics = json.load(fi)
     parsed_reviewers: List[ReviewerInfo] = [
         ReviewerInfo(entry["github_handle"], entry["zulip_handle"], entry["top_level"], entry["free_form"]) for entry in reviewer_topics
     ]
-    thead = _write_table_header(["Github username", "Zulip handle", "Topic areas", "Comments", "Currently assigned PRs"], "    ")
-    # XXX: clarify the threshold by writing something!
+    curr = f"<a title='only considering PRs with number > {threshold}'>Currently assigned PRs</a>"
+    thead = _write_table_header(["Github username", "Zulip handle", "Topic areas", "Comments", curr], "    ")
     tbody = ""
     for rev in parsed_reviewers:
-        tbody += _write_table_row([rev.github, rev.zulip, rev.top_level, rev.comment, numbers.get(rev.github) or 0], "    ")
+        if rev.github in numbers:
+            num = numbers[rev.github]
+            stats = f'<a title="{num[2]} PRs > {threshold} ever assigned">{num[0] or "none"}</a>'
+        else:
+            stats = "none ever"
+        tbody += _write_table_row([rev.github, rev.zulip, rev.top_level, rev.comment, stats], "    ")
     table = f"  <table>\n{thead}{tbody}  </table>"
     reviewers = f"{header}\n{intro}\n{table}"
 
@@ -168,7 +174,8 @@ def main():
     for pr in stale_unassigned:
         aggregate = parsed[pr.number]
         approvals_dedup = set(aggregate.approvals)
-        (approvals, num) = (', '.join(approvals_dedup), len(approvals_dedup))
+        app = ', '.join(approvals_dedup)
+        approval_link = f'<a title="{app}">{len(approvals_dedup)}' if approvals_dedup else "none"
         entries = [
             pr_link(pr.number, pr.url),
             user_link(aggregate.author),
@@ -177,7 +184,7 @@ def main():
             "{}/{}".format(aggregate.additions, aggregate.deletions),
             str(aggregate.number_modified_files),
             aggregate.number_total_comments or '<a href="no data available">n/a</a>',
-            f'<a title="{approvals}">{num}</a>',
+            approval_link,#f'<a title="{approvals}">{len(approvals_dedup) if approvals else "none"}</a>',
             suggest_reviewers(parsed_reviewers, pr.number, aggregate),
         ]
         tbody += _write_table_row(entries, "    ")
