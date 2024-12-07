@@ -38,6 +38,51 @@ class ReviewerInfo(NamedTuple):
     comment: str
 
 
+def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: AggregatePRInfo) -> str:
+    # Look at all topic labels of this PR, and find all suitable reviewers.
+    topic_labels = [lab.name for lab in info.labels if lab.name.startswith("t-") or lab.name in ['CI', 'IMO']]
+    matching_reviewers: List[Tuple[ReviewerInfo, List[str]]] = []
+    if topic_labels:
+        for rev in reviewers:
+            reviewer_lab = rev.top_level
+            if "t-metaprogramming" in reviewer_lab:
+                reviewer_lab.remove("t-metaprogramming"); reviewer_lab.append("t-meta")
+            match = [lab for lab in topic_labels if lab in reviewer_lab]
+            matching_reviewers.append((rev, match))
+    else:
+        print("PR {pr.number} is has no topic labels: reviewer suggestions not implemented yet", file=sys.stderr)
+
+    # Future: decide how to customise and filter the output, lots of possibilities!
+    # - no and one reviewer look sensible already
+    #   (should one show their full interests also? would that be interesting?)
+    # - don't suggest more than five reviewers --- but make clear there was a selection
+    #   perhaps: have two columns "all matching reviewers" and "suggested one(s)" with up to three?
+    # - would showing the full interests (not just the top-level areas) be helpful?
+    if not matching_reviewers:
+        print(f"found no reviewers with matching interest for PR {number}", file=sys.stderr)
+        return "found no reviewers with matching interest"
+    elif len(matching_reviewers) == 1:
+        rev = matching_reviewers[0]
+        return f"{user_link(rev.github)}"
+    else:
+        max_score = max([len(n) for (_, n) in matching_reviewers])
+        if max_score > 1:
+            # If there are several areas, prefer reviewers which match the highest number of them.
+            max_reviewers = [(rev, areas) for (rev, areas) in matching_reviewers if len(areas) == max_score]
+            # FIXME: refine which information is actually useful here.
+            # Or also show information if a single (and the PR's only) area matches?
+            formatted = ", ".join([
+                user_link(rev.github, "competent in {}".format(", ".join(areas)))
+                for (rev, areas) in max_reviewers
+            ])
+        else:
+            comment = lambda comment: f"; comments: {comment}" if comment else ""
+            formatted = ", ".join([
+                user_link(rev.github, f"areas of competence: {', '.join(rev.top_level)}{comment(rev.comment)}")
+                for (rev, areas) in matching_reviewers if len(areas) > 0
+            ])
+        return formatted
+
 def main():
     with open(path.join("processed_data", "all_pr_data.json"), "r") as fi:
         parsed = parse_aggregate_file(json.load(fi))
@@ -136,50 +181,7 @@ def main():
         approvals_dedup = set(aggregate.approvals)
         approvals = ', '.join(approvals_dedup)
         entries.append(f'<a title="{approvals}">{len(approvals_dedup)}</a>')
-
-        # Look at all topic labels of this PR, and find all suitable reviewers.
-        topic_labels = [lab.name for lab in aggregate.labels if lab.name.startswith("t-") or lab.name in ['CI', 'IMO']]
-        matching_reviewers: List[Tuple[ReviewerInfo, List[str]]] = []
-        if topic_labels:
-            for rev in parsed_reviewers:
-                reviewer_lab = rev.top_level
-                if "t-metaprogramming" in reviewer_lab:
-                    reviewer_lab.remove("t-metaprogramming"); reviewer_lab.append("t-meta")
-                match = [lab for lab in topic_labels if lab in reviewer_lab]
-                matching_reviewers.append((rev, match))
-        else:
-            print("PR {pr.number} is not a feature PR: reviewer suggestions not implemented yet", file=sys.stderr)
-
-        # Future: decide how to customise and filter the output, lots of possibilities!
-        # - no and one reviewer look sensible already
-        #   (should one show their full interests also? would that be interesting?)
-        # - don't suggest more than five reviewers --- but make clear there was a selection
-        #   perhaps: have two columns "all matching reviewers" and "suggested one(s)" with up to three?
-        # - would showing the full interests (not just the top-level areas) be helpful?
-        if not matching_reviewers:
-            entries.append("found no reviewers with matching interest")
-            print(f"found no reviewers with matching interest for PR {pr.number}", file=sys.stderr)
-        elif len(matching_reviewers) == 1:
-            rev = matching_reviewers[0]
-            entries.append(f"{user_link(rev.github)}")
-        else:
-            max_score = max([len(n) for (_, n) in matching_reviewers])
-            if max_score > 1:
-                # If there are several areas, prefer reviewers which match the highest number of them.
-                max_reviewers = [(rev, areas) for (rev, areas) in matching_reviewers if len(areas) == max_score]
-                # FIXME: refine which information is actually useful here.
-                # Or also show information if a single (and the PR's only) area matches?
-                formatted = ", ".join([
-                    user_link(rev.github, "competent in {}".format(", ".join(areas)))
-                    for (rev, areas) in max_reviewers
-                ])
-            else:
-                comment = lambda comment: f"; comments: {comment}" if comment else ""
-                formatted = ", ".join([
-                    user_link(rev.github, f"areas of competence: {', '.join(rev.top_level)}{comment(rev.comment)}")
-                    for (rev, areas) in matching_reviewers if len(areas) > 0
-                ])
-            entries.append(formatted)
+        entries.append(suggest_reviewers(parsed_reviewers, pr.number, aggregate))
         tbody += _write_table_row(entries, "    ")
     # Future: have another column with a button to select one reviewer
     table = f"  <table>\n{thead}{tbody}  </table>"
