@@ -63,7 +63,7 @@ class CIStatus(Enum):
     Missing = auto()
 
     @staticmethod
-    def from_string(s: str) -> str:
+    def from_string(s: str):
         return {
             "pass": CIStatus.Pass,
             "fail": CIStatus.Fail,

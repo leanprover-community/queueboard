@@ -203,7 +203,7 @@ class BasicPRInformation(NamedTuple):
     url: str
     labels: List[Label]
     # Github's answer to "last updated at"
-    updatedAt: str
+    updatedAt: datetime#str
 
 
 # All information about a single PR contained in `open_pr_info.json`.
@@ -746,11 +746,11 @@ def write_triage_page(
     review_heading = "\n  ".join(review_heading.splitlines())
 
     # Write a dashboard of unassigned PRs: we can safely skip the "assignee" column.
-    config = ExtraColumnSettings(False, show_approvals=True)
+    config = ExtraColumnSettings.with_approvals(True)
     stale_unassigned = write_dashboard(prs_to_list, Dashboard.QueueStaleUnassigned, aggregate_info, config)
 
     # XXX: when updating the definition of "stale assigned" PRs, make sure to update all the dashboard descriptions
-    write_dashboard(prs_to_list, Dashboard.QueueStaleAssigned, aggregate_info, ExtraColumnSettings(True, show_approvals=True))
+    write_dashboard(prs_to_list, Dashboard.QueueStaleAssigned, aggregate_info, ExtraColumnSettings(True, show_approvals=True, potential_reviewers=False))
 
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
 
@@ -773,7 +773,7 @@ def write_triage_page(
     # Also: add a giant table with all PRs, and their status or so!
 
     body = f"{title}\n  {welcome}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {other_PRs}\n"
-    setting = ExtraColumnSettings(True, kind == Dashboard.Approved)
+    setting = ExtraColumnSettings(True, kind == Dashboard.Approved, False)
     dashboards = [write_dashboard(prs_to_list, kind, aggregate_info, setting) for (kind, _, _, _) in items]
     body += "\n".join(dashboards) + "\n"
     write_webpage(body, "triage.html")
@@ -1024,8 +1024,8 @@ def format_delta(delta: relativedelta.relativedelta) -> str:
 # Function to format the time of the last update
 # Input is in the format: "2020-11-02T14:23:56Z" (i.e., in ISO format).
 # Output is in the format: "2020-11-02 14:23 (2 days ago)"
-def time_info(updatedAt: str) -> str:
-    updated = parser.isoparse(updatedAt)
+def time_info(updatedAt: datetime) -> str:
+    updated = updatedAt#parser.isoparse(updatedAt)
     now = datetime.now(timezone.utc)
     # Calculate the difference in time
     delta = relativedelta.relativedelta(now, updated)
@@ -1050,7 +1050,7 @@ def _extract_prs(data: dict) -> List[BasicPRInformation]:
                     file=sys.stderr,
                 )
             labels = [Label(label["name"], label["color"], label["url"]) for label in entry["labels"]["nodes"]]
-            prs.append(BasicPRInformation(entry["number"], entry.get("author"), entry["title"], entry["url"], labels, entry["updatedAt"]))
+            prs.append(BasicPRInformation(entry["number"], entry.get("author"), entry["title"], entry["url"], labels, parser.isoparse(entry["updatedAt"])))
     return prs
 
 
@@ -1062,13 +1062,16 @@ class ExtraColumnSettings(NamedTuple):
     # 'Maintainer merge/delegate' comments are inconsistently labelled as approving or not.
     # In practice, this is not an issue as 'maintainer merge'd PRs are shown separately anyway.
     show_approvals: bool
+    potential_reviewers: bool
     # Future possibilities:
-    # - number of (transitive) dependencies (with PR numbers).
-    # - reviewers whose interests match this PR.
+    # - number of (transitive) dependencies (with PR numbers)
 
     @staticmethod
     def default():
-        return ExtraColumnSettings(True, False)
+        return ExtraColumnSettings(True, False, False)
+    @staticmethod
+    def with_approvals(new: bool):
+        return ExtraColumnSettings(False, True, False)
 
 
 # Compute the table entries about a sequence of PRs.
@@ -1077,7 +1080,7 @@ class ExtraColumnSettings(NamedTuple):
 # TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
 # in the latter is always kept updated.
 def _compute_pr_entries(
-    prs: List[BasicPRInformation], aggregate_information: dict[int, AggregatePRInfo], extra_settings: ExtraColumnSettings
+    prs: List[BasicPRInformation], aggregate_information: dict[int, AggregatePRInfo], extra_settings: ExtraColumnSettings, potential_reviewers: dict[int, str] | None=None,
 ) -> str:
     result = ""
     for pr in prs:
@@ -1092,6 +1095,7 @@ def _compute_pr_entries(
             pr_info = aggregate_information[pr.number]
         if pr_info is None:
             print(f"main dashboard: found no aggregate information for PR {pr.number}", file=sys.stderr)
+            # TODO: need to make sure this number matches up!
             entries.extend(["-1/-1", "-1", "-1", "???"])
         else:
             na = '<a href="no data available">n/a</a>'
@@ -1118,6 +1122,8 @@ def _compute_pr_entries(
                 approvals_dedup = set(pr_info.approvals)
                 approvals = ', '.join(approvals_dedup)
                 entries.append(f'<a title="{approvals}">{len(approvals_dedup)}</a>')
+            if extra_settings.potential_reviewers and potential_reviewers is not None:
+                entries.append(potential_reviewers[pr.number])
 
         entries.append(time_info(pr.updatedAt))
         result += _write_table_row(entries, "    ")
@@ -1132,7 +1138,7 @@ def _compute_pr_entries(
 # If 'header' is false, a table header is omitted and just the dashboard is printed.
 def write_dashboard(
     prs: dict[Dashboard, List[BasicPRInformation]], kind: Dashboard, aggregate_info: dict[int, AggregatePRInfo],
-    extra_settings: ExtraColumnSettings | None=None, header=True
+    extra_settings: ExtraColumnSettings | None=None, header=True, potential_reviewers: dict[int, str]|None =None
 ) -> str:
     def _inner(
         prs: List[BasicPRInformation], kind: Dashboard, aggregate_info: dict[int, AggregatePRInfo],
@@ -1159,9 +1165,11 @@ def write_dashboard(
             headings.append('<a title="github user(s) this PR is assigned to (if any)">Assignee(s)</a>')
         if extra_settings.show_approvals:
             headings.append('<a title="github user(s) who have left an approving review of this PR (if any)">Approval(s)</a>')
+        if extra_settings.potential_reviewers:
+            headings.append("Potential reviewers")
         headings.append("Updated")
         head = _write_table_header(headings, "    ")
-        body = _compute_pr_entries(prs, aggregate_info, extra_settings)
+        body = _compute_pr_entries(prs, aggregate_info, extra_settings, potential_reviewers)
         return f"{title}\n  <table>\n{head}{body}  </table>"
 
     if extra_settings is None:

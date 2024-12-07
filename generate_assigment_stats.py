@@ -6,27 +6,27 @@ import sys
 from typing import List, NamedTuple, Tuple
 
 from classify_pr_state import CIStatus
-from dashboard import AggregatePRInfo, BasicPRInformation, Dashboard, _write_labels, _write_table_header, _write_table_row, determine_pr_dashboards, infer_pr_url, parse_aggregate_file, pr_link, title_link, user_link, write_webpage
+from dashboard import AggregatePRInfo, BasicPRInformation, Dashboard, ExtraColumnSettings, _write_labels, _write_table_header, _write_table_row, determine_pr_dashboards, infer_pr_url, parse_aggregate_file, pr_link, title_link, user_link, write_dashboard, write_webpage
 
 
 # Assumes the aggregate data is correct: no cross-filling in of placeholder data.
 def compute_pr_list_from_aggregate_data_only(aggregate_data: dict[int, AggregatePRInfo]):
-    nondraft_PRs = []
-    for (pr_number, data) in aggregate_data.items():
+    nondraft_PRs: List[BasicPRInformation] = []
+    for (pr, data) in aggregate_data.items():
         if data.state == 'open' and not data.is_draft:
             nondraft_PRs.append(BasicPRInformation(
-                pr_number, data.author, data.title, infer_pr_url(pr_number),
+                pr, data.author, data.title, infer_pr_url(pr),
                 data.labels, data.last_updated
             ))
     CI_status: dict[int, CIStatus] = dict()
-    for pr_number in nondraft_PRs:
-        if pr_number.number in aggregate_data:
-            CI_status[pr_number.number] = aggregate_data[pr_number.number].CI_status
+    for pr in nondraft_PRs:
+        if pr.number in aggregate_data:
+            CI_status[pr.number] = aggregate_data[pr.number].CI_status
         else:
-            CI_status[pr_number.number] = CIStatus.Missing
+            CI_status[pr.number] = CIStatus.Missing
     base_branch: dict[int, str] = dict()
-    for pr_number in nondraft_PRs:
-        base_branch[pr_number.number] = aggregate_data[pr_number.number].base_branch
+    for pr in nondraft_PRs:
+        base_branch[pr.number] = aggregate_data[pr.number].base_branch
     prs_from_fork = [pr for pr in nondraft_PRs if aggregate_data[pr.number].head_repo != "leanprover-community"]
     return determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_data, True)
 
@@ -172,6 +172,7 @@ def main():
             'Potential reviewers',
         ], "    ")
     tbody=""
+    suggestions = dict()
     for pr in stale_unassigned:
         aggregate = parsed[pr.number]
         approvals_dedup = set(aggregate.approvals)
@@ -188,10 +189,13 @@ def main():
             approval_link,#f'<a title="{approvals}">{len(approvals_dedup) if approvals else "none"}</a>',
             suggest_reviewers(parsed_reviewers, pr.number, aggregate),
         ]
+        suggestions[pr.number] = suggest_reviewers(parsed_reviewers, pr.number, aggregate)
         tbody += _write_table_row(entries, "    ")
+    asdf = write_dashboard(pr_lists, Dashboard.QueueStaleUnassigned, parsed, ExtraColumnSettings(False, False, True), False, suggestions)
+
     # Future: have another column with a button to send a zulip DM to a
     # potential (e.g. selecting from the suggested ones).
-    table = f"  <table>\n{thead}{tbody}  </table>"
+    table = f"  <table>\n{thead}{asdf}  </table>"
     propose = f"{header}\n{table}\n"
 
     write_webpage(f"{title}\n{welcome}\n{stats}\n{reviewers}\n{propose}", "assign-reviewer.html")
