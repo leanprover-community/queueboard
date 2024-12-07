@@ -50,7 +50,8 @@ def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: Aggregat
             match = [lab for lab in topic_labels if lab in reviewer_lab]
             matching_reviewers.append((rev, match))
     else:
-        print("PR {pr.number} is has no topic labels: reviewer suggestions not implemented yet", file=sys.stderr)
+        print(f"PR {number} is has no topic labels: reviewer suggestions not implemented yet", file=sys.stderr)
+        return "no topic labels: suggestions not implemented yet"
 
     # Future: decide how to customise and filter the output, lots of possibilities!
     # - no and one reviewer look sensible already
