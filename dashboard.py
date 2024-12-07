@@ -606,7 +606,7 @@ def write_review_queue_page(
         f'<li><a href="#{getIdTitle(kind)[0]}">{description}</a>{unlinked}</li>\n' for (kind, description, unlinked) in items
     ]
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
-    dashboards = [write_dashboard(prs_to_list[kind], aggregate_info, kind) for (kind, _, _) in items]
+    dashboards = [write_dashboard(prs_to_list, kind, aggregate_info) for (kind, _, _) in items]
     body += "\n".join(dashboards) + "\n"
     write_webpage(body, "review_dashboard.html")
 
@@ -632,7 +632,7 @@ def write_maintainers_quick_page(
     ]
     post = 'If you realise you actually have a bit more time, you can also look at the <a href="review_dashboard.html">page for reviewers</a>, or look at the <a href="triage.html">triage page!</a>'
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  {post}<br>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
-    dashboards = [write_dashboard(prs_to_list[kind], aggregate_info, kind) for (kind, _, _) in items]
+    dashboards = [write_dashboard(prs_to_list, kind, aggregate_info) for (kind, _, _) in items]
     body += "\n".join(dashboards) + "\n"
     write_webpage(body, "maintainers_quick.html")
 
@@ -677,7 +677,7 @@ def write_help_out_page(
         f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items
     ]
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
-    dashboards = [write_dashboard(prs_to_list[kind], aggregate_info, kind) for (kind, _, _, _) in items]
+    dashboards = [write_dashboard(prs_to_list, kind, aggregate_info) for (kind, _, _, _) in items]
     body += "\n".join(dashboards) + "\n"
     write_webpage(body, "help_out.html")
 
@@ -692,7 +692,7 @@ def write_triage_page(
     welcome += f"\n  <small>This dashboard was last updated on: {updated}</small>"
 
     some_stale = f": <strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> of them are stale, and merit another look</li>\n"
-    some_stale += write_dashboard(prs_to_list[Dashboard.StaleReadyToMerge], aggregate_info, Dashboard.StaleReadyToMerge, header=False)
+    some_stale += write_dashboard(prs_to_list, Dashboard.StaleReadyToMerge, aggregate_info, header=False)
     no_stale = ", including <strong>no</strong> stale ones, congratulations!</li>"
     ready_to_merge = f"<strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> PRs are ready to merge{some_stale if prs_to_list[Dashboard.StaleReadyToMerge] else no_stale}"  # TODO: add AllReadyToMerge
 
@@ -701,7 +701,7 @@ def write_triage_page(
     mm = f'<strong>{len(prs_to_list[Dashboard.AllMaintainerMerge])}</strong> PRs are waiting on maintainer approval (<a href="maintainers_quick.html#all-maintainer-merge">these</a>), {stale_mm if prs_to_list[Dashboard.StaleMaintainerMerge] else no_stale_mm}'
 
     no_stale_delegated = "<strong>no</strong> PRs have been delegated and not updated in a day, congratulations!</li>"
-    stale_delegated = f"<strong>{len(prs_to_list[Dashboard.StaleDelegated])}</strong> PRs have been delegated and not updated in a day:</li>\n  {write_dashboard(prs_to_list[Dashboard.StaleDelegated], aggregate_info, Dashboard.StaleDelegated, header=False)}"
+    stale_delegated = f"<strong>{len(prs_to_list[Dashboard.StaleDelegated])}</strong> PRs have been delegated and not updated in a day:</li>\n  {write_dashboard(prs_to_list, Dashboard.StaleDelegated, aggregate_info, header=False)}"
 
     notlanded = f"""<h2>Approved, not yet landed PRs</h2>
 
@@ -731,10 +731,11 @@ def write_triage_page(
     review_heading = "\n  ".join(review_heading.splitlines())
 
     # Write a dashboard of unassigned PRs: we can safely skip the "assignee" column.
-    stale_unassigned = write_dashboard(prs_to_list[Dashboard.QueueStaleUnassigned], aggregate_info, Dashboard.QueueStaleUnassigned, ExtraColumnSettings(False, show_approvals=True))
+    config = ExtraColumnSettings(False, show_approvals=True)
+    stale_unassigned = write_dashboard(prs_to_list, Dashboard.QueueStaleUnassigned, aggregate_info, config)
 
     # XXX: when updating the definition of "stale assigned" PRs, make sure to update all the dashboard descriptions
-    write_dashboard(prs_to_list[Dashboard.QueueStaleAssigned], aggregate_info, Dashboard.QueueStaleAssigned, ExtraColumnSettings(True, show_approvals=True))
+    write_dashboard(prs_to_list, Dashboard.QueueStaleAssigned, aggregate_info, ExtraColumnSettings(True, show_approvals=True))
 
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
 
@@ -758,7 +759,7 @@ def write_triage_page(
 
     body = f"{title}\n  {welcome}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {other_PRs}\n"
     setting = ExtraColumnSettings(True, kind == Dashboard.Approved)
-    dashboards = [write_dashboard(prs_to_list[kind], aggregate_info, kind, setting) for (kind, _, _, _) in items]
+    dashboards = [write_dashboard(prs_to_list, kind, aggregate_info, setting) for (kind, _, _, _) in items]
     body += "\n".join(dashboards) + "\n"
     write_webpage(body, "triage.html")
 
@@ -792,7 +793,7 @@ def write_main_page(
         if kind not in prs_to_list:
             print(f"error: forgot to include data for dashboard kind {kind}", file=sys.stderr)
         else:
-            body += f"{write_dashboard(prs_to_list[kind], aggregate_info, kind)}\n"
+            body += f"{write_dashboard(prs_to_list, kind, aggregate_info)}\n"
     write_webpage(body, "index-old.html")
 
 
@@ -1109,36 +1110,42 @@ def _compute_pr_entries(
 # in the latter is always kept updated.
 # If 'header' is false, a table header is omitted and just the dashboard is printed.
 def write_dashboard(
-    prs: List[BasicPRInformation], aggregate_info: dict[int, AggregatePRInfo], kind: Dashboard,
+    prs: dict[Dashboard, List[BasicPRInformation]], kind: Dashboard, aggregate_info: dict[int, AggregatePRInfo],
     extra_settings: ExtraColumnSettings | None=None, header=True
 ) -> str:
+    def _inner(
+        prs: List[BasicPRInformation], kind: Dashboard, aggregate_info: dict[int, AggregatePRInfo],
+        extra_settings: ExtraColumnSettings, add_header: bool
+    ):
+        # Title of each list, and the corresponding HTML anchor.
+        # Explain what each dashboard contains upon hovering the heading.
+        if add_header:
+            (id, title) = getIdTitle(kind)
+            title = f'<h2 id="{id}"><a href="#{id}" title="{long_description(kind)}">{title}</a></h2>'
+            # If there are no PRs, skip the table header and print a bold notice such as
+            # "There are currently **no** stale `delegated` PRs. Congratulations!".
+            if not prs:
+                return f"{title}\nThere are currently <b>no</b> {short_description(kind)}. Congratulations!\n"
+        else:
+            title = ""
+        headings = [
+            "Number", "Author", "Title", "Labels",
+            '<a title="number of added/deleted lines">+/-</a>',
+            '<a title="number of files modified">&#128221;</a>',
+            '<a title="number of standard or review comments on this PR">&#128172;</a>'
+        ]
+        if extra_settings.show_assignee:
+            headings.append('<a title="github user(s) this PR is assigned to (if any)">Assignee(s)</a>')
+        if extra_settings.show_approvals:
+            headings.append('<a title="github user(s) who have left an approving review of this PR (if any)">Approval(s)</a>')
+        headings.append("Updated")
+        head = _write_table_header(headings, "    ")
+        body = _compute_pr_entries(prs, aggregate_info, extra_settings)
+        return f"{title}\n  <table>\n{head}{body}  </table>"
+
     if extra_settings is None:
         extra_settings = ExtraColumnSettings.default()
-    # Title of each list, and the corresponding HTML anchor.
-    # Explain what each dashboard contains upon hovering the heading.
-    if header:
-        (id, title) = getIdTitle(kind)
-        title = f'<h2 id="{id}"><a href="#{id}" title="{long_description(kind)}">{title}</a></h2>'
-        # If there are no PRs, skip the table header and print a bold notice such as
-        # "There are currently **no** stale `delegated` PRs. Congratulations!".
-        if not prs:
-            return f"{title}\nThere are currently <b>no</b> {short_description(kind)}. Congratulations!\n"
-    else:
-        title = ""
-    headings = [
-        "Number", "Author", "Title", "Labels",
-        '<a title="number of added/deleted lines">+/-</a>',
-        '<a title="number of files modified">&#128221;</a>',
-        '<a title="number of standard or review comments on this PR">&#128172;</a>'
-    ]
-    if extra_settings.show_assignee:
-        headings.append('<a title="github user(s) this PR is assigned to (if any)">Assignee(s)</a>')
-    if extra_settings.show_approvals:
-        headings.append('<a title="github user(s) who have left an approving review of this PR (if any)">Approval(s)</a>')
-    headings.append("Updated")
-    head = _write_table_header(headings, "    ")
-    body = _compute_pr_entries(prs, aggregate_info, extra_settings)
-    return f"{title}\n  <table>\n{head}{body}  </table>"
+    return _inner(prs[kind], kind, aggregate_info, extra_settings, header)
 
 
 # Does a PR have a given label?
