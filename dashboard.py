@@ -1124,8 +1124,9 @@ def _compute_pr_entries(
                 # Deduplicate the users with approving reviews.
                 # FIXME: should one indicate the number of such approvals per user instead?
                 approvals_dedup = set(pr_info.approvals)
-                approvals = ', '.join(approvals_dedup)
-                entries.append(f'<a title="{approvals}">{len(approvals_dedup)}</a>')
+                app = ', '.join(approvals_dedup)
+                approval_link = f'<a title="{app}">{len(approvals_dedup)}' if approvals_dedup else "none"
+                entries.append(approval_link)
             if extra_settings.potential_reviewers and potential_reviewers is not None:
                 entries.append(potential_reviewers[pr.number])
 

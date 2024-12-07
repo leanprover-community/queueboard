@@ -186,7 +186,7 @@ def main():
             "{}/{}".format(aggregate.additions, aggregate.deletions),
             str(aggregate.number_modified_files),
             aggregate.number_total_comments or '<a href="no data available">n/a</a>',
-            approval_link,#f'<a title="{approvals}">{len(approvals_dedup) if approvals else "none"}</a>',
+            approval_link,
             suggest_reviewers(parsed_reviewers, pr.number, aggregate),
         ]
         suggestions[pr.number] = suggest_reviewers(parsed_reviewers, pr.number, aggregate)
