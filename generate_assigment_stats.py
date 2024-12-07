@@ -152,10 +152,10 @@ def main():
     for rev in parsed_reviewers:
         if rev.github in numbers:
             num = numbers[rev.github]
-            stats = f'<a title="{num[2]} PRs > {threshold} ever assigned">{num[0] or "none"}</a>'
+            numbers = f'<a title="{num[2]} PRs > {threshold} ever assigned">{num[0] or "none"}</a>'
         else:
-            stats = "none ever"
-        tbody += _write_table_row([rev.github, rev.zulip, rev.top_level, rev.comment, stats], "    ")
+            numbers = "none ever"
+        tbody += _write_table_row([rev.github, rev.zulip, rev.top_level, rev.comment, numbers], "    ")
     table = f"  <table>\n{thead}{tbody}  </table>"
     reviewers = f"{header}\n{intro}\n{table}"
 
