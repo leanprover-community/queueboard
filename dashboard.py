@@ -731,10 +731,10 @@ def write_triage_page(
     review_heading = "\n  ".join(review_heading.splitlines())
 
     # Write a dashboard of unassigned PRs: we can safely skip the "assignee" column.
-    stale_unassigned = write_dashboard(prs_to_list[Dashboard.QueueStaleUnassigned], aggregate_info, Dashboard.QueueStaleUnassigned, ExtraColumnSettings(False))
+    stale_unassigned = write_dashboard(prs_to_list[Dashboard.QueueStaleUnassigned], aggregate_info, Dashboard.QueueStaleUnassigned, ExtraColumnSettings(False, show_approvals=True))
 
     # XXX: when updating the definition of "stale assigned" PRs, make sure to update all the dashboard descriptions
-    write_dashboard(prs_to_list[Dashboard.QueueStaleAssigned], aggregate_info, Dashboard.QueueStaleAssigned, ExtraColumnSettings(True))
+    write_dashboard(prs_to_list[Dashboard.QueueStaleAssigned], aggregate_info, Dashboard.QueueStaleAssigned, ExtraColumnSettings(True, show_approvals=True))
 
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
 
@@ -757,7 +757,8 @@ def write_triage_page(
     # Also: add a giant table with all PRs, and their status or so!
 
     body = f"{title}\n  {welcome}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {other_PRs}\n"
-    dashboards = [write_dashboard(prs_to_list[kind], aggregate_info, kind) for (kind, _, _, _) in items]
+    setting = ExtraColumnSettings(True, kind == Dashboard.Approved)
+    dashboards = [write_dashboard(prs_to_list[kind], aggregate_info, kind, setting) for (kind, _, _, _) in items]
     body += "\n".join(dashboards) + "\n"
     write_webpage(body, "triage.html")
 
@@ -1037,10 +1038,14 @@ def _extract_prs(data: dict) -> List[BasicPRInformation]:
 class ExtraColumnSettings(NamedTuple):
     # Show which github user(s) this PR is assigned to (if any)
     show_assignee: bool
+    # Show the number of users who left an approving review on this PR (with a tooltip for their github handles).
+    # 'Maintainer merge/delegate' comments are inconsistently labelled as approving or not.
+    # In practice, this is not an issue as 'maintainer merge'd PRs are shown separately anyway.
+    show_approvals: bool
 
     @staticmethod
     def default():
-        return ExtraColumnSettings(True)
+        return ExtraColumnSettings(True, False)
 
 
 # Compute the table entries about a sequence of PRs.
@@ -1082,6 +1087,10 @@ def _compute_pr_entries(
                     case several_users:
                         assignees = ", ".join(several_users)
                 entries.append(assignees)
+            if extra_settings.show_approvals:
+                approvals = ', '.join(pr_info.approvals)
+                entries.append(f'<a title="{approvals}">{len(pr_info.approvals)}</a>')
+
         entries.append(time_info(pr.updatedAt))
         result += _write_table_row(entries, "    ")
     return result
@@ -1118,6 +1127,8 @@ def write_dashboard(
     ]
     if extra_settings.show_assignee:
         headings.append('<a title="github user(s) this PR is assigned to (if any)">Assignee(s)</a>')
+    if extra_settings.show_approvals:
+        headings.append('<a title="github user(s) who have left an approving review of this PR (if any)">Approval(s)</a>')
     headings.append("Updated")
     head = _write_table_header(headings, "    ")
     body = _compute_pr_entries(prs, aggregate_info, extra_settings)
