@@ -162,39 +162,12 @@ def main():
 
     header = "<h2>Finding reviewers for unassigned PRs</h2>"
     pr_lists = compute_pr_list_from_aggregate_data_only(parsed)
-    stale_unassigned = pr_lists[Dashboard.QueueStaleUnassigned]
-    thead= _write_table_header([
-            "Number", "Author", "Title", "Labels",
-            '<a title="number of added/deleted lines">+/-</a>',
-            '<a title="number of files modified">&#128221;</a>',
-            '<a title="number of standard or review comments on this PR">&#128172;</a>',
-            '<a title="github user(s) who have left an approving review of this PR (if any)">Approval(s)</a>',
-            'Potential reviewers',
-        ], "    ")
-    tbody=""
-    suggestions = dict()
-    for pr in stale_unassigned:
-        aggregate = parsed[pr.number]
-        approvals_dedup = set(aggregate.approvals)
-        app = ', '.join(approvals_dedup)
-        approval_link = f'<a title="{app}">{len(approvals_dedup)}' if approvals_dedup else "none"
-        entries = [
-            pr_link(pr.number, pr.url),
-            user_link(aggregate.author),
-            title_link(pr.title, pr.url),
-            _write_labels(pr.labels),
-            "{}/{}".format(aggregate.additions, aggregate.deletions),
-            str(aggregate.number_modified_files),
-            aggregate.number_total_comments or '<a href="no data available">n/a</a>',
-            approval_link,
-            suggest_reviewers(parsed_reviewers, pr.number, aggregate),
-        ]
-        suggestions[pr.number] = suggest_reviewers(parsed_reviewers, pr.number, aggregate)
-        tbody += _write_table_row(entries, "    ")
-
+    suggestions = {
+        pr.number: suggest_reviewers(parsed_reviewers, pr.number, parsed[pr.number])
+        for pr in pr_lists[Dashboard.QueueStaleUnassigned]
+    }
     # Future: have another column with a button to send a zulip DM to a
     # potential (e.g. selecting from the suggested ones).
-    # table = f"  <table>\n{thead}{tbody}  </table>"
     settings = ExtraColumnSettings(show_assignee=False, show_approvals=True, potential_reviewers=True, hide_update=True)
     table = write_dashboard(pr_lists, Dashboard.QueueStaleUnassigned, parsed, settings, False, suggestions)
     propose = f"{header}\n{table}\n"
