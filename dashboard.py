@@ -255,10 +255,12 @@ def parse_aggregate_file(data: dict) -> dict[int, AggregatePRInfo]:
     def toLabel(name: str) -> Label:
         url = f"https://github.com/leanprover-community/mathlib4/labels/{name}"
         if name.startswith("t-"):
-            name = "t-analysis"
+            colour = label_colours["t-analysis"]
         elif name.startswith("blocked-by"):
-            name = "blocked-by-other-PR"
-        return Label(name, label_colours[name], url)
+            colour = label_colours["blocked-by-other-PR"]
+        else:
+            colour = label_colours[name]
+        return Label(name, colour, url)
     aggregate_info = dict()
     for pr in data["pr_statusses"]:
         date = parser.isoparse(pr["last_updated"])
