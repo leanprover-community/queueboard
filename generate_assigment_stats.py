@@ -4,7 +4,31 @@ import json
 from os import path
 from typing import List, Tuple
 
-from dashboard import _write_table_header, _write_table_row, parse_aggregate_file, pr_link, user_link, write_webpage
+from classify_pr_state import CIStatus
+from dashboard import AggregatePRInfo, BasicPRInformation, Dashboard, _write_labels, _write_table_header, _write_table_row, determine_pr_dashboards, parse_aggregate_file, pr_link, title_link, user_link, write_webpage
+
+
+# Assumes the aggregate data is correct: no cross-filling in of placeholder data.
+def compute_pr_list_from_aggregate_data_only(aggregate_data: dict[int, AggregatePRInfo]):
+    nondraft_PRs = []
+    for (pr_number, data) in aggregate_data:
+        if data.state == 'open' and not data.is_draft:
+            nondraft_PRs.append(BasicPRInformation(
+                pr_number, data.author, data.title, f"https://github.com/leanprover-community/mathlib4/pull/{pr_number}",
+                data.labels, data.last_updated
+            ))
+    CI_status: dict[int, CIStatus] = dict()
+    for pr_number in nondraft_PRs:
+        if pr_number.number in aggregate_data:
+            CI_status[pr_number.number] = aggregate_data[pr_number.number].CI_status
+        else:
+            CI_status[pr_number.number] = CIStatus.Missing
+    base_branch: dict[int, str] = dict()
+    for pr_number in nondraft_PRs:
+        base_branch[pr_number.number] = aggregate_data[pr_number.number].base_branch
+    prs_from_fork = [pr for pr in nondraft_PRs if aggregate_data[pr.number].head_repo != "leanprover-community"]
+    return determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_data, True)
+
 
 def main():
     with open(path.join("processed_data", "all_pr_data.json"), "r") as fi:
