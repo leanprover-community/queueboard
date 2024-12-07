@@ -58,6 +58,24 @@ def main():
     table = f"  <table>\n{thead}{tbody}  </table>"
     stats = f"{header}\n{intro}\n{stat}\n{table}"
 
-    write_webpage(f"{title}\n{welcome}\n{stats}", "assign-reviewer.html")
+    header = "<h2>Mathlib reviewers with areas of interest</h2>"
+    intro = "The following lists all mathlib reviewers with their (self-declared) topics of interest. Beware: need to update the json file with reviewer interests!"
+    # Future: download the raw file from this link, instead of reading a local copy!
+    # (This requires fixing the upstream version first: locally, it is easy to just correct the bugs.)
+    _file_url = "https://raw.githubusercontent.com/leanprover-community/mathlib4/edbf78c660496a4236d23c8c3b74133a59fdf49b/docs/reviewer-topics.json"
+    with open("reviewer-topics.json", "r") as fi:
+        reviewer_topics = json.load(fi)
+    thead = _write_table_header(["Github username", "Zulip handle", "Topic areas", "Comments", "Currently assigned PRs"], "    ")
+    # XXX: clarify the threshold again!
+    tbody = ""
+    for entry in reviewer_topics:
+        github = entry["github_handle"]
+        topic_areas = entry["top_level"]
+        comment = entry["free_form"]
+        tbody += _write_table_row([github, entry["zulip_handle"], topic_areas, comment, numbers.get(github) or 0], "    ")
+    table = f"  <table>\n{thead}{tbody}  </table>"
+    reviewers = f"{header}\n{intro}\n{table}"
+
+    write_webpage(f"{title}\n{welcome}\n{stats}\n{reviewers}", "assign-reviewer.html")
 
 main()
