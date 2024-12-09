@@ -312,6 +312,7 @@ def main() -> None:
     stubborn_prs = []
     with open("stubborn_prs.txt", "r") as file:
         for line in file:
+            line = line.strip()
             if not line.startswith("--") and line:
                 stubborn_prs.append(int(line))
     # Write out the list of missing PRs.
