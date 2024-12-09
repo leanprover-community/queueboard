@@ -108,7 +108,7 @@ def check_data_directory_contents() -> Tuple[List[int], List[int]]:
             if not _check_directory(os.path.join("data", dir), int(dir), files):
                 normal_prs_with_errors.append(int(dir))
         else:
-            eprint("error: found directory {dir}, which was unexpected")
+            eprint(f"error: found directory {dir}, which was unexpected")
     # Deduplicate the output: the logic above might add a PR twice.
     return (list(set(sorted(normal_prs_with_errors))), list(set(sorted(stubborn_prs_with_errors))))
 
