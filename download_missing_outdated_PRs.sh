@@ -14,7 +14,7 @@ CURRENT_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # Parse the list of all stubborn PRs. This is newline-separated,
 # but for our purposes, that is fine.
-stubborn_prs=$(cat "stubborn_prs.txt" | grep --invert-match "^--")
+stubborn_prs=$(cat "stubborn_prs.txt" | grep --invert-match "^--" | sort | uniq)
 
 # |download_normal $pr| downloads 'normal' info for the PR '$pr' into the appropriate directory.
 # Do not use with stubborn PRs: usually, this would time out.
