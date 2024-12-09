@@ -100,6 +100,8 @@ def main():
     with open(path.join("processed_data", "all_pr_data.json"), "r") as fi:
         parsed = parse_aggregate_file(json.load(fi))
     # We ignore all PRs whose number lies below this threshold: to avoid skewed reports from incomplete data.
+    # And to have a reasonably-sized window of data in the *recent* past.
+    # If we go back further we will need to start worrying about when reviewers became active.
     threshold = 15000
     # Collating all assigned PRs above the threshold: map each user to a tuple
     # (numbers, n_open, n_all), where
