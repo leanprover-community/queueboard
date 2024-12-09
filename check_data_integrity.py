@@ -210,24 +210,24 @@ def remove_broken_data(number: int) -> None:
     dir = os.path.join("data", str(number))
 
     with open(filename, "r") as fi:
-        content = fi.readlines()
-    previous_comment = list(filter(lambda s: s.startswith("-- ") and s.rstrip().endswith(str(number)), content))
-    if not previous_comment:
+        content = fi.read().splitlines()
+    previous_comments = list(filter(lambda s: s.startswith("-- ") and s.rstrip().endswith(str(number)), content))
+    if not previous_comments:
         # No comment about the file: just write a comment 'second' time.
         shutil.rmtree(dir)
         with open(filename, "a") as fi:
             fi.write(f"{comment_second}{number}\n")
     else:
-        assert len(previous_comment) == 1
+        assert len(previous_comments) == 1
         new_content = content[:]
-        new_content.remove(previous_comment[0])
-        if previous_comment[0].startswith(comment_second):
+        new_content.remove(previous_comments[0])
+        if previous_comments[0].startswith(comment_second):
             # Replace "second" by "third" in that line; remove broken data.
             new_content.append(f"{comment_third}{number}\n")
             with open(filename, "w") as fi:
                 fi.writelines(new_content)
             shutil.rmtree(dir)
-        elif previous_comment[0].startswith(comment_third):
+        elif previous_comments[0].startswith(comment_third):
             # Remove the comment; remove the PR number from the file (any number of times);
             # write an entry to stubborn_prs.txt instead.
             new_content = [line for line in content if line != str(number)]
@@ -237,7 +237,7 @@ def remove_broken_data(number: int) -> None:
                 fi.write(f"\n{number}\n")
             shutil.rmtree(dir)
         else:
-            print(f"error: comment {previous_comment} for PR {number} is unexpected; aborting!")
+            print(f"error: comment {previous_comments} for PR {number} is unexpected; aborting!")
             return
 
 
@@ -332,11 +332,9 @@ def main() -> None:
         # Batch the PRs to to re-download: write the first 4 PRs into redownload.txt,
         # if that file is basically empty (i.e. no other files to already handle).
         # The next run of this script will pick this up and try to download them.
-        content2 = None
         with open("redownload.txt", "r") as file:
-            content2 = file.readlines()
-        if content2 is None:
-            return
+            content2 = file.read().strip().splitlines()
+            file.readlines()
         if len(content2) != 4 and len(content2) > 1:
             return
         with open("redownload.txt", "w") as file:
