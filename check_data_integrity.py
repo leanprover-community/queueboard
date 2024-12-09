@@ -216,14 +216,14 @@ def remove_broken_data(number: int) -> None:
         # No comment about the file: just write a comment 'second' time.
         shutil.rmtree(dir)
         with open(filename, "a") as fi:
-            fi.write(f"{comment_second}{number}\n")
+            fi.write(f"\n{comment_second}{number}\n")
     else:
         assert len(previous_comments) == 1
         new_content = content[:]
         new_content.remove(previous_comments[0])
         if previous_comments[0].startswith(comment_second):
             # Replace "second" by "third" in that line; remove broken data.
-            new_content.append(f"{comment_third}{number}\n")
+            new_content.append(f"\n{comment_third}{number}\n")
             with open(filename, "w") as fi:
                 fi.writelines(new_content)
             shutil.rmtree(dir)
