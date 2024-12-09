@@ -47,7 +47,7 @@ jobs:
       run: |
         python check_data_integrity.py
 
-    - name: "Commit and push changes to the master branch"
+    - name: "Commit changes to the master branch"
       if: ${{ !cancelled() }}
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -58,11 +58,15 @@ jobs:
         git add processed_data/open_pr_data.json
         git add data
         git commit -m "Redownload missing or outdated data; regenerate {all,open}_pr_data.json" -a
+
+    - name: "Push changes to the master branch"
+      if: ${{ !cancelled() }}
+      run: |
         # FIXME: make this more robust about incoming changes
         # In practice, the other workflows should only modify the data directory, so there should be no conflicts.
         # TODO: re-downloading files may conflict with data gathering, so this is only somewhat true...
-        git pull --rebase || git rebase --abort
-        git push
+        GIT_TRACE=1 git pull --rebase || git rebase --abort
+        GIT_TRACE=1 git push
 
     - name: "Regenerate the dashboard webpages"
       if: ${{ !cancelled() }} && steps.download-json.outcome == 'success'
@@ -101,5 +105,5 @@ jobs:
         git add help_out.html
         git add triage.html
         git checkout master -- style.css
-        GIT_TRACE=1 git commit -m "Update dashboard" -a || echo "No changes to commit"
-        GIT_TRACE=1 git push
+        git commit -m "Update dashboard" -a || echo "No changes to commit"
+        git push
