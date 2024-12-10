@@ -175,10 +175,33 @@ def main() -> None:
         "label_colours": dict(sorted(label_colours.items())),
         "pr_statusses": [item for item in all_pr_data if item["state"] == "open"],
     }
+    # Mapping of github handles 'X', to a list of pairs `(number, state)`,
+    # where `number` is a PR number assigned to `X`,
+    # and `state` is the state of that PR (open/closed).
+    assignments = {}
+    for pr in all_pr_data:
+        val = {"number": pr["number"], "state": pr["state"]}
+        if pr["assignees"]:
+            for name in pr["assignees"]:
+                if name not in assignments:
+                    assignments[name] = [val]
+                else:
+                    mapping = assignments[name]
+                    mapping.append(val)
+                    assignments[name] = mapping
+    assignment_data = {
+        "timestamp": updated,
+        "number_all_prs": len(all_pr_data),
+        "number_open_prs": len(just_open_prs["pr_statusses"]),
+        "assignments": assignments
+    }
+
     with open(path.join("processed_data", "all_pr_data.json"), "w") as f:
         print(json.dumps(all_prs, indent=4), file=f)
     with open(path.join("processed_data", "open_pr_data.json"), "w") as f:
         print(json.dumps(just_open_prs, indent=4), file=f)
+    with open(path.join("processed_data", "assignment_data.json"), "w") as f:
+        print(json.dumps(assignment_data, indent=4), file=f)
 
 
 main()
