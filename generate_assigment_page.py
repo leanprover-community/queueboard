@@ -61,6 +61,18 @@ class ReviewerInfo(NamedTuple):
     comment: str
 
 
+def read_reviewer_info() -> List[ReviewerInfo]:
+    # Future: download the raw file from this link, instead of reading a local copy!
+    # (This requires fixing the upstream version first: locally, it is easy to just correct the bugs.)
+    # And the file should live on a more stable branch (master?), or the webpage?
+    _file_url = "https://raw.githubusercontent.com/leanprover-community/mathlib4/refs/heads/reviewer-topics/docs/reviewer-topics.json"
+    with open("reviewer-topics.json", "r") as fi:
+        reviewer_topics = json.load(fi)
+    return [
+        ReviewerInfo(entry["github_handle"], entry["zulip_handle"], entry["top_level"], entry["free_form"])
+        for entry in reviewer_topics
+    ]
+
 # Return a tuple (full code, reviewers): the former is used as the webpage table entry,
 # the latter are all potential reviewers suggested (by their github handle).
 def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: AggregatePRInfo) -> Tuple[str, List[str]]:
@@ -173,16 +185,8 @@ def main() -> None:
 
     header = '<h2 id="reviewers"><a href="#reviewers">Mathlib reviewers with areas of interest</a></h2>'
     intro = "The following lists all mathlib reviewers with their (self-declared) topics of interest. (Beware: still need a solution for keep this file in sync with the 'master' data.)"
-    # Future: download the raw file from this link, instead of reading a local copy!
-    # (This requires fixing the upstream version first: locally, it is easy to just correct the bugs.)
-    # And perhaps the file could be part of the mathlib repo, or the webpage?
-    _file_url = "https://raw.githubusercontent.com/leanprover-community/mathlib4/edbf78c660496a4236d23c8c3b74133a59fdf49b/docs/reviewer-topics.json"
-    with open("reviewer-topics.json", "r") as fi:
-        reviewer_topics = json.load(fi)
-    parsed_reviewers: List[ReviewerInfo] = [
-        ReviewerInfo(entry["github_handle"], entry["zulip_handle"], entry["top_level"], entry["free_form"])
-        for entry in reviewer_topics
-    ]
+
+    parsed_reviewers = read_reviewer_info()
     curr = f"<a title='only considering PRs with number > {threshold}'>Currently assigned PRs</a>"
     # NB. Add an empty column to please the formatting script.
     thead = _write_table_header(["Github username", "Zulip handle", "Topic areas", "Comments", curr, ""], "    ")
