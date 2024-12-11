@@ -126,22 +126,30 @@ def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: Aggregat
         return (formatted, suggested_reviewers)
 
 
-def main() -> None:
-    with open(path.join("processed_data", "all_pr_data.json"), "r") as fi:
-        parsed = parse_aggregate_file(json.load(fi))
+class AssignmentStatistics(NamedTuple):
     # We ignore all PRs whose number lies below this threshold: to avoid skewed reports from incomplete data.
     # And to have a reasonably-sized window of data in the *recent* past.
     # If we go back further we will need to start worrying about when reviewers became active.
-    threshold = 15000
+    # This is part of the data to avoid "very silently" confusing different statistics.
+    threshold: int
+    # The number of all open PRs whose number is at least than |threshold|.
+    number_open_prs: int
+    # All PRs >= threshold which are open and assigned to somebody.
+    # This list is deduplicated.
+    assigned_open_prs: List[int]
+    # The number of PRs with multiple assignees.
+    number_multiple_assignees: int
     # Collating all assigned PRs above the threshold: map each user to a tuple
     # (numbers, n_open, n_all), where
     # - numbers is a list of all open PRs that are assigned
     # - n_open is the number of open PRs assigned,
     # - n_all is the number of all PRs assigned.
     # Note that a PR assigned to several users is counted multiple times, once per assignee.
+    assignments: dict[str, Tuple[List[int], int, int]]
 
-    # XXX: if this script becomes slow (so far, it doesn't), I could work in several passes:
-    # first collect just all PRs with assignees, then collect more detailed stats.
+
+# FIXME: don't read |parsed|, but just parse the assignment stats aggregate file!
+def collect_assignment_statistics(threshold: int, parsed: dict) -> AssignmentStatistics:
     numbers: dict[str, Tuple[List[int], int, int]] = {}
     assigned_open_prs = []
     multiple_assignees = 0
@@ -162,26 +170,36 @@ def main() -> None:
                 numbers[ass] = (num, n + 1 if data.state == "open" else n, m + 1)
             else:
                 numbers[ass] = ([pr_number] if data.state == "open" else [], 1 if data.state == "open" else 0, 1)
+    return AssignmentStatistics(threshold, number_open_prs, list(set(assigned_open_prs)), multiple_assignees, numbers)
+
+
+def main() -> None:
+    with open(path.join("processed_data", "all_pr_data.json"), "r") as fi:
+        parsed = parse_aggregate_file(json.load(fi))
+    # We ignore all PRs whose number lies below this threshold: to avoid skewed reports from incomplete data.
+    # And to have a reasonably-sized window of data in the *recent* past.
+    # If we go back further we will need to start worrying about when reviewers became active.
+    threshold = 15000
+    stats = collect_assignment_statistics(threshold, parsed)
 
     title = "  <h1>PR assigment overview</h1>"
     welcome = "<p>This is a hidden page, meant for maintainers: it displays information on which PRs are assigned and suggests appropriate reviewers for unassigned PRs. In the future, it could provide the means to contact them. To prevent spam, for now this page is a bit hidden: it has to be generated locally from a script.</p>"
 
     header = '<h2 id="assignment-stats"><a href="#assignment-stats">PR assignment statistics</a></h2>'
     intro = f"The following table contains statistics about all PRs whose number is greater than {threshold}.<br>"
-    num_ass_open = len(set(assigned_open_prs))
     stat = (
-        f"Overall, <b>{num_ass_open}</b> of these <b>{number_open_prs}</b> open PRs (<b>{num_ass_open/number_open_prs:.1%}</b>) have at least one assignee. "
-        f"Among these, <strong>{multiple_assignees}</strong> have more than one assignee."
+        f"Overall, <b>{len(stats.assigned_open_prs)}</b> of these <b>{stats.number_open_prs}</b> open PRs (<b>{len(stats.assigned_open_prs)/stats.number_open_prs:.1%}</b>) have at least one assignee. "
+        f"Among these, <strong>{stats.number_multiple_assignees}</strong> have more than one assignee."
     )
     all_recent = f'<a title="number of all assigned PRs whose PR number is greater than {threshold}">Number of all recent PRs</a>'
     # NB. Add an empty column to please the formatting script.
     thead = _write_table_header(["User", "Open assigned PR(s)", "Number of them", all_recent, ""], "    ")
     tbody = ""
-    for name, (prs, n_open, n_all) in numbers.items():
+    for name, (prs, n_open, n_all) in stats.assignments.items():
         formatted_prs = [pr_link(int(pr), infer_pr_url(pr)) for pr in prs]
         tbody += _write_table_row([user_link(name), ", ".join(formatted_prs), str(n_open), str(n_all), ""], "    ")
     table = f"  <table>\n{thead}{tbody}  </table>"
-    stats = f"{header}\n{intro}\n{stat}\n{table}"
+    stats_section = f"{header}\n{intro}\n{stat}\n{table}"
 
     header = '<h2 id="reviewers"><a href="#reviewers">Mathlib reviewers with areas of interest</a></h2>'
     intro = "The following lists all mathlib reviewers with their (self-declared) topics of interest. (Beware: still need a solution for keep this file in sync with the 'master' data.)"
@@ -192,8 +210,8 @@ def main() -> None:
     thead = _write_table_header(["Github username", "Zulip handle", "Topic areas", "Comments", curr, ""], "    ")
     tbody = ""
     for rev in parsed_reviewers:
-        if rev.github in numbers:
-            (pr_numbers, _n_open, n_all) = numbers[rev.github]
+        if rev.github in stats.assignments:
+            (pr_numbers, _n_open, n_all) = stats.assignments[rev.github]
             desc = f'<a title="{n_all} PRs > {threshold} ever assigned">{", ".join([str(n) for n in pr_numbers]) or "none"}</a>'
         else:
             desc = "none ever"
@@ -216,7 +234,7 @@ def main() -> None:
     msg = "Dear ${name}, I'm triaging unassigned PRs. #${number} matches your interests; would you like to review it? Thanks!"
     extra = "  function contactMessage(name, number) {\n    alert(`msg`);\n  }".replace("msg", msg)
 
-    write_webpage(f"{title}\n{welcome}\n{stats}\n{reviewers}\n{propose}", "assign-reviewer.html", extra_script=extra)
+    write_webpage(f"{title}\n{welcome}\n{stats_section}\n{reviewers}\n{propose}", "assign-reviewer.html", extra_script=extra)
 
 
 main()
