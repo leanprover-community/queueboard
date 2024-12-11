@@ -247,10 +247,10 @@ def main() -> None:
     # "Last updated" information as found in the aggregate data file.
     (normal_prs_with_errors, stubborn_prs_with_errors) = check_data_directory_contents()
     # Prune broken data for all PRs, and remove superfluous entries from 'missing_prs.txt'.
-    for pr in normal_prs_with_errors:
-        remove_broken_data(pr)
-    for pr in stubborn_prs_with_errors:
-        shutil.rmtree(os.path.join("data", f"{pr}-basic"))
+    for pr_number in normal_prs_with_errors:
+        remove_broken_data(pr_number)
+    for pr_number in stubborn_prs_with_errors:
+        shutil.rmtree(os.path.join("data", f"{pr_number}-basic"))
     current_missing_entries = prune_missing_prs_files()
     print(f"info: found {len(normal_prs_with_errors)} PRs with broken data")
 
