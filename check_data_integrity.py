@@ -146,6 +146,7 @@ def _has_valid_entries(data_dirs: List[str], number: int) -> bool:
 comment_second = "-- second attempt for "
 comment_third = "-- third attempt for "
 
+
 # Read the file 'missing_prs.txt', check for entries which can be removed now
 # and write out the updated file. Take care to keep manual comments in the file
 # (except for obsolete '-- second attempt for <N>', or third attempt, lines).
@@ -301,8 +302,10 @@ def main() -> None:
     for pr_number in aggregate_last_updated:
         ci_status = aggregate_last_updated[pr_number].ci_status
         if ci_status == CIStatus.Running and aggregate_updated < datetime.now(timezone.utc) - timedelta(minutes=ci_limit):
-            print(f"outdated data: the aggregate data for PR {pr_number} claims CI is still running, "
-              f"but was last updated more than {ci_limit} minutes ago")
+            print(
+                f"outdated data: the aggregate data for PR {pr_number} claims CI is still running, "
+                f"but was last updated more than {ci_limit} minutes ago"
+            )
             outdated_prs.append(pr_number)
         elif ci_status == CIStatus.Missing:
             print(f"outdated data: PR {pr_number} has missing CI data")

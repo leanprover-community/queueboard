@@ -193,7 +193,7 @@ def main() -> None:
         "timestamp": updated,
         "number_all_prs": len(all_pr_data),
         "number_open_prs": len(just_open_prs["pr_statusses"]),
-        "assignments": assignments
+        "assignments": assignments,
     }
 
     with open(path.join("processed_data", "all_pr_data.json"), "w") as f:

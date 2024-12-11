@@ -13,8 +13,7 @@ from typing import Dict, List, NamedTuple, Tuple
 
 from dateutil import parser, relativedelta
 
-from classify_pr_state import (CIStatus, PRState, PRStatus,
-                               determine_PR_status, label_categorisation_rules)
+from classify_pr_state import CIStatus, PRState, PRStatus, determine_PR_status, label_categorisation_rules
 from util import my_assert_eq
 
 
@@ -198,7 +197,7 @@ class BasicPRInformation(NamedTuple):
     url: str
     labels: List[Label]
     # Github's answer to "last updated at"
-    updatedAt: datetime#str
+    updatedAt: datetime
 
 
 # All information about a single PR contained in `open_pr_info.json`.
@@ -247,6 +246,7 @@ class JSONInputData(NamedTuple):
 # Parse the contents |data| of an aggregate json file into a dictionary pr number -> AggregatePRInfo.
 def parse_aggregate_file(data: dict) -> dict[int, AggregatePRInfo]:
     label_colours = data["label_colours"]
+
     def toLabel(name: str) -> Label:
         url = f"https://github.com/leanprover-community/mathlib4/labels/{name}"
         if name.startswith("t-"):
@@ -256,6 +256,7 @@ def parse_aggregate_file(data: dict) -> dict[int, AggregatePRInfo]:
         else:
             colour = label_colours[name]
         return Label(name, colour, url)
+
     aggregate_info = dict()
     for pr in data["pr_statusses"]:
         date = parser.isoparse(pr["last_updated"])
@@ -293,9 +294,12 @@ def read_json_files() -> JSONInputData:
 # use_aggregate_queue: if True, determine the review queue (and everything depending on it)
 # from the aggregate data and not queue.json
 def determine_pr_dashboards(
-    nondraft_PRs: List[BasicPRInformation], base_branch: dict[int, str],
-    prs_from_fork: List[BasicPRInformation], CI_status: dict[int, CIStatus],
-    aggregate_info: dict[int, AggregatePRInfo], use_aggregate_queue: bool
+    nondraft_PRs: List[BasicPRInformation],
+    base_branch: dict[int, str],
+    prs_from_fork: List[BasicPRInformation],
+    CI_status: dict[int, CIStatus],
+    aggregate_info: dict[int, AggregatePRInfo],
+    use_aggregate_queue: bool,
 ) -> dict[Dashboard, List[BasicPRInformation]]:
     approved = [pr for pr in nondraft_PRs if aggregate_info[pr.number].approvals]
     prs_to_list: dict[Dashboard, List[BasicPRInformation]] = dict()
@@ -433,7 +437,7 @@ def _write_labels(labels: List[Label]) -> str:
 
 # Write a webpage with body out a file called 'outfile*.
 # 'extra_script' is expected to be newline-delimited and appropriately indented.
-def write_webpage(body: str, outfile: str, extra_script: str | None=None) -> None:
+def write_webpage(body: str, outfile: str, extra_script: str | None = None) -> None:
     with open(outfile, "w") as fi:
         script = (extra_script or "") + STANDARD_SCRIPT
         footer = f"<script>{script}</script>\n</body>\n</html>"
@@ -756,14 +760,24 @@ def write_triage_page(
     items = [(Dashboard.InessentialCIFails, "", long_description(Dashboard.InessentialCIFails), "")]
     for kind in Dashboard._member_map_.values():
         kinds_to_hide = [
-            Dashboard.Queue, Dashboard.QueueEasy, Dashboard.QueueNewContributor, Dashboard.QueueTechDebt,
-            Dashboard.QueueStaleUnassigned, Dashboard.QueueStaleAssigned,
-            Dashboard.AllMaintainerMerge, Dashboard.StaleMaintainerMerge, Dashboard.StaleDelegated, Dashboard.AllReadyToMerge, Dashboard.StaleReadyToMerge,
-            Dashboard.NeedsHelp
+            Dashboard.Queue,
+            Dashboard.QueueEasy,
+            Dashboard.QueueNewContributor,
+            Dashboard.QueueTechDebt,
+            Dashboard.QueueStaleUnassigned,
+            Dashboard.QueueStaleAssigned,
+            Dashboard.AllMaintainerMerge,
+            Dashboard.StaleMaintainerMerge,
+            Dashboard.StaleDelegated,
+            Dashboard.AllReadyToMerge,
+            Dashboard.StaleReadyToMerge,
+            Dashboard.NeedsHelp,
         ]
         if kind not in kinds_to_hide:
             items.append((kind, "", long_description(kind), ""))
-    list_items = [f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items]
+    list_items = [
+        f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items
+    ]
     other_PRs = f"""\n<h2>Other lists of PRs</h2>
     Some other lists of PRs which could be useful:
     <ul>{'    '.join(list_items)}  </ul>
@@ -847,8 +861,8 @@ def gather_pr_statistics(
         PRStatus.Contradictory,
         PRStatus.Delegated, PRStatus.AwaitingBors,
     ]
-    number_prs : Dict[PRStatus, int] = {
-        status : len([number for number in ready_pr_status if ready_pr_status[number] == status]) for status in statusses
+    number_prs: Dict[PRStatus, int] = {
+        status: len([number for number in ready_pr_status if ready_pr_status[number] == status]) for status in statusses
     }
     number_prs[PRStatus.NotReady] += len(all_draft_prs)
     # Check that we did not miss any variant above
@@ -963,6 +977,7 @@ $(document).ready( function () {
 def infer_pr_url(number: int) -> str:
     return f"https://github.com/leanprover-community/mathlib4/pull/{number}"
 
+
 # An HTML link to a mathlib PR from the PR number
 def pr_link(number: int, url: str) -> str:
     # The PR number is intentionally not prefixed with a #, so it is correctly
@@ -972,7 +987,7 @@ def pr_link(number: int, url: str) -> str:
 
 
 # An HTML link to a GitHub user profile
-def user_link(author_name: str, details: str | None=None) -> str:
+def user_link(author_name: str, details: str | None = None) -> str:
     url = f"https://github.com/{author_name}"
     title = f" title='{details}'" if details else ""
     return f"<a href='{url}'{title}>{author_name}</a>"
@@ -1018,7 +1033,7 @@ def format_delta(delta: relativedelta.relativedelta) -> str:
 # Input is in the format: "2020-11-02T14:23:56Z" (i.e., in ISO format).
 # Output is in the format: "2020-11-02 14:23 (2 days ago)"
 def time_info(updatedAt: datetime) -> str:
-    updated = updatedAt#parser.isoparse(updatedAt)
+    updated = updatedAt
     now = datetime.now(timezone.utc)
     # Calculate the difference in time
     delta = relativedelta.relativedelta(now, updated)
@@ -1067,10 +1082,12 @@ class ExtraColumnSettings(NamedTuple):
     @staticmethod
     def default():
         return ExtraColumnSettings(True, False, False, False)
+
     @staticmethod
     def with_approvals(val: bool):
         self = ExtraColumnSettings.default()
         return ExtraColumnSettings(self.show_assignee, val, self.potential_reviewers, self.hide_update)
+
     @classmethod
     def with_assignee(self, val: bool):
         return ExtraColumnSettings(val, self.show_approvals, self.potential_reviewers, self.hide_update)
@@ -1128,7 +1145,7 @@ def _compute_pr_entries(
                 # Deduplicate the users with approving reviews.
                 # FIXME: should one indicate the number of such approvals per user instead?
                 approvals_dedup = set(pr_info.approvals)
-                app = ', '.join(approvals_dedup)
+                app = ", ".join(approvals_dedup)
                 approval_link = f'<a title="{app}">{len(approvals_dedup)}' if approvals_dedup else "none"
                 entries.append(approval_link)
             if extra_settings.potential_reviewers and potential_reviewers is not None:
@@ -1180,7 +1197,7 @@ def write_dashboard(
             "Number", "Author", "Title", "Labels",
             '<a title="number of added/deleted lines">+/-</a>',
             '<a title="number of files modified">&#128221;</a>',
-            '<a title="number of standard or review comments on this PR">&#128172;</a>'
+            '<a title="number of standard or review comments on this PR">&#128172;</a>',
         ]
         if extra_settings.show_assignee:
             headings.append('<a title="github user(s) this PR is assigned to (if any)">Assignee(s)</a>')
@@ -1270,5 +1287,5 @@ def compute_dashboards_bad_labels_title(
     return (with_bad_title, prs_without_topic_label, prs_with_contradictory_labels)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

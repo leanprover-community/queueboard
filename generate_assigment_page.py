@@ -13,11 +13,21 @@ from os import path
 from typing import List, NamedTuple, Tuple
 
 from classify_pr_state import CIStatus
-from dashboard import (AggregatePRInfo, BasicPRInformation, Dashboard,
-                       ExtraColumnSettings, _write_table_header,
-                       _write_table_row, determine_pr_dashboards, infer_pr_url,
-                       parse_aggregate_file, pr_link, user_link,
-                       write_dashboard, write_webpage)
+from dashboard import (
+    AggregatePRInfo,
+    BasicPRInformation,
+    Dashboard,
+    ExtraColumnSettings,
+    _write_table_header,
+    _write_table_row,
+    determine_pr_dashboards,
+    infer_pr_url,
+    parse_aggregate_file,
+    pr_link,
+    user_link,
+    write_dashboard,
+    write_webpage,
+)
 
 
 # Assumes the aggregate data is correct: no cross-filling in of placeholder data.
@@ -55,13 +65,14 @@ class ReviewerInfo(NamedTuple):
 # the latter are all potential reviewers suggested (by their github handle).
 def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: AggregatePRInfo) -> Tuple[str, List[str]]:
     # Look at all topic labels of this PR, and find all suitable reviewers.
-    topic_labels = [lab.name for lab in info.labels if lab.name.startswith("t-") or lab.name in ['CI', 'IMO']]
+    topic_labels = [lab.name for lab in info.labels if lab.name.startswith("t-") or lab.name in ["CI", "IMO"]]
     matching_reviewers: List[Tuple[ReviewerInfo, List[str]]] = []
     if topic_labels:
         for rev in reviewers:
             reviewer_lab = rev.top_level
             if "t-metaprogramming" in reviewer_lab:
-                reviewer_lab.remove("t-metaprogramming"); reviewer_lab.append("t-meta")
+                reviewer_lab.remove("t-metaprogramming")
+                reviewer_lab.append("t-meta")
             match = [lab for lab in topic_labels if lab in reviewer_lab]
             matching_reviewers.append((rev, match))
     else:
@@ -124,21 +135,21 @@ def main() -> None:
     multiple_assignees = 0
     number_open_prs = 0
     items = [(number, data) for (number, data) in parsed.items() if number > threshold]
-    for (pr_number, data) in items:
+    for pr_number, data in items:
         if data.assignees:
             assigned_open_prs.append(pr_number)
-        if data.state == 'open':
+        if data.state == "open":
             number_open_prs += 1
         if len(data.assignees) > 1:
             multiple_assignees += 1
         for ass in data.assignees:
             if ass in numbers:
                 (num, n, m) = numbers[ass]
-                if data.state == 'open':
+                if data.state == "open":
                     num.append(pr_number)
-                numbers[ass] = (num, n + 1 if data.state == 'open' else n, m + 1)
+                numbers[ass] = (num, n + 1 if data.state == "open" else n, m + 1)
             else:
-                numbers[ass] = ([pr_number] if data.state == 'open' else [], 1 if data.state == 'open' else 0, 1)
+                numbers[ass] = ([pr_number] if data.state == "open" else [], 1 if data.state == "open" else 0, 1)
 
     title = "  <h1>PR assigment overview</h1>"
     welcome = "<p>This is a hidden page, meant for maintainers: it displays information on which PRs are assigned and suggests appropriate reviewers for unassigned PRs. In the future, it could provide the means to contact them. To prevent spam, for now this page is a bit hidden: it has to be generated locally from a script.</p>"
@@ -146,15 +157,17 @@ def main() -> None:
     header = '<h2 id="assignment-stats"><a href="#assignment-stats">PR assignment statistics</a></h2>'
     intro = f"The following table contains statistics about all PRs whose number is greater than {threshold}.<br>"
     num_ass_open = len(set(assigned_open_prs))
-    stat = (f"Overall, <b>{num_ass_open}</b> of these <b>{number_open_prs}</b> open PRs (<b>{num_ass_open/number_open_prs:.1%}</b>) have at least one assignee. "
-      f"Among these, <strong>{multiple_assignees}</strong> have more than one assignee.")
+    stat = (
+        f"Overall, <b>{num_ass_open}</b> of these <b>{number_open_prs}</b> open PRs (<b>{num_ass_open/number_open_prs:.1%}</b>) have at least one assignee. "
+        f"Among these, <strong>{multiple_assignees}</strong> have more than one assignee."
+    )
     all_recent = f'<a title="number of all assigned PRs whose PR number is greater than {threshold}">Number of all recent PRs</a>'
     # NB. Add an empty column to please the formatting script.
     thead = _write_table_header(["User", "Open assigned PR(s)", "Number of them", all_recent, ""], "    ")
     tbody = ""
-    for (name, (prs, n_open, n_all)) in numbers.items():
+    for name, (prs, n_open, n_all) in numbers.items():
         formatted_prs = [pr_link(int(pr), infer_pr_url(pr)) for pr in prs]
-        tbody += _write_table_row([user_link(name), ', '.join(formatted_prs), str(n_open), str(n_all), ""], "    ")
+        tbody += _write_table_row([user_link(name), ", ".join(formatted_prs), str(n_open), str(n_all), ""], "    ")
     table = f"  <table>\n{thead}{tbody}  </table>"
     stats = f"{header}\n{intro}\n{stat}\n{table}"
 
@@ -167,7 +180,8 @@ def main() -> None:
     with open("reviewer-topics.json", "r") as fi:
         reviewer_topics = json.load(fi)
     parsed_reviewers: List[ReviewerInfo] = [
-        ReviewerInfo(entry["github_handle"], entry["zulip_handle"], entry["top_level"], entry["free_form"]) for entry in reviewer_topics
+        ReviewerInfo(entry["github_handle"], entry["zulip_handle"], entry["top_level"], entry["free_form"])
+        for entry in reviewer_topics
     ]
     curr = f"<a title='only considering PRs with number > {threshold}'>Currently assigned PRs</a>"
     # NB. Add an empty column to please the formatting script.
@@ -199,5 +213,6 @@ def main() -> None:
     extra = "  function contactMessage(name, number) {\n    alert(`msg`);\n  }".replace("msg", msg)
 
     write_webpage(f"{title}\n{welcome}\n{stats}\n{reviewers}\n{propose}", "assign-reviewer.html", extra_script=extra)
+
 
 main()
