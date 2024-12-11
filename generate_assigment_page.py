@@ -8,12 +8,16 @@ Generate a webpage
 """
 
 import json
-from os import path
 import sys
+from os import path
 from typing import List, NamedTuple, Tuple
 
 from classify_pr_state import CIStatus
-from dashboard import AggregatePRInfo, BasicPRInformation, Dashboard, ExtraColumnSettings, _write_labels, _write_table_header, _write_table_row, determine_pr_dashboards, infer_pr_url, parse_aggregate_file, pr_link, title_link, user_link, write_dashboard, write_webpage
+from dashboard import (AggregatePRInfo, BasicPRInformation, Dashboard,
+                       ExtraColumnSettings, _write_table_header,
+                       _write_table_row, determine_pr_dashboards, infer_pr_url,
+                       parse_aggregate_file, pr_link, user_link,
+                       write_dashboard, write_webpage)
 
 
 # Assumes the aggregate data is correct: no cross-filling in of placeholder data.
@@ -89,7 +93,8 @@ def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: Aggregat
             ])
             suggested_reviewers = [rev.github for (rev, _areas) in max_reviewers]
         else:
-            comment = lambda comment: f"; comments: {comment}" if comment else ""
+            def comment(comm: str):
+                return f"; comments: {comment}" if comm else ""
             formatted = ", ".join([
                 user_link(rev.github, f"areas of competence: {', '.join(rev.top_level)}{comment(rev.comment)}")
                 for (rev, areas) in matching_reviewers if len(areas) > 0

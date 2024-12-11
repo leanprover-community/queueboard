@@ -13,13 +13,8 @@ from typing import Dict, List, NamedTuple, Tuple
 
 from dateutil import parser, relativedelta
 
-from classify_pr_state import (
-    CIStatus,
-    PRState,
-    PRStatus,
-    determine_PR_status,
-    label_categorisation_rules,
-)
+from classify_pr_state import (CIStatus, PRState, PRStatus,
+                               determine_PR_status, label_categorisation_rules)
 from util import my_assert_eq
 
 
