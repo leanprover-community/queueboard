@@ -438,7 +438,7 @@ def _write_labels(labels: List[Label]) -> str:
 
 # Write a webpage with body out a file called 'outfile*.
 # 'extra_script' is expected to be newline-delimited and appropriately indented.
-def write_webpage(body: str, outfile: str, extra_script: str=None) -> None:
+def write_webpage(body: str, outfile: str, extra_script: str | None=None) -> None:
     with open(outfile, "w") as fi:
         script = (extra_script or "") + STANDARD_SCRIPT
         footer = f"<script>{script}</script>\n</body>\n</html>"

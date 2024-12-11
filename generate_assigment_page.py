@@ -17,12 +17,12 @@ from dashboard import AggregatePRInfo, BasicPRInformation, Dashboard, ExtraColum
 
 
 # Assumes the aggregate data is correct: no cross-filling in of placeholder data.
-def compute_pr_list_from_aggregate_data_only(aggregate_data: dict[int, AggregatePRInfo]):
+def compute_pr_list_from_aggregate_data_only(aggregate_data: dict[int, AggregatePRInfo]) -> dict[Dashboard, List[BasicPRInformation]]:
     nondraft_PRs: List[BasicPRInformation] = []
-    for (pr, data) in aggregate_data.items():
+    for (number, data) in aggregate_data.items():
         if data.state == 'open' and not data.is_draft:
             nondraft_PRs.append(BasicPRInformation(
-                pr, data.author, data.title, infer_pr_url(pr),
+                number, data.author, data.title, infer_pr_url(number),
                 data.labels, data.last_updated
             ))
     CI_status: dict[int, CIStatus] = dict()
@@ -72,10 +72,10 @@ def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: Aggregat
         print(f"found no reviewers with matching interest for PR {number}", file=sys.stderr)
         return ("found no reviewers with matching interest", [])
     elif len(matching_reviewers) == 1:
-        rev = matching_reviewers[0]
-        return (f"{user_link(rev.github)}", rev.github)
+        handle = matching_reviewers[0][0].github
+        return (f"{user_link(handle)}", [handle])
     else:
-        max_score = max([len(n) for (_, n) in matching_reviewers])
+        max_score = max([len(areas) for (_, areas) in matching_reviewers])
         if max_score > 1:
             # If there are several areas, prefer reviewers which match the highest number of them.
             max_reviewers = [(rev, areas) for (rev, areas) in matching_reviewers if len(areas) == max_score]
@@ -85,15 +85,15 @@ def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: Aggregat
                 user_link(rev.github, "competent in {}".format(", ".join(areas)))
                 for (rev, areas) in max_reviewers
             ])
-            reviewers = [rev.github for (rev, _areas) in max_reviewers]
+            suggested_reviewers = [rev.github for (rev, _areas) in max_reviewers]
         else:
             comment = lambda comment: f"; comments: {comment}" if comment else ""
             formatted = ", ".join([
                 user_link(rev.github, f"areas of competence: {', '.join(rev.top_level)}{comment(rev.comment)}")
                 for (rev, areas) in matching_reviewers if len(areas) > 0
             ])
-            reviewers = [rev.github for (rev, areas) in matching_reviewers if len(areas) > 0]
-        return (formatted, reviewers)
+            suggested_reviewers = [rev.github for (rev, areas) in matching_reviewers if len(areas) > 0]
+        return (formatted, suggested_reviewers)
 
 
 def main():
