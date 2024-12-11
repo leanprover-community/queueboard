@@ -41,6 +41,8 @@ def compute_pr_list_from_aggregate_data_only(aggregate_data: dict[int, Aggregate
 class ReviewerInfo(NamedTuple):
     github: str
     zulip: str
+    # List of top-level areas a reviewer is interested in.
+    # Most (but not all) of these are t-something labels in mathlib.
     top_level: List[str]
     comment: str
 
@@ -96,7 +98,7 @@ def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: Aggregat
         return (formatted, suggested_reviewers)
 
 
-def main():
+def main() -> None:
     with open(path.join("processed_data", "all_pr_data.json"), "r") as fi:
         parsed = parse_aggregate_file(json.load(fi))
     # We ignore all PRs whose number lies below this threshold: to avoid skewed reports from incomplete data.
@@ -147,7 +149,7 @@ def main():
     tbody = ""
     for (name, (prs, n_open, n_all)) in numbers.items():
         formatted_prs = [pr_link(int(pr), infer_pr_url(pr)) for pr in prs]
-        tbody += _write_table_row([user_link(name), ', '.join(formatted_prs), n_open, n_all, ""], "    ")
+        tbody += _write_table_row([user_link(name), ', '.join(formatted_prs), str(n_open), str(n_all), ""], "    ")
     table = f"  <table>\n{thead}{tbody}  </table>"
     stats = f"{header}\n{intro}\n{stat}\n{table}"
 
@@ -168,11 +170,11 @@ def main():
     tbody = ""
     for rev in parsed_reviewers:
         if rev.github in numbers:
-            num = numbers[rev.github]
-            numbers = f'<a title="{num[2]} PRs > {threshold} ever assigned">{num[0] or "none"}</a>'
+            (pr_numbers, _n_open, n_all) = numbers[rev.github]
+            desc = f'<a title="{n_all} PRs > {threshold} ever assigned">{", ".join([str(n) for n in pr_numbers]) or "none"}</a>'
         else:
-            numbers = "none ever"
-        tbody += _write_table_row([rev.github, rev.zulip, rev.top_level, rev.comment, numbers, ""], "    ")
+            desc = "none ever"
+        tbody += _write_table_row([rev.github, rev.zulip, ", ".join(rev.top_level), rev.comment, desc, ""], "    ")
     table = f"  <table>\n{thead}{tbody}  </table>"
     reviewers = f"{header}\n{intro}\n{table}"
 
