@@ -184,14 +184,15 @@ def main() -> None:
     update = f"<p><small>The data underlying this webpage was last updated on: {updated}</small></p>"
 
     header = '<h2 id="assignment-stats"><a href="#assignment-stats">PR assignment statistics</a></h2>'
-    intro = f"The following table contains statistics about all open PRs whose number is greater than {stats.threshold}.<br>"
+    intro = f"The following table contains statistics about all open PRs whose number is at least {stats.threshold}.<br>"
     stat = (
         f"Overall, <b>{len(stats.assigned_open_above)}</b> of these <b>{stats.num_open_above}</b> open PRs (<b>{len(stats.assigned_open_above)/stats.num_open_above:.1%}</b>) have at least one assignee. "
         f"Among these, <strong>{stats.number_multiple_assignees}</strong> have more than one assignee."
     )
-    all_recent = f'<a title="number of all assigned PRs whose PR number is greater than {stats.threshold}">Number of all recent PRs</a>'
+    all_recent = f'<a title="number of all assigned PRs whose PR number is at least {stats.threshold}">Number of all recent PRs</a>'
     # NB. Add an empty column to please the formatting script.
-    thead = _write_table_header(["User", "Open assigned PR(s)", "Number of them", all_recent, ""], "    ")
+    open_assigned = f'<a title="only considering PRs with number at least {stats.threshold}">Open assigned PR(s)</a>'
+    thead = _write_table_header(["User", open_assigned, "Number of them", all_recent, ""], "    ")
     tbody = ""
     for name, (prs, n_open, n_all) in stats.assignments.items():
         formatted_prs = [pr_link(int(pr), infer_pr_url(pr)) for pr in prs]
@@ -210,10 +211,10 @@ def main() -> None:
     for rev in parsed_reviewers:
         if rev.github in stats.assignments:
             (pr_numbers, _n_open, n_all) = stats.assignments[rev.github]
-            desc = f'<a title="{n_all} PRs > {stats.threshold} ever assigned">{", ".join([str(n) for n in pr_numbers]) or "none"}</a>'
+            desc = f'<a title="{n_all} PR(s) > {stats.threshold} ever assigned">{", ".join([str(n) for n in pr_numbers]) or "none"}</a>'
         else:
             desc = "none ever"
-        tbody += _write_table_row([rev.github, rev.zulip, ", ".join(rev.top_level), rev.comment, desc, ""], "    ")
+        tbody += _write_table_row([user_link(rev.github), rev.zulip, ", ".join(rev.top_level), rev.comment, desc, ""], "    ")
     table = f"  <table>\n{thead}{tbody}  </table>"
     reviewers = f"{header}\n{intro}\n{table}"
 
