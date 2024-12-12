@@ -175,25 +175,52 @@ def main() -> None:
         "label_colours": dict(sorted(label_colours.items())),
         "pr_statusses": [item for item in all_pr_data if item["state"] == "open"],
     }
+
     # Mapping of github handles 'X', to a list of pairs `(number, state)`,
     # where `number` is a PR number assigned to `X`,
     # and `state` is the state of that PR (open/closed).
-    assignments = {}
-    for pr in all_pr_data:
+    # This contains *all* assignment PRs, including those below |threshold|.
+    all_assignments = {}
+    assigned_prs = filter(lambda pr: pr["assignees"], all_pr_data)
+    for pr in assigned_prs:
         val = {"number": pr["number"], "state": pr["state"]}
+        for name in pr["assignees"]:
+            if name not in all_assignments:
+                all_assignments[name] = [val]
+            else:
+                mapping = all_assignments[name]
+                mapping.append(val)
+                all_assignments[name] = mapping
+
+    # Gather statistics about open and assigned PRs.
+    # We only gather assigment statistics for all PRs with number >= |threshold|,
+    # to avoid displaying biased (since incomplete) data, which is gradually getting more complete.
+    threshold = 15000
+    # A PR assigned to multiple reviewers is only counted once.
+    # We only count PRs whose number is >= threshold.
+    prs_above_threshold = list(filter(lambda pr: pr["number"] >= threshold, all_pr_data))
+    num_all_above = len(prs_above_threshold)
+    num_open_above = 0
+    num_all_assigned_above = 0
+    num_open_assigned_above = 0
+    for pr in prs_above_threshold:
+        is_open = pr["state"] == "open"
+        if is_open:
+            num_open_above += 1
         if pr["assignees"]:
-            for name in pr["assignees"]:
-                if name not in assignments:
-                    assignments[name] = [val]
-                else:
-                    mapping = assignments[name]
-                    mapping.append(val)
-                    assignments[name] = mapping
+            num_all_assigned_above += 1
+            if is_open:
+                num_open_assigned_above += 1
     assignment_data = {
         "timestamp": updated,
-        "number_all_prs": len(all_pr_data),
-        "number_open_prs": len(just_open_prs["pr_statusses"]),
-        "assignments": assignments,
+#        "number_all_prs": len(all_pr_data),
+#        "number_open_prs": len(just_open_prs["pr_statusses"]),
+        "threshold": threshold,
+        "number_all_above_threshold": num_all_above,
+        "number_open_above_threshold": num_open_above,
+        "number_all_assigned_above_threshold": num_all_assigned_above,
+        "number_open_assigned_above_threshold": num_open_assigned_above,
+        "all_assignments": all_assignments,
     }
 
     with open(path.join("processed_data", "all_pr_data.json"), "w") as f:
