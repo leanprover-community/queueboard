@@ -9,8 +9,11 @@ Generate a webpage
 
 import json
 import sys
+from datetime import datetime
 from os import path
 from typing import List, NamedTuple, Tuple
+
+from dateutil import parser
 
 from classify_pr_state import CIStatus
 from dashboard import (
@@ -33,12 +36,11 @@ from dashboard import (
 # Assumes the aggregate data is correct: no cross-filling in of placeholder data.
 def compute_pr_list_from_aggregate_data_only(aggregate_data: dict[int, AggregatePRInfo]) -> dict[Dashboard, List[BasicPRInformation]]:
     nondraft_PRs: List[BasicPRInformation] = []
-    for (number, data) in aggregate_data.items():
-        if data.state == 'open' and not data.is_draft:
-            nondraft_PRs.append(BasicPRInformation(
-                number, data.author, data.title, infer_pr_url(number),
-                data.labels, data.last_updated
-            ))
+    for number, data in aggregate_data.items():
+        if data.state == "open" and not data.is_draft:
+            nondraft_PRs.append(
+                BasicPRInformation(number, data.author, data.title, infer_pr_url(number), data.labels, data.last_updated)
+            )
     CI_status: dict[int, CIStatus] = dict()
     for pr in nondraft_PRs:
         if pr.number in aggregate_data:
@@ -72,6 +74,7 @@ def read_reviewer_info() -> List[ReviewerInfo]:
         ReviewerInfo(entry["github_handle"], entry["zulip_handle"], entry["top_level"], entry["free_form"])
         for entry in reviewer_topics
     ]
+
 
 # Return a tuple (full code, reviewers): the former is used as the webpage table entry,
 # the latter are all potential reviewers suggested (by their github handle).
@@ -127,6 +130,7 @@ def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: Aggregat
 
 
 class AssignmentStatistics(NamedTuple):
+    timestamp: datetime
     # We ignore all PRs whose number lies below this threshold: so far, the aggregate file
     # only contains information about a third of all PRs; we prefer to not issue statistics
     # based on such incomplete data (which is gradually becoming more complete).
@@ -151,19 +155,22 @@ class AssignmentStatistics(NamedTuple):
 def collect_assignment_statistics(parsed: dict) -> AssignmentStatistics:
     with open(path.join("processed_data", "assignment_data.json"), "r") as fi:
         assignment_data = json.load(fi)
+    time = parser.isoparse(assignment_data["timestamp"])
     threshold = assignment_data["threshold"]
     num_open_above_threshold = assignment_data["number_open_above_threshold"]
     assignments = assignment_data["all_assignments"]
     numbers: dict[str, Tuple[List[int], int, int]] = {}
     assigned_open_prs = []
-    for (reviewer, data) in assignments.items():
+    for reviewer, data in assignments.items():
         above_threshold = [entry for entry in data if entry["number"] >= threshold]
         open_above_threshold = sorted([entry["number"] for entry in above_threshold if entry["state"] == "open"])
         numbers[reviewer] = (open_above_threshold, len(open_above_threshold), len(above_threshold))
         assigned_open_prs.extend(open_above_threshold)
     num_multiple_assignees = len(assigned_open_prs) - len(set(assigned_open_prs))
     assert assignment_data["number_open_assigned_above_threshold"] == len(list(set(assigned_open_prs)))
-    return AssignmentStatistics(threshold, num_open_above_threshold, sorted(list(set(assigned_open_prs))), num_multiple_assignees, numbers)
+    return AssignmentStatistics(
+        time, threshold, num_open_above_threshold, sorted(list(set(assigned_open_prs))), num_multiple_assignees, numbers
+    )
 
 
 def main() -> None:
@@ -173,6 +180,8 @@ def main() -> None:
 
     title = "  <h1>PR assigment overview</h1>"
     welcome = "<p>This is a hidden page, meant for maintainers: it displays information on which PRs are assigned and suggests appropriate reviewers for unassigned PRs. In the future, it could provide the means to contact them. To prevent spam, for now this page is a bit hidden: it has to be generated locally from a script.</p>"
+    updated = stats.timestamp.strftime("%B %d, %Y at %H:%M UTC")
+    update = f"<p><small>The data underlying this webpage was last updated on: {updated}</small></p>"
 
     header = '<h2 id="assignment-stats"><a href="#assignment-stats">PR assignment statistics</a></h2>'
     intro = f"The following table contains statistics about all open PRs whose number is greater than {stats.threshold}.<br>"
@@ -223,7 +232,7 @@ def main() -> None:
     msg = "Dear ${name}, I'm triaging unassigned PRs. #${number} matches your interests; would you like to review it? Thanks!"
     extra = "  function contactMessage(name, number) {\n    alert(`msg`);\n  }".replace("msg", msg)
 
-    write_webpage(f"{title}\n{welcome}\n{stats_section}\n{reviewers}\n{propose}", "assign-reviewer.html", extra_script=extra)
+    write_webpage(f"{title}\n{welcome}\n{update}\n{stats_section}\n{reviewers}\n{propose}", "assign-reviewer.html", extra_script=extra)
 
 
 main()
