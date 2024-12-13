@@ -84,6 +84,8 @@ def suggest_reviewers(
 ) -> Tuple[str, List[str]]:
     # Look at all topic labels of this PR, and find all suitable reviewers.
     topic_labels = [lab.name for lab in info.labels if lab.name.startswith("t-") or lab.name in ["CI", "IMO"]]
+    # Each reviewer, together with the list of top-level areas
+    # relevant to this PR in which this reviewer is competent.
     matching_reviewers: List[Tuple[ReviewerInfo, List[str]]] = []
     if topic_labels:
         for rev in reviewers:
@@ -113,26 +115,24 @@ def suggest_reviewers(
         max_score = max([len(areas) for (_, areas) in matching_reviewers])
         if max_score > 1:
             # If there are several areas, prefer reviewers which match the highest number of them.
-            max_reviewers = [(rev, areas) for (rev, areas) in matching_reviewers if len(areas) == max_score]
-            # Sort these reviewers according to how busy they are, by their current number of assignments.
-            # (Not every reviewer has had an assignment so far, so we need to use a fall-back value.)
-            with_curr_assignments = [
-                (rev, areas, len(existing_assignments[rev.github][0]) if rev.github in existing_assignments else 0)
-                for (rev, areas) in max_reviewers
-            ]
-            # FIXME: refine which information is actually useful here.
-            # Or also show information if a single (and the PR's only) area matches?
-            formatted = ", ".join([
-                user_link(rev.github, f"competent in {', '.join(areas)}; {n} recent open PR(s) currently assigned")
-                for (rev, areas, n) in sorted(with_curr_assignments, key=lambda s: s[2])
-            ])
-            suggested_reviewers = [rev.github for (rev, _areas) in max_reviewers]
+            proposed_reviewers = [(rev, areas) for (rev, areas) in matching_reviewers if len(areas) == max_score]
         else:
-            formatted = ", ".join([
-                user_link(rev.github, f"areas of competence: {', '.join(rev.top_level)}{f'; comments: {rev.comment}' if rev.comment else ''}")
-                for (rev, areas) in matching_reviewers if len(areas) > 0
-            ])
-            suggested_reviewers = [rev.github for (rev, areas) in matching_reviewers if len(areas) > 0]
+            proposed_reviewers = [(rev, areas) for (rev, areas) in matching_reviewers if len(areas) > 0]
+
+        # Sort these reviewers according to how busy they are, by their current number of assignments.
+        # (Not every reviewer has had an assignment so far, so we need to use a fall-back value.)
+        with_curr_assignments = [
+            (rev, areas, len(existing_assignments[rev.github][0]) if rev.github in existing_assignments else 0)
+                for (rev, areas) in proposed_reviewers
+        ]
+        with_curr_assignments = sorted(with_curr_assignments, key=lambda s: s[2])
+        # FIXME: refine which information is actually useful here.
+        # Or also show information if a single (and the PR's only) area matches?
+        formatted = ", ".join([
+            user_link(rev.github, f"relevant area(s) of competence: {', '.join(areas)}{f'; comments: {rev.comment}' if rev.comment else ''}; {n} recent open PR(s) currently assigned")
+            for (rev, areas, n) in with_curr_assignments
+        ])
+        suggested_reviewers = [rev.github for (rev, _areas, _n) in with_curr_assignments]
         return (formatted, suggested_reviewers)
 
 
