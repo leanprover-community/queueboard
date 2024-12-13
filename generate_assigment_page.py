@@ -119,10 +119,8 @@ def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: Aggregat
             ])
             suggested_reviewers = [rev.github for (rev, _areas) in max_reviewers]
         else:
-            def comment(comm: str):
-                return f"; comments: {comment}" if comm else ""
             formatted = ", ".join([
-                user_link(rev.github, f"areas of competence: {', '.join(rev.top_level)}{comment(rev.comment)}")
+                user_link(rev.github, f"areas of competence: {', '.join(rev.top_level)}{f'; comments: {rev.comment}' if rev.comment else ''}")
                 for (rev, areas) in matching_reviewers if len(areas) > 0
             ])
             suggested_reviewers = [rev.github for (rev, areas) in matching_reviewers if len(areas) > 0]
