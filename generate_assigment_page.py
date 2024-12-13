@@ -78,7 +78,10 @@ def read_reviewer_info() -> List[ReviewerInfo]:
 
 # Return a tuple (full code, reviewers): the former is used as the webpage table entry,
 # the latter are all potential reviewers suggested (by their github handle).
-def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: AggregatePRInfo) -> Tuple[str, List[str]]:
+# The returned suggestions are ranked; less busy reviewers come first.
+def suggest_reviewers(
+    existing_assignments: dict[str, Tuple[List[int], int]], reviewers: List[ReviewerInfo], number: int, info: AggregatePRInfo
+) -> Tuple[str, List[str]]:
     # Look at all topic labels of this PR, and find all suitable reviewers.
     topic_labels = [lab.name for lab in info.labels if lab.name.startswith("t-") or lab.name in ["CI", "IMO"]]
     matching_reviewers: List[Tuple[ReviewerInfo, List[str]]] = []
@@ -111,11 +114,17 @@ def suggest_reviewers(reviewers: List[ReviewerInfo], number: int, info: Aggregat
         if max_score > 1:
             # If there are several areas, prefer reviewers which match the highest number of them.
             max_reviewers = [(rev, areas) for (rev, areas) in matching_reviewers if len(areas) == max_score]
+            # Sort these reviewers according to how busy they are, by their current number of assignments.
+            # (Not every reviewer has had an assignment so far, so we need to use a fall-back value.)
+            with_curr_assignments = [
+                (rev, areas, len(existing_assignments[rev.github][0]) if rev.github in existing_assignments else 0)
+                for (rev, areas) in max_reviewers
+            ]
             # FIXME: refine which information is actually useful here.
             # Or also show information if a single (and the PR's only) area matches?
             formatted = ", ".join([
-                user_link(rev.github, "competent in {}".format(", ".join(areas)))
-                for (rev, areas) in max_reviewers
+                user_link(rev.github, f"competent in {', '.join(areas)}; {n} recent open PR(s) currently assigned")
+                for (rev, areas, n) in sorted(with_curr_assignments, key=lambda s: s[2])
             ])
             suggested_reviewers = [rev.github for (rev, _areas) in max_reviewers]
         else:
@@ -218,7 +227,7 @@ def main() -> None:
     header = '<h2 id="propose-reviewers"><a href="#propose-reviewers">Finding reviewers for unassigned PRs</a></h2>'
     pr_lists = compute_pr_list_from_aggregate_data_only(parsed)
     suggestions = {
-        pr.number: suggest_reviewers(parsed_reviewers, pr.number, parsed[pr.number])
+        pr.number: suggest_reviewers(stats.assignments, parsed_reviewers, pr.number, parsed[pr.number])
         for pr in pr_lists[Dashboard.QueueStaleUnassigned]
     }
     # Future: have another column with a button to send a zulip DM to a
