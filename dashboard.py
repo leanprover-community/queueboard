@@ -778,15 +778,14 @@ def write_triage_page(
     # Awaiting review, assigned and not updated in two weeks.
     # TODO/future: use a better measure of no activity, such as "no comment/review comment from anybody but the PR author".
     stale_assigned = len(prs_to_list[Dashboard.QueueStaleAssigned])
-    # XXX: use link_to here, to prevent stale anchors?
     review_heading = f"""\n{_make_h2('review-status', 'Review status')}
-  <p>There are currently <strong>{len(prs_to_list[Dashboard.Queue])}</strong> <a href="review_dashboard.html#queue">PRs awaiting review</a>. Among these,</p>
+  <p>There are currently <strong>{len(prs_to_list[Dashboard.Queue])}</strong> {link_to(Dashboard.Queue, "PRs awaiting review", "review_dashboard.html")}. Among these,</p>
   <ul>
-    <li><strong>{len(prs_to_list[Dashboard.QueueEasy])}</strong> are labelled easy (<a href="review_dashboard.html#queue-easy">these ones</a>),</li>
-    <li><strong>{len(prs_to_list[Dashboard.QueueTechDebt])}</strong> are addressing technical debt (<a href="review_dashboard.html#queue-tech-debt">namely these</a>), and</li>
+    <li><strong>{len(prs_to_list[Dashboard.QueueEasy])}</strong> are labelled easy ({link_to(Dashboard.QueueEasy, subpage="review_dashboard.html")}),</li>
+    <li><strong>{len(prs_to_list[Dashboard.QueueTechDebt])}</strong> are addressing technical debt ({link_to(Dashboard.QueueTechDebt, "namely these", "review_dashboard.html")}), and</li>
     <li><strong>{queue_new}</strong> appeared on the review queue within the last two weeks.</li><!-- TODO: add! -->
   </ul>
-  <p>On the other hand, <a href="#queue-stale-unassigned"><strong>{unassigned}</strong> PRs</a> are unassigned and have not been updated for two weeks, and <a href="#queue-stale-assigned"><strong>{stale_assigned}</strong> PRs</a> are assigned, without recent review activity.</p>"""
+  <p>On the other hand, {link_to(Dashboard.QueueStaleUnassigned, f"<strong>{unassigned}</strong> PRs")} are unassigned and have not been updated for two weeks, and {link_to(Dashboard.QueueStaleAssigned, f"<strong>{stale_assigned}</strong> PRs")} are assigned, without recent review activity.</p>"""
     review_heading = "\n  ".join(review_heading.splitlines())
 
     # Write a dashboard of unassigned PRs: we can safely skip the "assignee" column.
@@ -895,6 +894,14 @@ def compute_pr_statusses(aggregate_info: dict[int, AggregatePRInfo], prs: List[B
 
     return {info.number: determine_status(aggregate_info[info.number] or PLACEHOLDER_AGGREGATE_INFO, info) for info in prs}
 
+# If the link to a dashboard goes to a separate page |subpage|, open the link in a new tab.
+# |force_same_page| disables that parameter, i.e. all links always go to the current page.
+def link_to(kind: Dashboard, name="these ones", subpage=None, force_same_page=False) -> str:
+    if subpage and not force_same_page:
+        return f'<a href="{subpage or ""}#{getIdTitle(kind)[0]}">{name}</a>'
+    else:
+        return f'<a href="#{getIdTitle(kind)[0]}" target="_self">{name}</a>'
+
 
 # If aggregate information about a PR is missing, we treat it as non-draft, failing CI and against 'master'.
 # (Though, in fact, we assume that 'aggregate_info' is complete, by prior normalisation.)
@@ -937,14 +944,6 @@ def gather_pr_statistics(
     # TODO: also cross-check the data for merge conflicts
 
     number_all = len(all_ready_prs) + len(all_draft_prs)
-
-    # If the link to a dashboard goes to a separate page |subpage|, open the link in a new tab.
-    # |force_same_page| disables that parameter, i.e. all links always go to the current page.
-    def link_to(kind: Dashboard, name="these ones", subpage=None, force_same_page=False) -> str:
-        if subpage and not force_same_page:
-            return f'<a href="{subpage or ""}#{getIdTitle(kind)[0]}">{name}</a>'
-        else:
-            return f'<a href="#{getIdTitle(kind)[0]}" target="_self">{name}</a>'
 
     def number_percent(n: int, total: int, color: str = "") -> str:
         if color:
