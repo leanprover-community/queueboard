@@ -710,19 +710,39 @@ def write_triage_page(
     draft_PRs: list[BasicPRInformation],
 ) -> None:
     title = "  <h1>Mathlib triage dashboard</h1>"
-    welcome = "<p>Welcome to the PR triage page! This page is perfect if you intend to look for pull request which seem to have stalled. Feedback on designing this page or further information to include is very welcome.</p>"
+    welcome = "<p>Welcome to the PR triage page! This page is perfect if you intend to look for pull request which seem to have stalled.<br>Feedback on designing this page or further information to include is very welcome.</p>"
     welcome += f"\n  <small>This dashboard was last updated on: {updated}</small>"
 
+    spurious_ci = (
+        getIdTitle(Dashboard.InessentialCIFails)[0], "Likely-spurious CI failures",
+         "PRs with just failing CI, and all failures that are very likely to be infrastructure issues, and not the fault of the PR!"
+    )
     subsections = [
         ("statistics", "PR statistics"),
         ("not-yet-landed", "Not yet landed PRs"),
         ("review-status", "Review status"),
         (getIdTitle(Dashboard.QueueStaleUnassigned)[0], "Stale unassigned PRs"),
+        (getIdTitle(Dashboard.QueueStaleAssigned)[0], "Stale assigned PRs"),
+        ("spuriousci", ""),
+        (getIdTitle(Dashboard.QueueTechDebt), "Tech debt PRs"),
+        getIdTitle(Dashboard.NeedsDecision),
+        getIdTitle(Dashboard.NeedsMerge),
+        getIdTitle(Dashboard.StaleNewContributor),
+        (getIdTitle(Dashboard.OtherBase), "PRs not into master"),
+        (getIdTitle(Dashboard.FromFork), "PRs from a fork"),
+        getIdTitle(Dashboard.Approved),
         ("other", "Other lists of PRs"),
     ]
+    subsections_mapped = [
+        (a, b, None) if a != "spuriousci" else spurious_ci
+        for (a, b) in subsections
+    ]
+    # Created solely because escaping in format strings was too hard.
+    def aux(tooltip: str) -> str:
+        return " " if tooltip is None else f' title="{tooltip}"'
     items = [
-        f"<a href=\"#{anchor}\" target=\"_self\">{title}</a>"
-        for (anchor, title) in subsections
+        f"<a href=\"#{anchor}\"{aux(tooltip)}target=\"_self\">{title}</a>"
+        for (anchor, title, tooltip) in subsections_mapped
     ]
     toc = f"<br><p>\n<b>Quick links:</b> {' | '.join(items)}"
 
@@ -774,12 +794,25 @@ def write_triage_page(
 
     # XXX: when updating the definition of "stale assigned" PRs, make sure to update all the dashboard descriptions
     setting = ExtraColumnSettings.with_approvals(True).with_assignee(True)
-    write_dashboard(prs_to_list, Dashboard.QueueStaleAssigned, aggregate_info, setting)
+    remainder = write_dashboard(prs_to_list, Dashboard.QueueStaleAssigned, aggregate_info, setting)
+
+    others = [
+        Dashboard.InessentialCIFails,
+        Dashboard.TechDebt,
+        Dashboard.NeedsDecision,
+        Dashboard.NeedsMerge,
+        Dashboard.StaleNewContributor,
+        Dashboard.OtherBase,
+        Dashboard.FromFork,
+        Dashboard.Approved
+    ]
+    for kind in others:
+        remainder += write_dashboard(prs_to_list, kind, aggregate_info)
 
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
 
     # TODO: add the statistics here, or to the overview page? or hide temporarily?
-    items = [(Dashboard.InessentialCIFails, "", long_description(Dashboard.InessentialCIFails), "")]
+    items = []
     for kind in Dashboard._member_map_.values():
         kinds_to_hide = [
             Dashboard.Queue,
@@ -795,18 +828,18 @@ def write_triage_page(
             Dashboard.StaleReadyToMerge,
             Dashboard.NeedsHelp,
         ]
-        if kind not in kinds_to_hide:
+        if kind not in kinds_to_hide and kind not in others:
             items.append((kind, "", long_description(kind), ""))
     list_items = [
         f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items
     ]
-    other_PRs = f"""\n{_make_h2('other', 'Other lists of PRs')}
+    remainder += f"""\n{_make_h2('other', 'Other lists of PRs')}
     Some other lists of PRs which could be useful:
     <ul>{'    '.join(list_items)}  </ul>
     """
     # Also: add a giant table with all PRs, and their status or so!
 
-    body = f"{title}\n  {welcome}\n  {toc}\n  {stats}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {other_PRs}\n"
+    body = f"{title}\n  {welcome}\n  {toc}\n  {stats}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {remainder}\n"
     setting = ExtraColumnSettings.with_approvals(kind == Dashboard.Approved).with_assignee(True)
     dashboards = [write_dashboard(prs_to_list, kind, aggregate_info, setting) for (kind, _, _, _) in items]
     body += "\n".join(dashboards) + "\n"
