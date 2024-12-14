@@ -154,7 +154,7 @@ def getIdTitle(kind: Dashboard) -> Tuple[str, str]:
             "stale-maintainer-merge",
             "Stale maintainer-merge'd PRs",
         ),
-        Dashboard.AllMaintainerMerge: ("all-maintainer-merge", "Maintainer merge'd PRs"),
+        Dashboard.AllMaintainerMerge: ("all-maintainer-merge", "All maintainer merge'd PRs"),
         Dashboard.AllReadyToMerge: ("all-ready-to-merge", "All ready-to-merge'd PRs"),
         Dashboard.StaleReadyToMerge: (
             "stale-ready-to-merge",
