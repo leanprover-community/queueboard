@@ -668,7 +668,6 @@ def write_help_out_page(
             "just has a merge conflict, but would be reviewable otherwise",
             ". (Remember, that most contributors to mathlib are volunteers, contribute in their free time and often have other commitments — and that real-life events can happen!)",
         ),
-        # Future: add "just CI failing" here
         (
             Dashboard.FromFork,
             "post a comment on a ",
@@ -681,7 +680,12 @@ def write_help_out_page(
             "'stale' PR by a new contributor",
             " benefits from support, such as help with failing CI or providing feedback on the code",
         ),
-        # XXX: add all stale delegated PRs here?
+        (
+            Dashboard.StaleDelegated,
+            "check if any ",
+            "'stale' delegated PR",
+            " benefits from support, such as by fixing merge conflicts (but be sure to ask first; the PR author might simply be very busy)",
+        ),
     ]
     list_items = [
         f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items
@@ -956,7 +960,7 @@ def gather_pr_statistics(
         PRStatus.AwaitingAuthor: "are awaiting the PR author's action",
         PRStatus.AwaitingDecision: f"are awaiting the outcome of a zulip discussion ({link_to(Dashboard.NeedsDecision)})",
         PRStatus.Blocked: "are blocked on another PR",
-        PRStatus.Delegated: f"are delegated (stale ones are {link_to(Dashboard.StaleDelegated, 'here', 'maintainers_quick.html', triage_board)})",
+        PRStatus.Delegated: f"are delegated (stale ones are {link_to(Dashboard.StaleDelegated, 'here', 'help_out.html', triage_board)})",
         PRStatus.AwaitingBors: f"have been sent to bors (stale ones are {link_to(Dashboard.StaleReadyToMerge, 'here', 'maintainers_quick.html', triage_board)})",
         PRStatus.MergeConflict: f"have a merge conflict: among these, <b>{number_percent(len(justmerge_prs), number_all)}</b> would be ready for review otherwise: {link_to(Dashboard.NeedsMerge, 'these')}",
         PRStatus.Contradictory: f"have contradictory labels ({link_to(Dashboard.ContradictoryLabels)})",
