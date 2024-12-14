@@ -582,10 +582,9 @@ def write_overview_page(updated: str) -> None:
     <li>Would you like to find out <strong>why</strong> your PR is (not) <strong>on the review queue</strong>? Are you interested in an overview of all your PRs with their status? <a href="on_the_queue.html">This webpage</a> contains all information necessary.</li>
     <li>There is a webpage for <strong>maintainers with little time</strong>: this contains e.g. all PRs which are just awaiting maintainer approval.
     If you actually have some more time at your hands, the <a href="review_dashboard.html">page for reviewers</a> or the <a href="triage.html">triage dashboard</a> should be useful.</li>
-    <!-- XXX. I'm not fully sure yet if this page has a coherent theme. Perhaps not! -->
     <li>Would you just like to <strong>help out</strong>? <a href="help_out.html">This page</a> collects PRs where help was requested, or where some quick action can be useful.</li>
     <li>Are you coming here for <strong>PR triage</strong>: looking for PRs stuck in some state, and would like to move them along? The <a href="triage.html">triage dashboard</a> has the ultimate collection of all public information.</li>
-  <!-- hidden page for maintainers to assign reviewers is not public -->
+    <!-- 'hidden' page for maintainers to assign reviewers must be generated locally, by running a script -->
   </ul>
 </details>"""
     welcome = "\n  ".join(welcome.splitlines())
@@ -634,7 +633,6 @@ def write_maintainers_quick_page(
         (Dashboard.AllMaintainerMerge, "all PRs labelled 'maintainer merge'", ""),
         (Dashboard.FromFork, "all PRs made from a fork", ""),
         (Dashboard.NeedsDecision, "all PRs waiting on finding consensus on zulip", ""),
-        # XXX: should this one be here? can be changed upon discussion
         (Dashboard.QueueTechDebt, "just the PRs addressing technical debt", ""),
     ]
     list_items = [
@@ -658,8 +656,8 @@ def write_help_out_page(
         (
             Dashboard.InessentialCIFails,
             "take a look at ",
-            "PRs with just some mathlib-infrastructure-related CI failure: unless it's an infrastructure PR, these are spurious/not the PRs fault",
-            "",
+            "PRs with just some mathlib-infrastructure-related CI failure",
+            ": unless it's an infrastructure PR, these are spurious/not the PRs fault. If the failure is spurious, commenting to this effect can be helpful.",
         ),
         (Dashboard.NeedsHelp, "take a look at ", "PRs labelled help-wanted or please-adopt", ""),
         (
