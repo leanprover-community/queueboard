@@ -104,8 +104,8 @@ def long_description(kind: Dashboard) -> str:
         Dashboard.QueueNewContributor: "all PRs by new contributors which are ready for review",
         Dashboard.QueueEasy: "all PRs labelled 'easy' which are ready for review",
         Dashboard.QueueTechDebt: "all PRs labelled with 'tech debt' or 'longest-pole' which are ready for review",
-        Dashboard.QueueStaleAssigned: "all assigned PRs on the queue which have not been updated at all in the past two weeks",
-        Dashboard.QueueStaleUnassigned: "all PRs on the queue which are unassigned and have not been updated in the past two weeks",
+        Dashboard.QueueStaleAssigned: "all assigned PRs on the review queue which have not been updated at all in the past two weeks",
+        Dashboard.QueueStaleUnassigned: "all PRs on the review queue which are unassigned and have not been updated in the past two weeks",
         Dashboard.NeedsMerge: "all PRs which have a merge conflict, but otherwise fit the review queue",
         Dashboard.InessentialCIFails: "all PRs with just a failure of some infrastructure-related CI job (usually not this PR's fault), but are otherwise ready for review",
         Dashboard.StaleDelegated: f"all PRs labelled 'delegated' {notupdated} 24 hours",
@@ -133,18 +133,12 @@ def getIdTitle(kind: Dashboard) -> Tuple[str, str]:
         Dashboard.Queue: ("queue", "Review queue"),
         Dashboard.QueueNewContributor: (
             "queue-new-contributors",
-            "New contributors' PRs on the queue",
+            "New contributors' PRs on the review queue",
         ),
         Dashboard.QueueEasy: ("queue-easy", "PRs on the review queue labelled 'easy'"),
         Dashboard.QueueTechDebt: ("queue-tech-debt", "PRs on the review queue labelled 'tech debt' or 'longest-pole'"),
-        Dashboard.QueueStaleAssigned: (
-            "queue-stale-unassigned",
-            "Assigned PRs on the review queue without updates in the past two weeks",
-        ),
-        Dashboard.QueueStaleUnassigned: (
-            "queue-stale-unassigned",
-            "Unassigned PRs on the review queue without updates in the past two weeks",
-        ),
+        Dashboard.QueueStaleAssigned: ("queue-stale-unassigned", "Stale assigned PRs on the review queue"),
+        Dashboard.QueueStaleUnassigned: ("queue-stale-unassigned", "Stale unassigned PRs on the review queue"),
         Dashboard.StaleDelegated: ("stale-delegated", "Stale delegated PRs"),
         Dashboard.StaleNewContributor: (
             "stale-new-contributor",
@@ -763,12 +757,13 @@ def write_triage_page(
     # Awaiting review, assigned and not updated in two weeks.
     # TODO/future: use a better measure of no activity, such as "no comment/review comment from anybody but the PR author".
     stale_assigned = len(prs_to_list[Dashboard.QueueStaleAssigned])
+    # XXX: use link_to here, to prevent stale anchors?
     review_heading = f"""\n{_make_h2('review-status', 'Review status')}
   <p>There are currently <strong>{len(prs_to_list[Dashboard.Queue])}</strong> <a href="review_dashboard.html#queue">PRs awaiting review</a>. Among these,</p>
   <ul>
     <li><strong>{len(prs_to_list[Dashboard.QueueEasy])}</strong> are labelled easy (<a href="review_dashboard.html#queue-easy">these ones</a>),</li>
     <li><strong>{len(prs_to_list[Dashboard.QueueTechDebt])}</strong> are addressing technical debt (<a href="review_dashboard.html#queue-tech-debt">namely these</a>), and</li>
-    <li><strong>{queue_new}</strong> appeared on the queue within the last two weeks.</li><!-- TODO: add! -->
+    <li><strong>{queue_new}</strong> appeared on the review queue within the last two weeks.</li><!-- TODO: add! -->
   </ul>
   <p>On the other hand, <strong>{unassigned}</strong> PRs are unassigned and have not been updated for two weeks, and <strong>{stale_assigned}</strong> PRs are assigned, without recent review activity.</p>"""
     review_heading = "\n  ".join(review_heading.splitlines())
