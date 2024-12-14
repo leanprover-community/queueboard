@@ -21,6 +21,7 @@ from dashboard import (
     BasicPRInformation,
     Dashboard,
     ExtraColumnSettings,
+    _make_h2,
     _write_table_header,
     _write_table_row,
     determine_pr_dashboards,
@@ -189,7 +190,7 @@ def main() -> None:
     updated = stats.timestamp.strftime("%B %d, %Y at %H:%M UTC")
     update = f"<p><small>The data underlying this webpage was last updated on: {updated}</small></p>"
 
-    header = '<h2 id="assignment-stats"><a href="#assignment-stats">PR assignment statistics</a></h2>'
+    header = _make_h2("assignment-stats", "PR assignment statistics")
     intro = f"The following table contains statistics about all open PRs whose number is at least {stats.threshold}.<br>"
     stat = (
         f"Overall, <b>{len(stats.assigned_open_above)}</b> of these <b>{stats.num_open_above}</b> open PRs (<b>{len(stats.assigned_open_above)/stats.num_open_above:.1%}</b>) have at least one assignee. "
@@ -206,7 +207,7 @@ def main() -> None:
     table = f"  <table>\n{thead}{tbody}  </table>"
     stats_section = f"{header}\n{intro}\n{stat}\n{table}"
 
-    header = '<h2 id="reviewers"><a href="#reviewers">Mathlib reviewers with areas of interest</a></h2>'
+    header = _make_h2("reviewers", "Mathlib reviewers with areas of interest")
     intro = "The following lists all mathlib reviewers with their (self-declared) topics of interest. (Beware: still need a solution for keep this file in sync with the 'master' data.)"
 
     parsed_reviewers = read_reviewer_info()
@@ -224,7 +225,7 @@ def main() -> None:
     table = f"  <table>\n{thead}{tbody}  </table>"
     reviewers = f"{header}\n{intro}\n{table}"
 
-    header = '<h2 id="propose-reviewers"><a href="#propose-reviewers">Finding reviewers for unassigned PRs</a></h2>'
+    header = _make_h2("propose-reviewers", "Finding reviewers for unassigned PRs")
     pr_lists = compute_pr_list_from_aggregate_data_only(parsed)
     suggestions = {
         pr.number: suggest_reviewers(stats.assignments, parsed_reviewers, pr.number, parsed[pr.number])

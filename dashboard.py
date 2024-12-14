@@ -699,6 +699,14 @@ def write_help_out_page(
     write_webpage(body, "help_out.html")
 
 
+# Write the code for a h2 heading linking to itself, with id |id|, title |title|,
+# and optional tooltip |tooltip| (implemented as an <a title> attribute).
+def _make_h2(id: str, title: str, tooltip=None) -> str:
+    if tooltip:
+        return f'<h2 id="{id}"><a href="#{id}" title="{tooltip}">{title}</a></h2>'
+    return f'<h2 id="{id}"><a href="#{id}">{title}</a></h2>'
+
+
 def write_triage_page(
     updated: str,
     prs_to_list: dict[Dashboard, List[BasicPRInformation]],
@@ -943,7 +951,7 @@ def gather_pr_statistics(
         # TODO: compare these lists of PRs in detail, to verify if this exposes anything other than outdated data!
         # assert False
 
-    return f'\n<h2 id="statistics"><a href="#statistics">Overall statistics</a></h2>\nFound <b>{number_all}</b> open PRs overall. Among these PRs\n<ul>\n{details}\n</ul><div class="piechart" style="{piechart_style}"></div>\n'
+    return f'\n{_make_h2("statistics", "Overall statistics")}\nFound <b>{number_all}</b> open PRs overall. Among these PRs\n<ul>\n{details}\n</ul><div class="piechart" style="{piechart_style}"></div>\n'
 
 
 HTML_HEADER = """
@@ -1198,7 +1206,7 @@ def write_dashboard(
         # Explain what each dashboard contains upon hovering the heading.
         if add_header:
             (id, title) = getIdTitle(kind)
-            title = f'<h2 id="{id}"><a href="#{id}" title="{long_description(kind)}">{title}</a></h2>'
+            title = _make_h2(id, title, long_description(kind))
             # If there are no PRs, skip the table header and print a bold notice such as
             # "There are currently **no** stale `delegated` PRs. Congratulations!".
             if not prs:
