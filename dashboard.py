@@ -716,8 +716,21 @@ def write_triage_page(
     draft_PRs: list[BasicPRInformation],
 ) -> None:
     title = "  <h1>Mathlib triage dashboard</h1>"
-    welcome = "<p>Welcome to the PR triage page! This page is perfect if you intend to look for pull request which seem to have stalled.<br>TODO: this page is still under construction!</p>"
+    welcome = "<p>Welcome to the PR triage page! This page is perfect if you intend to look for pull request which seem to have stalled. Feedback on designing this page or further information to include is very welcome.</p>"
     welcome += f"\n  <small>This dashboard was last updated on: {updated}</small>"
+
+    subsections = [
+        ("statistics", "PR statistics"),
+        ("not-yet-landed", "Not yet landed PRs"),
+        ("review-status", "Review status"),
+        (getIdTitle(Dashboard.QueueStaleUnassigned)[0], "Stale unassigned PRs"),
+        ("other", "Other lists of PRs"),
+    ]
+    items = [
+        f"<a href=\"#{anchor}\" target=\"_self\">{title}</a>"
+        for (anchor, title) in subsections
+    ]
+    toc = f"<br><p>\n<b>Quick links:</b> {' | '.join(items)}"
 
     stats = gather_pr_statistics(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, False)
 
@@ -730,16 +743,16 @@ def write_triage_page(
     no_stale_mm = "<strong>none of which</strong> has been pending for more than a day. Congratulations!"
     mm = f'<strong>{len(prs_to_list[Dashboard.AllMaintainerMerge])}</strong> PRs are waiting on maintainer approval (<a href="maintainers_quick.html#all-maintainer-merge">these</a>), {stale_mm if prs_to_list[Dashboard.StaleMaintainerMerge] else no_stale_mm}'
 
-    no_stale_delegated = "<strong>no</strong> PRs have been delegated and not updated in a day, congratulations!</li>"
-    stale_delegated = f"<strong>{len(prs_to_list[Dashboard.StaleDelegated])}</strong> PRs have been delegated and not updated in a day:</li>\n  {write_dashboard(prs_to_list, Dashboard.StaleDelegated, aggregate_info, header=False)}"
+    no_stale_delegated = "<li><strong>no</strong> PRs have been delegated and not updated in a day, congratulations!</li>"
+    stale_delegated = f"<li><details><summary><strong>{len(prs_to_list[Dashboard.StaleDelegated])}</strong> PRs have been delegated and not updated in a day</summary>\n  \n  {write_dashboard(prs_to_list, Dashboard.StaleDelegated, aggregate_info, header=False)}</details></li>"
 
-    notlanded = f"""<h2>Approved, not yet landed PRs</h2>
+    notlanded = f"""{_make_h2('not-yet-landed', 'Approved, not yet landed PRs')}
 
     At the moment,
     <ul>
       <li>{ready_to_merge}
       <li>{mm}</li>
-      <li>{stale_delegated if prs_to_list[Dashboard.StaleDelegated] else no_stale_delegated}
+      {stale_delegated if prs_to_list[Dashboard.StaleDelegated] else no_stale_delegated}
     </ul>"""
 
     # TODO: fill in this placeholder!
@@ -750,7 +763,7 @@ def write_triage_page(
     # Awaiting review, assigned and not updated in two weeks.
     # TODO/future: use a better measure of no activity, such as "no comment/review comment from anybody but the PR author".
     stale_assigned = len(prs_to_list[Dashboard.QueueStaleAssigned])
-    review_heading = f"""\n<h2>Review status</h2>
+    review_heading = f"""\n{_make_h2('review-status', 'Review status')}
   <p>There are currently <strong>{len(prs_to_list[Dashboard.Queue])}</strong> <a href="review_dashboard.html#queue">PRs awaiting review</a>. Among these,</p>
   <ul>
     <li><strong>{len(prs_to_list[Dashboard.QueueEasy])}</strong> are labelled easy (<a href="review_dashboard.html#queue-easy">these ones</a>),</li>
@@ -792,13 +805,13 @@ def write_triage_page(
     list_items = [
         f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items
     ]
-    other_PRs = f"""\n<h2>Other lists of PRs</h2>
+    other_PRs = f"""\n{_make_h2('other', 'Other lists of PRs')}
     Some other lists of PRs which could be useful:
     <ul>{'    '.join(list_items)}  </ul>
     """
     # Also: add a giant table with all PRs, and their status or so!
 
-    body = f"{title}\n  {welcome}\n  {stats}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {other_PRs}\n"
+    body = f"{title}\n  {welcome}\n  {toc}\n  {stats}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {other_PRs}\n"
     setting = ExtraColumnSettings.with_approvals(kind == Dashboard.Approved).with_assignee(True)
     dashboards = [write_dashboard(prs_to_list, kind, aggregate_info, setting) for (kind, _, _, _) in items]
     body += "\n".join(dashboards) + "\n"
