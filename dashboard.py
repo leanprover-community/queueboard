@@ -505,7 +505,7 @@ def main() -> None:
     write_maintainers_quick_page(updated, prs_to_list, aggregate_info)
     write_help_out_page(updated, prs_to_list, aggregate_info)
     # XXX: this page needs to be refined!
-    write_triage_page(updated, prs_to_list, aggregate_info)
+    write_triage_page(updated, prs_to_list, aggregate_info, nondraft_PRs, draft_PRs)
     write_main_page(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, updated)
 
 
@@ -703,10 +703,15 @@ def write_triage_page(
     updated: str,
     prs_to_list: dict[Dashboard, List[BasicPRInformation]],
     aggregate_info: dict[int, AggregatePRInfo],
+    # These two are just used for generating statistics.
+    nondraft_PRs: list[BasicPRInformation],
+    draft_PRs: list[BasicPRInformation],
 ) -> None:
     title = "  <h1>Mathlib triage dashboard</h1>"
     welcome = "<p>Welcome to the PR triage page! This page is perfect if you intend to look for pull request which seem to have stalled.<br>TODO: this page is still under construction!</p>"
     welcome += f"\n  <small>This dashboard was last updated on: {updated}</small>"
+
+    stats = gather_pr_statistics(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, False)
 
     some_stale = f": <strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> of them are stale, and merit another look</li>\n"
     some_stale += write_dashboard(prs_to_list, Dashboard.StaleReadyToMerge, aggregate_info, header=False)
@@ -785,7 +790,7 @@ def write_triage_page(
     """
     # Also: add a giant table with all PRs, and their status or so!
 
-    body = f"{title}\n  {welcome}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {other_PRs}\n"
+    body = f"{title}\n  {welcome}\n  {stats}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {other_PRs}\n"
     setting = ExtraColumnSettings.with_approvals(kind == Dashboard.Approved).with_assignee(True)
     dashboards = [write_dashboard(prs_to_list, kind, aggregate_info, setting) for (kind, _, _, _) in items]
     body += "\n".join(dashboards) + "\n"
@@ -814,7 +819,7 @@ def write_main_page(
         links.append(f'<a href="#{id}" title="{short_description(kind)}" target="_self">{id}</a>')
     body += f"<br><p>\n<b>Quick links:</b> <a href=\"#statistics\" target=\"_self\">PR statistics</a> | {str.join(' | ', links)}</p>\n"
 
-    body += gather_pr_statistics(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs)
+    body += gather_pr_statistics(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, True)
     for kind in Dashboard._member_map_.values():
         if kind in [Dashboard.QueueTechDebt, Dashboard.AllMaintainerMerge]:
             continue
@@ -847,6 +852,7 @@ def gather_pr_statistics(
     prs: dict[Dashboard, List[BasicPRInformation]],
     all_ready_prs: List[BasicPRInformation],
     all_draft_prs: List[BasicPRInformation],
+    triage_board: True,
 ) -> str:
     # We only need to check the status of all non-draft PRs: this is purely an optimisation.
     ready_pr_status = compute_pr_statusses(aggregate_info, all_ready_prs)
@@ -881,8 +887,13 @@ def gather_pr_statistics(
 
     number_all = len(all_ready_prs) + len(all_draft_prs)
 
-    def link_to(kind: Dashboard, name="these ones") -> str:
-        return f'<a href="#{getIdTitle(kind)[0]}" target="_self">{name}</a>'
+    # If the link to a dashboard goes to a separate page |subpage|, open the link in a new tab.
+    # |force_same_page| disables that parameter, i.e. all links always go to the current page.
+    def link_to(kind: Dashboard, name="these ones", subpage=None, force_same_page=False) -> str:
+        if subpage and not force_same_page:
+            return f'<a href="{subpage or ""}#{getIdTitle(kind)[0]}">{name}</a>'
+        else:
+            return f'<a href="#{getIdTitle(kind)[0]}" target="_self">{name}</a>'
 
     def number_percent(n: int, total: int, color: str = "") -> str:
         if color:
@@ -891,13 +902,13 @@ def gather_pr_statistics(
             return f"{n} (<span>{n/total:.1%}</span>)"
 
     instatus = {
-        PRStatus.AwaitingReview: f"are awaiting review ({link_to(Dashboard.Queue)})",
-        PRStatus.HelpWanted: f"are labelled help-wanted or please-adopt ({link_to(Dashboard.NeedsHelp, 'roughly these')})",
+        PRStatus.AwaitingReview: f"are awaiting review ({link_to(Dashboard.Queue, subpage='review_dashboard.html', force_same_page=triage_board)})",
+        PRStatus.HelpWanted: f"are labelled help-wanted or please-adopt ({link_to(Dashboard.NeedsHelp, 'roughly these', 'help_out.html', triage_board)})",
         PRStatus.AwaitingAuthor: "are awaiting the PR author's action",
         PRStatus.AwaitingDecision: f"are awaiting the outcome of a zulip discussion ({link_to(Dashboard.NeedsDecision)})",
         PRStatus.Blocked: "are blocked on another PR",
-        PRStatus.Delegated: f"are delegated (stale ones are {link_to(Dashboard.StaleDelegated, 'here')})",
-        PRStatus.AwaitingBors: f"have been sent to bors (stale ones are {link_to(Dashboard.StaleReadyToMerge, 'here')})",
+        PRStatus.Delegated: f"are delegated (stale ones are {link_to(Dashboard.StaleDelegated, 'here', 'maintainers_quick.html', triage_board)})",
+        PRStatus.AwaitingBors: f"have been sent to bors (stale ones are {link_to(Dashboard.StaleReadyToMerge, 'here', 'maintainers_quick.html', triage_board)})",
         PRStatus.MergeConflict: f"have a merge conflict: among these, <b>{number_percent(len(justmerge_prs), number_all)}</b> would be ready for review otherwise: {link_to(Dashboard.NeedsMerge, 'these')}",
         PRStatus.Contradictory: f"have contradictory labels ({link_to(Dashboard.ContradictoryLabels)})",
         PRStatus.NotReady: "are marked as draft or work in progress",
