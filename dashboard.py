@@ -498,7 +498,6 @@ def main() -> None:
     write_review_queue_page(updated, prs_to_list, aggregate_info)
     write_maintainers_quick_page(updated, prs_to_list, aggregate_info)
     write_help_out_page(updated, prs_to_list, aggregate_info)
-    # XXX: this page needs to be refined!
     write_triage_page(updated, prs_to_list, aggregate_info, nondraft_PRs, draft_PRs)
     write_main_page(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, updated)
 
@@ -785,7 +784,7 @@ def write_triage_page(
     <li><strong>{len(prs_to_list[Dashboard.QueueTechDebt])}</strong> are addressing technical debt (<a href="review_dashboard.html#queue-tech-debt">namely these</a>), and</li>
     <li><strong>{queue_new}</strong> appeared on the review queue within the last two weeks.</li><!-- TODO: add! -->
   </ul>
-  <p>On the other hand, <strong>{unassigned}</strong> PRs are unassigned and have not been updated for two weeks, and <strong>{stale_assigned}</strong> PRs are assigned, without recent review activity.</p>"""
+  <p>On the other hand, <a href="#queue-stale-unassigned"><strong>{unassigned}</strong> PRs</a> are unassigned and have not been updated for two weeks, and <a href="#queue-stale-assigned"><strong>{stale_assigned}</strong> PRs</a> are assigned, without recent review activity.</p>"""
     review_heading = "\n  ".join(review_heading.splitlines())
 
     # Write a dashboard of unassigned PRs: we can safely skip the "assignee" column.
@@ -811,9 +810,10 @@ def write_triage_page(
 
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
 
-    # TODO: add the statistics here, or to the overview page? or hide temporarily?
     items = []
     for kind in Dashboard._member_map_.values():
+        # These dashboards were already put on other pages or earlier on this page:
+        # no need to display them again.
         kinds_to_hide = [
             Dashboard.Queue,
             Dashboard.QueueEasy,
@@ -837,7 +837,7 @@ def write_triage_page(
     Some other lists of PRs which could be useful:
     <ul>{'    '.join(list_items)}  </ul>
     """
-    # Also: add a giant table with all PRs, and their status or so!
+    # XXX: do I want to add a giant table with all PRs and their status!
 
     body = f"{title}\n  {welcome}\n  {toc}\n  {stats}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {remainder}\n"
     setting = ExtraColumnSettings.with_approvals(kind == Dashboard.Approved).with_assignee(True)
