@@ -207,43 +207,43 @@ def prune_missing_prs_files() -> List[int]:
 
 # Remove broken data for a "normal" PR with number 'number':
 # - remove the entire directory of this PR's data,
-# - add/update a running comment to 'missing_prs.txt' about this being the second (or third) time this PR is downloaded,
+# - add/update a running comment to 'missing_prs.txt' resp. 'closed_prs_to_backfill.txt'
+#   about this being the second (or third) time this PR is downloaded,
 # - if there was a comment about the third attempt, i.e. a download failed thrice in a row, mark this PR as stubborn.
 # 'prune_missing_prs_files()' ensures that no stale "third attempt" comments are left behind.
 def remove_broken_data(number: int) -> None:
-    filename = "missing_prs.txt"
     dir = os.path.join("data", str(number))
-
-    with open(filename, "r") as fi:
-        content = fi.read().splitlines()
-    previous_comments = list(filter(lambda s: s.startswith("-- ") and s.rstrip().endswith(str(number)), content))
-    if not previous_comments:
-        # No comment about the file: just write a comment 'second' time.
-        shutil.rmtree(dir)
-        with open(filename, "a") as fi:
-            fi.write(f"\n{comment_second}{number}\n")
-    else:
-        assert len(previous_comments) == 1
-        new_content = content[:]
-        new_content.remove(previous_comments[0])
-        if previous_comments[0].startswith(comment_second):
-            # Replace "second" by "third" in that line; remove broken data.
-            new_content.append(f"\n{comment_third}{number}\n")
-            with open(filename, "w") as fi:
-                fi.writelines(new_content)
-            shutil.rmtree(dir)
-        elif previous_comments[0].startswith(comment_third):
-            # Remove the comment; remove the PR number from the file (any number of times);
-            # write an entry to stubborn_prs.txt instead.
-            new_content = [line for line in content if line != str(number)]
-            with open(filename, "w") as fi:
-                fi.writelines(new_content)
-            with open("stubborn_prs.txt", "a") as fi:
-                fi.write(f"\n{number}\n")
-            shutil.rmtree(dir)
+    shutil.rmtree(dir)
+    def _inner(number: int, filename: str) -> None:
+        with open(filename, "r") as fi:
+            content = fi.read().splitlines()
+        previous_comments = list(filter(lambda s: s.startswith("-- ") and s.rstrip().endswith(str(number)), content))
+        if not previous_comments:
+            # No comment about the file: just write a comment 'second' time.
+            with open(filename, "a") as fi:
+                fi.write(f"\n{comment_second}{number}\n")
         else:
-            print(f"error: comment {previous_comments} for PR {number} is unexpected; aborting!")
-            return
+            assert len(previous_comments) == 1
+            new_content = content[:]
+            new_content.remove(previous_comments[0])
+            if previous_comments[0].startswith(comment_second):
+                # Replace "second" by "third" in that line; remove broken data.
+                new_content.append(f"\n{comment_third}{number}\n")
+                with open(filename, "w") as fi:
+                    fi.writelines(new_content)
+            elif previous_comments[0].startswith(comment_third):
+                # Remove the comment; remove the PR number from the file (any number of times);
+                # write an entry to stubborn_prs.txt instead.
+                new_content = [line for line in content if line != str(number)]
+                with open(filename, "w") as fi:
+                    fi.writelines('\n'.join(new_content))
+                with open("stubborn_prs.txt", "a") as fi:
+                    fi.write(f"\n{number}")
+            else:
+                print(f"error: comment {previous_comments} for PR {number} is unexpected; aborting!")
+                return
+    _inner(number, "missing_prs.txt")
+    _inner(number, "closed_prs_to_backfill.txt")
 
 
 # Read the last updated fields of the aggregate data file, and compare it with the
