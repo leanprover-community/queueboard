@@ -257,7 +257,8 @@ def main() -> None:
     for pr_number in stubborn_prs_with_errors:
         shutil.rmtree(os.path.join("data", f"{pr_number}-basic"))
     current_missing_entries = prune_missing_prs_files()
-    print(f"info: found {len(normal_prs_with_errors)} PRs with broken data")
+    stubborn = f"and {len(stubborn_prs_with_errors)} stubborn " if stubborn_prs_with_errors else ""
+    print(f"info: found {len(normal_prs_with_errors)} normal {stubborn}PR(s) with broken data")
 
     # "Last updated" information as returned from a fresh github query.
     current_last_updated = extract_last_update_from_input()
