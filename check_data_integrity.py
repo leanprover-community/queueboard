@@ -153,9 +153,10 @@ comment_third = "-- third attempt for "
 # Return a list of all PR numbers which are in the new file.
 # Also prune 'closed_prs_to_backfill.txt' in a similar way.
 def prune_missing_prs_files() -> List[int]:
-    def inner(filename: str) -> List[int]:
-        with open("closed_prs_to_backfill.txt", "r") as file:
-            closed_pr_lines = file.read().strip().splitlines()
+    with open("closed_prs_to_backfill.txt", "r") as file:
+        closed_pr_lines = file.read().strip().splitlines()
+
+    def inner(closed_pr_lines: List[str], filename: str) -> List[int]:
         current_lines: List[str] = []
         with open(filename, "r") as file:
             current_lines = file.read().strip().splitlines()
@@ -197,8 +198,8 @@ def prune_missing_prs_files() -> List[int]:
             file.write("\n".join(new_lines) + "\n")
         return current_missing_prs
 
-    _unused = inner("closed_prs_to_backfill.txt")
-    return inner("missing_prs.txt")
+    _unused = inner(closed_pr_lines, "closed_prs_to_backfill.txt")
+    return inner(closed_pr_lines, "missing_prs.txt")
 
 
 # Remove broken data for a "normal" PR with number 'number':
