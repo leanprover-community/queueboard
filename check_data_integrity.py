@@ -121,8 +121,11 @@ class AggregateData(NamedTuple):
     state: str
 
 
-# Is there valid and complete PR data for a PR numbered `number`?
-# We pass in the list of all directories in the `data` dir, to avoid computing this multiple times.
+# Is there valid and complete PR data for a PR numbered |number|?
+# Either detailed or basic information counts, assuming all files are intact.
+#
+# |data_dirs| is the list of all (known/relevant) directories in the |data| dir:
+# we pass this as an argument to avoid re-computing it many times.
 def _has_valid_entries(data_dirs: List[str], number: int) -> bool:
     has_basic_dir = f"{number}-basic" in data_dirs
     has_std_dir = str(number) in data_dirs
@@ -149,9 +152,9 @@ comment_third = "-- third attempt for "
 
 # Read the file 'missing_prs.txt', check for entries which can be removed now
 # and write out the updated file. Take care to keep manual comments in the file
-# (except for obsolete '-- second attempt for <N>', or third attempt, lines).
+# (except for obsolete lines '-- second attempt for <N>' or '-- third attempt for <N>').
 # Return a list of all PR numbers which are in the new file.
-# Also prune 'closed_prs_to_backfill.txt' in a similar way.
+# Prune 'closed_prs_to_backfill.txt' in a similar way; the PRs in that file are not returned.
 def prune_missing_prs_files() -> List[int]:
     with open("closed_prs_to_backfill.txt", "r") as file:
         closed_pr_lines = file.read().strip().splitlines()
