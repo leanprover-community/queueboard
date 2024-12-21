@@ -228,17 +228,17 @@ def remove_broken_data(number: int) -> None:
             new_content.remove(previous_comments[0])
             if previous_comments[0].startswith(comment_second):
                 # Replace "second" by "third" in that line; remove broken data.
-                new_content.append(f"\n{comment_third}{number}\n")
+                new_content.append(f"{comment_third}{number}")
                 with open(filename, "w") as fi:
-                    fi.writelines(new_content)
+                    fi.write('\n'.join(new_content) + '\n')
             elif previous_comments[0].startswith(comment_third):
                 # Remove the comment; remove the PR number from the file (any number of times);
                 # write an entry to stubborn_prs.txt instead.
                 new_content = [line for line in content if line != str(number)]
                 with open(filename, "w") as fi:
-                    fi.writelines('\n'.join(new_content))
+                    fi.write('\n'.join(new_content) + '\n')
                 with open("stubborn_prs.txt", "a") as fi:
-                    fi.write(f"\n{number}")
+                    fi.write(f"\n{number}\n")
             else:
                 print(f"error: comment {previous_comments} for PR {number} is unexpected; aborting!")
                 return
@@ -351,8 +351,7 @@ def main() -> None:
             import random
 
             random.shuffle(outdated_prs)
-            new = ["\n".join([str(n) for n in outdated_prs[: min(4, len(outdated_prs))]]) + "\n"]
-            file.writelines(new)
+            file.write("\n".join([str(n) for n in outdated_prs[: min(4, len(outdated_prs))]]) + "\n")
     else:
         print("All PR aggregate data appears up to date, congratulations!")
 
