@@ -11,6 +11,7 @@ from dateutil import tz
 # We usually do not care about the precise label names, but just their function.
 class LabelKind(Enum):
     WIP = auto()  # the WIP labelled, denoting a PR which is work in progress
+    AwaitingCI = auto()
     Review = auto()
     """This PR is ready for review: this label is only added for historical purposes, as mathlib does not use this label any more"""
     HelpWanted = auto()
@@ -33,6 +34,7 @@ class LabelKind(Enum):
 # historical names: for the current use of this code, this is not an issue.
 label_categorisation_rules: dict[str, LabelKind] = {
     "WIP": LabelKind.WIP,
+    "awaiting-CI": LabelKind.AwaitingCI,
     "awaiting-review-DONT-USE": LabelKind.Review,
     "awaiting-author": LabelKind.Author,
     "blocked-by-other-PR": LabelKind.Blocked,
@@ -120,6 +122,7 @@ class PRStatus(Enum):
 def label_to_prstatus(label: LabelKind) -> PRStatus:
     return {
         LabelKind.WIP: PRStatus.NotReady,
+        LabelKind.AwaitingCI: PRStatus.NotReady,
         LabelKind.Review: PRStatus.AwaitingReview,
         LabelKind.HelpWanted: PRStatus.HelpWanted,
         LabelKind.Author: PRStatus.AwaitingAuthor,
@@ -142,7 +145,8 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
     # The 'awaiting-CI' label or 'running' CI also mark a PR as 'not ready' yet:
     # this ought to be a transient state; when a CI run completes, the PR status
     # (in hindsight) will be set accordingly.
-    if state.ci == CIStatus.Running:# or LabelKind.AwaitingCI in state.labels:
+    # (The latter label is checked further down, to enable better detection of contradictory labels.)
+    if state.ci == CIStatus.Running:
         return PRStatus.NotReady
     # Ignore all "other" labels, which are not relevant for this anyway.
     labels = [label for label in state.labels if label != LabelKind.Other]
@@ -190,7 +194,9 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
         key: dict[LabelKind, int] = {
             LabelKind.Blocked: 11,
             LabelKind.HelpWanted: 10,
+            # The next two labels have the same effect, hence the same priority.
             LabelKind.WIP: 9,
+            LabelKind.AwaitingCI: 9,
             LabelKind.Decision: 8,
             LabelKind.MergeConflict: 7,
             LabelKind.Bors: 6,
@@ -231,10 +237,16 @@ def test_determine_status() -> None:
     check2(PRState([], CIStatus.Fail, False), PRStatus.NotReady)
     check2(PRState([], CIStatus.Fail, True), PRStatus.NotReady)
     # Running CI is treated as "failing" for the purposes of our classification.
+    # The awaiting-CI label has the same effect as a "running" CI state.
     check2(PRState([], CIStatus.Running, False), PRStatus.NotReady)
+    check2(PRState([LabelKind.AwaitingCI], CIStatus.Pass, False), PRStatus.NotReady)
+    check2(PRState([LabelKind.AwaitingCI], CIStatus.Fail, False), PRStatus.NotReady)
     check2(PRState([LabelKind.Other], CIStatus.Running, False), PRStatus.NotReady)
+    check2(PRState([LabelKind.Other, LabelKind.AwaitingCI], CIStatus.Running, False), PRStatus.NotReady)
     check2(PRState([LabelKind.WIP], CIStatus.Fail, False), PRStatus.NotReady)
+    check2(PRState([LabelKind.WIP, LabelKind.AwaitingCI], CIStatus.Fail, False), PRStatus.NotReady)
     check2(PRState([LabelKind.MergeConflict], CIStatus.Fail, False), PRStatus.NotReady)
+
     # Missing CI status is treated as "failing" for the purposes of the classification.
     check2(PRState([], CIStatus.Missing, False), PRStatus.NotReady)
     check2(PRState([LabelKind.WIP], CIStatus.Missing, False), PRStatus.NotReady)
