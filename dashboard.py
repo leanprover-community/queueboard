@@ -347,13 +347,13 @@ def determine_pr_dashboards(
         print("Review dashboard and #queue match, hooray!", file=sys.stderr)
     # XXX: When re-visiting the comparison of queues, also re-run this again for a day.
     # For now, it doesn't expose more useful information, hence disabling this.
-    # needs_merge2 = None
-    # with open("needs-merge.json", "r") as file:
-    #     needs_merge_prs2 = _extract_prs(json.load(file))
-    #     needs_merge2 = [pr.number for pr in needs_merge_prs2]
-    # msg = "comparing this page's 'needs merge' dashboard (left) with the Github REST APi search (right)"
-    # if my_assert_eq(msg, [pr.number for pr in prs_to_list[Dashboard.NeedsMerge]], needs_merge2):
-    #     print("Needs merge dashboard: list matches the github API, hooray!", file=sys.stderr)
+    needs_merge2 = None
+    with open("needs-merge.json", "r") as file:
+        needs_merge_prs2 = _extract_prs(json.load(file))
+        needs_merge2 = [pr.number for pr in needs_merge_prs2]
+    msg = "comparing this page's 'needs merge' dashboard (left) with the Github REST APi search (right)"
+    if my_assert_eq(msg, [pr.number for pr in prs_to_list[Dashboard.NeedsMerge]], needs_merge2):
+        print("Needs merge dashboard: list matches the github API, hooray!", file=sys.stderr)
 
     prs_to_list[Dashboard.Queue] = queue_prs if use_aggregate_queue else queue_prs2
     queue = prs_to_list[Dashboard.Queue]
@@ -941,7 +941,6 @@ def gather_pr_statistics(
     msg = "the review queue (left) with all PRs classified as awaiting review (right)"
     if my_assert_eq(msg, queue_prs_numbers, [i.number for i in queue_prs]):
         print("review queue: two computations match, hooray", file=sys.stderr)
-        # print(f"warning: the review queue and the classification differ: found {len(right)} PRs {right} on the former, but the {len(queue_prs_numbers)} PRs {queue_prs_numbers} on the latter!", file=sys.stderr)
     # TODO: also cross-check the data for merge conflicts
 
     number_all = len(all_ready_prs) + len(all_draft_prs)
