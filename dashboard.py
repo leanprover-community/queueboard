@@ -889,7 +889,8 @@ def compute_pr_statusses(aggregate_info: dict[int, AggregatePRInfo], prs: List[B
     def determine_status(aggregate_info: AggregatePRInfo, info: BasicPRInformation) -> PRStatus:
         # Ignore all "other" labels, which are not relevant for this anyway.
         labels = [label_categorisation_rules[lab.name] for lab in info.labels if lab.name in label_categorisation_rules]
-        state = PRState(labels, aggregate_info.CI_status, aggregate_info.is_draft)
+        # TODO: check if the current PR is really from a fork
+        state = PRState(labels, aggregate_info.CI_status, aggregate_info.is_draft, False)
         return determine_PR_status(datetime.now(timezone.utc), state)
 
     return {info.number: determine_status(aggregate_info[info.number] or PLACEHOLDER_AGGREGATE_INFO, info) for info in prs}
