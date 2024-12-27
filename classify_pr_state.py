@@ -88,6 +88,10 @@ class PRState(NamedTuple):
     def with_labels(labels: List[LabelKind]):
         """Create a PR state with just these labels, passing CI and ready for review"""
         return PRState(labels, CIStatus.Pass, False)
+    @staticmethod
+    def with_labels_and_ci(labels: List[LabelKind], ci: CIStatus):
+        return PRState(labels, ci, False)
+
 
 
 # Describes the current status of a pull request in terms of the categories we care about.
@@ -225,7 +229,7 @@ def test_determine_status() -> None:
     # Check if the PR status on a given list of labels in one of several allowed values.
     # If successful, returns the actual PR status computed.
     def check_flexible(labels: List[LabelKind], allowed: List[PRStatus]) -> PRStatus:
-        state = PRState(labels, CIStatus.Pass, False)
+        state = PRState.with_labels_and_ci(labels, CIStatus.Pass)
         actual = determine_PR_status(default_date, state)
         assert actual in allowed, f"expected PR status in {allowed} from labels {labels}, got {actual}"
         return actual
@@ -238,19 +242,19 @@ def test_determine_status() -> None:
     check2(PRState([], CIStatus.Fail, True), PRStatus.NotReady)
     # Running CI is treated as "failing" for the purposes of our classification.
     # The awaiting-CI label has the same effect as a "running" CI state.
-    check2(PRState([], CIStatus.Running, False), PRStatus.NotReady)
-    check2(PRState([LabelKind.AwaitingCI], CIStatus.Pass, False), PRStatus.NotReady)
-    check2(PRState([LabelKind.AwaitingCI], CIStatus.Fail, False), PRStatus.NotReady)
-    check2(PRState([LabelKind.Other], CIStatus.Running, False), PRStatus.NotReady)
-    check2(PRState([LabelKind.Other, LabelKind.AwaitingCI], CIStatus.Running, False), PRStatus.NotReady)
-    check2(PRState([LabelKind.WIP], CIStatus.Fail, False), PRStatus.NotReady)
-    check2(PRState([LabelKind.WIP, LabelKind.AwaitingCI], CIStatus.Fail, False), PRStatus.NotReady)
-    check2(PRState([LabelKind.MergeConflict], CIStatus.Fail, False), PRStatus.NotReady)
+    check2(PRState.with_labels_and_ci([], CIStatus.Running), PRStatus.NotReady)
+    check2(PRState.with_labels_and_ci([LabelKind.AwaitingCI], CIStatus.Pass), PRStatus.NotReady)
+    check2(PRState.with_labels_and_ci([LabelKind.AwaitingCI], CIStatus.Fail), PRStatus.NotReady)
+    check2(PRState.with_labels_and_ci([LabelKind.Other], CIStatus.Running), PRStatus.NotReady)
+    check2(PRState.with_labels_and_ci([LabelKind.Other, LabelKind.AwaitingCI], CIStatus.Running), PRStatus.NotReady)
+    check2(PRState.with_labels_and_ci([LabelKind.WIP], CIStatus.Fail), PRStatus.NotReady)
+    check2(PRState.with_labels_and_ci([LabelKind.WIP, LabelKind.AwaitingCI], CIStatus.Fail), PRStatus.NotReady)
+    check2(PRState.with_labels_and_ci([LabelKind.MergeConflict], CIStatus.Fail), PRStatus.NotReady)
 
     # Missing CI status is treated as "failing" for the purposes of the classification.
-    check2(PRState([], CIStatus.Missing, False), PRStatus.NotReady)
-    check2(PRState([LabelKind.WIP], CIStatus.Missing, False), PRStatus.NotReady)
-    check2(PRState([LabelKind.MergeConflict], CIStatus.Missing, False), PRStatus.NotReady)
+    check2(PRState.with_labels_and_ci([], CIStatus.Missing), PRStatus.NotReady)
+    check2(PRState.with_labels_and_ci([LabelKind.WIP], CIStatus.Missing), PRStatus.NotReady)
+    check2(PRState.with_labels_and_ci([LabelKind.MergeConflict], CIStatus.Missing), PRStatus.NotReady)
 
     # All label kinds we distinguish.
     ALL = LabelKind._member_map_.values()
