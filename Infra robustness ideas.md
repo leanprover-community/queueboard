@@ -1,5 +1,13 @@
 ## Robustness ideas for my infrastructure
 
+data integrity check: awaiting-CI label but no running CI
+
+data integrity check: do a deep comparison of the files
+- all key data exposed to the webpage (perhaps generate a big table of everything twice and just diff things?)
+- compare CI state (if possible)
+
+
+
 - avoid push races/conflicts
   - unracying: fix the inherent race between the two workflows, as well as I can
   - make pushing more resilient: add automatic conflict resolution
