@@ -139,6 +139,11 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
     # Perhaps still treat as failing, but expose differently on a dashboard?
     if state.draft or state.ci in [CIStatus.Fail, CIStatus.FailInessential, CIStatus.Missing]:
         return PRStatus.NotReady
+    # The 'awaiting-CI' label or 'running' CI also mark a PR as 'not ready' yet:
+    # this ought to be a transient state; when a CI run completes, the PR status
+    # (in hindsight) will be set accordingly.
+    if state.ci == CIStatus.Running:# or LabelKind.AwaitingCI in state.labels:
+        return PRStatus.NotReady
     # Ignore all "other" labels, which are not relevant for this anyway.
     labels = [label for label in state.labels if label != LabelKind.Other]
 
@@ -221,15 +226,17 @@ def test_determine_status() -> None:
 
     # Tests for handling draft and CI state.
     # These take precedence over any other labels.
+    # Failing CI marks a PR as "not ready".
     check2(PRState([], CIStatus.Pass, True), PRStatus.NotReady)
     check2(PRState([], CIStatus.Fail, False), PRStatus.NotReady)
     check2(PRState([], CIStatus.Fail, True), PRStatus.NotReady)
-    # Running CI is treated as "passing" for the purposes of our classification.
-    check2(PRState([], CIStatus.Running, False), PRStatus.AwaitingReview)
+    # Running CI is treated as "failing" for the purposes of our classification.
+    check2(PRState([], CIStatus.Running, False), PRStatus.NotReady)
+    check2(PRState([LabelKind.Other], CIStatus.Running, False), PRStatus.NotReady)
     check2(PRState([LabelKind.WIP], CIStatus.Fail, False), PRStatus.NotReady)
     check2(PRState([LabelKind.MergeConflict], CIStatus.Fail, False), PRStatus.NotReady)
     # Missing CI status is treated as "failing" for the purposes of the classification.
-    check2(PRState([], CIStatus.Missing, False), PRStatus.AwaitingReview)
+    check2(PRState([], CIStatus.Missing, False), PRStatus.NotReady)
     check2(PRState([LabelKind.WIP], CIStatus.Missing, False), PRStatus.NotReady)
     check2(PRState([LabelKind.MergeConflict], CIStatus.Missing, False), PRStatus.NotReady)
 
