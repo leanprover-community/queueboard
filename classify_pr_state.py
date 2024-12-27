@@ -147,19 +147,25 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
     'date' is necessary as the interpretation of the awaiting-review label changes over time"""
     if state.from_fork:
         return PRStatus.FromFork
+
+    # Failing (or missing or running) CI counts like the WIP label.
+    # In particular, it is compared against other labels.
     # TODO: decide what to do with inessential failures for the classification...
     # for infra PRs, just treating it as "fine" seems wrong.
     # Perhaps still treat as failing, but expose differently on a dashboard?
     if state.draft or state.ci in [CIStatus.Fail, CIStatus.FailInessential, CIStatus.Missing]:
-        return PRStatus.NotReady
+        notready = True
     # The 'awaiting-CI' label or 'running' CI also mark a PR as 'not ready' yet:
     # this ought to be a transient state; when a CI run completes, the PR status
     # (in hindsight) will be set accordingly.
-    # (The latter label is checked further down, to enable better detection of contradictory labels.)
-    if state.ci == CIStatus.Running:
-        return PRStatus.NotReady
+    elif state.ci == CIStatus.Running or LabelKind.AwaitingCI in state.labels:
+        notready = True
+    else:
+        notready = False
     # Ignore all "other" labels, which are not relevant for this anyway.
     labels = [label for label in state.labels if label != LabelKind.Other]
+    if notready:
+        labels.append(LabelKind.WIP)
 
     # Labels can be contradictory (so we need to recognise this).
     # Also note that their priority orders are not transitive!
@@ -271,7 +277,9 @@ def test_determine_status() -> None:
     # but WIP takes priority over awaiting a decision on zulip.)
     check([LabelKind.Decision, LabelKind.Author], PRStatus.AwaitingDecision)
     check([LabelKind.Decision, LabelKind.Review], PRStatus.AwaitingDecision)
+    check2(PRState.with_labels_and_ci([LabelKind.Decision], CIStatus.Fail), PRStatus.NotReady)
     check([LabelKind.Decision, LabelKind.WIP], PRStatus.NotReady)
+    check2(PRState.with_labels_and_ci([LabelKind.Decision, LabelKind.WIP], CIStatus.Fail), PRStatus.NotReady)
 
     # All label kinds we distinguish.
     ALL = LabelKind._member_map_.values()
@@ -310,7 +318,13 @@ def test_determine_status() -> None:
     # One specific sanity check, which fails in the previous implementation.
     check([LabelKind.Blocked, LabelKind.Review], PRStatus.Blocked)
     check([LabelKind.Review, LabelKind.Blocked], PRStatus.Blocked)
+    # Two test cases where I'd like to note a concious decision.
+    check([LabelKind.Blocked, LabelKind.WIP], PRStatus.Blocked)
+    check([LabelKind.WIP, LabelKind.MergeConflict], PRStatus.NotReady)
     print("test_determine_status: all tests pass")
+    # CI failures count just like a WIP label: in particular, a blocked PR
+    # with failing CI is 'blocked', not 'not ready'.abs
+    check2(PRState.with_labels_and_ci([LabelKind.Blocked], CIStatus.Fail), PRStatus.Blocked)
 
 
 if __name__ == '__main__':
