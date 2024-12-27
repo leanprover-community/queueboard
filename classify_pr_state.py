@@ -178,11 +178,8 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
         return label_to_prstatus(labels[0])
     else:
         # Some label combinations are contradictory. We mark the PR as in a "contradictory" state.
-        # awaiting-decision is exclusive with any of waiting on review, author, delegation and sent to bors.
-        contra_to_decision = [
-            LabelKind.Author, LabelKind.Review, LabelKind.Delegated, LabelKind.Bors, LabelKind.WIP
-        ]
-        if LabelKind.Decision in labels and any([label for label in labels if label in contra_to_decision]):
+        # awaiting-decision is exclusive with being delegated or being sent to bors.
+        if LabelKind.Decision in labels and any([label for label in labels if label in [LabelKind.Delegated, LabelKind.Bors]]):
             return PRStatus.Contradictory
         # Work in progress contradicts "awaiting review" and "ready for bors".
         if LabelKind.WIP in labels and any([label for label in labels if label in [LabelKind.Review, LabelKind.Bors]]):
@@ -268,6 +265,13 @@ def test_determine_status() -> None:
     check2(PRState.with_labels_and_ci([], CIStatus.Missing), PRStatus.NotReady)
     check2(PRState.with_labels_and_ci([LabelKind.WIP], CIStatus.Missing), PRStatus.NotReady)
     check2(PRState.with_labels_and_ci([LabelKind.MergeConflict], CIStatus.Missing), PRStatus.NotReady)
+
+    # Waiting for a decision on zulip does *not* contradict being labelled WIP,
+    # awaiting-author or awaiting review. (Instead, zulip takes priority over review or author,
+    # but WIP takes priority over awaiting a decision on zulip.)
+    check([LabelKind.Decision, LabelKind.Author], PRStatus.AwaitingDecision)
+    check([LabelKind.Decision, LabelKind.Review], PRStatus.AwaitingDecision)
+    check([LabelKind.Decision, LabelKind.WIP], PRStatus.NotReady)
 
     # All label kinds we distinguish.
     ALL = LabelKind._member_map_.values()
