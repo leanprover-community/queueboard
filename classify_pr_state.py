@@ -160,20 +160,10 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
     else:
         # Some label combinations are contradictory. We mark the PR as in a "contradictory" state.
         # awaiting-decision is exclusive with any of waiting on review, author, delegation and sent to bors.
-        if LabelKind.Decision in labels and any(
-            [
-                label
-                for label in labels
-                if label
-                in [
-                    LabelKind.Author,
-                    LabelKind.Review,
-                    LabelKind.Delegated,
-                    LabelKind.Bors,
-                    LabelKind.WIP,
-                ]
-            ]
-        ):
+        contra_to_decision = [
+            LabelKind.Author, LabelKind.Review, LabelKind.Delegated, LabelKind.Bors, LabelKind.WIP
+        ]
+        if LabelKind.Decision in labels and any([label for label in labels if label in contra_to_decision]):
             return PRStatus.Contradictory
         # Work in progress contradicts "awaiting review" and "ready for bors".
         if LabelKind.WIP in labels and any([label for label in labels if label in [LabelKind.Review, LabelKind.Bors]]):
