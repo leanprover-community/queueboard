@@ -207,7 +207,7 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
 
 def test_determine_status() -> None:
     # NB: this only tests the new handling of awaiting-review status.
-    default_date = datetime(2024, 8, 1)
+    default_date = datetime(2024, 8, 1, tzinfo=tz.tzutc())
 
     def check(labels: List[LabelKind], expected: PRStatus) -> None:
         state = PRState.with_labels(labels)
@@ -281,4 +281,5 @@ def test_determine_status() -> None:
     print("test_determine_status: all tests pass")
 
 
-# test_determine_status()
+if __name__ == '__main__':
+    test_determine_status()

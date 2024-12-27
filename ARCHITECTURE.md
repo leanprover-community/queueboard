@@ -89,7 +89,7 @@ In particular, each query for each dashboard takes one second: if easily possibl
 ## Testing
 There are several levels at which this project can be tested. Currently, there are no *automated* tests, but an effort is made that the dashboard logic can easily be tested manually.
 
-- `classify_pr_state.py` has unit tests: to run them, use e.g. `nose` (which will pick them up automatically), or uncomment all methods named `test_xxx` and run `python3 classify_pr_state.py`
+- `classify_pr_state.py` has unit tests: to run them, use e.g. `nose` (which will pick them up automatically), or run `python3 classify_pr_state.py`
 
 TODO: there are more generated HTML files now; recommend copying the folder instead...
 - changes to just `dashboard.py` can be tested using the JSON files in the `test` directory: run the following from the `test` directory.
