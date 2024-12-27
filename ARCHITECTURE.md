@@ -74,6 +74,7 @@ This script depends on quite a bit of file state:
 `util.py` contains two functions which are needed in otherwise unrelated scripts
 
 `classify_pr_state.py` contains logic to classify a pull request as ready for review, awaiting action by the author, blocked on another PR, etc. This is used to generate a statistics section on the dashboard. It is called directly by `dashboard.py`.
+`FAQ_pr_state_classification.md` documents some particular decisions related to this classification.
 
 `test` contains versions of all input files to this script, at some point in time. These can be used for locally testing `dashboard.py`.
 
