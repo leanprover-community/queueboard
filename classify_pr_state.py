@@ -10,11 +10,13 @@ from dateutil import tz
 # The different kinds of PR labels we care about.
 # We usually do not care about the precise label names, but just their function.
 class LabelKind(Enum):
-    WIP = auto()  # WIP
+    WIP = auto()  # the WIP labelled, denoting a PR which is work in progress
     Review = auto()
     """This PR is ready for review: this label is only added for historical purposes, as mathlib does not use this label any more"""
-    HelpWanted = auto()  # this PR is labelled help-wanted or please-adopt
-    Author = auto()  # awaiting-author
+    HelpWanted = auto()
+    '''This PR is labelled help-wanted or please-adopt'''
+    Author = auto()
+    '''This PR is labelled awaiting-author'''
     MergeConflict = auto()  # merge-conflict
     Blocked = auto()  # blocked-by-other-PR, etc.
     Decision = auto()  # awaiting-zulip
