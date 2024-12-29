@@ -957,6 +957,7 @@ def gather_pr_statistics(
         PRStatus.HelpWanted: f"are labelled help-wanted or please-adopt ({link_to(Dashboard.NeedsHelp, 'roughly these', 'help_out.html', triage_board)})",
         PRStatus.AwaitingAuthor: "are awaiting the PR author's action",
         PRStatus.AwaitingDecision: f"are awaiting the outcome of a zulip discussion ({link_to(Dashboard.NeedsDecision)})",
+        PRStatus.FromFork: f"are opened from a fork of mathlib ({link_to(Dashboard.FromFork)})",
         PRStatus.Blocked: "are blocked on another PR",
         PRStatus.Delegated: f"are delegated (stale ones are {link_to(Dashboard.StaleDelegated, 'here', 'help_out.html', triage_board)})",
         PRStatus.AwaitingBors: f"have been sent to bors (stale ones are {link_to(Dashboard.StaleReadyToMerge, 'here', 'maintainers_quick.html', triage_board)})",
@@ -970,6 +971,7 @@ def gather_pr_statistics(
         PRStatus.HelpWanted: "#cc317c",
         PRStatus.AwaitingAuthor: "#f6ae9a",
         PRStatus.AwaitingDecision: "#086ad4",
+        PRStatus.FromFork: "#ffffff",  # TODO: find a better colour!
         PRStatus.Blocked: "#8A6A1C",
         PRStatus.Delegated: "#689dea",
         PRStatus.AwaitingBors: "#098306",
