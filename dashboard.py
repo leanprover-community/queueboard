@@ -924,6 +924,7 @@ def gather_pr_statistics(
         PRStatus.AwaitingReview, PRStatus.Blocked, PRStatus.AwaitingAuthor, PRStatus.MergeConflict,
         PRStatus.HelpWanted,PRStatus.NotReady,
         PRStatus.AwaitingDecision,
+        PRStatus.FromFork,
         PRStatus.Contradictory,
         PRStatus.Delegated, PRStatus.AwaitingBors,
     ]
