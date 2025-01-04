@@ -13,8 +13,8 @@
         "baseRefName": "master",
         "body": "[Zulip thread](https://leanprover.zulipchat.com/#narrow/channel/287929-mathlib4/topic/cc.20bug/near/491678555)\r\n\r\nThe following `cc` raises a panic:\r\n```lean\r\nexample (n k : ℤ) (hnk : n = 2 * k + 1)\r\n    (hk : (2 * k + 1) * (2 * k + 1 + 1) = 2 * ((2 * k + 1) * (k + 1))) :\r\n    n * (n + 1) = 2 * ((2 * k + 1) * (k + 1)) := by\r\n  cc\r\n```\r\n\r\nThis is because `args₂[i]!` is evaluated before `compare args₁.size args₂.size` in the following code:\r\n```lean\r\nscoped instance : Ord ACApps where\r\n  compare\r\n    | .ofExpr a, .ofExpr b => compare a b\r\n    | .ofExpr _, .apps _ _ => .lt\r\n    | .apps _ _, .ofExpr _ => .gt\r\n    | .apps op₁ args₁, .apps op₂ args₂ =>\r\n      compare op₁ op₂ |>.then <| compare args₁.size args₂.size |>.then <| Id.run do\r\n        for i in [:args₁.size] do\r\n          let o := compare args₁[i]! args₂[i]!\r\n          if o != .eq then return o\r\n        return .eq\r\n```\r\n\r\nUsually, if `o₁ ≠ .eq`, `o₂` in `o₁.then o₂` is never evaluated because `Ordering.then` is marked by `@[macro_inline]`, however this doesn't work in this example.\r\nI don't know how `@[macro_inline]` works, but this bug can be solved by using `args₂[i]'h` instead of `args₂[i]!`.\r\n\r\nAlso, this new definition is added to `Mathlib.Data.Ordering.Basic`:\r\n```lean\r\n/-- `o₁.dthen fun h => o₂(h)` is like `o₁.then o₂` but `o₂` is allowed to depend on\r\n`h : o₁ = .eq`. -/\r\n@[macro_inline] def dthen :\r\n    (o : Ordering) → (o = .eq → Ordering) → Ordering\r\n  | .eq, f => f rfl\r\n  | o, _ => o\r\n```\r\n\r\nThis PR increases imports percentage in `Mathlib.Tactic.CC.Datatypes`, but it doesn't matter because it's only 4 files.\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nFor details on the \"pull request lifecycle\" in mathlib, please see:\r\nhttps://leanprover-community.github.io/contribute/index.html\r\n\r\nIn particular, note that most reviewers will only notice your PR\r\nif it passes the continuous integration checks.\r\nPlease ask for help on https://leanprover.zulipchat.com if needed.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nIf you are moving or deleting declarations, please include these lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nMoves:\r\n- Vector.* -> List.Vector.*\r\n- ...\r\n\r\nDeletions:\r\n- Nat.bit1_add_bit1\r\n- ...\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
         "changedFiles": 4,
-        "closed": false,
-        "closedAt": null,
+        "closed": true,
+        "closedAt": "2025-01-04T10:16:02Z",
         "comments": {
           "nodes": [
             {
@@ -31,6 +31,14 @@
               "createdAt": "2025-01-04T09:32:50Z",
               "author": {
                 "login": "PatrickMassot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6ZQGvi",
+              "body": "Pull request successfully merged into master.\n\nBuild succeeded:\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/12609385465/job/35142856699)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/12609385465/job/35142856808)",
+              "createdAt": "2025-01-04T10:16:01Z",
+              "author": {
+                "login": "mathlib-bors"
               }
             }
           ]
@@ -415,14 +423,6 @@
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12607448379/job/35139368278"
                       },
                       {
-                        "__typename": "StatusContext",
-                        "id": "SC_kwDOFcwZ1c8AAAAHyMMjTA",
-                        "context": "bors",
-                        "state": "PENDING",
-                        "targetUrl": "https://mathlib-bors-ca18eefec4cb.herokuapp.com/batches/8340",
-                        "description": "Running"
-                      },
-                      {
                         "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAILnBOPA",
                         "name": "New Contributor Check",
@@ -437,6 +437,14 @@
                         "conclusion": "SUCCESS",
                         "status": "COMPLETED",
                         "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=20422&login=leanprover-community&repository=mathlib4"
+                      },
+                      {
+                        "__typename": "StatusContext",
+                        "id": "SC_kwDOFcwZ1c8AAAAHyMTbVQ",
+                        "context": "bors",
+                        "state": "SUCCESS",
+                        "targetUrl": "https://mathlib-bors-ca18eefec4cb.herokuapp.com/batches/8340",
+                        "description": "Build succeeded"
                       }
                     ]
                   }
@@ -524,15 +532,13 @@
         },
         "maintainerCanModify": false,
         "mergeCommit": null,
-        "mergeStateStatus": "BLOCKED",
-        "mergeable": "MERGEABLE",
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
         "mergedAt": null,
         "mergedBy": null,
         "milestone": null,
         "number": 20422,
-        "potentialMergeCommit": {
-          "oid": "09861340eb9a99b2613dc137bb657960464f8735"
-        },
+        "potentialMergeCommit": null,
         "projectCards": {
           "nodes": []
         },
@@ -674,7 +680,7 @@
             }
           ]
         },
-        "state": "OPEN",
+        "state": "CLOSED",
         "statusCheckRollup": {
           "contexts": {
             "nodes": [
@@ -799,14 +805,6 @@
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12607448379/job/35139368278"
               },
               {
-                "__typename": "StatusContext",
-                "id": "SC_kwDOFcwZ1c8AAAAHyMMjTA",
-                "context": "bors",
-                "state": "PENDING",
-                "targetUrl": "https://mathlib-bors-ca18eefec4cb.herokuapp.com/batches/8340",
-                "description": "Running"
-              },
-              {
                 "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAILnBOPA",
                 "name": "New Contributor Check",
@@ -821,12 +819,20 @@
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
                 "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=20422&login=leanprover-community&repository=mathlib4"
+              },
+              {
+                "__typename": "StatusContext",
+                "id": "SC_kwDOFcwZ1c8AAAAHyMTbVQ",
+                "context": "bors",
+                "state": "SUCCESS",
+                "targetUrl": "https://mathlib-bors-ca18eefec4cb.herokuapp.com/batches/8340",
+                "description": "Build succeeded"
               }
             ]
           }
         },
-        "title": "fix(Mathlib.Tactic.CC.Datatypes): `cc` raises panic",
-        "updatedAt": "2025-01-04T09:33:02Z",
+        "title": "[Merged by Bors] - fix(Mathlib.Tactic.CC.Datatypes): `cc` raises panic",
+        "updatedAt": "2025-01-04T10:16:06Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/20422",
         "timelineItems": {
           "nodes": [
@@ -979,6 +985,28 @@
             },
             {
               "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6ZQGvi",
+              "createdAt": "2025-01-04T10:16:01Z",
+              "body": "Pull request successfully merged into master.\n\nBuild succeeded:\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/12609385465/job/35142856699)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/12609385465/job/35142856808)",
+              "author": {
+                "login": "mathlib-bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c6k8TezzwAAAAOup0ur",
+              "createdAt": "2025-01-04T10:16:02Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c6k8TezzwAAAAOup05M",
+              "createdAt": "2025-01-04T10:16:06Z"
             }
           ]
         }
