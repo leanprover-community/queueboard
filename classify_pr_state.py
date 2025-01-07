@@ -92,7 +92,9 @@ class PRState(NamedTuple):
     @staticmethod
     def with_labels_and_ci(labels: List[LabelKind], ci: CIStatus):
         return PRState(labels, ci, False, False)
-
+    @staticmethod
+    def with_labels_ci_draft(labels: List[LabelKind], ci: CIStatus, is_draft: bool):
+        return PRState(labels, ci, is_draft, False)
 
 
 # Describes the current status of a pull request in terms of the categories we care about.
