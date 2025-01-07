@@ -351,7 +351,7 @@ def determine_pr_dashboards(
     with open("needs-merge.json", "r") as file:
         needs_merge_prs2 = _extract_prs(json.load(file))
         needs_merge2 = [pr.number for pr in needs_merge_prs2]
-    msg = "comparing this page's 'needs merge' dashboard (left) with the Github REST APi search (right)"
+    msg = "comparing this page's 'needs merge' dashboard (left) with the Github REST API search (right)"
     if my_assert_eq(msg, [pr.number for pr in prs_to_list[Dashboard.NeedsMerge]], needs_merge2):
         print("Needs merge dashboard: list matches the github API, hooray!", file=sys.stderr)
 
