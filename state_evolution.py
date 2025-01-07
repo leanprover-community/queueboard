@@ -276,8 +276,19 @@ def parse_data(data: dict) -> Tuple[datetime, List[Event]]:
     return (creation_time, events)
 
 
-# FUTURE: this could be exposed to the dashboard using the following API
-# better_updated_at(number: int, data) -> relativedelta
+# Determine a rough estimate how long PR 'number' is in its current state,
+# and how long it was in its current state overall.
+# 'data' is a JSON object containing all known information about a PR.
+#
+# TODO:
+# - parse current draft, CI status and feed this into any other methods which need it!
+#   determine_status_changes, for instance, would need such an initial input!
+# - assumes CI always passes, i.e. ignores failing or running CI
+#   (the *classification* doesn't, but I don't parse CI info yet... that only works
+#    for full data, so this would need a "full data" boolean to not yield errors)
+def last_real_update(data: dict) -> relativedelta:
+    (createdAt, events) = parse_data(data)
+    return last_status_update(createdAt, datetime.now(timezone.utc), events)
 
 
 # UX for the generated dashboards: expose both total time and current time in the current state
