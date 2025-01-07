@@ -34,11 +34,11 @@ This algorithm is just a skeleton: it contains the *analysis* of the given input
 but does not parse the input data from any other input. (That is a second step.)
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum, auto
 from typing import List, NamedTuple, Tuple
 
-from dateutil import tz
+from dateutil import parser, tz
 from dateutil.relativedelta import relativedelta
 
 from classify_pr_state import (CIStatus, LabelKind, PRState, PRStatus,
@@ -223,9 +223,7 @@ def total_queue_time(creation_time: datetime, now: datetime, events: List[Event]
     return total_time_in_status(creation_time, now, events, PRStatus.AwaitingReview)
 
 
-# FUTURE: this could be exposed to the dashboard using the following API
-# better_updated_at(number: int, data) -> relativedelta
-# return the total time since this PR's last status change
+# Return the total time since this PR's last status change.
 def last_status_update(creation_time: datetime, now: datetime, events: List[Event]) -> relativedelta:
     '''Compute the total time since this PR's state changed last.'''
     # FUTURE: should this ignore short-lived merge conflicts? for now, it does not
@@ -234,6 +232,52 @@ def last_status_update(creation_time: datetime, now: datetime, events: List[Even
     assert len(evolution_status) == len(events) + 1
     last : datetime = evolution_status[-1][0]
     return relativedelta(now, last)
+
+
+# Canonicalise a (potentially historical) label name to its current one.
+# Github's events data uses the label names at that time.
+def canonicalise_label(name: str) -> str:
+    return "awaiting-review-DONT-USE" if name == "awaiting-review" else name
+
+
+# Parse the detailed information about a given PR and return a pair
+# (creation_data, relevant_events) of the PR's creation date (in UTC time)
+# and all relevant events which change a PR's state.
+def parse_data(data: dict) -> Tuple[datetime, List[Event]]:
+    creation_time = parser.isoparse(data["data"]["repository"]["pullRequest"]["createdAt"])
+    events = []
+    events_data = data["data"]["repository"]["pullRequest"]["timelineItems"]["nodes"]
+    known_irrelevant = [
+        "ClosedEvent", "ReopenedEvent", "BaseRefChangedEvent", "HeadRefForcePushedEvent", "HeadRefDeletedEvent",
+        "PullRequestCommit", "IssueComment", "PullRequestReview", "RenamedTitleEvent", "AssignedEvent", "UnassignedEvent",
+        "ReferencedEvent", "CrossReferencedEvent", "MentionedEvent",
+        "ReviewRequestedEvent", "ReviewRequestRemovedEvent",
+        "SubscribedEvent", "UnsubscribedEvent",
+        "CommentDeletedEvent",
+    ]
+    for event in events_data:
+        match event["__typename"]:
+            case "LabeledEvent":
+                time = parser.isoparse(event["createdAt"])
+                name = canonicalise_label(event["label"]["name"])
+                events.append(Event.add_label(time, name))
+            case "UnlabeledEvent":
+                time = parser.isoparse(event["createdAt"])
+                name = canonicalise_label(event["label"]["name"])
+                events.append(Event.remove_label(time, name))
+            case "ReadyForReviewEvent":
+                time = parser.isoparse(event["createdAt"])
+                events.append(Event.undraft(time))
+            case "ConvertToDraftEvent":
+                time = parser.isoparse(event["createdAt"])
+                events.append(Event.draft(time))
+            case other_kind if other_kind not in known_irrelevant:
+                print(f"unhandled event kind: {other_kind}")
+    return (creation_time, events)
+
+
+# FUTURE: this could be exposed to the dashboard using the following API
+# better_updated_at(number: int, data) -> relativedelta
 
 
 # UX for the generated dashboards: expose both total time and current time in the current state
