@@ -1126,22 +1126,23 @@ class ExtraColumnSettings(NamedTuple):
     show_approvals: bool
     potential_reviewers: bool
     hide_update: bool
-    real_last_update: bool
+    show_last_real_update: bool
     # Future possibilities:
     # - number of (transitive) dependencies (with PR numbers)
 
     @staticmethod
     def default():
-        return ExtraColumnSettings(True, False, False, False, real_last_update=False)
+        # TODO: when sufficiently mature, change the default for show_last_real_update
+        return ExtraColumnSettings(True, False, False, False, show_last_real_update=False)
 
     @staticmethod
     def with_approvals(val: bool):
         self = ExtraColumnSettings.default()
-        return ExtraColumnSettings(self.show_assignee, val, self.potential_reviewers, self.hide_update, self.real_last_update)
+        return ExtraColumnSettings(self.show_assignee, val, self.potential_reviewers, self.hide_update, self.show_last_real_update)
 
     @classmethod
     def with_assignee(self, val: bool):
-        return ExtraColumnSettings(val, self.show_approvals, self.potential_reviewers, self.hide_update, self.real_last_update)
+        return ExtraColumnSettings(val, self.show_approvals, self.potential_reviewers, self.hide_update, self.show_last_real_update)
 
 
 # Compute the table entries about a sequence of PRs.
@@ -1211,7 +1212,7 @@ def _compute_pr_entries(
                     entries.append("")
         if not extra_settings.hide_update:
             entries.append(time_info(pr.updatedAt))
-        if extra_settings.real_last_update:
+        if extra_settings.show_last_real_update:
             real_update = "???"
             if pr_info:
                 if pr_info.number_total_comments is None:
@@ -1274,8 +1275,8 @@ def write_dashboard(
             headings.append("Contact")
         if not extra_settings.hide_update:
             headings.append("<a title=\"this pull request's last update, according to github\">Updated</a>")
-        if extra_settings.real_last_update:
-            # TODO: find better headings for this and the other header!
+        if extra_settings.show_last_real_update:
+            # TODO: are there better headings for this and the other header?
             headings.append("<a title='The last time this PR's status changed from e.g. review to merge conflict, awaiting-author'>Last status change</a>")
         head = _write_table_header(headings, "    ")
         body = _compute_pr_entries(prs, aggregate_info, extra_settings, potential_reviewers)
