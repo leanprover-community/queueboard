@@ -42,7 +42,7 @@ gh api graphql --paginate --slurp -f query="$QUERY_ALLOPEN1" | jq '{"output": .}
 gh api graphql --paginate --slurp -f query="$QUERY_ALLOPEN2" | jq '{"output": .}' > all-open-PRs-2.json
 
 # TEMPORARILY download the old files for the queue and "just a merge conflict", to compare results.
-queue_labels_but_merge="-label:blocked-by-other-PR -label:awaiting-CI -label:awaiting-author -label:awaiting-zulip -label:please-adopt -label:help-wanted -label:WIP -label:delegated -label:auto-merge-after-CI -label:ready-to-merge"
+queue_labels_but_merge="-label:blocked-by-other-PR -label:blocked-by-core-PR -label:blocked-by-batt-PR -label:blocked-by-qq-PR -label:awaiting-CI -label:awaiting-author -label:awaiting-zulip -label:please-adopt -label:help-wanted -label:WIP -label:delegated -label:auto-merge-after-CI -label:ready-to-merge"
 QUERY_QUEUE=$(prepare_query "sort:updated-asc is:pr state:open -is:draft status:success base:master $queue_labels_but_merge -label:merge-conflict")
 gh api graphql --paginate --slurp -f query="$QUERY_QUEUE" | jq '{"output": .}' > queue.json
 QUERY_QUEUE_BUT_MERGE_CONFLICT=$(prepare_query "sort:updated-asc is:pr state:open -is:draft status:success base:master $queue_labels_but_merge label:merge-conflict")
