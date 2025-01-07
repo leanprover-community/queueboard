@@ -15,6 +15,7 @@ from dateutil import parser, relativedelta
 
 from classify_pr_state import (CIStatus, PRState, PRStatus,
                                determine_PR_status, label_categorisation_rules)
+from state_evolution import last_real_update
 from util import my_assert_eq
 
 
@@ -1125,21 +1126,22 @@ class ExtraColumnSettings(NamedTuple):
     show_approvals: bool
     potential_reviewers: bool
     hide_update: bool
+    real_last_update: bool
     # Future possibilities:
     # - number of (transitive) dependencies (with PR numbers)
 
     @staticmethod
     def default():
-        return ExtraColumnSettings(True, False, False, False)
+        return ExtraColumnSettings(True, False, False, False, real_last_update=False)
 
     @staticmethod
     def with_approvals(val: bool):
         self = ExtraColumnSettings.default()
-        return ExtraColumnSettings(self.show_assignee, val, self.potential_reviewers, self.hide_update)
+        return ExtraColumnSettings(self.show_assignee, val, self.potential_reviewers, self.hide_update, self.real_last_update)
 
     @classmethod
     def with_assignee(self, val: bool):
-        return ExtraColumnSettings(val, self.show_approvals, self.potential_reviewers, self.hide_update)
+        return ExtraColumnSettings(val, self.show_approvals, self.potential_reviewers, self.hide_update, self.real_last_update)
 
 
 # Compute the table entries about a sequence of PRs.
@@ -1209,6 +1211,21 @@ def _compute_pr_entries(
                     entries.append("")
         if not extra_settings.hide_update:
             entries.append(time_info(pr.updatedAt))
+        if extra_settings.real_last_update:
+            real_update = "???"
+            if pr_info:
+                if pr_info.number_total_comments is None:
+                    # Basic PRs have no timetime information available (and no CI information for each)
+                    # individual commit either: thus, we cannot compute a more detailed answer.
+                    continue
+                with open(path.join("data", str(pr.number), "pr_info.json"), "r") as fi:
+                    data = json.load(fi)
+                    # This particular PR has one label noted as removed several times in a row.
+                    # This trips up my algorithm. Omit the analysis for now. FIXME: make smarter?
+                    if pr.number == 13248:
+                        continue
+                    real_update = f"{format_delta(last_real_update(data))} ago"
+            entries.append(real_update)
         result += _write_table_row(entries, "    ")
     return result
 
@@ -1256,7 +1273,10 @@ def write_dashboard(
             headings.append("Potential reviewers")
             headings.append("Contact")
         if not extra_settings.hide_update:
-            headings.append("Updated")
+            headings.append("<a title=\"this pull request's last update, according to github\">Updated</a>")
+        if extra_settings.real_last_update:
+            # TODO: find better headings for this and the other header!
+            headings.append("<a title='The last time this PR's status changed from e.g. review to merge conflict, awaiting-author'>Last status change</a>")
         head = _write_table_header(headings, "    ")
         body = _compute_pr_entries(prs, aggregate_info, extra_settings, potential_reviewers)
         return f"{title}\n  <table>\n{head}{body}  </table>"
