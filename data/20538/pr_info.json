@@ -16,7 +16,7 @@
         },
         "autoMergeRequest": null,
         "baseRefName": "master",
-        "body": "I will add a description later.\r\n\r\n---\r\n\r\n- [x] depends on: #20519\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nFor details on the \"pull request lifecycle\" in mathlib, please see:\r\nhttps://leanprover-community.github.io/contribute/index.html\r\n\r\nIn particular, note that most reviewers will only notice your PR\r\nif it passes the continuous integration checks.\r\nPlease ask for help on https://leanprover.zulipchat.com if needed.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nIf you are moving or deleting declarations, please include these lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nMoves:\r\n- Vector.* -> List.Vector.*\r\n- ...\r\n\r\nDeletions:\r\n- Nat.bit1_add_bit1\r\n- ...\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "body": "The instance of `Repr (Equiv.Perm α)` uses the following `truncCycleFactors` function:\r\n```lean\r\ndef cycleFactorsAux [DecidableEq α] [Fintype α] (l : List α) (f : Perm α)\r\n    (h : ∀ {x}, f x ≠ x → x ∈ l) :\r\n    { l : List (Perm α) // l.prod = f ∧ (∀ g ∈ l, IsCycle g) ∧ l.Pairwise Disjoint } :=\r\n  match l with\r\n  | [] => ⟨[], ⋯⟩\r\n  | x :: l =>\r\n    if hx : f x = x then cycleFactorsAux l f ⋯\r\n    else\r\n      let ⟨m, hm⟩ := cycleFactorsAux l ((cycleOf f x)⁻¹ * f) ⋯\r\n      ⟨cycleOf f x :: m, ⋯⟩\r\n\r\ndef truncCycleFactors [DecidableEq α] [Fintype α] (f : Perm α) :\r\n    Trunc { l : List (Perm α) // l.prod = f ∧ (∀ g ∈ l, IsCycle g) ∧ l.Pairwise Disjoint } :=\r\n  Quotient.recOnSubsingleton\r\n    (motive := fun m =>\r\n      (∀ x, f x ≠ x → x ∈ m) →\r\n        Trunc { l // l.prod = f ∧ (∀ g ∈ l, g.IsCycle) ∧ List.Pairwise Disjoint l })\r\n    (Finset.univ : Finset α).val\r\n    (fun l h => Trunc.mk (cycleFactorsAux l f ⋯))\r\n    ⋯\r\n```\r\n\r\nHowever, for a permutation consisted of many disjoint cycles, like `(c[0, 1] * c[2, 3] * c[4, 5] * c[6, 7] : Equiv.Perm (Fin 10))`, evaluating returned permutations takes too long.\r\nThis is because the argument `f` in `cycleFactorsAux` gets more complex per step; `f` to `(cycleOf f x)⁻¹ * f`.\r\n\r\nTo solve this problem, we memorize the first permutation:\r\n```lean\r\ndef cycleFactorsAux [DecidableEq α] [Fintype α]\r\n    (l : List α) (f : Perm α) (h : ∀ {x}, f x ≠ x → x ∈ l) :\r\n    { pl : List (Perm α) // pl.prod = f ∧ (∀ g ∈ pl, IsCycle g) ∧ pl.Pairwise Disjoint } :=\r\n  go l f ⋯ ⋯\r\nwhere\r\n  go (l : List α) (g : Perm α) (hg : ∀ {x}, g x ≠ x → x ∈ l)\r\n    (hfg : ∀ {x}, g x ≠ x → cycleOf f x = cycleOf g x) :\r\n    { pl : List (Perm α) // pl.prod = g ∧ (∀ g' ∈ pl, IsCycle g') ∧ pl.Pairwise Disjoint } :=\r\n  match l with\r\n  | [] => ⟨[], ⋯⟩\r\n  | x :: l =>\r\n    if hx : g x = x then go l g ⋯ ⋯\r\n    else\r\n      let ⟨m, hm₁, hm₂, hm₃⟩ := go l ((cycleOf f x)⁻¹ * g) ⋯ ⋯\r\n      ⟨cycleOf f x :: m, ⋯⟩\r\n```\r\n\r\n---\r\n\r\n- [x] depends on: #20519\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nFor details on the \"pull request lifecycle\" in mathlib, please see:\r\nhttps://leanprover-community.github.io/contribute/index.html\r\n\r\nIn particular, note that most reviewers will only notice your PR\r\nif it passes the continuous integration checks.\r\nPlease ask for help on https://leanprover.zulipchat.com if needed.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nIf you are moving or deleting declarations, please include these lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nMoves:\r\n- Vector.* -> List.Vector.*\r\n- ...\r\n\r\nDeletions:\r\n- Nat.bit1_add_bit1\r\n- ...\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
         "changedFiles": 1,
         "closed": false,
         "closedAt": null,
@@ -36,6 +36,14 @@
               "createdAt": "2025-01-07T08:22:15Z",
               "author": {
                 "login": "mathlib4-dependent-issues-bot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6Zd7Ly",
+              "body": "@YaelDillies  I wrote the comprehensible PR message.",
+              "createdAt": "2025-01-07T09:09:50Z",
+              "author": {
+                "login": "Komyyy"
               }
             }
           ]
@@ -227,6 +235,14 @@
                     "nodes": [
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAINKY9Ig",
+                        "name": "set_pr_emoji",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12648528424/job/35243048226"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAINJKhZQ",
                         "name": "Lint style (fork)",
                         "conclusion": "SKIPPED",
@@ -267,19 +283,19 @@
                       },
                       {
                         "__typename": "CheckRun",
-                        "id": "CR_kwDOFcwZ1c8AAAAINJKhuw",
-                        "name": "Build",
-                        "conclusion": null,
-                        "status": "IN_PROGRESS",
-                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12648097344/job/35241763259"
-                      },
-                      {
-                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAINJKi8Q",
                         "name": "Build (fork)",
                         "conclusion": "SKIPPED",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12648097335/job/35241763569"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAINJKhuw",
+                        "name": "Build",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12648097344/job/35241763259"
                       },
                       {
                         "__typename": "CheckRun",
@@ -296,6 +312,14 @@
                         "conclusion": "SKIPPED",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12648097335/job/35241763894"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAINKLtcA",
+                        "name": "Post-CI job",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12648097344/job/35242831216"
                       },
                       {
                         "__typename": "CheckRun",
@@ -348,11 +372,6 @@
         "labels": {
           "nodes": [
             {
-              "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
-              "color": "e899cd",
-              "name": "WIP"
-            },
-            {
               "id": "LA_kwDOFcwZ1c8AAAABViJjTQ",
               "color": "33DBEC",
               "name": "t-algebra"
@@ -360,17 +379,7 @@
           ]
         },
         "latestReviews": {
-          "nodes": [
-            {
-              "id": "PRR_kwDOFcwZ1c6XBFTa",
-              "body": "",
-              "state": "COMMENTED",
-              "author": {
-                "login": "YaelDillies"
-              },
-              "submittedAt": "2025-01-07T08:16:32Z"
-            }
-          ]
+          "nodes": []
         },
         "maintainerCanModify": false,
         "mergeCommit": null,
@@ -438,7 +447,14 @@
         ],
         "reviewDecision": null,
         "reviewRequests": {
-          "nodes": []
+          "nodes": [
+            {
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjE0MDkwNTkz",
+                "login": "YaelDillies"
+              }
+            }
+          ]
         },
         "reviews": {
           "nodes": [
@@ -496,6 +512,14 @@
             "nodes": [
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAINKY9Ig",
+                "name": "set_pr_emoji",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12648528424/job/35243048226"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAINJKhZQ",
                 "name": "Lint style (fork)",
                 "conclusion": "SKIPPED",
@@ -536,19 +560,19 @@
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAINJKhuw",
-                "name": "Build",
-                "conclusion": null,
-                "status": "IN_PROGRESS",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12648097344/job/35241763259"
-              },
-              {
-                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAINJKi8Q",
                 "name": "Build (fork)",
                 "conclusion": "SKIPPED",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12648097335/job/35241763569"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAINJKhuw",
+                "name": "Build",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12648097344/job/35241763259"
               },
               {
                 "__typename": "CheckRun",
@@ -565,6 +589,14 @@
                 "conclusion": "SKIPPED",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12648097335/job/35241763894"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAINKLtcA",
+                "name": "Post-CI job",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12648097344/job/35242831216"
               },
               {
                 "__typename": "CheckRun",
@@ -586,7 +618,7 @@
           }
         },
         "title": "perf: improves the performance of the `Repr (Equiv.Perm α)` instance (2/4)",
-        "updatedAt": "2025-01-07T08:45:55Z",
+        "updatedAt": "2025-01-07T09:13:48Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/20538",
         "timelineItems": {
           "nodes": [
@@ -677,6 +709,39 @@
             },
             {
               "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6Zd7Ly",
+              "createdAt": "2025-01-07T09:09:50Z",
+              "body": "@YaelDillies  I wrote the comprehensible PR message.",
+              "author": {
+                "login": "Komyyy"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c6lO4MAzwAAAAOv42_j",
+              "createdAt": "2025-01-07T09:09:56Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjE0MDkwNTkz",
+                "login": "YaelDillies"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c6lO4MAzwAAAAOv5BaA",
+              "createdAt": "2025-01-07T09:12:50Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
             }
           ]
         }
