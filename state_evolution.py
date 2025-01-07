@@ -277,16 +277,22 @@ def parse_data(data: dict) -> Tuple[datetime, List[Event]]:
 # and how long it was in its current state overall.
 # 'data' is a JSON object containing all known information about a PR.
 #
-# TODO:
-# - parse current draft, CI status and feed this into any other methods which need it!
-#   determine_status_changes, for instance, would need such an initial input!
-# - assumes CI always passes, i.e. ignores failing or running CI
+# TODO: this algorithm pretends CI always passes, i.e. ignores failing or running CI
 #   (the *classification* doesn't, but I don't parse CI info yet... that only works
 #    for full data, so this would need a "full data" boolean to not yield errors)
 def last_real_update(data: dict) -> relativedelta:
     (createdAt, events) = parse_data(data)
-    created_as_draft = False # TODO!
-    from_fork = False # TODO!
+    inner_data = data["data"]["repository"]["pullRequest"]
+
+    # A PR started as draft iff the number of events toggling its state "differs" from the final
+    # draft status, e.g. five toggles and not-draft means the PR started as draft.
+    # Logically, this is the XOR of the values "draft was toggled overall" and "final state is draft".
+    # This is truthy iff the draft state was toggled an odd number of times.
+    draft_toggled_overall = len([e for e in events if e in [PRChange.MarkedDraft, PRChange.MarkedReady]]) % 2
+    final_draft_state = inner_data["isDraft"]
+    created_as_draft = draft_toggled_overall ^ final_draft_state
+
+    from_fork = inner_data["headRepositoryOwner"]["login"] != "leanprover-community"
     return last_status_update(createdAt, datetime.now(timezone.utc), created_as_draft, from_fork, events)
 
 
