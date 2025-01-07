@@ -233,7 +233,7 @@ def last_status_update(creation_time: datetime, now: datetime, events: List[Even
     # The PR creation should be the first event in `evolution_status`.
     assert len(evolution_status) == len(events) + 1
     last : datetime = evolution_status[-1][0]
-    return relativedelta(last, now)
+    return relativedelta(now, last)
 
 
 # UX for the generated dashboards: expose both total time and current time in the current state
@@ -339,6 +339,9 @@ def smoketest() -> None:
     # xxx Applying two irrelevant labels.
     # then removing one...
     # more complex tests to come!
+
+
+# TODO: add basic tests for last_status_update, including asserting that it is positive...
 
 
 if __name__ == '__main__':
