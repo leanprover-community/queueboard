@@ -156,36 +156,29 @@ def update_state(current: PRState, ev: Event) -> PRState:
         assert False
 
 
-# Determine the evolution of this PR's state over time.
+# Determine the evolution of this PR's state over time, starting from a given state at some time.
 # Return a list of pairs (timestamp, s), where this PR moved into state *s* at time *timestamp*.
 # The first item corresponds to the PR's creation.
 def determine_state_changes(
-    creation_time: datetime, events: List[Event]
+    creation_time: datetime, initial_state: PRState, events: List[Event]
 ) -> List[Tuple[datetime, PRState]]:
     result = []
-    #print(f"determine_state_changes: events passed are {events}")
-    # XXX: we currently assume the PR was created in passing state, not in draft mode,
-    # with no labels and not from a fork. (Otherwise, this function expects a "label change" event right at the beginning.)
-    # TODO: the last assumption is definitely just optimism!
-    curr_state = PRState([], CIStatus.Pass, False, False)
-    result.append((creation_time, curr_state))
+    result.append((creation_time, initial_state))
+    curr_state = initial_state
     for event in events:
-        #print(event.time)
         new_state = update_state(curr_state, event)
         result.append((event.time, new_state))
         curr_state = new_state
-        #print(f"appended state is {result}")
-    #print(f"determine_state_changes: result is {result}")
     return result
 
 
 # Determine the evolution of this PR's status over time.
-# Return a list of pairs (timestamp, s), where this PR moved into status *s* at time *timestamp*.
+# Return a list of pairs (timestamp, st), where this PR moved into status *st* at time *timestamp*.
 # The first item corresponds to the PR's creation.
 def determine_status_changes(
-    creation_time: datetime, events: List[Event]
+    initial_time: datetime, initial_state: PRState, events: List[Event]
 ) -> List[Tuple[datetime, PRStatus]]:
-    evolution = determine_state_changes(creation_time, events)
+    evolution = determine_state_changes(initial_time, initial_state, events)
     #print(f"state changes are {evolution}")
     res = []
     for time, state in evolution:
@@ -196,11 +189,11 @@ def determine_status_changes(
 ########### Overall computation #########
 
 
-def total_time_in_status(creation_time: datetime, now: datetime, events: List[Event], status: PRStatus) -> relativedelta:
+def total_time_in_status(creation_time: datetime, now: datetime, initial_state: PRState, events: List[Event], status: PRStatus) -> relativedelta:
     '''Determine the total amount of time this PR was in a given status,
     from its creation to the current time.'''
     total = relativedelta(days=0)
-    evolution_status = determine_status_changes(creation_time, events)
+    evolution_status = determine_status_changes(creation_time, initial_state, events)
     # The PR creation should be the first event in `evolution_status`.
     assert len(evolution_status) == len(events) + 1
     for i in range(len(evolution_status) - 1):
@@ -219,15 +212,19 @@ def total_time_in_status(creation_time: datetime, now: datetime, events: List[Ev
 # FUTURE ideas for tweaking this reporting:
 #  - ignore short intervals of merge conflicts, say less than a day?
 #  - ignore short intervals of CI running (if successful before and after)?
-def total_queue_time(creation_time: datetime, now: datetime, events: List[Event]) -> relativedelta:
-    return total_time_in_status(creation_time, now, events, PRStatus.AwaitingReview)
+def total_queue_time(creation_time: datetime, now: datetime, initial_state: PRState, events: List[Event]) -> relativedelta:
+    return total_time_in_status(creation_time, now, initial_state, events, PRStatus.AwaitingReview)
 
 
 # Return the total time since this PR's last status change.
-def last_status_update(creation_time: datetime, now: datetime, events: List[Event]) -> relativedelta:
+def last_status_update(
+    creation_time: datetime, now: datetime, created_as_draft: bool, from_fork: bool, events: List[Event]
+) -> relativedelta:
     '''Compute the total time since this PR's state changed last.'''
+    # We assume the PR was created in passing state without labels
+    initial_state = PRState([], CIStatus.Pass, created_as_draft, from_fork)
     # FUTURE: should this ignore short-lived merge conflicts? for now, it does not
-    evolution_status = determine_status_changes(creation_time, events)
+    evolution_status = determine_status_changes(creation_time, initial_state, events)
     # The PR creation should be the first event in `evolution_status`.
     assert len(evolution_status) == len(events) + 1
     last : datetime = evolution_status[-1][0]
@@ -288,7 +285,9 @@ def parse_data(data: dict) -> Tuple[datetime, List[Event]]:
 #    for full data, so this would need a "full data" boolean to not yield errors)
 def last_real_update(data: dict) -> relativedelta:
     (createdAt, events) = parse_data(data)
-    return last_status_update(createdAt, datetime.now(timezone.utc), events)
+    created_as_draft = False # TODO!
+    from_fork = False # TODO!
+    return last_status_update(createdAt, datetime.now(timezone.utc), created_as_draft, from_fork, events)
 
 
 # UX for the generated dashboards: expose both total time and current time in the current state
@@ -312,7 +311,8 @@ def sep(n: int) -> datetime:
 # These tests are just some basic smoketests and not exhaustive.
 def test_determine_state_changes() -> None:
     def check(events: List[Event], expected: PRState) -> None:
-        compute = determine_state_changes(datetime(2024, 7, 15, tzinfo=tz.tzutc()), events)
+        initial = PRState([], CIStatus.Pass, False, False)
+        compute = determine_state_changes(datetime(2024, 7, 15, tzinfo=tz.tzutc()), initial, events)
         actual = compute[-1][1]
         assert expected == actual, f"expected PR state {expected} from events {events}, got {actual}"
     check([], PRState.with_labels_and_ci([], CIStatus.Pass))
@@ -352,8 +352,9 @@ def test_determine_state_changes() -> None:
 
 
 def smoketest() -> None:
-    def check_basic(created: datetime, now:datetime, events: List[Event], expected: relativedelta) -> None:
-        wait = total_queue_time(created, now, events)
+    def check_basic(created: datetime, now: datetime, events: List[Event], expected: relativedelta) -> None:
+        initial = PRState([], CIStatus.Pass, False, False)
+        wait = total_queue_time(created, now, initial, events)
         assert wait == expected, f"basic test failed: expected total time of {expected} in review, obtained {wait} instead"
 
     # these pass and behave well
