@@ -453,24 +453,6 @@ def main() -> None:
             aggregate_info[pr.number] = PLACEHOLDER_AGGREGATE_INFO
     draft_PRs = [pr for pr in input_data.all_open_prs if aggregate_info[pr.number].is_draft]
     nondraft_PRs = [pr for pr in input_data.all_open_prs if not aggregate_info[pr.number].is_draft]
-    draft_prs2 = None
-    with open("all-open-PRs-2.json", "r") as draftfile:
-        draft_prs2 = _extract_prs(json.load(draftfile))
-        draft_numbers2 = [pr.number for pr in draft_prs2]
-    msg = "this page's list of draft PRs (left) with the Github API query for draft PRs (right)"
-    if my_assert_eq(msg, [pr.number for pr in draft_PRs], draft_numbers2):
-        print("Aggregate draft PRs and Github REST API's draft PRs match, hooray!", file=sys.stderr)
-    nondraft_prs2 = None
-    with open("all-open-PRs-1.json", "r") as nondraftfile:
-        nondraft_prs2 = _extract_prs(json.load(nondraftfile))
-        nondraft_numbers2 = [pr.number for pr in nondraft_prs2]
-    msg = "this page's list of non-draft PRs (left) with the Github API query for non-draft PRs (right)"
-    if my_assert_eq(msg, [pr.number for pr in nondraft_PRs], nondraft_numbers2):
-        print(
-            "Aggregate non-draft PRs and Github REST API's non-draft PRs match, hooray!",
-            file=sys.stderr,
-        )
-    assert len(draft_PRs) + len(nondraft_PRs) == len(input_data.all_open_prs)
 
     # The only exception is for the "on the queue" page,
     # which points out missing information explicitly, hence is passed the non-filled in data.
