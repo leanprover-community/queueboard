@@ -323,9 +323,14 @@ def main() -> None:
             line = line.strip()
             if not line.startswith("--") and line:
                 stubborn_prs.append(int(line))
+
+    # NB. One PR might be missing or outdated in several ways: make sure to deduplicate it.
+    missing_prs = sorted(list(set(missing_prs)))
+    outdated_prs = sorted(list(set(outdated_prs)))
+
     # Write out the list of missing PRs.
     if missing_prs:
-        print(f"SUMMARY: found {len(missing_prs)} PR(s) whose aggregate information is missing:\n{sorted(missing_prs)}", file=sys.stderr)
+        print(f"SUMMARY: found {len(missing_prs)} PR(s) whose aggregate information is missing:\n{missing_prs}", file=sys.stderr)
         # Append any 'newly' missing PRs to the file.
         new_missing_entries = [n for n in missing_prs if n not in current_missing_entries and n not in stubborn_prs]
         # No need to shuffle this list: gather_stats.sh skips PRs with existing
@@ -336,7 +341,7 @@ def main() -> None:
                 file.write("\n".join([str(n) for n in new_missing_entries]) + "\n")
             print("  Scheduled all PRs for backfilling")
     if outdated_prs:
-        print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{sorted(outdated_prs)}")
+        print(f"SUMMARY: the data integrity check found {len(outdated_prs)} PRs with outdated aggregate information:\n{outdated_prs}")
         # Batch the PRs to to re-download: write the first 4 PRs into redownload.txt,
         # if that file is basically empty (i.e. no other files to already handle).
         # The next run of this script will pick this up and try to download them.
