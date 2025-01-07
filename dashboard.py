@@ -895,7 +895,7 @@ def gather_pr_statistics(
     prs: dict[Dashboard, List[BasicPRInformation]],
     all_ready_prs: List[BasicPRInformation],
     all_draft_prs: List[BasicPRInformation],
-    triage_board: True,
+    is_triage_board: bool,
 ) -> str:
     # We only need to check the status of all non-draft PRs: this is purely an optimisation.
     ready_pr_status = compute_pr_statusses(aggregate_info, all_ready_prs)
@@ -937,14 +937,14 @@ def gather_pr_statistics(
             return f"{n} (<span>{n/total:.1%}</span>)"
 
     instatus = {
-        PRStatus.AwaitingReview: f"are awaiting review ({link_to(Dashboard.Queue, subpage='review_dashboard.html', force_same_page=triage_board)})",
-        PRStatus.HelpWanted: f"are labelled help-wanted or please-adopt ({link_to(Dashboard.NeedsHelp, 'roughly these', 'help_out.html', triage_board)})",
+        PRStatus.AwaitingReview: f"are awaiting review ({link_to(Dashboard.Queue, subpage='review_dashboard.html', force_same_page=is_triage_board)})",
+        PRStatus.HelpWanted: f"are labelled help-wanted or please-adopt ({link_to(Dashboard.NeedsHelp, 'roughly these', 'help_out.html', is_triage_board)})",
         PRStatus.AwaitingAuthor: "are awaiting the PR author's action",
         PRStatus.AwaitingDecision: f"are awaiting the outcome of a zulip discussion ({link_to(Dashboard.NeedsDecision)})",
         PRStatus.FromFork: f"are opened from a fork of mathlib ({link_to(Dashboard.FromFork)})",
         PRStatus.Blocked: "are blocked on another PR",
-        PRStatus.Delegated: f"are delegated (stale ones are {link_to(Dashboard.StaleDelegated, 'here', 'help_out.html', triage_board)})",
-        PRStatus.AwaitingBors: f"have been sent to bors (stale ones are {link_to(Dashboard.StaleReadyToMerge, 'here', 'maintainers_quick.html', triage_board)})",
+        PRStatus.Delegated: f"are delegated (stale ones are {link_to(Dashboard.StaleDelegated, 'here', 'help_out.html', is_triage_board)})",
+        PRStatus.AwaitingBors: f"have been sent to bors (stale ones are {link_to(Dashboard.StaleReadyToMerge, 'here', 'maintainers_quick.html', is_triage_board)})",
         PRStatus.MergeConflict: f"have a merge conflict: among these, <b>{number_percent(len(justmerge_prs), number_all)}</b> would be ready for review otherwise: {link_to(Dashboard.NeedsMerge, 'these')}",
         PRStatus.Contradictory: f"have contradictory labels ({link_to(Dashboard.ContradictoryLabels)})",
         PRStatus.NotReady: "are marked as draft or work in progress",
