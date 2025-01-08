@@ -1322,16 +1322,9 @@ def has_contradictory_labels(pr: BasicPRInformation) -> bool:
     # Test for contradictory label combinations.
     if "awaiting-review-DONT-USE" in normalised_labels:
         return True
-    # Waiting for a decision contradicts most other labels.
-    elif "awaiting-zulip" in normalised_labels and any(
-        [lab for lab in normalised_labels if lab in ["awaiting-author", "delegated", "bors", "WIP"]]
-    ):
+    elif "bors" in normalised_labels and ("awaiting-author" in normalised_labels or "awaiting-zulip" in normalised_labels or "WIP" in normalised_labels):
         return True
-    elif "WIP" in normalised_labels and ("awaiting-review" in normalised_labels or "bors" in normalised_labels):
-        return True
-    elif "awaiting-author" in normalised_labels and "awaiting-zulip" in normalised_labels:
-        return True
-    elif "bors" in normalised_labels and "WIP" in normalised_labels:
+    elif "WIP" in normalised_labels and "awaiting-review" in normalised_labels:
         return True
     return False
 
