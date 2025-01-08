@@ -186,8 +186,8 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
         return label_to_prstatus(labels[0])
     else:
         # Some label combinations are contradictory. We mark the PR as in a "contradictory" state.
-        # awaiting-decision is exclusive with being delegated or being sent to bors.
-        if LabelKind.Decision in labels and any([label for label in labels if label in [LabelKind.Delegated, LabelKind.Bors]]):
+        # awaiting-decision is exclusive with being sent to bors (but not with being delegated).
+        if LabelKind.Decision in labels and LabelKind.Bors in labels:
             return PRStatus.Contradictory
         # Work in progress contradicts "awaiting review" and "ready for bors".
         if LabelKind.WIP in labels and any([label for label in labels if label in [LabelKind.Review, LabelKind.Bors]]):
@@ -195,11 +195,14 @@ def determine_PR_status(date: datetime, state: PRState) -> PRStatus:
         # Waiting for the author and review is also contradictory,
         if LabelKind.Author in labels and LabelKind.Review in labels:
             return PRStatus.Contradictory
-        # as is being ready for merge and blocked
+        # as is being ready for merge and blocked,
         if LabelKind.Bors in labels and LabelKind.Blocked in labels:
             return PRStatus.Contradictory
-        # or being ready for merge and looking for help.
+        # being ready for merge and looking for help
         if LabelKind.Bors in labels and LabelKind.HelpWanted in labels:
+            return PRStatus.Contradictory
+        # or being ready to merge and waiting for the author.
+        if LabelKind.Bors in labels and LabelKind.Author in labels:
             return PRStatus.Contradictory
 
         # If the set of labels is not contradictory, we use a clear priority order:
@@ -282,6 +285,15 @@ def test_determine_status() -> None:
     check2(PRState.with_labels_and_ci([LabelKind.Decision], CIStatus.Fail), PRStatus.NotReady)
     check([LabelKind.Decision, LabelKind.WIP], PRStatus.NotReady)
     check2(PRState.with_labels_and_ci([LabelKind.Decision, LabelKind.WIP], CIStatus.Fail), PRStatus.NotReady)
+    # These combinations are also fine.
+    check([LabelKind.Delegated, LabelKind.Author], PRStatus.AwaitingAuthor)
+    check([LabelKind.Delegated, LabelKind.Decision], PRStatus.AwaitingDecision)
+    # Some tests for contradictory combinations.
+    for l in [LabelKind.Author, LabelKind.Decision, LabelKind.WIP]:
+        check([LabelKind.Bors, l], PRStatus.Contradictory)
+    check([LabelKind.Bors, LabelKind.Author, LabelKind.WIP], PRStatus.Contradictory)
+
+    check([LabelKind.Author, LabelKind.WIP], PRStatus.NotReady)
 
     # All label kinds we distinguish.
     ALL = LabelKind._member_map_.values()
