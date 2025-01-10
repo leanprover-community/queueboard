@@ -1221,9 +1221,9 @@ def _compute_pr_entries(
                     continue
                 with open(path.join("data", str(pr.number), "pr_info.json"), "r") as fi:
                     data = json.load(fi)
-                    # This particular PR has one label noted as removed several times in a row.
+                    # These particular PRs have one label noted as removed several times in a row.
                     # This trips up my algorithm. Omit the analysis for now. FIXME: make smarter?
-                    if pr.number == 13248:
+                    if pr.number in [12268, 12488, 13248]:
                         continue
                     real_update = f"{format_delta(last_real_update(data))} ago"
             entries.append(real_update)
