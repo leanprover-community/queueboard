@@ -552,8 +552,8 @@ def write_on_the_queue_page(
         else:
             # print(f"trace: computing last real update for PR {pr.number}", file=sys.stderr)
             total_review_time = total_queue_time(pr_data)
-            last_update = last_real_update(pr_data)
-            hover = f"PR {pr.number} was in review for {format_delta(total_review_time)} overall. It was last updated {format_delta(last_update)} ago and {curr1} {curr2}"
+            (_absolute, last_update_delta) = last_real_update(pr_data)
+            hover = f"PR {pr.number} was in review for {format_delta(total_review_time)} overall. It was last updated {format_delta(last_update_delta)} ago and {curr1} {curr2}"
             status = f'<a title="{hover}">{curr2}</a>'
         entries = [
             pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url),
@@ -1263,11 +1263,15 @@ def _compute_pr_entries(
             entries.append(time_info(pr.updatedAt))
         if extra_settings.show_last_real_update:
             real_update = '<a title="the last actual update for this PR could not be determined">unknown</a>'
+            total_time = "<a title=\"this PR's total time in review could not be determined\">unknown</a>"
             if pr_info:
                 data = _extract_data_for_event_parsing(pr.number, pr_info.number_total_comments is None)
                 if data is not None:
-                    real_update = f"{format_delta(last_real_update(data))} ago"
+                    (absolute, delta) = last_real_update(data)
+                    real_update = f'{absolute} ({format_delta(delta)} ago)'
+                    total_time = f'<a title="TODO!">{format_delta(total_queue_time(data))}</a>'
             entries.append(real_update)
+            entries.append(total_time)
         result += _write_table_row(entries, "    ")
     return result
 
@@ -1319,6 +1323,7 @@ def write_dashboard(
         if extra_settings.show_last_real_update:
             # TODO: are there better headings for this and the other header?
             headings.append("<a title='The last time this PR's status changed from e.g. review to merge conflict, awaiting-author'>Last status change</a>")
+            headings.append("total time in review")
         head = _write_table_header(headings, "    ")
         body = _compute_pr_entries(prs, aggregate_info, extra_settings, potential_reviewers)
         return f"{title}\n  <table>\n{head}{body}  </table>"

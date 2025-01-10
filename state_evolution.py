@@ -227,8 +227,9 @@ def total_queue_time_inner(now: datetime, metadata: Metadata) -> relativedelta:
     return total_time_in_status(metadata.created_at, now, initial_state, metadata.events, PRStatus.AwaitingReview)
 
 
-# Return the total time since this PR's last status change.
-def last_status_update(now: datetime, metadata: Metadata) -> relativedelta:
+# Return the total time since this PR's last status change,
+# as a tuple (absolute time, time since now).
+def last_status_update(now: datetime, metadata: Metadata) -> Tuple[datetime, relativedelta]:
     '''Compute the total time since this PR's state changed last.'''
     # We assume the PR was created in passing state without labels.
     initial_state = PRState([], CIStatus.Pass, metadata.created_as_draft, metadata.from_fork)
@@ -237,7 +238,7 @@ def last_status_update(now: datetime, metadata: Metadata) -> relativedelta:
     # The PR creation should be the first event in `evolution_status`.
     assert len(evolution_status) == len(metadata.events) + 1
     last : datetime = evolution_status[-1][0]
-    return relativedelta(now, last)
+    return (last, relativedelta(now, last))
 
 
 # Canonicalise a (potentially historical) label name to its current one.
@@ -306,7 +307,7 @@ def _process_data(data: dict) -> Metadata:
 # TODO: this algorithm pretends CI always passes, i.e. ignores failing or running CI
 #   (the *classification* doesn't, but I don't parse CI info yet... that only works
 #    for full data, so this would need a "full data" boolean to not yield errors)
-def last_real_update(data: dict) -> relativedelta:
+def last_real_update(data: dict) -> Tuple[datetime, relativedelta]:
     metadata = _process_data(data)
     return last_status_update(datetime.now(timezone.utc), metadata)
 
