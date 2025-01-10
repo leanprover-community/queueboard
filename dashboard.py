@@ -548,6 +548,7 @@ def write_on_the_queue_page(
         if pr_data is None:
             status = curr2
         else:
+            print(f"trace: computing last real update for PR {pr.number}", file=sys.stderr)
             total_review_time = total_queue_time(pr_data)
             last_update = last_real_update(pr_data)
             hover = f"PR {pr.number} was in review for {format_delta(total_review_time)} overall. It was last updated {format_delta(last_update)} ago and {curr1} {curr2}"
