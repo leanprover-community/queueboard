@@ -1184,7 +1184,7 @@ def _extract_data_for_event_parsing(number: int, is_basic_pr: bool) -> dict | No
         return None
     # These particular PRs have one label noted as removed several times in a row.
     # This trips up my algorithm. Omit the analysis for now. FIXME: make smarter?
-    elif number in [10823, 12268, 12488, 13248]:
+    elif number in [10823, 11385, 12268, 12488, 13248]:
         return None
     with open(path.join("data", str(number), "pr_info.json"), "r") as fi:
         return json.load(fi)
