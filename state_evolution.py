@@ -221,7 +221,7 @@ class Metadata(NamedTuple):
 # FUTURE ideas for tweaking this reporting:
 #  - ignore short intervals of merge conflicts, say less than a day?
 #  - ignore short intervals of CI running (if successful before and after)?
-def total_queue_time(now: datetime, metadata: Metadata) -> relativedelta:
+def total_queue_time_inner(now: datetime, metadata: Metadata) -> relativedelta:
     # We assume the PR was created in passing state without labels.
     initial_state = PRState([], CIStatus.Pass, metadata.created_as_draft, metadata.from_fork)
     return total_time_in_status(metadata.created_at, now, initial_state, metadata.events, PRStatus.AwaitingReview)
@@ -311,9 +311,9 @@ def last_real_update(data: dict) -> relativedelta:
     return last_status_update(datetime.now(timezone.utc), metadata)
 
 
-# UX for the generated dashboards: expose both total time and current time in the current state
-# review time for the queue, "merge"/"delegated" for the stale "XY" dashboard; "merge conflict" for the merge conflict list
-# allow filtering by both the "current streak" and the "total time" in this status
+def total_queue_time(data: dict) -> relativedelta:
+    metadata = _process_data(data)
+    return total_queue_time_inner(datetime.now(timezone.utc), metadata)
 
 
 ######### Some basic unit tests ##########
@@ -374,7 +374,7 @@ def test_determine_state_changes() -> None:
 
 def smoketest() -> None:
     def check_basic(created: datetime, now: datetime, events: List[Event], expected: relativedelta) -> None:
-        wait = total_queue_time(now, Metadata(created, events, False, False))
+        wait = total_queue_time_inner(now, Metadata(created, events, False, False))
         assert wait == expected, f"basic test failed: expected total time of {expected} in review, obtained {wait} instead"
 
     # these pass and behave well

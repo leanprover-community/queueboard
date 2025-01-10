@@ -15,7 +15,7 @@ from dateutil import parser, relativedelta
 
 from classify_pr_state import (CIStatus, PRState, PRStatus,
                                determine_PR_status, label_categorisation_rules)
-from state_evolution import last_real_update
+from state_evolution import last_real_update, total_queue_time
 from util import my_assert_eq
 
 
@@ -470,7 +470,7 @@ def main() -> None:
         base_branch[pr.number] = aggregate_info[pr.number].base_branch
     prs_from_fork = [pr for pr in nondraft_PRs if aggregate_info[pr.number].head_repo != "leanprover-community"]
     all_pr_status = compute_pr_statusses(aggregate_info, input_data.all_open_prs)
-    write_on_the_queue_page(all_pr_status, nondraft_PRs, prs_from_fork, CI_status, base_branch)
+    write_on_the_queue_page(all_pr_status, aggregate_info, nondraft_PRs, prs_from_fork, CI_status, base_branch)
 
     # TODO: try to enable |use_aggregate_queue| 'queue_prs' again, once all the root causes
     # for PRs getting 'dropped' by 'gather_stats.sh' are found and fixed.
@@ -495,6 +495,7 @@ def main() -> None:
 # 'base_branch' returns the pase branch of each PR.
 def write_on_the_queue_page(
     all_pr_status: dict[int, PRStatus],
+    aggregate_info: dict[int, AggregatePRInfo],
     prs: List[BasicPRInformation],
     prs_from_fork: List[BasicPRInformation],
     CI_status: dict[int, CIStatus],
@@ -527,10 +528,34 @@ def write_on_the_queue_page(
             # TODO: take the author from the aggregate information instead
             # requires refactoring this function accordingly
             name = "dependabot(?)"
+
+        current_status = all_pr_status[pr.number]
+        (curr1, curr2) = {
+            PRStatus.AwaitingBors: ("is", "awaiting bors"),
+            PRStatus.AwaitingAuthor: ("is", "awaiting author"),
+            PRStatus.AwaitingReview: ("is", "awaiting review"),
+            PRStatus.AwaitingDecision: ("is", "awaiting a zulip discussion"),
+            PRStatus.MergeConflict: ("has a", "merge conflict"),
+            PRStatus.Delegated: ("is", "delegated"),
+            PRStatus.HelpWanted: ("is", "looking for help"),
+            PRStatus.Blocked: ("is", "blocked on another PR"),
+            PRStatus.NotReady: ("is", "labelled WIP or marked draft"),
+            PRStatus.Contradictory: ("has", "contradictory labels"),
+            PRStatus.Closed: ("is", "closed (so shouldn't appear in this list)"),
+            PRStatus.FromFork: ("is", "opened from a fork"),
+        }[current_status]
+        pr_data = _extract_data_for_event_parsing(pr.number, aggregate_info[pr.number].number_total_comments is None)
+        if pr_data is None:
+            status = curr2
+        else:
+            total_review_time = total_queue_time(pr_data)
+            last_update = last_real_update(pr_data)
+            hover = f"PR {pr.number} was in review for {format_delta(total_review_time)} overall. It was last updated {format_delta(last_update)} ago and {curr1} {curr2}"
+            status = f'<a title="{hover}">{curr2}</a>'
         entries = [
             pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url),
             _write_labels(pr.labels), icon(not from_fork), status_symbol[CI_status[pr.number]],
-            icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall)
+            icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall), status
         ]
         result = _write_table_row(entries, "    ")
         body += result
@@ -541,6 +566,7 @@ def write_on_the_queue_page(
         '<a title="not in draft state or labelled as in progress">ready?</a>',
         '<a title="not labelled awaiting-author, awaiting-zulip, awaiting-CI">awaiting review?</a>',
         "On the review queue?",
+        "PR's overall status (experimental)",
     ]
     head = _write_table_header(headings, "    ")
     table = f"  <table>\n{head}{body}  </table>"
