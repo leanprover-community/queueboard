@@ -348,15 +348,6 @@ def determine_pr_dashboards(
     msg = "comparing this page's review dashboard (left) with the Github #queue (right)"
     if my_assert_eq(msg, [pr.number for pr in queue_prs], queue_pr_numbers2):
         print("Review dashboard and #queue match, hooray!", file=sys.stderr)
-    # XXX: When re-visiting the comparison of queues, also re-run this again for a day.
-    # For now, it doesn't expose more useful information, hence disabling this.
-    needs_merge2 = None
-    with open("needs-merge.json", "r") as file:
-        needs_merge_prs2 = _extract_prs(json.load(file))
-        needs_merge2 = [pr.number for pr in needs_merge_prs2]
-    msg = "comparing this page's 'needs merge' dashboard (left) with the Github REST API search (right)"
-    if my_assert_eq(msg, [pr.number for pr in prs_to_list[Dashboard.NeedsMerge]], needs_merge2):
-        print("Needs merge dashboard: list matches the github API, hooray!", file=sys.stderr)
 
     prs_to_list[Dashboard.Queue] = queue_prs if use_aggregate_queue else queue_prs2
     queue = prs_to_list[Dashboard.Queue]
