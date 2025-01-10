@@ -529,7 +529,7 @@ def write_on_the_queue_page(
             # requires refactoring this function accordingly
             name = "dependabot(?)"
 
-        current_status = all_pr_status[pr.number]
+        current_status = PRStatus.Closed if aggregate_info[pr.number].state == "closed" else all_pr_status[pr.number]
         (curr1, curr2) = {
             PRStatus.AwaitingBors: ("is", "awaiting bors"),
             PRStatus.AwaitingAuthor: ("is", "awaiting author"),
