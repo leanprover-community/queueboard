@@ -1150,6 +1150,19 @@ class ExtraColumnSettings(NamedTuple):
         return ExtraColumnSettings(val, self.show_approvals, self.potential_reviewers, self.hide_update, self.show_last_real_update)
 
 
+def _extract_data_for_event_parsing(number: int, is_basic_pr: bool) -> dict | None:
+    if is_basic_pr is None:
+        # Basic PRs have no timetime information available (and no CI information for each)
+        # individual commit either: thus, we cannot compute a more detailed answer.
+        return None
+    # These particular PRs have one label noted as removed several times in a row.
+    # This trips up my algorithm. Omit the analysis for now. FIXME: make smarter?
+    elif number in [12268, 12488, 13248]:
+        return None
+    with open(path.join("data", str(number), "pr_info.json"), "r") as fi:
+        return json.load(fi)
+
+
 # Compute the table entries about a sequence of PRs.
 # 'aggregate_information' maps each PR number to the corresponding aggregate information
 # (and may contain information on PRs not to be printed).
@@ -1220,16 +1233,8 @@ def _compute_pr_entries(
         if extra_settings.show_last_real_update:
             real_update = "???"
             if pr_info:
-                if pr_info.number_total_comments is None:
-                    # Basic PRs have no timetime information available (and no CI information for each)
-                    # individual commit either: thus, we cannot compute a more detailed answer.
-                    continue
-                with open(path.join("data", str(pr.number), "pr_info.json"), "r") as fi:
-                    data = json.load(fi)
-                    # These particular PRs have one label noted as removed several times in a row.
-                    # This trips up my algorithm. Omit the analysis for now. FIXME: make smarter?
-                    if pr.number in [12268, 12488, 13248]:
-                        continue
+                data = _extract_data_for_event_parsing(pr.number, pr_info.number_total_comments is None)
+                if data is not None:
                     real_update = f"{format_delta(last_real_update(data))} ago"
             entries.append(real_update)
         result += _write_table_row(entries, "    ")
