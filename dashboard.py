@@ -990,7 +990,7 @@ def gather_pr_statistics(
         PRStatus.HelpWanted: "#cc317c",
         PRStatus.AwaitingAuthor: "#f6ae9a",
         PRStatus.AwaitingDecision: "#086ad4",
-        PRStatus.FromFork: "#ffffff",  # TODO: find a better colour!
+        PRStatus.FromFork: "#FF8000",
         PRStatus.Blocked: "#8A6A1C",
         PRStatus.Delegated: "#689dea",
         PRStatus.AwaitingBors: "#098306",
