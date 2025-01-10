@@ -1178,7 +1178,7 @@ class ExtraColumnSettings(NamedTuple):
 
 
 def _extract_data_for_event_parsing(number: int, is_basic_pr: bool) -> dict | None:
-    if is_basic_pr is None:
+    if is_basic_pr:
         # Basic PRs have no timetime information available (and no CI information for each)
         # individual commit either: thus, we cannot compute a more detailed answer.
         return None
