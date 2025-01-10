@@ -127,7 +127,7 @@ def update_state(current: PRState, ev: Event) -> PRState:
         else:
             # Adding an irrelevant label does not change the PR status.
             if not lname.startswith("t-") and lname != "CI":
-                print(f"found irrelevant label: {lname}")
+                pass  # print(f"found irrelevant label: {lname}")
             return current
     elif ev.change == PRChange.LabelRemoved:
         lname = ev.extra["name"]
