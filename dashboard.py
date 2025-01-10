@@ -1267,7 +1267,7 @@ def _compute_pr_entries(
             if pr_info:
                 data = _extract_data_for_event_parsing(pr.number, pr_info.number_total_comments is None)
                 if data is not None:
-                    (absolute, delta) = last_real_update(data)
+                    (absolute, delta, _last_state) = last_real_update(data)
                     real_update = f'{absolute} ({format_delta(delta)} ago)'
                     total_time = f'<a title="TODO!">{format_delta(total_queue_time(data))}</a>'
             entries.append(real_update)
