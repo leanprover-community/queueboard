@@ -544,6 +544,8 @@ def write_on_the_queue_page(
             PRStatus.Closed: ("is", "closed (so shouldn't appear in this list)"),
             PRStatus.FromFork: ("is", "opened from a fork"),
         }[current_status]
+        if current_status == PRStatus.NotReady:
+            curr2 = "labelled WIP" if "WIP" in [l.name for l in aggregate_info[pr.number].labels] else "marked draft"
         pr_data = _extract_data_for_event_parsing(pr.number, aggregate_info[pr.number].number_total_comments is None)
         if pr_data is None:
             status = curr2
@@ -1097,18 +1099,20 @@ def label_link(label: Label) -> str:
 
 
 def format_delta(delta: relativedelta.relativedelta) -> str:
+    def pluralize(n: int, s: str) -> str:
+        return f"{n} {s}" if n == 1 else f"{n} {s}s"
     if delta.years > 0:
-        return f"{delta.years} years"
+        return pluralize(delta.years, "year")
     elif delta.months > 0:
-        return f"{delta.months} months"
+        return pluralize(delta.months, "month")
     elif delta.days > 0:
-        return f"{delta.days} days"
+        return pluralize(delta.days, "day")
     elif delta.hours > 0:
-        return f"{delta.hours} hours"
+        return pluralize(delta.hours, "hour")
     elif delta.minutes > 0:
-        return f"{delta.minutes} minutes"
+        return pluralize(delta.minutes, "minute")
     else:
-        return f"{delta.seconds} seconds"
+        return pluralize(delta.seconds, "second")
 
 
 # Function to format the time of the last update
@@ -1258,7 +1262,7 @@ def _compute_pr_entries(
         if not extra_settings.hide_update:
             entries.append(time_info(pr.updatedAt))
         if extra_settings.show_last_real_update:
-            real_update = "???"
+            real_update = '<a title="the last actual update for this PR could not be determined">unknown</a>'
             if pr_info:
                 data = _extract_data_for_event_parsing(pr.number, pr_info.number_total_comments is None)
                 if data is not None:
