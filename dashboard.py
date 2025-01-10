@@ -1261,6 +1261,7 @@ def _compute_pr_entries(
             if pr_info:
                 data = _extract_data_for_event_parsing(pr.number, pr_info.number_total_comments is None)
                 if data is not None:
+                    print(f"trace: computing last real update for PR {pr.number}")
                     real_update = f"{format_delta(last_real_update(data))} ago"
             entries.append(real_update)
         result += _write_table_row(entries, "    ")
