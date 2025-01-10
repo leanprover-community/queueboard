@@ -469,7 +469,8 @@ def main() -> None:
     for pr in nondraft_PRs:
         base_branch[pr.number] = aggregate_info[pr.number].base_branch
     prs_from_fork = [pr for pr in nondraft_PRs if aggregate_info[pr.number].head_repo != "leanprover-community"]
-    write_on_the_queue_page(nondraft_PRs, prs_from_fork, CI_status, base_branch)
+    all_pr_status = compute_pr_statusses(aggregate_info, input_data.all_open_prs)
+    write_on_the_queue_page(all_pr_status, nondraft_PRs, prs_from_fork, CI_status, base_branch)
 
     # TODO: try to enable |use_aggregate_queue| 'queue_prs' again, once all the root causes
     # for PRs getting 'dropped' by 'gather_stats.sh' are found and fixed.
@@ -478,13 +479,13 @@ def main() -> None:
     # FUTURE: can this time be displayed in the local time zone of  the user viewing this page?
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
     write_overview_page(updated)
-    # Future idea: add a histrogram with the most common areas,
+    # Future idea: add a histogram with the most common areas,
     # or dedicated tables for common areas (and perhaps one for t-algebra, because it's hard to filter)
     write_review_queue_page(updated, prs_to_list, aggregate_info)
     write_maintainers_quick_page(updated, prs_to_list, aggregate_info)
     write_help_out_page(updated, prs_to_list, aggregate_info)
-    write_triage_page(updated, prs_to_list, aggregate_info, nondraft_PRs, draft_PRs)
-    write_main_page(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, updated)
+    write_triage_page(updated, prs_to_list, all_pr_status, aggregate_info, nondraft_PRs, draft_PRs)
+    write_main_page(aggregate_info, all_pr_status, prs_to_list, nondraft_PRs, draft_PRs, updated)
 
 
 # Print a webpage "why is my PR not on the queue" to the file "on_the_queue.html".
@@ -493,6 +494,7 @@ def main() -> None:
 # 'CI_status' states, for each PR, whether PR passes, fails or is still running (or we are missing information).
 # 'base_branch' returns the pase branch of each PR.
 def write_on_the_queue_page(
+    all_pr_status: dict[int, PRStatus],
     prs: List[BasicPRInformation],
     prs_from_fork: List[BasicPRInformation],
     CI_status: dict[int, CIStatus],
@@ -690,6 +692,7 @@ def _make_h2(id: str, title: str, tooltip=None) -> str:
 def write_triage_page(
     updated: str,
     prs_to_list: dict[Dashboard, List[BasicPRInformation]],
+    all_pr_status: dict[int, PRStatus],
     aggregate_info: dict[int, AggregatePRInfo],
     # These two are just used for generating statistics.
     nondraft_PRs: list[BasicPRInformation],
@@ -732,7 +735,7 @@ def write_triage_page(
     ]
     toc = f"<br><p>\n<b>Quick links:</b> {' | '.join(items)}"
 
-    stats = gather_pr_statistics(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, False)
+    stats = gather_pr_statistics(all_pr_status, aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, False)
 
     some_stale = f": <strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> of them are stale, and merit another look</li>\n"
     some_stale += write_dashboard(prs_to_list, Dashboard.StaleReadyToMerge, aggregate_info, header=False)
@@ -835,6 +838,7 @@ def write_triage_page(
 # Write the main page for the dashboard to the file index-old.html.
 def write_main_page(
     aggregate_info: dict[int, AggregatePRInfo],
+    all_pr_statusses: dict[int, PRStatus],
     prs_to_list: dict[Dashboard, List[BasicPRInformation]],
     nondraft_PRs: list[BasicPRInformation],
     draft_PRs: list[BasicPRInformation],
@@ -854,7 +858,7 @@ def write_main_page(
         links.append(f'<a href="#{id}" title="{short_description(kind)}" target="_self">{id}</a>')
     body += f"<br><p>\n<b>Quick links:</b> <a href=\"#statistics\" target=\"_self\">PR statistics</a> | {str.join(' | ', links)}</p>\n"
 
-    body += gather_pr_statistics(aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, True)
+    body += gather_pr_statistics(all_pr_statusses, aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, True)
     for kind in Dashboard._member_map_.values():
         if kind in [Dashboard.QueueTechDebt, Dashboard.AllMaintainerMerge]:
             continue
@@ -892,14 +896,13 @@ def link_to(kind: Dashboard, name="these ones", subpage=None, force_same_page=Fa
 # If aggregate information about a PR is missing, we treat it as non-draft, failing CI and against 'master'.
 # (Though, in fact, we assume that 'aggregate_info' is complete, by prior normalisation.)
 def gather_pr_statistics(
+    all_pr_statusses: dict[int, PRStatus],
     aggregate_info: dict[int, AggregatePRInfo],
     prs: dict[Dashboard, List[BasicPRInformation]],
     all_ready_prs: List[BasicPRInformation],
     all_draft_prs: List[BasicPRInformation],
     is_triage_board: bool,
 ) -> str:
-    # We only need to check the status of all non-draft PRs: this is purely an optimisation.
-    ready_pr_status = compute_pr_statusses(aggregate_info, all_ready_prs)
     queue_prs = prs[Dashboard.Queue]
     justmerge_prs = prs[Dashboard.NeedsMerge]
 
@@ -913,6 +916,8 @@ def gather_pr_statistics(
         PRStatus.Contradictory,
         PRStatus.Delegated, PRStatus.AwaitingBors,
     ]
+    numbers = [pr.number for pr in all_ready_prs]
+    ready_pr_status = { n: all_pr_statusses[n] for n in numbers }
     number_prs: Dict[PRStatus, int] = {
         status: len([number for number in ready_pr_status if ready_pr_status[number] == status]) for status in statusses
     }
