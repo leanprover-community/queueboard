@@ -207,26 +207,35 @@ def total_time_in_status(creation_time: datetime, now: datetime, initial_state: 
     return total
 
 
+class Metadata(NamedTuple):
+    """All necessary input data for analysing a PR's state evolution: its creation time, initial state
+    and all relevant changes to its state over time."""
+    created_at: datetime
+    events: List[Event]
+    created_as_draft: bool
+    from_fork: bool
+
+
 # Determine the total amount of time this PR was awaiting review.
 #
 # FUTURE ideas for tweaking this reporting:
 #  - ignore short intervals of merge conflicts, say less than a day?
 #  - ignore short intervals of CI running (if successful before and after)?
-def total_queue_time(creation_time: datetime, now: datetime, initial_state: PRState, events: List[Event]) -> relativedelta:
-    return total_time_in_status(creation_time, now, initial_state, events, PRStatus.AwaitingReview)
+def total_queue_time(now: datetime, metadata: Metadata) -> relativedelta:
+    # We assume the PR was created in passing state without labels.
+    initial_state = PRState([], CIStatus.Pass, metadata.created_as_draft, metadata.from_fork)
+    return total_time_in_status(metadata.created_at, now, initial_state, metadata.events, PRStatus.AwaitingReview)
 
 
 # Return the total time since this PR's last status change.
-def last_status_update(
-    creation_time: datetime, now: datetime, created_as_draft: bool, from_fork: bool, events: List[Event]
-) -> relativedelta:
+def last_status_update(now: datetime, metadata: Metadata) -> relativedelta:
     '''Compute the total time since this PR's state changed last.'''
-    # We assume the PR was created in passing state without labels
-    initial_state = PRState([], CIStatus.Pass, created_as_draft, from_fork)
+    # We assume the PR was created in passing state without labels.
+    initial_state = PRState([], CIStatus.Pass, metadata.created_as_draft, metadata.from_fork)
     # FUTURE: should this ignore short-lived merge conflicts? for now, it does not
-    evolution_status = determine_status_changes(creation_time, initial_state, events)
+    evolution_status = determine_status_changes(metadata.created_at, initial_state, metadata.events)
     # The PR creation should be the first event in `evolution_status`.
-    assert len(evolution_status) == len(events) + 1
+    assert len(evolution_status) == len(metadata.events) + 1
     last : datetime = evolution_status[-1][0]
     return relativedelta(now, last)
 
@@ -274,14 +283,7 @@ def parse_data(data: dict) -> Tuple[datetime, List[Event]]:
     return (creation_time, events)
 
 
-# Determine a rough estimate how long PR 'number' is in its current state,
-# and how long it was in its current state overall.
-# 'data' is a JSON object containing all known information about a PR.
-#
-# TODO: this algorithm pretends CI always passes, i.e. ignores failing or running CI
-#   (the *classification* doesn't, but I don't parse CI info yet... that only works
-#    for full data, so this would need a "full data" boolean to not yield errors)
-def last_real_update(data: dict) -> relativedelta:
+def _process_data(data: dict) -> Metadata:
     (createdAt, events) = parse_data(data)
     inner_data = data["data"]["repository"]["pullRequest"]
 
@@ -294,7 +296,19 @@ def last_real_update(data: dict) -> relativedelta:
     created_as_draft = draft_toggled_overall ^ final_draft_state
 
     from_fork = inner_data["headRepositoryOwner"]["login"] != "leanprover-community"
-    return last_status_update(createdAt, datetime.now(timezone.utc), created_as_draft, from_fork, events)
+    return Metadata(createdAt, events, created_as_draft, from_fork)
+
+
+# Determine a rough estimate how long PR 'number' is in its current state,
+# and how long it was in its current state overall.
+# 'data' is a JSON object containing all known information about a PR.
+#
+# TODO: this algorithm pretends CI always passes, i.e. ignores failing or running CI
+#   (the *classification* doesn't, but I don't parse CI info yet... that only works
+#    for full data, so this would need a "full data" boolean to not yield errors)
+def last_real_update(data: dict) -> relativedelta:
+    metadata = _process_data(data)
+    return last_status_update(datetime.now(timezone.utc), metadata)
 
 
 # UX for the generated dashboards: expose both total time and current time in the current state
@@ -360,8 +374,7 @@ def test_determine_state_changes() -> None:
 
 def smoketest() -> None:
     def check_basic(created: datetime, now: datetime, events: List[Event], expected: relativedelta) -> None:
-        initial = PRState([], CIStatus.Pass, False, False)
-        wait = total_queue_time(created, now, initial, events)
+        wait = total_queue_time(now, Metadata(created, events, False, False))
         assert wait == expected, f"basic test failed: expected total time of {expected} in review, obtained {wait} instead"
 
     # these pass and behave well
