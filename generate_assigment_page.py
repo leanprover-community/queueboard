@@ -241,6 +241,7 @@ def main() -> None:
     extra = "  function contactMessage(name, number) {\n    alert(`msg`);\n  }".replace("msg", msg)
 
     write_webpage(f"{title}\n{welcome}\n{update}\n{stats_section}\n{reviewers}\n{propose}", "assign-reviewer.html", extra_script=extra)
+    print('Finished generating a PR assignment overview page. Open "assign-reviewer.html" in your browser to view it.')
 
 
 main()
