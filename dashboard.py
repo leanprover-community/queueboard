@@ -724,7 +724,7 @@ def write_triage_page(
         for (a, b) in subsections
     ]
     # Created solely because escaping in format strings was too hard.
-    def aux(tooltip: str) -> str:
+    def aux(tooltip: str | None) -> str:
         return " " if tooltip is None else f' title="{tooltip}"'
     items = [
         f"<a href=\"#{anchor}\"{aux(tooltip)}target=\"_self\">{title}</a>"
@@ -796,7 +796,7 @@ def write_triage_page(
 
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
 
-    items = []
+    items2 = []
     for kind in Dashboard._member_map_.values():
         # These dashboards were already put on other pages or earlier on this page:
         # no need to display them again.
@@ -815,9 +815,9 @@ def write_triage_page(
             Dashboard.NeedsHelp,
         ]
         if kind not in kinds_to_hide and kind not in others:
-            items.append((kind, "", long_description(kind), ""))
+            items2.append((kind, "", long_description(kind), ""))
     list_items = [
-        f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items
+        f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items2
     ]
     remainder += f"""\n{_make_h2('other', 'Other lists of PRs')}
     Some other lists of PRs which could be useful:
@@ -827,7 +827,7 @@ def write_triage_page(
 
     body = f"{title}\n  {welcome}\n  {toc}\n  {stats}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {remainder}\n"
     setting = ExtraColumnSettings.with_approvals(kind == Dashboard.Approved).with_assignee(True)
-    dashboards = [write_dashboard(prs_to_list, kind, aggregate_info, setting) for (kind, _, _, _) in items]
+    dashboards = [write_dashboard(prs_to_list, kind, aggregate_info, setting) for (kind, _, _, _) in items2]
     body += "\n".join(dashboards) + "\n"
     write_webpage(body, "triage.html")
 
