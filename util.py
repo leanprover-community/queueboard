@@ -5,6 +5,7 @@ This file contains various utility functions, which are needed in several otherw
 Currently, this contains the following
 - a function to parse JSON files with PR info (with error handling),
 - a helper for comparing lists of PR numbers (with detailed information about the differences)
+- a function to format a |relativedelta|
 """
 
 import json

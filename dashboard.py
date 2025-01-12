@@ -542,7 +542,7 @@ def write_on_the_queue_page(
             status = curr2
         else:
             # print(f"trace: computing last real update for PR {pr.number}", file=sys.stderr)
-            total_review_time = total_queue_time(pr_data)
+            (total_review_time, _explanation) = total_queue_time(pr_data)
             (_absolute, last_update_delta, _status) = last_real_update(pr_data)
             if current_status not in [PRStatus.NotReady, PRStatus.Closed]:
                 if _status != current_status:
@@ -956,6 +956,7 @@ def gather_pr_statistics(
     if my_assert_eq(msg, queue_prs_numbers, [i.number for i in queue_prs]):
         print("review queue: two computations match, hooray", file=sys.stderr)
     # TODO: also cross-check the data for merge conflicts
+    # add the "needs-decision" status with the awaiting-zulip dashboard
 
     number_all = len(all_ready_prs) + len(all_draft_prs)
 
@@ -1246,7 +1247,7 @@ def _compute_pr_entries(
                 if data is not None:
                     (absolute, delta, _last_state) = last_real_update(data)
                     real_update = f'{absolute} ({format_delta(delta)} ago)'
-                    total_time = f'<a title="TODO!">{format_delta(total_queue_time(data))}</a>'
+                    total_time = f'<a title="TODO!">{format_delta(total_queue_time(data)[0])}</a>'
             entries.append(real_update)
             entries.append(total_time)
         result += _write_table_row(entries, "    ")
