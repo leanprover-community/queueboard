@@ -1146,8 +1146,7 @@ class ExtraColumnSettings(NamedTuple):
 
     @staticmethod
     def default():
-        # TODO: when sufficiently mature, change the default for show_last_real_update
-        return ExtraColumnSettings(True, False, False, False, show_last_real_update=False)
+        return ExtraColumnSettings(True, False, False, False, show_last_real_update=True)
 
     @staticmethod
     def with_approvals(val: bool):
