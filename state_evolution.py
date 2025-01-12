@@ -268,7 +268,7 @@ def parse_data(data: dict) -> Tuple[datetime, List[Event]]:
         "PullRequestRevisionMarker", "BaseRefDeletedEvent", "HeadRefRestoredEvent",
     ]
     for event in events_data:
-        match event["__typename"]:
+        match event.get("__typename"):
             case "LabeledEvent":
                 time = parser.isoparse(event["createdAt"])
                 name = canonicalise_label(event["label"]["name"])

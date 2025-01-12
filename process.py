@@ -131,9 +131,10 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
         aggregate_data["number_review_comments"] = number_review_comments
 
         num_events = len(inner["timelineItems"]["nodes"])
-        events_not_commit = [n for n in inner["timelineItems"]["nodes"] if n["__typename"] != "PullRequestCommit"]
+        events_not_commit = [n for n in inner["timelineItems"]["nodes"]
+            if "__typename" not in n or n["__typename"] != "PullRequestCommit"]
         status = "open" if state == "open" else "closed"
-        if len(events_not_commit):
+        if len(events_not_commit) == 0:
             print(f"process.py: {status} PR {number} has only commits as events, please double-check!")
         if num_events == 100 and state == "open":
             print(f"process.py: {status} PR {number} has exactly 100 events\n  Please double-check completeness and re-download if needed.", file=sys.stderr)
