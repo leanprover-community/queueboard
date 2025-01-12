@@ -16,7 +16,7 @@ from dateutil import parser, relativedelta
 from classify_pr_state import (CIStatus, PRState, PRStatus,
                                determine_PR_status, label_categorisation_rules)
 from state_evolution import last_real_update, total_queue_time
-from util import my_assert_eq
+from util import my_assert_eq, format_delta
 
 
 @unique
@@ -1090,23 +1090,6 @@ def label_link(label: Label) -> str:
     bgcolor = label.color
     fgcolor = "000000" if isLight(int(bgcolor[:2], 16), int(bgcolor[2:4], 16), int(bgcolor[4:], 16)) else "FFFFFF"
     return f"<a href='{label.url}'><span class='label' style='color: #{fgcolor}; background: #{bgcolor}'>{label.name}</span></a>"
-
-
-def format_delta(delta: relativedelta.relativedelta) -> str:
-    def pluralize(n: int, s: str) -> str:
-        return f"{n} {s}" if n == 1 else f"{n} {s}s"
-    if delta.years > 0:
-        return pluralize(delta.years, "year")
-    elif delta.months > 0:
-        return pluralize(delta.months, "month")
-    elif delta.days > 0:
-        return pluralize(delta.days, "day")
-    elif delta.hours > 0:
-        return pluralize(delta.hours, "hour")
-    elif delta.minutes > 0:
-        return pluralize(delta.minutes, "minute")
-    else:
-        return pluralize(delta.seconds, "second")
 
 
 # Function to format the time of the last update

@@ -44,6 +44,7 @@ from dateutil.relativedelta import relativedelta
 from classify_pr_state import (CIStatus, LabelKind, PRState, PRStatus,
                                determine_PR_status, label_categorisation_rules,
                                label_to_prstatus)
+from util import format_delta
 
 
 # Something changed on a PR which we care about:
