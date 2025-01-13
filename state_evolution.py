@@ -208,7 +208,7 @@ def total_time_in_status(creation_time: datetime, now: datetime, initial_state: 
     if last_status == status:
         total += now - last
         explanation += f"since {last} ({format_delta(relativedelta(now, last))})\n"
-    return (total, explanation.rstrip())
+    return (total, explanation.rstrip().replace("+00:00", ""))
 
 
 class Metadata(NamedTuple):
