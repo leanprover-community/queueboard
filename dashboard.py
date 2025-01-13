@@ -549,7 +549,7 @@ def write_on_the_queue_page(
                     print(f"WARNING: mismatch for {pr.number}: current status (from REST API data) is {current_status}, but the 'last status' from the aggregate data is {_status}")
             hover = f"PR {pr.number} was in review for {format_delta(total_review_time)} overall (details: {explanation}). It was last updated {format_delta(last_update_delta)} ago and {curr1} {curr2}."
             status = f'<a title="{hover}">{curr2}</a>'
-            if len(_process_data(data).events) in [100, 250]:
+            if len(_process_data(pr_data).events) in [100, 250]:
                 status += '<a title="caution: this data is likely incomplete">*</a>"'
         entries = [
             pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url),
