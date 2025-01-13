@@ -1307,7 +1307,7 @@ def write_dashboard(
             headings.append("<a title=\"this pull request's last update, according to github\">Updated</a>")
         if extra_settings.show_last_real_update:
             # TODO: are there better headings for this and the other header?
-            headings.append("<a title='The last time this PR's status changed from e.g. review to merge conflict, awaiting-author'>Last status change</a>")
+            headings.append('<a title="The last time this PR\'s status changed from e.g. review to merge conflict, awaiting-author">Last status change</a>')
             headings.append("total time in review")
         head = _write_table_header(headings, "    ")
         body = _compute_pr_entries(prs, aggregate_info, extra_settings, potential_reviewers)
