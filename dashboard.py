@@ -15,7 +15,7 @@ from dateutil import parser, relativedelta
 
 from classify_pr_state import (CIStatus, PRState, PRStatus,
                                determine_PR_status, label_categorisation_rules)
-from state_evolution import last_real_update, total_queue_time
+from state_evolution import _process_data, last_real_update, total_queue_time
 from util import my_assert_eq, format_delta
 
 
@@ -549,6 +549,8 @@ def write_on_the_queue_page(
                     print(f"WARNING: mismatch for {pr.number}: current status (from REST API data) is {current_status}, but the 'last status' from the aggregate data is {_status}")
             hover = f"PR {pr.number} was in review for {format_delta(total_review_time)} overall (details: {explanation}). It was last updated {format_delta(last_update_delta)} ago and {curr1} {curr2}"
             status = f'<a title="{hover}">{curr2}</a>'
+            if len(_process_data(data).events) in [100, 250]:
+                status += '<a title="caution: this data is likely incomplete">*</a>"'
         entries = [
             pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url),
             _write_labels(pr.labels), icon(not from_fork), status_symbol[CI_status[pr.number]],
@@ -1248,6 +1250,9 @@ def _compute_pr_entries(
                     real_update = f'{absolute} ({format_delta(delta)} ago)'
                     (total_queue_time_f, explanation) = total_queue_time(data)
                     total_time = f'<a title="{explanation}">{format_delta(total_queue_time_f)}</a>'
+                    if len(_process_data(data).events) in [100, 250]:
+                        real_update += '<a title="caution: this data is likely incomplete">*</a>"'
+                        total_time += '<a title="caution: this data is likely incomplete">*</a>"'
             entries.append(real_update)
             entries.append(total_time)
         result += _write_table_row(entries, "    ")
