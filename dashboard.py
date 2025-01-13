@@ -542,12 +542,12 @@ def write_on_the_queue_page(
             status = curr2
         else:
             # print(f"trace: computing last real update for PR {pr.number}", file=sys.stderr)
-            (total_review_time, _explanation) = total_queue_time(pr_data)
+            (total_review_time, explanation) = total_queue_time(pr_data)
             (_absolute, last_update_delta, _status) = last_real_update(pr_data)
             if current_status not in [PRStatus.NotReady, PRStatus.Closed]:
                 if _status != current_status:
                     print(f"WARNING: mismatch for {pr.number}: current status (from REST API data) is {current_status}, but the 'last status' from the aggregate data is {_status}")
-            hover = f"PR {pr.number} was in review for {format_delta(total_review_time)} overall. It was last updated {format_delta(last_update_delta)} ago and {curr1} {curr2}"
+            hover = f"PR {pr.number} was in review for {format_delta(total_review_time)} overall (details: {explanation}). It was last updated {format_delta(last_update_delta)} ago and {curr1} {curr2}"
             status = f'<a title="{hover}">{curr2}</a>'
         entries = [
             pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url),
