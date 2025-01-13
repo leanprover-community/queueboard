@@ -1046,6 +1046,24 @@ STANDARD_SCRIPT = """
       }
     },
   });
+  let formatted_relativedelta = DataTable.type('formatted_relativedelta', {
+    detect: function (data) { return data.startsWith('<div style="display:none">'); },
+    order: {
+      pre: function (data) {
+        let main = (data.split('</div>', 2))[0].slice('<div style="display:none">'.length);
+        // If there is no input data, main is the empty string.
+        if (!main.includes('-')) {
+            return -1;
+        }
+        // TODO: normalise the output in a previous step, so year and month
+        // are not there any more (just days and the following).
+        const [year, month, days, hours, minutes, seconds, ...rest] = main.split('-');
+        let secondss = 3600 * Number(hours) + 60 * Number(minutes) + Number(seconds);
+        let dayss = 366 * Number(year) + 31 * Number(month) + Number(days);
+        return Number(100000 * dayss + secondss);
+      }
+    }
+  })
 $(document).ready( function () {
   $('table').DataTable({
     pageLength: 10,
@@ -1108,6 +1126,9 @@ def time_info(updatedAt: datetime) -> str:
     s = updated.strftime("%Y-%m-%d %H:%M")
     return f"{s} ({format_delta(delta)} ago)"
 
+# Auxiliary function, used for sorting the "total time in review".
+def format_delta2(delta: relativedelta.relativedelta) -> str:
+    return f"{delta.years}-{delta.months}-{delta.days}-{delta.hours}-{delta.minutes}-{delta.seconds}"
 
 from dateutil import tz
 
@@ -1242,15 +1263,19 @@ def _compute_pr_entries(
         if not extra_settings.hide_update:
             entries.append(time_info(pr.updatedAt))
         if extra_settings.show_last_real_update:
-            real_update = '<a title="the last actual update for this PR could not be determined">unknown</a>'
-            total_time = "<a title=\"this PR's total time in review could not be determined\">unknown</a>"
+            # Always start this column with a <div> with display:none, this is important for auto-detecting the column type!
+            real_update = '<div style="display:none"></div><a title="the last actual update for this PR could not be determined">unknown</a>'
+            total_time = '<div style="display:none"></div><a title="this PR\'s total time in review could not be determined">unknown</a>'
             if pr_info:
                 data = _extract_data_for_event_parsing(pr.number, pr_info.number_total_comments is None)
                 if data is not None:
                     (absolute, delta, _last_state) = last_real_update(data)
                     real_update = f'{absolute} ({format_delta(delta)} ago)'
                     (total_queue_time_f, explanation) = total_queue_time(data)
-                    total_time = f'<a title="{explanation}">{format_delta(total_queue_time_f)}</a>'
+                    # TODO/FIXME: make this cleaner, by having 'total_queue_time' return both a
+                    # relativedelta (for the user-visible part) and a timedelta (for the sorting, which just contains days).
+                    prefix = f'<div style="display:none">{format_delta2(total_queue_time_f)}</div> '
+                    total_time = f'{prefix}<a title="{explanation}">{format_delta(total_queue_time_f)}</a>'
                     evts = data["data"]["repository"]["pullRequest"]["timelineItems"]["nodes"]
                     if len(evts) in [100, 250]:
                         real_update += '<a title="caution: this data is likely incomplete">*</a>'
