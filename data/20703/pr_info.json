@@ -48,6 +48,14 @@
               "author": {
                 "login": "kim-em"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6aWtiq",
+              "body": "The build failure comes from two new BddAbove lemmas being added at the bottom of the file. Adding their missing imports (`Mathlib.Order.Bounds.Basic` and `Mathlib.Order.Bounds.Image`) would again bring in a lot of the unnecessary order hierarchy. They don't seem to use any results in the `Nonneg` file either. So I suggest creating a new file `Mathlib.Algebra.Order.GroupWithZero.Bounds` with the following contents:\r\n```lean\r\nimport Mathlib.Algebra.Order.GroupWithZero.Unbundled\r\nimport Mathlib.Order.Bounds.Basic\r\nimport Mathlib.Order.Bounds.Image\r\n\r\nopen Set\r\n\r\n/-- A variant of `BddAbove.range_comp` that assumes that `f` is nonnegative and `g` is monotone on\r\n  nonnegative values. -/\r\nlemma BddAbove.range_comp_of_nonneg {α β γ : Type*} [Nonempty α] [Preorder β] [Zero β] [Preorder γ]\r\n    {f : α → β} {g : β → γ} (hf : BddAbove (range f)) (hf0 : 0 ≤ f)\r\n    (hg : MonotoneOn g {x : β | 0 ≤ x}) : BddAbove (range (fun x => g (f x))) := by\r\n  have hg' : BddAbove (g '' (range f)) := by\r\n    apply hg.map_bddAbove (by rintro x ⟨a, rfl⟩; exact hf0 a)\r\n    · obtain ⟨b, hb⟩ := hf\r\n      use b, hb\r\n      simp only [mem_upperBounds, mem_range, forall_exists_index, forall_apply_eq_imp_iff] at hb\r\n      exact le_trans (hf0 Classical.ofNonempty) (hb Classical.ofNonempty)\r\n  change BddAbove (range (g ∘ f))\r\n  simpa only [Set.range_comp] using hg'\r\n\r\n/-- If `u v : α → β` are nonnegative and bounded above, then `u * v` is bounded above. -/\r\ntheorem bddAbove_range_mul {α β : Type*} [Nonempty α] {u v : α → β} [Preorder β] [Zero β] [Mul β]\r\n    [PosMulMono β] [MulPosMono β] (hu : BddAbove (Set.range u)) (hu0 : 0 ≤ u)\r\n    (hv : BddAbove (Set.range v)) (hv0 : 0 ≤ v) : BddAbove (Set.range (u * v)) :=\r\n  letI : Zero (β × β) := ⟨(0, 0)⟩\r\n  BddAbove.range_comp_of_nonneg (f := fun i ↦ (u i, v i)) (g := fun x ↦ x.1 * x.2)\r\n    (bddAbove_range_prod.mpr ⟨hu, hv⟩) (fun x ↦ ⟨hu0 x, hv0 x⟩) ((monotone_fst.monotoneOn _).mul\r\n      (monotone_snd.monotoneOn _) (fun _ hx ↦ hx.1) (fun _ hx ↦ hx.2))\r\n```",
+              "createdAt": "2025-01-14T11:15:17Z",
+              "author": {
+                "login": "Vierkantor"
+              }
             }
           ]
         },
@@ -710,7 +718,7 @@
         "milestone": null,
         "number": 20703,
         "potentialMergeCommit": {
-          "oid": "17a15d2b6b01a7b55129d59dacbbb2dbf6f5a291"
+          "oid": "16e8b83bc6d1a95efc6e22e685e1c50b33d9e1f8"
         },
         "projectCards": {
           "nodes": []
@@ -993,7 +1001,7 @@
           }
         },
         "title": "feat: split Mathlib/Algebra/Order/Ring/Unbundled/Nonneg",
-        "updatedAt": "2025-01-14T05:49:00Z",
+        "updatedAt": "2025-01-14T11:15:28Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/20703",
         "timelineItems": {
           "nodes": [
@@ -1079,6 +1087,15 @@
               "label": {
                 "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
                 "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6aWtiq",
+              "createdAt": "2025-01-14T11:15:17Z",
+              "body": "The build failure comes from two new BddAbove lemmas being added at the bottom of the file. Adding their missing imports (`Mathlib.Order.Bounds.Basic` and `Mathlib.Order.Bounds.Image`) would again bring in a lot of the unnecessary order hierarchy. They don't seem to use any results in the `Nonneg` file either. So I suggest creating a new file `Mathlib.Algebra.Order.GroupWithZero.Bounds` with the following contents:\r\n```lean\r\nimport Mathlib.Algebra.Order.GroupWithZero.Unbundled\r\nimport Mathlib.Order.Bounds.Basic\r\nimport Mathlib.Order.Bounds.Image\r\n\r\nopen Set\r\n\r\n/-- A variant of `BddAbove.range_comp` that assumes that `f` is nonnegative and `g` is monotone on\r\n  nonnegative values. -/\r\nlemma BddAbove.range_comp_of_nonneg {α β γ : Type*} [Nonempty α] [Preorder β] [Zero β] [Preorder γ]\r\n    {f : α → β} {g : β → γ} (hf : BddAbove (range f)) (hf0 : 0 ≤ f)\r\n    (hg : MonotoneOn g {x : β | 0 ≤ x}) : BddAbove (range (fun x => g (f x))) := by\r\n  have hg' : BddAbove (g '' (range f)) := by\r\n    apply hg.map_bddAbove (by rintro x ⟨a, rfl⟩; exact hf0 a)\r\n    · obtain ⟨b, hb⟩ := hf\r\n      use b, hb\r\n      simp only [mem_upperBounds, mem_range, forall_exists_index, forall_apply_eq_imp_iff] at hb\r\n      exact le_trans (hf0 Classical.ofNonempty) (hb Classical.ofNonempty)\r\n  change BddAbove (range (g ∘ f))\r\n  simpa only [Set.range_comp] using hg'\r\n\r\n/-- If `u v : α → β` are nonnegative and bounded above, then `u * v` is bounded above. -/\r\ntheorem bddAbove_range_mul {α β : Type*} [Nonempty α] {u v : α → β} [Preorder β] [Zero β] [Mul β]\r\n    [PosMulMono β] [MulPosMono β] (hu : BddAbove (Set.range u)) (hu0 : 0 ≤ u)\r\n    (hv : BddAbove (Set.range v)) (hv0 : 0 ≤ v) : BddAbove (Set.range (u * v)) :=\r\n  letI : Zero (β × β) := ⟨(0, 0)⟩\r\n  BddAbove.range_comp_of_nonneg (f := fun i ↦ (u i, v i)) (g := fun x ↦ x.1 * x.2)\r\n    (bddAbove_range_prod.mpr ⟨hu, hv⟩) (fun x ↦ ⟨hu0 x, hv0 x⟩) ((monotone_fst.monotoneOn _).mul\r\n      (monotone_snd.monotoneOn _) (fun _ hx ↦ hx.1) (fun _ hx ↦ hx.2))\r\n```",
+              "author": {
+                "login": "Vierkantor"
               }
             }
           ]
