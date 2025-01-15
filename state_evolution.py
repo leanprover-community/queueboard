@@ -262,9 +262,11 @@ def parse_data(data: dict) -> Tuple[datetime, List[Event]]:
         "ClosedEvent", "ReopenedEvent", "BaseRefChangedEvent", "HeadRefForcePushedEvent", "HeadRefDeletedEvent",
         "PullRequestCommit", "IssueComment", "PullRequestReview", "RenamedTitleEvent", "AssignedEvent", "UnassignedEvent",
         "ReferencedEvent", "CrossReferencedEvent", "MentionedEvent",
-        "ReviewRequestedEvent", "ReviewRequestRemovedEvent",
+        "ReviewRequestedEvent", "ReviewRequestRemovedEvent", "ReviewDismissedEvent",
+        "ConnectedEvent", # no idea what this means
         "SubscribedEvent", "UnsubscribedEvent",
         "CommentDeletedEvent",
+        "MergedEvent", "BaseRefForcePushedEvent", "MarkedAsDuplicateEvent",
         "PullRequestRevisionMarker", "BaseRefDeletedEvent", "HeadRefRestoredEvent",
     ]
     for event in events_data:
