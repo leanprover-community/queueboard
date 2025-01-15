@@ -72,28 +72,26 @@ for pr in $(cat "missing_prs.txt" | grep --invert-match "^--" | head --lines 50)
   echo "Attempting to backfill data for PR $pr"
   download_pr $pr
 done
-i=0
-# If there was no "missing" PR to backfill, backfill at most two PRs from `closed_prs_to_backfill.txt`.
-for pr in $(cat "closed_prs_to_backfill.txt" | grep --invert-match "^--" | head --lines 50); do
-  # Check if the directory exists
-  if [ -d "data/$pr" ]; then
-    echo "[skip] Data exists for #$pr: $CURRENT_TIME"
-    continue
-  elif [ -d "data/$pr-basic" ]; then
-    # If such a PR is ever classified as stubborn, it should be removed from this file:
-    # this scenario should never happen. Let's be extra safe just in case.
-    echo "unexpected: closed PR to backfill is stubborn!"
-    echo "[skip] Data exists for 'stubborn' PR $pr: $CURRENT_TIME"
-    continue
-  fi
-  echo "Attempting to backfill data for PR $pr"
-  download_normal $pr
-  if [ $i -eq 2 ]; then
-    break;
-  fi
-  i=$((i+1))
-done
-echo "Backfilled at most two PRs successfully"
+# If there was no "missing" PR to backfill, backfill at most one PR from `closed_prs_to_backfill.txt`.
+if [ $i -eq 0 ]; then
+  for pr in $(cat "closed_prs_to_backfill.txt" | grep --invert-match "^--" | head --lines 50); do
+    # Check if the directory exists
+    if [ -d "data/$pr" ]; then
+      echo "[skip] Data exists for #$pr: $CURRENT_TIME"
+      continue
+    elif [ -d "data/$pr-basic" ]; then
+      # If such a PR is ever classified as stubborn, it should be removed from this file:
+      # this scenario should never happen. Let's be extra safe just in case.
+      echo "unexpected: closed PR to backfill is stubborn!"
+      echo "[skip] Data exists for 'stubborn' PR $pr: $CURRENT_TIME"
+      continue
+    fi
+    echo "Attempting to backfill data for PR $pr"
+    download_normal $pr
+    break
+  done
+fi
+echo "Backfilled at most one PR successfully"
 
 # Do the same for at most 2 stubborn PRs.
 # (Using `head --lines 2` is *not* equivalent, as we want to count *non-skipped* PRs.)
