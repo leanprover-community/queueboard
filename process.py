@@ -133,13 +133,16 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
         num_events = len(inner["timelineItems"]["nodes"])
         events_not_commit = [n for n in inner["timelineItems"]["nodes"]
             if "__typename" not in n or n["__typename"] != "PullRequestCommit"]
-        status = "open" if state == "open" else "closed"
-        if len(events_not_commit) == 0:
-            print(f"process.py: {status} PR {number} has only commits as events, please double-check!")
-        if num_events == 100 and state == "open":
-            print(f"process.py: {status} PR {number} has exactly 100 events\n  Please double-check completeness and re-download if needed.", file=sys.stderr)
+
+        if num_events == 250 and len(events_not_commit) == 0:
+            print(f"process.py: {state} PR {number} has exactly 250 events, all of which are commits: probably this data is incomplete!", file=sys.stderr)
         elif num_events == 250:
-            print(f"process.py: {status} PR {number} has exactly 250 events, please double-check!", file=sys.stderr)
+            print(f"process.py: {state} PR {number} has exactly 250 events: probably this data is incomplete, please double-check!", file=sys.stderr)
+        elif num_events == 100:
+            if len(events_not_commit) == 0:
+                print(f"process.py: {state} PR {number} has exactly 100 events, all of which are commits: probably this data is incomplete", file=sys.stderr)
+            else:
+                print(f"process.py: {state} PR {number} has exactly 100 events\n  Please double-check completeness and re-download if needed.", file=sys.stderr)
     return aggregate_data
 
 
