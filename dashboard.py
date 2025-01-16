@@ -581,12 +581,12 @@ def write_overview_page(updated: str) -> None:
     welcome = """<p>Welcome to the mathlib review and triage webpage! There are many ways to help, what are you looking for in particular?</p>
 
 <div class="btn-group">
-  <button><a href="review_dashboard.html">Review queue</a></button>
-  <button><a href="maintainers_quick.html">For maintainers (quick)</a></button>
-  <button><a href="help_out.html">Help out</a></button>
-  <button><a href="triage.html">Triage dashboard</a></button>
+  <a href="review_dashboard.html"><button>Review queue</button></a>
+  <a href="maintainers_quick.html"><button>For maintainers (quick)</button></a>
+  <a href="help_out.html"><button>Help out</button></a>
+  <a href="triage.html"><button>Triage dashboard</button></a>
 </div><p></p>
-<div class="btn-group"><button><a href="on_the_queue.html">Why is my PR not on the queue? Can I see all my PRs?</a></button></div><p></p>
+<div class="btn-group"><a href="on_the_queue.html"><button>Why is my PR not on the queue? Can I see all my PRs?</button></a></div><p></p>
 
 <details>
   <summary>What do these buttons mean? Which page should I visit?</summary>
