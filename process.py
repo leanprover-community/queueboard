@@ -134,15 +134,29 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
         events_not_commit = [n for n in inner["timelineItems"]["nodes"]
             if "__typename" not in n or n["__typename"] != "PullRequestCommit"]
 
+        # All these PRs have (something far) more than 250 events, so re-downloading their
+        # data now would not help: do not print information about them.
+        do_not_redownload = [
+            6057, 6277, 6468, 7849, 8585, 9013,
+            10235, 10383, 11465, 11466, 13905, 16152, 16316, 16351, 17518, 18672, 20768,
+            # not into master
+            15564, 15746, 15748, 15749, 15978, 15981, 16077, 16080, 16112, 16148, 16313,
+            16362, 16375, 16534, 16535, 16657, 17132, 17240, 19706,
+            # adaptation PRs or benchmarking
+            8076,
+            15181, 15358, 15503, 15788, 15827, 16163, 16244, 16425, 16669, 16716, 17058,
+            17374, 17532, 18007, 18421, 18830, 19494, 19984, 20392, 20402,
+        ]
         if num_events == 250 and len(events_not_commit) == 0:
-            print(f"process.py: {state} PR {number} has exactly 250 events, all of which are commits: probably this data is incomplete!", file=sys.stderr)
+            pass  # print(f"process.py: {state} PR {number} has exactly 250 events, all of which are commits: probably this data is incomplete!", file=sys.stderr)
         elif num_events == 250:
             print(f"process.py: {state} PR {number} has exactly 250 events: probably this data is incomplete, please double-check!", file=sys.stderr)
         elif num_events == 100:
-            if len(events_not_commit) == 0:
-                print(f"process.py: {state} PR {number} has exactly 100 events, all of which are commits: probably this data is incomplete", file=sys.stderr)
-            else:
-                print(f"process.py: {state} PR {number} has exactly 100 events\n  Please double-check completeness and re-download if needed.", file=sys.stderr)
+            if number not in do_not_redownload:
+                if len(events_not_commit) == 0:
+                    print(f"process.py: {state} PR {number} has exactly 100 events, all of which are commits: probably this data is incomplete", file=sys.stderr)
+                else:
+                    print(f"process.py: {state} PR {number} has exactly 100 events\n  Please double-check completeness and re-download if needed.", file=sys.stderr)
     return aggregate_data
 
 
