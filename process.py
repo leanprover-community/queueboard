@@ -147,10 +147,11 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
             15181, 15358, 15503, 15788, 15827, 16163, 16244, 16425, 16669, 16716, 17058,
             17374, 17532, 18007, 18421, 18830, 19494, 19984, 20392, 20402,
         ]
+        # Until cursor handling has been implemented, these warnings do not add helpful information.
         if num_events == 250 and len(events_not_commit) == 0:
             pass  # print(f"process.py: {state} PR {number} has exactly 250 events, all of which are commits: probably this data is incomplete!", file=sys.stderr)
         elif num_events == 250:
-            print(f"process.py: {state} PR {number} has exactly 250 events: probably this data is incomplete, please double-check!", file=sys.stderr)
+            pass  # print(f"process.py: {state} PR {number} has exactly 250 events: probably this data is incomplete, please double-check!", file=sys.stderr)
         elif num_events == 100:
             if number not in do_not_redownload:
                 if len(events_not_commit) == 0:
