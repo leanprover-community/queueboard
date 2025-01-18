@@ -47,114 +47,117 @@ from classify_pr_state import (CIStatus, LabelKind, PRState, PRStatus,
 from util import format_delta
 
 
+class LabelAdded(NamedTuple):
+    """A new label got added"""
+    name: str
+
+
+class LabelRemoved(NamedTuple):
+    """An existing label got removed"""
+    name: str
+
+
+class LabelAddedRemoved(NamedTuple):
+    """A set of labels was added, and some set of labels was removed.
+    Note that a given label can be added and removed at the same time."""
+    added: List[str]
+    removed: List[str]
+
+
+class CIStatusChanged(NamedTuple):
+    """This PR's CI status changed"""
+    new_status: CIStatus
+
+
+class MarkedDraft(NamedTuple):
+    """This PR was marked as draft."""
+    pass
+
+
+class MarkedReady(NamedTuple):
+    """This PR was marked as ready for review."""
+    pass
+
+
 # Something changed on a PR which we care about:
 # - a new label got added or removed
 # - the PR was (un)marked draft: omitting this for now
 # - the PR status changed (passing or failing to build)
-#
-# The most elegant design would be using sum types, i.e. encoding the data for
-# each variant directly within the enum.
-# As Python does not have these, we use a dictionary of extra data.
-class PRChange(Enum):
-    LabelAdded = auto()
-    """A new label got added"""
-
-    LabelRemoved = auto()
-    """An existing label got removed"""
-
-    LabelAddedRemoved = auto()
-    '''A set of labels was added, and some set of labels was removed
-    Note that a given label can be added and removed at the same time'''
-
-    MarkedDraft = auto()
-    """This PR was marked as draft"""
-    MarkedReady = auto()
-    """This PR was marked as ready for review"""
-
-    CIStatusChanged = auto()
-    """This PR's CI state changed"""
+PRChange = LabelAdded | LabelRemoved | LabelAddedRemoved | MarkedDraft | MarkedReady | CIStatusChanged
 
 
 # Something changed on this PR.
 class Event(NamedTuple):
     time: datetime
     change: PRChange
-    # Additional details about what changed.
-    # For CIStatusChanged, this contains the new state.
-    # For Label{Added,Removed}, this contains the name of the label added resp. removed.
-    # For LabelsAddedRemoved, this contains two lists of the labels added resp. removed.
-    extra: dict
 
     @staticmethod
     def add_label(time: datetime, name: str):
-        return Event(time, PRChange.LabelAdded, {"name": name})
+        return Event(time, LabelAdded(name))
 
     @staticmethod
     def remove_label(time: datetime, name: str):
-        return Event(time, PRChange.LabelRemoved, {"name": name})
+        return Event(time, LabelRemoved(name))
 
     @staticmethod
     def add_remove_labels(time: datetime, added: List[str], removed: List[str]):
-        return Event(time, PRChange.LabelAddedRemoved, {"added": added, "removed": removed})
+        return Event(time, LabelAddedRemoved(added, removed))
 
     @staticmethod
     def draft(time: datetime):
-        return Event(time, PRChange.MarkedDraft, {})
+        return Event(time, MarkedDraft())
 
     @staticmethod
     def undraft(time: datetime):
-        return Event(time, PRChange.MarkedReady, {})
+        return Event(time, MarkedReady())
 
     @staticmethod
     def update_ci_status(time: datetime, new: CIStatus):
-        return Event(time, PRChange.CIStatusChanged, {"new_state": new})
+        return Event(time, CIStatusChanged(new))
 
 
 # Update the current PR state in light of some change.
 def update_state(current: PRState, ev: Event) -> PRState:
     #print(f"current state is {current}, incoming event is {ev}")
-    if ev.change == PRChange.MarkedDraft:
-        return PRState(current.labels, current.ci, True, current.from_fork)
-    elif ev.change == PRChange.MarkedReady:
-        return PRState(current.labels, current.ci, False, current.from_fork)
-    elif ev.change == PRChange.CIStatusChanged:
-        return PRState(current.labels, ev.extra["new_state"], current.draft, current.from_fork)
-    elif ev.change == PRChange.LabelAdded:
-        # Depending on the label added, update the PR status.
-        lname = ev.extra["name"]
-        if lname in label_categorisation_rules:
-            label_kind = label_categorisation_rules[lname]
-            return PRState(current.labels + [label_kind], current.ci, current.draft, current.from_fork)
-        else:
-            # Adding an irrelevant label does not change the PR status.
-            if not lname.startswith("t-") and lname != "CI":
-                pass  # print(f"found irrelevant label: {lname}")
-            return current
-    elif ev.change == PRChange.LabelRemoved:
-        lname = ev.extra["name"]
-        if lname in label_categorisation_rules:
-            # NB: make sure to *copy* current.labels using [:], otherwise that state is also modified!
+    match ev.change:
+        case MarkedDraft():
+            return PRState(current.labels, current.ci, True, current.from_fork)
+        case MarkedReady():
+            return PRState(current.labels, current.ci, False, current.from_fork)
+        case CIStatusChanged(new_state):
+            return PRState(current.labels, new_state, current.draft, current.from_fork)
+        case LabelAdded(name):
+            # Depending on the label added, update the PR status.
+            if name in label_categorisation_rules:
+                label_kind = label_categorisation_rules[name]
+                return PRState(current.labels + [label_kind], current.ci, current.draft, current.from_fork)
+            else:
+                # Adding an irrelevant label does not change the PR status.
+                if not name.startswith("t-") and name != "CI":
+                    pass  # print(f"found irrelevant label: {name}")
+                return current
+        case LabelRemoved(name):
+            if name in label_categorisation_rules:
+                # NB: make sure to *copy* current.labels using [:], otherwise that state is also modified!
+                new_labels = current.labels[:]
+                new_labels.remove(label_categorisation_rules[name])
+                return PRState(new_labels, current.ci, current.draft, current.from_fork)
+            else:
+                # Removing an irrelevant label does not change the PR status.
+                return current
+        case LabelAddedRemoved(added, removed):
+            # Remove any label which is both added and removed, and filter out irrelevant labels.
+            both = set(added) & set(removed)
+            added = [l for l in added if l in label_categorisation_rules and l not in both]
+            removed = [l for l in removed if l in label_categorisation_rules and l not in both]
+            # Any remaining labels to be removed should exist.
             new_labels = current.labels[:]
-            new_labels.remove(label_categorisation_rules[lname])
-            return PRState(new_labels, current.ci, current.draft, current.from_fork)
-        else:
-            # Removing an irrelevant label does not change the PR status.
-            return current
-    elif ev.change == PRChange.LabelAddedRemoved:
-        added = ev.extra["added"]
-        removed = ev.extra["removed"]
-        # Remove any label which is both added and removed, and filter out irrelevant labels.
-        both = set(added) & set(removed)
-        added = [l for l in added if l in label_categorisation_rules and l not in both]
-        removed = [l for l in removed if l in label_categorisation_rules and l not in both]
-        # Any remaining labels to be removed should exist.
-        new_labels = current.labels[:]
-        for r in removed:
-            new_labels.remove(label_categorisation_rules[r])
-        return PRState(new_labels + [label_categorisation_rules[l] for l in added], current.ci, current.draft, current.from_fork)
-    else:
-        print(f"unhandled event variant {ev.change}")
-        assert False
+            for r in removed:
+                new_labels.remove(label_categorisation_rules[r])
+            return PRState(new_labels + [label_categorisation_rules[l] for l in added], current.ci, current.draft, current.from_fork)
+        case _:
+            print(f"unhandled event: {ev.change}")
+            assert False
 
 
 # Determine the evolution of this PR's state over time, starting from a given state at some time.
@@ -310,7 +313,7 @@ def _process_data(data: dict) -> Metadata:
     # draft status, e.g. five toggles and not-draft means the PR started as draft.
     # Logically, this is the XOR of the values "draft was toggled overall" and "final state is draft".
     # This is truthy iff the draft state was toggled an odd number of times.
-    draft_toggled_overall = len([e for e in events if e in [PRChange.MarkedDraft, PRChange.MarkedReady]]) % 2
+    draft_toggled_overall = len([e for e in events if e.change in [MarkedDraft, MarkedReady]]) % 2
     final_draft_state = inner_data["isDraft"]
     created_as_draft = draft_toggled_overall ^ final_draft_state
 
