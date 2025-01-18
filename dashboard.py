@@ -542,12 +542,12 @@ def write_on_the_queue_page(
             status = curr2
         else:
             # print(f"trace: computing last real update for PR {pr.number}", file=sys.stderr)
-            (total_review_time, explanation) = total_queue_time(pr_data)
+            ((_total_review_time_td, total_review_time_rd), explanation) = total_queue_time(pr_data)
             (_absolute, last_update_delta, _status) = last_real_update(pr_data)
             if current_status not in [PRStatus.NotReady, PRStatus.Closed]:
                 if _status != current_status:
                     print(f"WARNING: mismatch for {pr.number}: current status (from REST API data) is {current_status}, but the 'last status' from the aggregate data is {_status}")
-            hover = f"PR {pr.number} was in review for {format_delta(total_review_time)} overall (details: {explanation}). It was last updated {format_delta(last_update_delta)} ago and {curr1} {curr2}."
+            hover = f"PR {pr.number} was in review for {format_delta(total_review_time_rd)} overall (details: {explanation}). It was last updated {format_delta(last_update_delta)} ago and {curr1} {curr2}."
             status = f'<a title="{hover}">{curr2}</a>'
             evts = pr_data["data"]["repository"]["pullRequest"]["timelineItems"]["nodes"]
             if len(evts) in [100, 250]:
@@ -1055,12 +1055,8 @@ STANDARD_SCRIPT = """
         if (!main.includes('-')) {
             return -1;
         }
-        // TODO: normalise the output in a previous step, so year and month
-        // are not there any more (just days and the following).
-        const [year, month, days, hours, minutes, seconds, ...rest] = main.split('-');
-        let secondss = 3600 * Number(hours) + 60 * Number(minutes) + Number(seconds);
-        let dayss = 366 * Number(year) + 31 * Number(month) + Number(days);
-        return Number(100000 * dayss + secondss);
+        const [days, seconds, ...rest] = main.split('-');
+        return 100000 * Number(days) + Number(seconds);
       }
     }
   })
@@ -1127,8 +1123,8 @@ def time_info(updatedAt: datetime) -> str:
     return f"{s} ({format_delta(delta)} ago)"
 
 # Auxiliary function, used for sorting the "total time in review".
-def format_delta2(delta: relativedelta.relativedelta) -> str:
-    return f"{delta.years}-{delta.months}-{delta.days}-{delta.hours}-{delta.minutes}-{delta.seconds}"
+def format_delta2(delta: timedelta) -> str:
+    return f"{delta.days}-{delta.seconds}"
 
 from dateutil import tz
 
@@ -1271,11 +1267,9 @@ def _compute_pr_entries(
                 if data is not None:
                     (absolute, delta, _last_state) = last_real_update(data)
                     real_update = f'{absolute} ({format_delta(delta)} ago)'
-                    (total_queue_time_f, explanation) = total_queue_time(data)
-                    # TODO/FIXME: make this cleaner, by having 'total_queue_time' return both a
-                    # relativedelta (for the user-visible part) and a timedelta (for the sorting, which just contains days).
-                    prefix = f'<div style="display:none">{format_delta2(total_queue_time_f)}</div> '
-                    total_time = f'{prefix}<a title="{explanation}">{format_delta(total_queue_time_f)}</a>'
+                    ((total_queue_time_td, total_queue_time_rd), explanation) = total_queue_time(data)
+                    prefix = f'<div style="display:none">{format_delta2(total_queue_time_td)}</div> '
+                    total_time = f'{prefix}<a title="{explanation}">{format_delta(total_queue_time_rd)}</a>'
                     evts = data["data"]["repository"]["pullRequest"]["timelineItems"]["nodes"]
                     if len(evts) in [100, 250]:
                         real_update += '<a title="caution: this data is likely incomplete">*</a>'

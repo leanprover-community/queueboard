@@ -34,7 +34,7 @@ This algorithm is just a skeleton: it contains the *analysis* of the given input
 but does not parse the input data from any other input. (That is a second step.)
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from typing import List, NamedTuple, Tuple
 
@@ -190,11 +190,21 @@ def determine_status_changes(
 ########### Overall computation #########
 
 
-def total_time_in_status(creation_time: datetime, now: datetime, initial_state: PRState, events: List[Event], status: PRStatus) -> Tuple[relativedelta, str]:
+def total_time_in_status(
+    creation_time: datetime, now: datetime, initial_state: PRState, events: List[Event], status: PRStatus
+) -> Tuple[Tuple[timedelta, relativedelta], str]:
     '''Determine the total amount of time this PR was in a given status,
-    from its creation to the current time.'''
+    from its creation to the current time.
+
+    Returns a tuple (time, description), where
+    - description lists the times in that state in human-readable form, and
+    - time is a tuple (td, rd), containing the total time in this state,
+      once as a timedelta (i.e. only knowing days, not e.g. months) and
+      once as a relativedelta. The former is more useful for comparing time spans,
+      the latter provides nicer output for users.'''
     explanation = ""
-    total = relativedelta(days=0)
+    total_rd = relativedelta(days=0)
+    total_td = timedelta(days=0)
     evolution_status = determine_status_changes(creation_time, initial_state, events)
     # The PR creation should be the first event in `evolution_status`.
     assert len(evolution_status) == len(events) + 1
@@ -203,12 +213,14 @@ def total_time_in_status(creation_time: datetime, now: datetime, initial_state: 
         (new_time, _new_status) = evolution_status[i + 1]
         if old_status == status:
             explanation += f"from {old_time} to {new_time} ({format_delta(relativedelta(new_time, old_time))})\n"
-            total += new_time - old_time
+            total_rd += new_time - old_time
+            total_td += new_time - old_time
     (last, last_status) = evolution_status[-1]
     if last_status == status:
-        total += now - last
+        total_rd += now - last
+        total_td += now - last
         explanation += f"since {last} ({format_delta(relativedelta(now, last))})\n"
-    return (total, explanation.rstrip().replace("+00:00", ""))
+    return ((total_td, total_rd), explanation.rstrip().replace("+00:00", ""))
 
 
 class Metadata(NamedTuple):
@@ -225,7 +237,7 @@ class Metadata(NamedTuple):
 # FUTURE ideas for tweaking this reporting:
 #  - ignore short intervals of merge conflicts, say less than a day?
 #  - ignore short intervals of CI running (if successful before and after)?
-def total_queue_time_inner(now: datetime, metadata: Metadata) -> Tuple[relativedelta, str]:
+def total_queue_time_inner(now: datetime, metadata: Metadata) -> Tuple[Tuple[timedelta, relativedelta], str]:
     # We assume the PR was created in passing state without labels.
     initial_state = PRState([], CIStatus.Pass, metadata.created_as_draft, metadata.from_fork)
     return total_time_in_status(metadata.created_at, now, initial_state, metadata.events, PRStatus.AwaitingReview)
@@ -318,7 +330,7 @@ def last_real_update(data: dict) -> Tuple[datetime, relativedelta, PRStatus]:
     return last_status_update(datetime.now(timezone.utc), metadata)
 
 
-def total_queue_time(data: dict) -> Tuple[relativedelta, str]:
+def total_queue_time(data: dict) -> Tuple[Tuple[timedelta, relativedelta], str]:
     metadata = _process_data(data)
     return total_queue_time_inner(datetime.now(timezone.utc), metadata)
 
@@ -385,10 +397,10 @@ def test_determine_state_changes() -> None:
 
 def smoketest() -> None:
     def check_basic(created: datetime, now: datetime, events: List[Event], expected: relativedelta) -> None:
-        (wait, _) = total_queue_time_inner(now, Metadata(created, events, False, False))
+        ((_, wait), _) = total_queue_time_inner(now, Metadata(created, events, False, False))
         assert wait == expected, f"basic test failed: expected total time of {expected} in review, obtained {wait} instead"
     def check_with_initial(now: datetime, state: Metadata, expected: relativedelta) -> None:
-        (wait, _) = total_queue_time_inner(now, state)
+        ((_, wait), _) = total_queue_time_inner(now, state)
         assert wait == expected, f"test failed: expected total time of {expected} in review, obtained {wait} instead"
 
     check_basic(sep(1), sep(10), [Event.add_label(sep(1), 'blocked-by-other-PR')], relativedelta(days=0))
