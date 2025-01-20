@@ -1062,6 +1062,8 @@ STANDARD_SCRIPT = """
   })
 $(document).ready( function () {
   $('table').DataTable({
+    stateSave: true,
+    stateDuration: 0,
     pageLength: 10,
     "searching": true,
     columnDefs: [{ type: 'diff_stat', targets: 4}],
