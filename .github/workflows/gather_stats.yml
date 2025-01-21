@@ -25,12 +25,19 @@ jobs:
       run: |
         ./gather_stats.sh 20 2>&1 | tee gather_stats.log  # Log output to gather_stats.log
 
+    - name: "Update aggregate data file"
+      if: ${{ !cancelled() }}
+      run: |
+        # Write files with aggregate PR data, to "processed_data/{all_pr,open_pr,assignment_}_data.json".
+        python3 process.py
+
     - name: Commit changes
       id: "commit"
       run: |
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         git config --global user.name 'github-actions[bot]'
         git add data
+        git add processed_data
         git commit -m 'Update data/' || echo "No changes to commit"
 
     - name: Push changes
