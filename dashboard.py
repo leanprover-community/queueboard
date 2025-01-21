@@ -282,7 +282,7 @@ def read_json_files() -> JSONInputData:
         with open(sys.argv[i]) as prfile:
             open_prs = _extract_prs(json.load(prfile))
             if len(open_prs) >= 900:
-                print(f"warning: file {sys.argv[i]} contains at least 900 PRs: the REST API will never return more than 1000 PRs. Please split the list into more files as necessary.")
+                print(f"warning: file {sys.argv[i]} contains at least 900 PRs: the REST API will never return more than 1000 PRs. Please split the list into more files as necessary.", file=sys.stderr)
             all_open_prs.extend(open_prs)
     with open(path.join("processed_data", "open_pr_data.json"), "r") as f:
         aggregate_info = parse_aggregate_file(json.load(f))
@@ -546,7 +546,10 @@ def write_on_the_queue_page(
             (_absolute, last_update_delta, _status) = last_real_update(pr_data)
             if current_status not in [PRStatus.NotReady, PRStatus.Closed]:
                 if _status != current_status:
-                    print(f"WARNING: mismatch for {pr.number}: current status (from REST API data) is {current_status}, but the 'last status' from the aggregate data is {_status}")
+                    print(
+                        f"WARNING: mismatch for {pr.number}: current status (from REST API data) is {current_status}, "
+                        "but the 'last status' from the aggregate data is {_status}", file=sys.stderr
+                    )
             hover = f"PR {pr.number} was in review for {format_delta(total_review_time_rd)} overall (details: {explanation}). It was last updated {format_delta(last_update_delta)} ago and {curr1} {curr2}."
             status = f'<a title="{hover}">{curr2}</a>'
             evts = pr_data["data"]["repository"]["pullRequest"]["timelineItems"]["nodes"]
