@@ -548,7 +548,7 @@ def write_on_the_queue_page(
                 if _status != current_status:
                     print(
                         f"WARNING: mismatch for {pr.number}: current status (from REST API data) is {current_status}, "
-                        "but the 'last status' from the aggregate data is {_status}", file=sys.stderr
+                        f"but the 'last status' from the aggregate data is {_status}", file=sys.stderr
                     )
             hover = f"PR {pr.number} was in review for {format_delta(total_review_time_rd)} overall (details: {explanation}). It was last updated {format_delta(last_update_delta)} ago and {curr1} {curr2}."
             status = f'<a title="{hover}">{curr2}</a>'
