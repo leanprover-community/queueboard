@@ -31,6 +31,31 @@ jobs:
         # Write files with aggregate PR data, to "processed_data/{all_pr,open_pr,assignment_}_data.json".
         python3 process.py
 
+    - name: "Download .json files for all open PRs"
+      id: "download-json"
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        bash ./dashboard.sh
+
+    - name: "Check data integrity"
+      if: ${{ !cancelled() }} && (steps.download-json.outcome == 'success')
+      run: |
+        python check_data_integrity.py
+
+    - name: "(Re-)download missing or outdated PR data"
+      if: ${{ !cancelled() }}
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        ./download_missing_outdated_PRs.sh
+
+    - name: "Update aggregate data file (again)"
+      if: ${{ !cancelled() }}
+      run: |
+        # Write files with aggregate PR data, to "processed_data/{all_pr,open_pr,assignment_}_data.json".
+        python3 process.py
+
     - name: Commit changes
       id: "commit"
       run: |
@@ -38,12 +63,12 @@ jobs:
         git config --global user.name 'github-actions[bot]'
         git add data
         git add processed_data
-        git commit -m 'Update data/' || echo "No changes to commit"
+        git add *.txt
+        git commit -m 'Update data; redownload missing and outdated data; regenerate aggregate files'
 
     - name: Push changes
       if: ${{ !cancelled() }} && steps.download-json.outcome == 'success'
       run: |
         # FIXME: make this more robust about incoming changes
-        # In practice, the other workflow should not modify the data directory, so this *should* be fine.
-        git pull --rebase
+        # The other workflow does not push to this branch, so this should be fine.
         git push
