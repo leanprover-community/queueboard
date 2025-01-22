@@ -72,6 +72,22 @@
               "author": {
                 "login": "madvorak"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6ba-5O",
+              "body": "This lemma is overly specific, I find, so I think you should inline it where needed.\r\n\r\nHere's a golf, using new machinery that could belong in mathlib:\r\n```\r\nimport Mathlib.Data.Fintype.Sum\r\n\r\nnamespace Equiv\r\nvariable {α β : Type*}\r\n\r\n-- Analogue of `Equiv.optionIsSomeEquiv`\r\n@[simps]\r\ndef sumIsLeft : {x : α ⊕ β // x.isLeft} ≃ α where\r\n  toFun x := x.1.getLeft x.2\r\n  invFun a := ⟨.inl a, Sum.isLeft_inl⟩\r\n  left_inv | ⟨.inl _a, _⟩ => rfl\r\n  right_inv _a := rfl\r\n\r\n@[simps]\r\ndef sumIsRight : {x : α ⊕ β // x.isRight} ≃ β where\r\n  toFun x := x.1.getRight x.2\r\n  invFun b := ⟨.inr b, Sum.isRight_inr⟩\r\n  left_inv | ⟨.inr _b, _⟩ => rfl\r\n  right_inv _b := rfl\r\n\r\nend Equiv\r\n\r\nnamespace Finset\r\nvariable {α β : Type*} {s : Finset (α ⊕ β)} {a : α} {b : β}\r\n\r\ndef left (s : Finset (α ⊕ β)) : Finset α := (s.subtype _).map Equiv.sumIsLeft.toEmbedding\r\ndef right (s : Finset (α ⊕ β)) : Finset β := (s.subtype _).map Equiv.sumIsRight.toEmbedding\r\n\r\n@[simp] lemma mem_left : a ∈ s.left ↔ .inl a ∈ s := by simp [left]\r\n@[simp] lemma mem_right : b ∈ s.right ↔ .inr b ∈ s := by simp [right]\r\n\r\nlemma disjSum_left_right (s : Finset (α ⊕ β)) : s.left.disjSum s.right = s := by\r\n  ext (a | b) <;> simp\r\n\r\nlemma card_left_add_card_right (s : Finset (α ⊕ β)) : #s.left + #s.right = #s := by\r\n  simpa using congr(#$s.disjSum_left_right)\r\n\r\n@[simp] lemma left_eq_univ [Fintype α] : s.left = univ ↔ univ.disjSum ∅ ⊆ s := by\r\n  simp [eq_univ_iff_forall, subset_iff]\r\n\r\n@[simp] lemma right_eq_empty [Fintype α] : s.right = ∅ ↔ s ⊆ univ.disjSum ∅ := by\r\n  simp [eq_empty_iff_forall_not_mem, subset_iff]\r\n\r\nend Finset\r\n\r\nopen Finset\r\n\r\nlemma Finset.of_cardinality_between {α β : Type*} [Fintype α] [Fintype β] {n : ℕ}\r\n    (hα : Fintype.card α < n) (hn : n ≤ Fintype.card α + Fintype.card β) :\r\n    ∃ s : Finset β, Fintype.card α + #s = n ∧ s.Nonempty := by\r\n  obtain ⟨s, hs, -, rfl⟩ : ∃ s : Finset (α ⊕ β), _ :=\r\n    exists_subsuperset_card_eq (subset_univ <| univ.disjSum ∅) (by simpa using hα.le)\r\n      (by simpa using hn)\r\n  refine ⟨s.right, by simpa [left_eq_univ.2 hs] using s.card_left_add_card_right, ?_⟩\r\n  simp only [nonempty_iff_ne_empty, ne_eq, right_eq_empty, disjSum_empty]\r\n  exact fun h ↦ hα.not_le <| by simpa using card_le_card h\r\n```",
+              "createdAt": "2025-01-22T15:23:53Z",
+              "author": {
+                "login": "YaelDillies"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6bbMAq",
+              "body": "Interesting.",
+              "createdAt": "2025-01-22T15:44:58Z",
+              "author": {
+                "login": "madvorak"
+              }
             }
           ]
         },
@@ -854,13 +870,15 @@
         },
         "maintainerCanModify": false,
         "mergeCommit": null,
-        "mergeStateStatus": "UNKNOWN",
-        "mergeable": "UNKNOWN",
+        "mergeStateStatus": "BLOCKED",
+        "mergeable": "MERGEABLE",
         "mergedAt": null,
         "mergedBy": null,
         "milestone": null,
         "number": 20433,
-        "potentialMergeCommit": null,
+        "potentialMergeCommit": {
+          "oid": "1aaa3cbfd7713d29c820b54f8b0a5359196d4b7c"
+        },
         "projectCards": {
           "nodes": []
         },
@@ -1343,12 +1361,15 @@
           }
         },
         "title": "feat(Data/Finset/Card): of cardinality between",
-        "updatedAt": "2025-01-13T13:51:03Z",
+        "updatedAt": "2025-01-22T15:44:59Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/20433",
         "timelineItems": {
           "nodes": [
             {
-              "__typename": "PullRequestCommit"
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "492f4cb062ec43201c8bd45d072bde1e6720c192"
+              }
             },
             {
               "__typename": "IssueComment",
@@ -1388,13 +1409,22 @@
               }
             },
             {
-              "__typename": "PullRequestCommit"
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "65994e9709face9e8a106e1f781bc2cc9d2872bf"
+              }
             },
             {
-              "__typename": "PullRequestCommit"
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1be30683fc244e714c757e982e854035bab57f9f"
+              }
             },
             {
-              "__typename": "PullRequestCommit"
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "61b2a51af51215aa17397403986e0e5d53639538"
+              }
             },
             {
               "__typename": "PullRequestReview",
@@ -1521,6 +1551,24 @@
             },
             {
               "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6ba-5O",
+              "createdAt": "2025-01-22T15:23:53Z",
+              "body": "This lemma is overly specific, I find, so I think you should inline it where needed.\r\n\r\nHere's a golf, using new machinery that could belong in mathlib:\r\n```\r\nimport Mathlib.Data.Fintype.Sum\r\n\r\nnamespace Equiv\r\nvariable {α β : Type*}\r\n\r\n-- Analogue of `Equiv.optionIsSomeEquiv`\r\n@[simps]\r\ndef sumIsLeft : {x : α ⊕ β // x.isLeft} ≃ α where\r\n  toFun x := x.1.getLeft x.2\r\n  invFun a := ⟨.inl a, Sum.isLeft_inl⟩\r\n  left_inv | ⟨.inl _a, _⟩ => rfl\r\n  right_inv _a := rfl\r\n\r\n@[simps]\r\ndef sumIsRight : {x : α ⊕ β // x.isRight} ≃ β where\r\n  toFun x := x.1.getRight x.2\r\n  invFun b := ⟨.inr b, Sum.isRight_inr⟩\r\n  left_inv | ⟨.inr _b, _⟩ => rfl\r\n  right_inv _b := rfl\r\n\r\nend Equiv\r\n\r\nnamespace Finset\r\nvariable {α β : Type*} {s : Finset (α ⊕ β)} {a : α} {b : β}\r\n\r\ndef left (s : Finset (α ⊕ β)) : Finset α := (s.subtype _).map Equiv.sumIsLeft.toEmbedding\r\ndef right (s : Finset (α ⊕ β)) : Finset β := (s.subtype _).map Equiv.sumIsRight.toEmbedding\r\n\r\n@[simp] lemma mem_left : a ∈ s.left ↔ .inl a ∈ s := by simp [left]\r\n@[simp] lemma mem_right : b ∈ s.right ↔ .inr b ∈ s := by simp [right]\r\n\r\nlemma disjSum_left_right (s : Finset (α ⊕ β)) : s.left.disjSum s.right = s := by\r\n  ext (a | b) <;> simp\r\n\r\nlemma card_left_add_card_right (s : Finset (α ⊕ β)) : #s.left + #s.right = #s := by\r\n  simpa using congr(#$s.disjSum_left_right)\r\n\r\n@[simp] lemma left_eq_univ [Fintype α] : s.left = univ ↔ univ.disjSum ∅ ⊆ s := by\r\n  simp [eq_univ_iff_forall, subset_iff]\r\n\r\n@[simp] lemma right_eq_empty [Fintype α] : s.right = ∅ ↔ s ⊆ univ.disjSum ∅ := by\r\n  simp [eq_empty_iff_forall_not_mem, subset_iff]\r\n\r\nend Finset\r\n\r\nopen Finset\r\n\r\nlemma Finset.of_cardinality_between {α β : Type*} [Fintype α] [Fintype β] {n : ℕ}\r\n    (hα : Fintype.card α < n) (hn : n ≤ Fintype.card α + Fintype.card β) :\r\n    ∃ s : Finset β, Fintype.card α + #s = n ∧ s.Nonempty := by\r\n  obtain ⟨s, hs, -, rfl⟩ : ∃ s : Finset (α ⊕ β), _ :=\r\n    exists_subsuperset_card_eq (subset_univ <| univ.disjSum ∅) (by simpa using hα.le)\r\n      (by simpa using hn)\r\n  refine ⟨s.right, by simpa [left_eq_univ.2 hs] using s.card_left_add_card_right, ?_⟩\r\n  simp only [nonempty_iff_ne_empty, ne_eq, right_eq_empty, disjSum_empty]\r\n  exact fun h ↦ hα.not_le <| by simpa using card_le_card h\r\n```",
+              "author": {
+                "login": "YaelDillies"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6bbMAq",
+              "createdAt": "2025-01-22T15:44:58Z",
+              "body": "Interesting.",
+              "author": {
+                "login": "madvorak"
+              }
             }
           ]
         }
