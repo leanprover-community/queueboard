@@ -559,7 +559,7 @@ def write_on_the_queue_page(
             hover = f"PR {pr.number} was in review for {format_delta(total_review_time_rd)} overall (details: {explanation}). It was last updated {format_delta(last_update_delta)} ago and {curr1} {curr2}."
             status = f'<a title="{hover}">{curr2}</a>'
             evts = pr_data["data"]["repository"]["pullRequest"]["timelineItems"]["nodes"]
-            if len(evts) in [100, 250]:
+            if len(evts) in [250]:
                 status += '<a title="caution: this data is likely incomplete">*</a>'
         entries = [
             pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url),
@@ -1294,7 +1294,7 @@ def _compute_pr_entries(
                     prefix = f'<div style="display:none">{format_delta2(total_queue_time_td)}</div> '
                     total_time = f'{prefix}<a title="{explanation}">{format_delta(total_queue_time_rd)}</a>'
                     evts = data["data"]["repository"]["pullRequest"]["timelineItems"]["nodes"]
-                    if len(evts) in [100, 250]:
+                    if len(evts) in [250]:
                         real_update += '<a title="caution: this data is likely incomplete">*</a>'
                         total_time += '<a title="caution: this data is likely incomplete">*</a>'
             entries.append(real_update)
