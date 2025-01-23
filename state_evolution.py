@@ -294,7 +294,7 @@ def parse_data(data: dict) -> Tuple[datetime, List[Event]]:
         "PullRequestCommit", "IssueComment", "PullRequestReview", "RenamedTitleEvent", "AssignedEvent", "UnassignedEvent",
         "ReferencedEvent", "CrossReferencedEvent", "MentionedEvent",
         "ReviewRequestedEvent", "ReviewRequestRemovedEvent", "ReviewDismissedEvent",
-        "ConnectedEvent", # no idea what this means
+        "ConnectedEvent", "DisconnectedEvent",  # no idea what these are used for
         "SubscribedEvent", "UnsubscribedEvent",
         "CommentDeletedEvent",
         "MergedEvent", "BaseRefForcePushedEvent", "MarkedAsDuplicateEvent",
