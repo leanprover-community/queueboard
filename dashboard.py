@@ -28,6 +28,7 @@ class Dashboard(Enum):
     QueueNewContributor = auto()
     QueueEasy = auto()
     # All PRs on the queue which are unassigned and have not been updated in the past two weeks.
+    # We use the real last update, not github's date.
     QueueStaleUnassigned = auto()
     # All assigned PRs on the review queue without any update in the past two weeks.
     # TODO: use a more refined measure of activity, such as "no comment/review comment by anybody but the author"
@@ -75,7 +76,7 @@ def short_description(kind: Dashboard) -> str:
         Dashboard.QueueEasy: "PRs on the review queue which are labelled 'easy'",
         Dashboard.QueueTechDebt: "PRs on the review queue which are labelled 'tech debt' or 'longest-pole",
         Dashboard.QueueStaleAssigned: "assigned PRs on the review queue without activity in the past two weeks",
-        Dashboard.QueueStaleUnassigned: "unassigned PRs on the review queue without activity in the past two weeks",
+        Dashboard.QueueStaleUnassigned: "unassigned PRs on the review queue with no meaningful activity in the past two weeks",
         Dashboard.StaleMaintainerMerge: "stale PRs labelled maintainer merge",
         Dashboard.AllMaintainerMerge: "PRs labelled maintainer merge",
         Dashboard.StaleDelegated: "stale delegated PRs",
@@ -106,7 +107,7 @@ def long_description(kind: Dashboard) -> str:
         Dashboard.QueueEasy: "all PRs labelled 'easy' which are ready for review",
         Dashboard.QueueTechDebt: "all PRs labelled with 'tech debt' or 'longest-pole' which are ready for review",
         Dashboard.QueueStaleAssigned: "all assigned PRs on the review queue which have not been updated at all in the past two weeks",
-        Dashboard.QueueStaleUnassigned: "all PRs on the review queue which are unassigned and have not been updated in the past two weeks",
+        Dashboard.QueueStaleUnassigned: "all PRs on the review queue which are unassigned and have not seen status changes in the past two weeks",
         Dashboard.NeedsMerge: "all PRs which have a merge conflict, but otherwise fit the review queue",
         Dashboard.InessentialCIFails: "all PRs with just a failure of some infrastructure-related CI job (usually not this PR's fault), but are otherwise ready for review",
         Dashboard.StaleDelegated: f"all PRs labelled 'delegated' {notupdated} 24 hours",
@@ -368,7 +369,12 @@ def determine_pr_dashboards(
     prs_to_list[Dashboard.AllMaintainerMerge] = prs_without_label(prs_with_label(nondraft_PRs, "maintainer-merge"), "ready-to-merge")
     prs_to_list[Dashboard.StaleNewContributor] = prs_with_label(one_week_stale, "new-contributor")
 
-    stale_queue = [pr for pr in queue if aggregate_info[pr.number].last_updated < two_weeks_ago]
+    stale_queue = []
+    for pr in queue:
+        pr_data = _extract_data_for_event_parsing(pr.number, aggregate_info[pr.number].number_total_comments is None)
+        if pr_data is not None:
+            if last_real_update(pr_data)[0] < two_weeks_ago:
+                stale_queue.append(pr)
     prs_to_list[Dashboard.QueueStaleUnassigned] = [pr for pr in stale_queue if not aggregate_info[pr.number].assignees]
     # TODO/Future: use a more refined measure of activity!
     prs_to_list[Dashboard.QueueStaleAssigned] = [pr for pr in stale_queue if aggregate_info[pr.number].assignees]
@@ -802,7 +808,7 @@ def write_triage_page(
                     print(f"error: PR {pr.number} is listed as never on queue, while it's on the queue", file=sys.stderr)
             elif two_weeks_ago <= first_on_queue:
                 recent_on_queue.append(pr.number)
-    # under review, unassigned and not updated in two weeks (future: upgrade to "no real status update" in two weeks)
+    # PRs on the queue which are unassigned and have had no meaningful update (i.e. status change) in the past two weeks.
     unassigned = len(prs_to_list[Dashboard.QueueStaleUnassigned])
     # Awaiting review, assigned and not updated in two weeks.
     # TODO/future: use a better measure of no activity, such as "no comment/review comment from anybody but the PR author".
@@ -814,7 +820,7 @@ def write_triage_page(
     <li><strong>{len(prs_to_list[Dashboard.QueueTechDebt])}</strong> are addressing technical debt ({link_to(Dashboard.QueueTechDebt, "namely these", "review_dashboard.html")}), and</li>
     <li><strong>{len(recent_on_queue)}</strong> appeared on the review queue within the last two weeks.</li>
   </ul>
-  <p>On the other hand, {link_to(Dashboard.QueueStaleUnassigned, f"<strong>{unassigned}</strong> PRs")} are unassigned and have not been updated for two weeks, and {link_to(Dashboard.QueueStaleAssigned, f"<strong>{stale_assigned}</strong> PRs")} are assigned, without recent review activity.</p>"""
+  <p>On the other hand, {link_to(Dashboard.QueueStaleUnassigned, f"<strong>{unassigned}</strong> PRs")} are unassigned and have not seen a status change in two weeks, and {link_to(Dashboard.QueueStaleAssigned, f"<strong>{stale_assigned}</strong> PRs")} are assigned, without recent review activity.</p>"""
     review_heading = "\n  ".join(review_heading.splitlines())
 
     # Write a dashboard of unassigned PRs: we can safely skip the "assignee" column.
