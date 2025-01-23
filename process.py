@@ -207,10 +207,29 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
     return aggregate_data
 
 
+# For each open PR with the "infinity-cosmos" label, record its last update
+# (according to github), its current state and its last real status change.
+def compute_infinity_cosmos_data(now: str, all_open_pr_items: dict) -> dict:
+    prs = []
+    for pr in all_open_pr_items:
+        if "infinity-cosmos" in pr["label_names"]:
+            real = pr.get("last_status_change")
+            if real is None or real["status"] != "valid":
+                prs.append({
+                    "number": pr["number"], "last_updated": pr["last_updated"],
+                    "last_status_change": None, "current_status": None,
+                })
+            else:
+                prs.append({
+                    "number": pr["number"], "last_updated": pr["last_updated"],
+                    "last_status_change": real["time"], "current_status": real["current_status"]
+                })
+    return {"timestamp": now, "prs": prs}
+
 def main() -> None:
     updated = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     label_colours: dict[str, str] = dict()
-    all_pr_data = []
+    all_pr_data: List[dict] = []
     # A few files are known to have broken detailed information.
     # They can be found in the file "stubborn_prs.txt".
     known_erronerous: List[str] = []
@@ -298,12 +317,16 @@ def main() -> None:
         "all_assignments": all_assignments,
     }
 
+    infty_cosmos_data = compute_infinity_cosmos_data(updated, just_open_prs["pr_statusses"])
+
     with open(path.join("processed_data", "all_pr_data.json"), "w") as f:
         print(json.dumps(all_prs, indent=4), file=f)
     with open(path.join("processed_data", "open_pr_data.json"), "w") as f:
         print(json.dumps(just_open_prs, indent=4), file=f)
     with open(path.join("processed_data", "assignment_data.json"), "w") as f:
         print(json.dumps(assignment_data, indent=4), file=f)
+    with open(path.join("processed_data", "infinity_cosmus_data.json"), "w") as f:
+        print(json.dumps(infty_cosmos_data, indent=4), file=f)
 
 
 main()
