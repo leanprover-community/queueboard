@@ -163,7 +163,13 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
 
         # These particular PRs have one label noted as removed several times in a row.
         # This trips up my algorithm. Omit the analysis for now. FIXME: make smarter?
-        if number not in [10823, 11385, 12268, 12488, 12561, 13248, 13149, 13270]:
+        bad_prs = [
+            10655, 10823, 10878, 11703, 11711, 11385, 11874, 12076, 12268, 12311, 12371,
+            12435, 12488, 12561, 13149, 13248, 13270, 13273, 13697, 14008, 14065,
+            13089, # TODO: investigate more closely!
+            6595, # TODO: investigate more closely!
+        ]
+        if number not in bad_prs:
             # XXX: when is this ever missing? does this happen?
             validity_status = "incomplete" if num_events == 250 else "valid"
 
