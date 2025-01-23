@@ -171,8 +171,12 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
             13089, # TODO: investigate more closely!
             6595, # TODO: investigate more closely!
         ]
-        if number not in bad_prs:
-            # TODO: when is this ever missing? does this happen?
+        if number in bad_prs:
+            aggregate_data["first_on_queue"] = {"status": "missing"}
+            aggregate_data["last_status_change"] = {"status": "missing"}
+            aggregate_data["total_queue_time"] = {"status": "missing"}
+        else:
+            # PRs with "missing" status are the ones above; basic PRs omit this field.
             validity_status = "incomplete" if num_events == 250 else "valid"
 
             # Match the format produced by github, and expected by all the code.
@@ -199,8 +203,7 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
                 "explanation": explanation,
             }
             aggregate_data["total_queue_time"] = d
-            # TODO: determine if missing data (happens sometimes), incomplete data (events/commits etc.), or valid
-            # FUTURE: cache one level deeper, by computing metadata once (not three times)
+            # FUTURE: I could cache these results one level deeper, by computing metadata once (not three times)
     return aggregate_data
 
 

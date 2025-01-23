@@ -16,7 +16,7 @@ from dateutil import parser, relativedelta
 from classify_pr_state import (CIStatus, PRState, PRStatus,
                                determine_PR_status, label_categorisation_rules)
 from state_evolution import first_time_on_queue, last_real_update, total_queue_time
-from util import my_assert_eq, format_delta
+from util import my_assert_eq, format_delta, timedelta_tryParse, relativedelta_tryParse
 
 
 @unique
@@ -197,21 +197,23 @@ class BasicPRInformation(NamedTuple):
     updatedAt: datetime
 
 
-class xxxStatus(Enum):
+class DataStatus(Enum):
     Valid = auto()
     Incomplete = auto()
+    # This can happen if a PR is stubborn (i.e. no events data is collected)
+    # or a PR's data is contradictory (hence ignored).
     Missing = auto()
 
 class LastStatusChange(NamedTuple):
-    status: xxxStatus
+    status: DataStatus
     time: datetime
-    delta: relativedelta
+    delta: relativedelta.relativedelta
     current_status: PRStatus
 
 class TotalQueueTime(NamedTuple):
-    status: xxxStatus
-    value_dt: datetime
-    value_rd: relativedelta
+    status: DataStatus
+    value_dt: timedelta
+    value_rd: relativedelta.relativedelta
     explanation: str
 
 # All information about a single PR contained in `open_pr_info.json`.
@@ -246,13 +248,13 @@ class AggregatePRInfo(NamedTuple):
     # They are also missing if a PR's events data is invalid (because github returned bogus results).
     # Otherwise, they include their validity status ("missing", "incomplete", "valid").
     last_status_change: LastStatusChange | None
-    first_on_queue: Tuple[xxxStatus, datetime] | None
+    first_on_queue: Tuple[DataStatus, datetime | None] | None
     total_queue_time: TotalQueueTime | None
 
 # Missing aggregate information will be replaced by this default item.
 PLACEHOLDER_AGGREGATE_INFO = AggregatePRInfo(
     False, CIStatus.Missing, "master", "leanprover-community", "open", datetime.now(timezone.utc),
-    "unknown", "unknown title", [], -1, -1, -1, [], [], None,
+    "unknown", "unknown title", [], -1, -1, -1, [], [], None, None, None, None,
 )
 
 # Information passed to this script, via various JSON files.
@@ -281,15 +283,52 @@ def parse_aggregate_file(data: dict) -> dict[int, AggregatePRInfo]:
     for pr in data["pr_statusses"]:
         date = parser.isoparse(pr["last_updated"])
         label_names = pr["label_names"]
-        # Some PRs only have basic information present: fill in suitable placeholder values.
+        # Some PRs only have basic information present.
         if "number_comments" in pr:
             number_all_comments = pr["number_comments"] + pr["number_review_comments"]
+            # If status information is invalid, omit it.
+            st = pr["last_status_change"]
+            if st["status"] == "missing":
+                last_status_change = None
+            else:
+                (status, raw_time, raw_delta, raw_current_status) = st["status"], st["time"], st["delta"], st["current_status"]
+                delta = relativedelta_tryParse(raw_delta)
+                current_status = PRStatus.tryFrom_str(raw_current_status)
+                if delta is None:
+                    print(f"error: invalid data, input {raw_delta} for 'delta' field of 'last_status_change' is invalid", file=sys.stderr)
+                elif current_status is None:
+                    print(f"error: invalid data, input {raw_current_status} for 'current_status' field of 'last_status_change' is invalid", file=sys.stderr)
+                last_status_change = LastStatusChange(status, parser.isoparse(raw_time), delta, current_status)
+
+            foq = pr["first_on_queue"]
+            if foq["status"] == "missing":
+                first_on_queue = None
+            else:
+                date2 = None if foq["date"] is None else parser.isoparse(foq["date"])
+                first_on_queue = (foq["status"], date2)
+
+            tqt = pr["total_queue_time"]
+            if tqt["status"] == "missing":
+                total_queue_time = None
+            else:
+                (status, value_td, value_rd, explanation) = (tqt["status"], tqt["value_td"], tqt["value_rd"], tqt["explanation"])
+                td = timedelta_tryParse(value_td)
+                rd = relativedelta_tryParse(value_rd)
+                if rd is None:
+                    print(f"error: invalid data, input {rd} for 'value_rd' field of 'total_queue_time' is invalid", file=sys.stderr)
+                elif td is None:
+                    print(f"error: invalid data, input {td} for 'value_td' field of 'total_queue_time' is invalid", file=sys.stderr)
+                total_queue_time = TotalQueueTime(status, td, rd, explanation)
         else:
             number_all_comments = None
+            last_status_change = None
+            first_on_queue = None
+            total_queue_time = None
         info = AggregatePRInfo(
             pr["is_draft"], CIStatus.from_string(pr["CI_status"]), pr["base_branch"], pr["head_repo"]["login"],
             pr["state"], date, pr["author"], pr["title"], [toLabel(name) for name in label_names],
-            pr["additions"], pr["deletions"], pr["num_files"], pr["review_approvals"], pr["assignees"], number_all_comments
+            pr["additions"], pr["deletions"], pr["num_files"], pr["review_approvals"], pr["assignees"],
+            number_all_comments, last_status_change, first_on_queue, total_queue_time,
         )
         aggregate_info[pr["number"]] = info
     return aggregate_info
