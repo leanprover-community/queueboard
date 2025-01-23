@@ -152,6 +152,10 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
         #     print(f"process.py: {state} PR {number} has exactly 250 events, all of which are commits: probably this data is incomplete!", file=sys.stderr)
         # elif num_events == 250:
         #     print(f"process.py: {state} PR {number} has exactly 250 events: probably this data is incomplete, please double-check!", file=sys.stderr)
+        num_commits = len(inner["commits"]["nodes"])
+        if num_commits == 100 and state == "open":
+            if number not in do_not_redownload:
+                print(f"process.py: {state} PR {number} has exactly 100 commits; please double-check if this data is complete", file=sys.stderr)
     return aggregate_data
 
 
