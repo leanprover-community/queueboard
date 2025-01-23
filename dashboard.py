@@ -614,7 +614,8 @@ def write_on_the_queue_page(
                         f"WARNING: mismatch for {pr.number}: current status (from REST API data) is {current_status}, "
                         f"but the 'last status' from the aggregate data is {pr_data.last_status_change.current_status}", file=sys.stderr
                     )
-            hover = f"PR {pr.number} was in review for {format_delta(pr_data.total_queue_time.value_rd)} overall (details: {pr_data.total_queue_time.explanation}). It was last updated {format_delta(pr_data.last_status_change.delta)} ago and {curr1} {curr2}."
+            details = f" (details: {pr_data.total_queue_time.explanation})" if pr_data.total_queue_time.explanation else ""
+            hover = f"PR {pr.number} was in review for {format_delta(pr_data.total_queue_time.value_rd)} overall{details}. It was last updated {format_delta(pr_data.last_status_change.delta)} ago and {curr1} {curr2}."
             status = f'<a title="{hover}">{curr2}</a>'
             if pr_data.last_status_change.status == "incomplete" or pr_data.total_queue_time.status == "incomplete":
                 status += '<a title="caution: this data is likely incomplete">*</a>'
@@ -1295,7 +1296,7 @@ def _compute_pr_entries(
                 total_comments,
             ])
             if extra_settings.show_assignee:
-                match pr_info.assignees:
+                match sorted(pr_info.assignees):
                     case []:
                         assignees = "nobody"
                     case [user]:
