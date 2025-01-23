@@ -212,7 +212,7 @@ class LastStatusChange(NamedTuple):
 
 class TotalQueueTime(NamedTuple):
     status: DataStatus
-    value_dt: timedelta
+    value_td: timedelta
     value_rd: relativedelta.relativedelta
     explanation: str
 
@@ -433,10 +433,9 @@ def determine_pr_dashboards(
 
     stale_queue = []
     for pr in queue:
-        pr_data = _extract_data_for_event_parsing(pr.number, aggregate_info[pr.number].number_total_comments is None)
-        if pr_data is not None:
-            if last_real_update(pr_data)[0] < two_weeks_ago:
-                stale_queue.append(pr)
+        last_real_update = aggregate_info[pr.number].last_status_change
+        if last_real_update is not None and last_real_update.time < two_weeks_ago:
+            stale_queue.append(pr)
     prs_to_list[Dashboard.QueueStaleUnassigned] = [pr for pr in stale_queue if not aggregate_info[pr.number].assignees]
     # TODO/Future: use a more refined measure of activity!
     prs_to_list[Dashboard.QueueStaleAssigned] = [pr for pr in stale_queue if aggregate_info[pr.number].assignees]
@@ -605,23 +604,19 @@ def write_on_the_queue_page(
         }[current_status]
         if current_status == PRStatus.NotReady:
             curr2 = "labelled WIP" if "WIP" in [l.name for l in aggregate_info[pr.number].labels] else "marked draft"
-        pr_data = _extract_data_for_event_parsing(pr.number, aggregate_info[pr.number].number_total_comments is None)
-        if pr_data is None:
+        pr_data = aggregate_info[pr.number]
+        if pr_data.last_status_change is None or pr_data.total_queue_time is None:
             status = curr2
         else:
-            # print(f"trace: computing last real update for PR {pr.number}", file=sys.stderr)
-            ((_total_review_time_td, total_review_time_rd), explanation) = total_queue_time(pr_data)
-            (_absolute, last_update_delta, _status) = last_real_update(pr_data)
-            if current_status not in [PRStatus.NotReady, PRStatus.Closed]:
-                if _status != current_status:
+            if pr_data.last_status_change.current_status not in [PRStatus.NotReady, PRStatus.Closed]:
+                if pr_data.last_status_change.current_status != current_status:
                     print(
                         f"WARNING: mismatch for {pr.number}: current status (from REST API data) is {current_status}, "
-                        f"but the 'last status' from the aggregate data is {_status}", file=sys.stderr
+                        f"but the 'last status' from the aggregate data is {pr_data.last_status_change.current_status}", file=sys.stderr
                     )
-            hover = f"PR {pr.number} was in review for {format_delta(total_review_time_rd)} overall (details: {explanation}). It was last updated {format_delta(last_update_delta)} ago and {curr1} {curr2}."
+            hover = f"PR {pr.number} was in review for {format_delta(pr_data.total_queue_time.value_rd)} overall (details: {pr_data.total_queue_time.explanation}). It was last updated {format_delta(pr_data.last_status_change.delta)} ago and {curr1} {curr2}."
             status = f'<a title="{hover}">{curr2}</a>'
-            evts = pr_data["data"]["repository"]["pullRequest"]["timelineItems"]["nodes"]
-            if len(evts) in [250]:
+            if pr_data.last_status_change.status == "incomplete" or pr_data.total_queue_time.status == "incomplete":
                 status += '<a title="caution: this data is likely incomplete">*</a>'
         entries = [
             pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url),
@@ -860,16 +855,15 @@ def write_triage_page(
     recent_on_queue = []
     two_weeks_ago = datetime.now(timezone.utc) - timedelta(days=14)
     for pr in prs_to_list[Dashboard.Queue]:
-        pr_data = _extract_data_for_event_parsing(pr.number, aggregate_info[pr.number].number_total_comments is None)
-        if pr_data is not None:
-            first_on_queue = first_time_on_queue(pr_data)
-            events = pr_data["data"]["repository"]["pullRequest"]["timelineItems"]["nodes"]
-            if first_on_queue is None:
-                # Try to not warn on PRs with incomplete event data!
-                if len(events) != 250:
-                    print(f"error: PR {pr.number} is listed as never on queue, while it's on the queue", file=sys.stderr)
-            elif two_weeks_ago <= first_on_queue:
+        first_on_queue = aggregate_info[pr.number].first_on_queue
+        if first_on_queue is not None:
+            (foq_status, foq_time) = first_on_queue
+            if foq_time is None:
+                if foq_status != DataStatus.Incomplete:
+                    print(f"warning: PR {pr.number} is listed as never on queue, while it's on the queue", file=sys.stderr)
+            elif two_weeks_ago <= foq_time:
                 recent_on_queue.append(pr.number)
+
     # PRs on the queue which are unassigned and have had no meaningful update (i.e. status change) in the past two weeks.
     unassigned = len(prs_to_list[Dashboard.QueueStaleUnassigned])
     # Awaiting review, assigned and not updated in two weeks.
@@ -1263,19 +1257,6 @@ class ExtraColumnSettings(NamedTuple):
         return ExtraColumnSettings(val, self.show_approvals, self.potential_reviewers, self.hide_update, self.show_last_real_update)
 
 
-def _extract_data_for_event_parsing(number: int, is_basic_pr: bool) -> dict | None:
-    if is_basic_pr:
-        # Basic PRs have no timetime information available (and no CI information for each)
-        # individual commit either: thus, we cannot compute a more detailed answer.
-        return None
-    # These particular PRs have one label noted as removed several times in a row.
-    # This trips up my algorithm. Omit the analysis for now. FIXME: make smarter?
-    elif number in [10823, 11385, 12268, 12488, 12561, 13248, 13149, 13270]:
-        return None
-    with open(path.join("data", str(number), "pr_info.json"), "r") as fi:
-        return json.load(fi)
-
-
 # Compute the table entries about a sequence of PRs.
 # 'aggregate_information' maps each PR number to the corresponding aggregate information
 # (and may contain information on PRs not to be printed).
@@ -1348,16 +1329,16 @@ def _compute_pr_entries(
             real_update = '<div style="display:none"></div><a title="the last actual update for this PR could not be determined">unknown</a>'
             total_time = '<div style="display:none"></div><a title="this PR\'s total time in review could not be determined">unknown</a>'
             if pr_info:
-                data = _extract_data_for_event_parsing(pr.number, pr_info.number_total_comments is None)
-                if data is not None:
-                    (absolute, delta, _last_state) = last_real_update(data)
-                    real_update = f'{absolute} ({format_delta(delta)} ago)'
-                    ((total_queue_time_td, total_queue_time_rd), explanation) = total_queue_time(data)
-                    prefix = f'<div style="display:none">{format_delta2(total_queue_time_td)}</div> '
-                    total_time = f'{prefix}<a title="{explanation}">{format_delta(total_queue_time_rd)}</a>'
-                    evts = data["data"]["repository"]["pullRequest"]["timelineItems"]["nodes"]
-                    if len(evts) in [250]:
+                last_update = aggregate_information[pr.number].last_status_change
+                if last_update is not None and last_update.status != DataStatus.Missing:
+                    real_update = f'{last_update.time} ({format_delta(last_update.delta)} ago)'
+                    if last_update.status == DataStatus.Incomplete:
                         real_update += '<a title="caution: this data is likely incomplete">*</a>'
+                tqt = aggregate_information[pr.number].total_queue_time
+                if tqt is not None and tqt.status != DataStatus.Missing:
+                    prefix = f'<div style="display:none">{format_delta2(tqt.value_td)}</div> '
+                    total_time = f'{prefix}<a title="{tqt.explanation}">{format_delta(tqt.value_rd)}</a>'
+                    if tqt.status == DataStatus.Incomplete:
                         total_time += '<a title="caution: this data is likely incomplete">*</a>'
             entries.append(real_update)
             entries.append(total_time)
