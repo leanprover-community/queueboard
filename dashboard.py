@@ -15,7 +15,7 @@ from dateutil import parser, relativedelta
 
 from classify_pr_state import (CIStatus, PRState, PRStatus,
                                determine_PR_status, label_categorisation_rules)
-from state_evolution import _process_data, last_real_update, total_queue_time
+from state_evolution import _process_data, first_time_on_queue, last_real_update, total_queue_time
 from util import my_assert_eq, format_delta
 
 
@@ -787,9 +787,21 @@ def write_triage_page(
       {stale_delegated if prs_to_list[Dashboard.StaleDelegated] else no_stale_delegated}
     </ul>"""
 
-    # TODO: fill in this placeholder!
-    # first appeared on the queue two weeks ago, computed using long-term data
-    queue_new = "???"
+    # All PRs which appear on the queue for the first time in the past two weeks
+    # as computed from aggregate events data.
+    recent_on_queue = []
+    two_weeks_ago = datetime.now(timezone.utc) - timedelta(days=14)
+    for pr in prs_to_list[Dashboard.Queue]:
+        pr_data = _extract_data_for_event_parsing(pr.number, aggregate_info[pr.number].number_total_comments is None)
+        if pr_data is not None:
+            first_on_queue = first_time_on_queue(pr_data)
+            events = pr_data["data"]["repository"]["pullRequest"]["timelineItems"]["nodes"]
+            if first_on_queue is None:
+                # Try to not warn on PRs with incomplete event data!
+                if len(events) != 250:
+                    print(f"error: PR {pr.number} is listed as never on queue, while it's on the queue", file=sys.stderr)
+            elif two_weeks_ago <= first_on_queue:
+                recent_on_queue.append(pr.number)
     # under review, unassigned and not updated in two weeks (future: upgrade to "no real status update" in two weeks)
     unassigned = len(prs_to_list[Dashboard.QueueStaleUnassigned])
     # Awaiting review, assigned and not updated in two weeks.
@@ -800,7 +812,7 @@ def write_triage_page(
   <ul>
     <li><strong>{len(prs_to_list[Dashboard.QueueEasy])}</strong> are labelled easy ({link_to(Dashboard.QueueEasy, subpage="review_dashboard.html")}),</li>
     <li><strong>{len(prs_to_list[Dashboard.QueueTechDebt])}</strong> are addressing technical debt ({link_to(Dashboard.QueueTechDebt, "namely these", "review_dashboard.html")}), and</li>
-    <li><strong>{queue_new}</strong> appeared on the review queue within the last two weeks.</li><!-- TODO: add! -->
+    <li><strong>{len(recent_on_queue)}</strong> appeared on the review queue within the last two weeks.</li>
   </ul>
   <p>On the other hand, {link_to(Dashboard.QueueStaleUnassigned, f"<strong>{unassigned}</strong> PRs")} are unassigned and have not been updated for two weeks, and {link_to(Dashboard.QueueStaleAssigned, f"<strong>{stale_assigned}</strong> PRs")} are assigned, without recent review activity.</p>"""
     review_heading = "\n  ".join(review_heading.splitlines())

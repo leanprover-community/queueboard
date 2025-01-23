@@ -246,6 +246,22 @@ def total_queue_time_inner(now: datetime, metadata: Metadata) -> Tuple[Tuple[tim
     return total_time_in_status(metadata.created_at, now, initial_state, metadata.events, PRStatus.AwaitingReview)
 
 
+# Determine the first point in time a PR was on the review queue; return None if this never happened so far.
+def first_on_queue(metadata) -> datetime | None:
+    # We assume the PR was created in passing state without labels.
+    initial_state = PRState([], CIStatus.Pass, metadata.created_as_draft, metadata.from_fork)
+    evolution_status = determine_status_changes(metadata.created_at, initial_state, metadata.events)
+    # The first state in |evolution_status| is the initial state.
+    # If a label was added "immediately", we do not count this state.
+    if len(evolution_status) > 1:
+        if evolution_status[0][0] == evolution_status[1][0]:
+            _ = evolution_status.pop(0)
+    for (time, status) in evolution_status:
+        if status == PRStatus.AwaitingReview:
+            return time
+    return None
+
+
 # Return the total time since this PR's last status change,
 # as a tuple (absolute time, time since now).
 def last_status_update(now: datetime, metadata: Metadata) -> Tuple[datetime, relativedelta, PRStatus]:
@@ -338,6 +354,10 @@ def total_queue_time(data: dict) -> Tuple[Tuple[timedelta, relativedelta], str]:
     return total_queue_time_inner(datetime.now(timezone.utc), metadata)
 
 
+def first_time_on_queue(data: dict) -> datetime | None:
+    metadata = _process_data(data)
+    return first_on_queue(metadata)
+
 ######### Some basic unit tests ##########
 
 # Helper methods to reduce boilerplate
@@ -398,7 +418,7 @@ def test_determine_state_changes() -> None:
     check([Event.add_remove_labels(dummy, ["WIP"], ["WIP"])], PRState.with_labels([]))
 
 
-def smoketest() -> None:
+def test_total_queue_time() -> None:
     def check_basic(created: datetime, now: datetime, events: List[Event], expected: relativedelta) -> None:
         ((_, wait), _) = total_queue_time_inner(now, Metadata(created, events, False, False))
         assert wait == expected, f"basic test failed: expected total time of {expected} in review, obtained {wait} instead"
@@ -500,7 +520,7 @@ def smoketest() -> None:
     check_with_initial(sep(30), Metadata(sep(1), events, False, False), relativedelta(days=7))
 
 
-# Some basic tests for last_status_update.
+# Some basic tests for last_status_update and first time on the queue.
 def test_last_status_update():
     def check_with_initial(now: datetime, state: Metadata, expected: Tuple[datetime, relativedelta, PRStatus]) -> None:
         (absolute, relative, last_status) = last_status_update(now, state)
@@ -509,27 +529,42 @@ def test_last_status_update():
         assert last_status == expected[2], f"expected last PR status of {expected[2]}, obtained {last_status} instead"
     def check_basic(created: datetime, now: datetime, events: List[Event], expected: Tuple[datetime, relativedelta, PRStatus]) -> None:
         check_with_initial(now, Metadata(created, events, False, False), expected)
+    def check_first(metadata: Metadata, expected: datetime) -> None:
+        actual = first_on_queue(metadata)
+        assert actual == expected, f"expect first time on the queue of {expected}, obtained {actual} instead"
+    def check_first_basic(created: datetime, events: List[Event], expected: datetime) -> None:
+        check_first(Metadata(created, events, False, False), expected)
 
     events = [
         Event.add_label(sep(10), 'blocked-by-other-PR'), Event.add_label(sep(13), 'new-contributor'), Event.add_label(sep(14), 'WIP'), Event.add_label(sep(16), 'AIMS'), Event.remove_label(sep(16), 'new-contributor'), Event.remove_label(sep(18), 'AIMS')
     ]
     check_basic(sep(1), sep(20), events, (sep(18), relativedelta(days=2), PRStatus.Blocked))
+    # The PR is created and stays without labels for 9 days.
+    check_first_basic(sep(1), events, sep(1))
+    # Now, it is created and labelled at the same time: we do not regard the initial "0 seconds" as ready for review.
+    check_first_basic(sep(10), events, None)
+
     events = [
         Event.add_label(sep(10), 'blocked-by-other-PR'), Event.add_label(sep(13), 'new-contributor'), Event.add_label(sep(14), 'WIP'), Event.add_label(sep(16), 'AIMS'), Event.remove_label(sep(16), 'new-contributor'), Event.remove_label(sep(19), 'blocked-by-other-PR')
     ]
     check_basic(sep(1), sep(22), events, (sep(19), relativedelta(days=3), PRStatus.NotReady))
+    check_first_basic(sep(1), events, sep(1))
+    check_first_basic(sep(10), events, None)
     events = [
         Event.add_label(sep(10), 'blocked-by-other-PR'), Event.add_label(sep(13), 'new-contributor'), Event.add_label(sep(14), 'WIP'), Event.add_label(sep(16), 'AIMS'), Event.remove_label(sep(16), 'new-contributor'), Event.remove_label(sep(19), 'blocked-by-other-PR'), Event.remove_label(sep(20), 'WIP')
     ]
     check_basic(sep(1), sep(24), events, (sep(20), relativedelta(days=4), PRStatus.AwaitingReview))
+    check_first_basic(sep(10), events, sep(20))
 
     # Adapted from PR 16666: created in draft state.
-    events = [Event.add_label(sep(10), 't-meta'), Event.undraft(sep(10)), Event.add_label(sep(25), 'ready-to-merge')]
+    events = [Event.add_label(sep(10), 't-meta'), Event.undraft(sep(11)), Event.add_label(sep(25), 'ready-to-merge')]
     check_basic(sep(1), sep(30), events, (sep(25), relativedelta(days=5), PRStatus.AwaitingBors))
     check_with_initial(sep(28), Metadata(sep(1), events, True, False), (sep(25), relativedelta(days=3), PRStatus.AwaitingBors))
+    check_first_basic(sep(9), events, sep(9))
 
     events = [Event.draft(sep(3)), Event.add_label(sep(10), 't-meta'), Event.undraft(sep(10)), Event.draft(sep(15)), Event.add_label(sep(29), 'WIP-to-merge')]
     check_with_initial(sep(30), Metadata(sep(1), events, False, False), (sep(29), relativedelta(days=1), PRStatus.NotReady))
+    check_first_basic(sep(3), events, sep(10))
     # Minimised from PR 14269
     events = [
         Event.add_label(june(29), 'awaiting-review-DONT-USE'),
@@ -539,6 +574,7 @@ def test_last_status_update():
         Event.remove_label(july(1), 'awaiting-author'),
     ]
     check_with_initial(sep(30), Metadata(june(28), events, False, False), (july(1), relativedelta(months=2, days=29), PRStatus.AwaitingAuthor))
+    check_first_basic(june(29), events, june(29))
     events = [
         Event.add_label(june(29), 'awaiting-review-DONT-USE'),
         Event.add_label(june(29), 'new-contributor'),
@@ -546,6 +582,7 @@ def test_last_status_update():
         Event.add_remove_labels(july(1), ['awaiting-author'], ["awaiting-author"]),
     ]
     check_with_initial(sep(30), Metadata(june(28), events, False, False), (july(1), relativedelta(months=2, days=29), PRStatus.AwaitingAuthor))
+    check_first_basic(june(28), events, june(29))
 
     # This one illustrates a subtle change of labels: removing the label on July 13 means this is awaiting review.
     events = [
@@ -559,6 +596,7 @@ def test_last_status_update():
         Event.add_label(july(2), 'WIP'), Event.remove_label(july(13), 'WIP'),
     ]
     check_with_initial(aug(30), Metadata(june(28), events, False, False), (july(13), relativedelta(months=1, days=17), PRStatus.AwaitingReview))
+    check_first_basic(june(28), events, june(29))
 
     # This one illustrates a subtle change of labels: removing the label on July 13 means this is awaiting review.
     # Doing so a month later would have triggered my algorithm later.
@@ -567,7 +605,8 @@ def test_last_status_update():
         Event.add_label(june(29), 'awaiting-review-DONT-USE'),
         Event.add_label(july(2), 'WIP'), Event.remove_label(aug(13), 'WIP'),
     ]
-    check_with_initial(aug(30), Metadata(june(28), events, False, False), (aug(13), relativedelta(days=17), PRStatus.AwaitingReview))
+    check_with_initial(aug(30), Metadata(june(27), events, False, False), (aug(13), relativedelta(days=17), PRStatus.AwaitingReview))
+    check_first_basic(june(27), events, june(29))
 
     events = [
         Event.add_label(june(29), 'awaiting-review-DONT-USE'),
@@ -581,6 +620,7 @@ def test_last_status_update():
         Event.add_label(july(13), 'help-wanted'), Event.add_label(aug(8), 'awaiting-author'),
     ]
     check_with_initial(aug(30), Metadata(june(28), events, False, False), (aug(8), relativedelta(days=22), PRStatus.HelpWanted))
+    check_first_basic(june(28), events, june(29))
 
     events = [
         Event.add_label(june(29), 'awaiting-review-DONT-USE'),
@@ -594,9 +634,10 @@ def test_last_status_update():
         Event.remove_label(sep(20), 'help-wanted'), Event.add_label(sep(22), 'awaiting-author'), Event.remove_label(sep(23), 'awaiting-author')
     ]
     check_with_initial(sep(30), Metadata(june(28), events, False, False), (sep(23), relativedelta(days=7), PRStatus.AwaitingReview))
+    check_first_basic(june(28), events, june(29))
 
 
 if __name__ == '__main__':
     test_determine_state_changes()
-    smoketest()
+    test_total_queue_time()
     test_last_status_update()
