@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from os import listdir, path
 from typing import List
 
+from state_evolution import first_time_on_queue, last_real_update, total_queue_time
 from util import eprint, parse_json_file
 
 
@@ -157,6 +158,35 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
         if num_commits == 100 and state == "open":
             if number not in do_not_redownload:
                 print(f"process.py: {state} PR {number} has exactly 100 commits; please double-check if this data is complete", file=sys.stderr)
+
+        # Compute information about this PR's real status changes, using the code in state_evolution.py.
+
+        # These particular PRs have one label noted as removed several times in a row.
+        # This trips up my algorithm. Omit the analysis for now. FIXME: make smarter?
+        if number not in [10823, 11385, 12268, 12488, 12561, 13248, 13149, 13270]:
+            # XXX: when is this ever missing? does this happen?
+            validity_status = "incomplete" if num_events == 250 else "valid"
+
+            first_on_queue = first_time_on_queue(pr_data)
+            aggregate_data["first_on_queue"] = {"status": validity_status, "date": first_on_queue}
+            (time, delta, current_status) = last_real_update(pr_data)
+            d = {
+                "status": validity_status,
+                "time": time,
+                "delta": delta,
+                "current_status": current_status,
+            }
+            aggregate_data["last_status_change"] = d
+            ((value_td, value_rd), explanation) = total_queue_time(pr_data)
+            d = {
+                "status": validity_status,
+                "value_td": value_td,
+                "value_rd": value_rd,
+                "explanation": str,
+            }
+            aggregate_data["total_queue_time"] = d
+            # TODO: determine if missing data (happens sometimes), incomplete data (events/commits etc.), or valid
+            # FUTURE: cache one level deeper, by computing metadata once (not three times)
     return aggregate_data
 
 

@@ -15,7 +15,7 @@ from dateutil import parser, relativedelta
 
 from classify_pr_state import (CIStatus, PRState, PRStatus,
                                determine_PR_status, label_categorisation_rules)
-from state_evolution import _process_data, first_time_on_queue, last_real_update, total_queue_time
+from state_evolution import first_time_on_queue, last_real_update, total_queue_time
 from util import my_assert_eq, format_delta
 
 
@@ -197,6 +197,23 @@ class BasicPRInformation(NamedTuple):
     updatedAt: datetime
 
 
+class xxxStatus(Enum):
+    Valid = auto()
+    Incomplete = auto()
+    Missing = auto()
+
+class LastStatusChange(NamedTuple):
+    status: xxxStatus
+    time: datetime
+    delta: relativedelta
+    current_status: PRStatus
+
+class TotalQueueTime(NamedTuple):
+    status: xxxStatus
+    value_dt: datetime
+    value_rd: relativedelta
+    explanation: str
+
 # All information about a single PR contained in `open_pr_info.json`.
 # Keep this in sync with the actual file, extending this once new data is added!
 class AggregatePRInfo(NamedTuple):
@@ -225,6 +242,12 @@ class AggregatePRInfo(NamedTuple):
     assignees: List[str]
     # This field is *not* present if there is only "basic" information about this PR
     number_total_comments: int | None
+    # The following fields are not present when there is only basic information about this PR.
+    # They are also missing if a PR's events data is invalid (because github returned bogus results).
+    # Otherwise, they include their validity status ("missing", "incomplete", "valid").
+    last_status_change: LastStatusChange | None
+    first_on_queue: Tuple[xxxStatus, datetime] | None
+    total_queue_time: TotalQueueTime | None
 
 # Missing aggregate information will be replaced by this default item.
 PLACEHOLDER_AGGREGATE_INFO = AggregatePRInfo(
