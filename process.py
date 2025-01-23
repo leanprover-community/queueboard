@@ -328,7 +328,7 @@ def main() -> None:
         print(json.dumps(just_open_prs, indent=4), file=f)
     with open(path.join("processed_data", "assignment_data.json"), "w") as f:
         print(json.dumps(assignment_data, indent=4), file=f)
-    with open(path.join("processed_data", "infinity_cosmus_data.json"), "w") as f:
+    with open(path.join("processed_data", "infinity_cosmos_data.json"), "w") as f:
         print(json.dumps(infty_cosmos_data, indent=4), file=f)
 
 
