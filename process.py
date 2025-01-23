@@ -12,11 +12,13 @@ we list
 import json
 import sys
 from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from os import listdir, path
 from typing import List
 
+from classify_pr_state import PRStatus
 from state_evolution import first_time_on_queue, last_real_update, total_queue_time
-from util import eprint, parse_json_file
+from util import eprint, parse_json_file, relativedelta_tryParse, timedelta_tryParse, timedelta_tostr
 
 
 # Determine a PR's CI status: the return value is one of "pass", "fail", "fail-inessential" and "running".
@@ -170,25 +172,31 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
             6595, # TODO: investigate more closely!
         ]
         if number not in bad_prs:
-            # XXX: when is this ever missing? does this happen?
+            # TODO: when is this ever missing? does this happen?
             validity_status = "incomplete" if num_events == 250 else "valid"
 
+            # Match the format produced by github, and expected by all the code.
+            # Produces output like "2024-07-15T21:08:42Z".
+            time_format = "%Y-%m-%dT%H:%M:%SZ"
             first_on_queue = first_time_on_queue(pr_data)
-            aggregate_data["first_on_queue"] = {"status": validity_status, "date": first_on_queue}
+            stringified = None if first_on_queue is None else datetime.strftime(first_on_queue, time_format)
+            aggregate_data["first_on_queue"] = {"status": validity_status, "date": stringified}
             (time, delta, current_status) = last_real_update(pr_data)
+            assert relativedelta_tryParse(repr(delta)) == delta
             d = {
                 "status": validity_status,
-                "time": time,
-                "delta": delta,
-                "current_status": current_status,
+                "time": datetime.strftime(time, time_format),
+                "delta": repr(delta),
+                "current_status": PRStatus.to_str(current_status),
             }
             aggregate_data["last_status_change"] = d
             ((value_td, value_rd), explanation) = total_queue_time(pr_data)
+            assert relativedelta_tryParse(repr(value_rd)) == value_rd
             d = {
                 "status": validity_status,
-                "value_td": value_td,
-                "value_rd": value_rd,
-                "explanation": str,
+                "value_td": timedelta_tostr(value_td),
+                "value_rd": repr(value_rd),
+                "explanation": explanation,
             }
             aggregate_data["total_queue_time"] = d
             # TODO: determine if missing data (happens sometimes), incomplete data (events/commits etc.), or valid

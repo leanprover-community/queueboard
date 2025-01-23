@@ -128,6 +128,42 @@ class PRStatus(Enum):
     Contradictory = auto()
     """PR labels are contradictory: we cannot determine easily what this PR's status is"""
 
+    # Keep this in sync with the definition above.
+    @staticmethod
+    def to_str(self) -> str:
+        return {
+            PRStatus.FromFork: "FromFork",
+            PRStatus.NotReady: "NotReady",
+            PRStatus.Blocked: "Blocked",
+            PRStatus.AwaitingReview: "AwaitingReview",
+            PRStatus.HelpWanted: "HelpWanted",
+            PRStatus.AwaitingAuthor: "AwaitingAuthor",
+            PRStatus.AwaitingDecision: "AwaitingDecision",
+            PRStatus.MergeConflict: "MergeConflict",
+            PRStatus.Delegated: "Delegated",
+            PRStatus.AwaitingBors: "AwaitingBors",
+            PRStatus.Closed: "Closed",
+            PRStatus.Contradictory: "Contradictory",
+        }[self]
+
+    # Keep this in sync with to_str definition above.
+    @staticmethod
+    def tryFrom_str(value: str):  #-> PRStatus | None:
+        return {
+            "FromFork": PRStatus.FromFork,
+            "NotReady": PRStatus.NotReady,
+            "Blocked":PRStatus.Blocked,
+            "AwaitingReview":PRStatus.AwaitingReview,
+            "HelpWanted":PRStatus.HelpWanted,
+            "AwaitingAuthor":PRStatus.AwaitingAuthor,
+            "AwaitingDecision":PRStatus.AwaitingDecision,
+            "MergeConflict":PRStatus.MergeConflict,
+            "Delegated":PRStatus.Delegated,
+            "AwaitingBors":PRStatus.AwaitingBors,
+            "Closed":PRStatus.Closed,
+            "Contradictory":PRStatus.Contradictory
+        }.get(value)
+
 
 def label_to_prstatus(label: LabelKind) -> PRStatus:
     return {

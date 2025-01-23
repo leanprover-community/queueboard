@@ -12,6 +12,7 @@ import json
 import sys
 from typing import List
 from dateutil import relativedelta
+from datetime import timedelta
 
 
 def eprint(val):
@@ -63,3 +64,41 @@ def format_delta(delta: relativedelta.relativedelta) -> str:
         return pluralize(delta.minutes, "minute")
     else:
         return pluralize(delta.seconds, "second")
+
+# We consciously do not use the repr() instance on timedelta, as this does not round-trip:
+# it displays everything with hours and minutes, even when the interval representation might differ.
+#
+# NB. This representation ignores microseconds, as we don't need them.
+def timedelta_tostr(delta: timedelta) -> str:
+    # This is not producing zero-padded outputs; that is fine.
+    res = f"timedelta(days={delta.days}, seconds={delta.seconds})"
+    back = timedelta_tryParse(res)
+    assert back == timedelta(days=delta.days, seconds=delta.seconds), f"mismatch for {delta}, stringified {res} gets re-parsed as {back}"
+    return res
+
+# Inverse to timedelta_tryParse.
+def timedelta_tryParse(value: str) -> timedelta | None:
+    if not (value.startswith("timedelta(") and value.endswith(")")):
+        print(f"bad input: {value}")
+        return None
+    inner = value[len("timedelta("):][:-1]
+    attrs = {}
+    parts = [p for p in inner.split(", ") if p]
+    for part in parts:
+        (attr, val) = part.split('=')
+        attrs[attr] = int(val)
+    return timedelta(**attrs)
+
+# Expects input from |value|'s repr instance, i.e. of the form
+# "relativedelta(days=2, hours=4)".
+def relativedelta_tryParse(value: str) -> relativedelta.relativedelta | None:
+    if not (value.startswith("relativedelta(") and value.endswith(")")):
+        print(f"bad input: {value}")
+        return None
+    inner = value[len("relativedelta("):][:-1]
+    attrs = {}
+    parts = [p for p in inner.split(", ") if p]
+    for part in parts:
+        (attr, val) = part.split('=')
+        attrs[attr] = int(val)
+    return relativedelta.relativedelta(**attrs)
