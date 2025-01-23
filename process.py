@@ -182,6 +182,10 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
             # Match the format produced by github, and expected by all the code.
             # Produces output like "2024-07-15T21:08:42Z".
             time_format = "%Y-%m-%dT%H:%M:%SZ"
+
+            # I *could* cache the computed metadata (through _parse_data),
+            # computing it only once and not thrice per PR. However,
+            # this does not seem to make a big performance difference.
             first_on_queue = first_time_on_queue(pr_data)
             stringified = None if first_on_queue is None else datetime.strftime(first_on_queue, time_format)
             aggregate_data["first_on_queue"] = {"status": validity_status, "date": stringified}
@@ -203,7 +207,6 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
                 "explanation": explanation,
             }
             aggregate_data["total_queue_time"] = d
-            # FUTURE: I could cache these results one level deeper, by computing metadata once (not three times)
     return aggregate_data
 
 
