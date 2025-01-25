@@ -11,7 +11,7 @@
         },
         "autoMergeRequest": null,
         "baseRefName": "master",
-        "body": "---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nFor details on the \"pull request lifecycle\" in mathlib, please see:\r\nhttps://leanprover-community.github.io/contribute/index.html\r\n\r\nIn particular, note that most reviewers will only notice your PR\r\nif it passes the continuous integration checks.\r\nPlease ask for help on https://leanprover.zulipchat.com if needed.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nIf you are moving or deleting declarations, please include these lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nMoves:\r\n- Vector.* -> List.Vector.*\r\n- ...\r\n\r\nDeletions:\r\n- Nat.bit1_add_bit1\r\n- ...\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "body": "---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nFor details on the \"pull request lifecycle\" in mathlib, please see:\r\nhttps://leanprover-community.github.io/contribute/index.html\r\n\r\nIn particular, note that most reviewers will only notice your PR\r\nif it passes the continuous integration checks.\r\nPlease ask for help on https://leanprover.zulipchat.com if needed.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nIf you are moving or deleting declarations, please include these lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nMoves:\r\n- Vector.* -> List.Vector.*\r\n- ...\r\n\r\nDeletions:\r\n- Nat.bit1_add_bit1\r\n- ...\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n\r\nThis PR looks a bit more chaotic than it is because I moved some instances around and then lake shake got very excited (over half of the files changed are just changes to imports). Here is an explanation of what is going on here.\r\n\r\nIn fact I realise I'm doing two things at once in this PR. Maybe I will try opening another one. The notes below are for myself.\r\n\r\nThe basic idea is that in mathlib we have several instances where if a monoid acts on something, then a submonoid of that monoid, when promoted to a type, also acts on the same thing. I am in a situation where I have monoids and rings acting on continuously on objects, and I wanted submonoids and subrings to also act continuously, so to save myself having to write two definitions rather than one I wanted to prove a ContinuousSMul result about `SubmonoidClass`. However it turned out that all of our actions were defined for submonoids and subsemirings etc rather than for submonoidclasses. So here I add the new more general actions. This involved a certain amount of moving things around and I got to do some import reduction, thus making the PR look a lot more noisy than it is.\r\n\r\n\r\nA basic example of the change I'm making here is that the instance\r\n```lean\r\ninstance smul [SMul M' α] (S : Submonoid M') : SMul S α := ...\r\n```\r\n\r\nis now generalized to the instance\r\n```\r\nvariable (R A : Type*) [SMul R A] (S : Type*) [SetLike S R] (s : S)\r\n\r\n@[to_additive]\r\ninstance : SMul s A := ...\r\n```\r\n\r\nIt turns out that many of the instances I was generalizing were explicitly named because they are explicitly used in mathlib, so I have kept all the original instances and proved them with `inferInstance`. Note that https://github.com/leanprover-community/mathlib4/pull/11304 tried to take things further and delete all the now-redundant instances, and this caused slowdowns in mathlib, so I've decided just to leave everything there. It might be an interesting experiment to run TryAtEachStep on mathlib with the tactic `infer_instance` before and after this PR.\r\n\r\nI would have liked to just add the more generalized instances directly above where the original instances were in mathlib but this was not always possible because of imports...actually...I'm no longer sure this is true. \r\n\r\n",
         "changedFiles": 14,
         "closed": false,
         "closedAt": null,
@@ -2213,8 +2213,8 @@
                         "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAIbAp6tA",
                         "name": "Build",
-                        "conclusion": null,
-                        "status": "IN_PROGRESS",
+                        "conclusion": "FAILURE",
+                        "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12968888019/job/36172364468"
                       },
                       {
@@ -2240,6 +2240,14 @@
                         "conclusion": "SKIPPED",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12968888017/job/36172364538"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIbBBnzg",
+                        "name": "Post-CI job",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12968888019/job/36172752846"
                       },
                       {
                         "__typename": "CheckRun",
@@ -2690,8 +2698,8 @@
                 "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAIbAp6tA",
                 "name": "Build",
-                "conclusion": null,
-                "status": "IN_PROGRESS",
+                "conclusion": "FAILURE",
+                "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12968888019/job/36172364468"
               },
               {
@@ -2720,6 +2728,14 @@
               },
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIbBBnzg",
+                "name": "Post-CI job",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12968888019/job/36172752846"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAIbAqDig",
                 "name": "New Contributor Check",
                 "conclusion": "NEUTRAL",
@@ -2738,7 +2754,7 @@
           }
         },
         "title": "feat(Data/SetLike/SMul): extend scalar action to setlike subterms",
-        "updatedAt": "2025-01-25T22:18:51Z",
+        "updatedAt": "2025-01-25T22:44:46Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/20983",
         "timelineItems": {
           "nodes": [
