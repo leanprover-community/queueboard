@@ -53,6 +53,30 @@
               "author": {
                 "login": "github-actions"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6b0NMf",
+              "body": "Showing the range seems quite strange here; do we want to link it in a widget instead?",
+              "createdAt": "2025-01-26T00:44:09Z",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6b0NTx",
+              "body": "In fact, since the declaration name is already linked, I think the position information is pretty much useless to the reader. The module information is a good idea, for people wondering which `import` it came from though.",
+              "createdAt": "2025-01-26T00:46:08Z",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6b0OZ8",
+              "body": "Here's a proposed alternative format:\r\n```lean\r\nelab \"#find_syntax \" id:str d:(&\" approx\")? : command => do\r\n  let prsr : Array Expr := #[.const ``ParserDescr [], .const ``TrailingParserDescr []]\r\n  let mut symbs : Std.HashSet (Name × Array Expr) := {}\r\n  -- We scan the environment in search of \"parsers\" whose name is not internal and that\r\n  -- contain some `symbol` information and we store them in `symbs`\r\n  for (declName, cinfo) in (← getEnv).constants do\r\n    if prsr.contains cinfo.type && cinfo.hasValue then\r\n      let ls := extractSymbols cinfo.value!\r\n      if !declName.isInternal && !ls.isEmpty then symbs := symbs.insert (declName, ls)\r\n  -- From among the parsers in `symbs`, we extract the ones whose `symbols` contain the input `str`\r\n  let mut match_results : NameMap (Array (Name × String)) := {}\r\n  for (nm, ar) in symbs.toList do\r\n    let rem : String := \" _ \".intercalate (ar.map litToString).toList\r\n    -- If either the name of the parser or the regenerated syntax stub contains the input string,\r\n    -- then we include an entry into the final message.\r\n    if 2 ≤ (nm.toString.splitOn id.getString).length || 2 ≤ (rem.splitOn id.getString).length then\r\n      let some mod := ← findModuleOf? nm | pure default\r\n      match_results := match_results.insert mod <| (match_results.findD mod #[]).push (nm, rem.trim)\r\n  -- We sort the messages to produce a more stable output.\r\n  -- let msgsToString ← msgs.mapM (·.toString)\r\n  let mods := (match_results.toList).map fun (mod, msgs) =>\r\n    m!\"In `{mod}`:\" ++ (MessageData.nest 2 <|\r\n      m!\"\".joinSep <| msgs.toList.map fun (decl, patt) =>\r\n        m!\"\\n{MessageData.ofConstName decl}: '{patt}'\")\r\n  let uses := (match_results.toList.map fun (_, msgs) => msgs.size).sum\r\n  let numSymbs := if d.isSome then s!\"over {(symbs.size / 100) * 100}\" else s!\"{symbs.size}\"\r\n  let head := m!\"Found {uses} use{if uses == 1 then \"\" else \"s\"} \\\r\n                among {numSymbs} syntax declarations\"\r\n  logInfo <| head ++ m!\"\\n\" ++ m!\"\\n\\n\".joinSep mods\r\n```",
+              "createdAt": "2025-01-26T01:06:36Z",
+              "author": {
+                "login": "eric-wieser"
+              }
             }
           ]
         },
@@ -381,6 +405,14 @@
                     "nodes": [
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIbCsoYg",
+                        "name": "set_pr_emoji",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969894669/job/36174506082"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAIZbUNMg",
                         "name": "Lint style (fork)",
                         "conclusion": "SKIPPED",
@@ -389,11 +421,35 @@
                       },
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIbCsoVg",
+                        "name": "set_pr_emoji",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969894668/job/36174506070"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAIZbWplA",
                         "name": "Add ready-to-merge or delegated label",
                         "conclusion": "SUCCESS",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12931686096/job/36066142612"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIbCrX0Q",
+                        "name": "Add ready-to-merge or delegated label",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969884930/job/36174485457"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIbCsM3g",
+                        "name": "Add ready-to-merge or delegated label",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969891327/job/36174499038"
                       },
                       {
                         "__typename": "CheckRun",
@@ -413,6 +469,22 @@
                       },
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIbCrX5g",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969884932/job/36174485478"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIbCsMsw",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969891329/job/36174498995"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAIZbUPVQ",
                         "name": "post-or-update-summary-comment",
                         "conclusion": "SUCCESS",
@@ -426,6 +498,22 @@
                         "conclusion": "SUCCESS",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12931686089/job/36066143092"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIbCrYKw",
+                        "name": "Fix style issues from lint",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969884929/job/36174485547"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIbCsNFQ",
+                        "name": "Fix style issues from lint",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969891333/job/36174499093"
                       },
                       {
                         "__typename": "CheckRun",
@@ -539,14 +627,14 @@
         "labels": {
           "nodes": [
             {
+              "id": "LA_kwDOFcwZ1c7P265b",
+              "color": "f9d0c4",
+              "name": "awaiting-author"
+            },
+            {
               "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
               "color": "33DBEC",
               "name": "t-meta"
-            },
-            {
-              "id": "LA_kwDOFcwZ1c8AAAABh1mAHA",
-              "color": "6BEB7E",
-              "name": "maintainer-merge"
             }
           ]
         },
@@ -560,6 +648,15 @@
                 "login": "grunweg"
               },
               "submittedAt": "2025-01-23T08:35:46Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6ZbdBW",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2025-01-26T00:47:59Z"
             },
             {
               "id": "PRR_kwDOFcwZ1c6ZLNkH",
@@ -581,7 +678,7 @@
         "milestone": null,
         "number": 20908,
         "potentialMergeCommit": {
-          "oid": "f8ebb63c53f9a7ac67e31daf926f8103236c1425"
+          "oid": "d2aeb42986160d639f1f7334ee44051f0f497d6b"
         },
         "projectCards": {
           "nodes": []
@@ -699,6 +796,24 @@
                 "login": "adomani"
               },
               "submittedAt": "2025-01-23T14:47:11Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6Zbc_x",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2025-01-26T00:47:08Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6ZbdBW",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2025-01-26T00:47:59Z"
             }
           ]
         },
@@ -771,6 +886,34 @@
                   }
                 ]
               }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5zA-KH",
+                    "body": "Perhaps more obvious as\r\n```suggestion\r\n      msgs := msgs.push <|\r\n        m!\"{.ofConstName nm}: defined in '{mod}'\\n\\\r\n```\r\nwhich makes it clearer these print on the same line",
+                    "createdAt": "2025-01-26T00:47:08Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5zA-La",
+                    "body": "Another reason not to include these numbers: these tests are going to be very fragile with respect to Lean updates",
+                    "createdAt": "2025-01-26T00:47:59Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
             }
           ]
         },
@@ -788,6 +931,10 @@
               "login": "grunweg"
             },
             {
+              "id": "MDQ6VXNlcjQyNTI2MA==",
+              "login": "eric-wieser"
+            },
+            {
               "id": "MDQ6VXNlcjIzNTMwNw==",
               "login": "kmill"
             }
@@ -799,6 +946,14 @@
             "nodes": [
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIbCsoYg",
+                "name": "set_pr_emoji",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969894669/job/36174506082"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAIZbUNMg",
                 "name": "Lint style (fork)",
                 "conclusion": "SKIPPED",
@@ -807,11 +962,35 @@
               },
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIbCsoVg",
+                "name": "set_pr_emoji",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969894668/job/36174506070"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAIZbWplA",
                 "name": "Add ready-to-merge or delegated label",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12931686096/job/36066142612"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIbCrX0Q",
+                "name": "Add ready-to-merge or delegated label",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969884930/job/36174485457"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIbCsM3g",
+                "name": "Add ready-to-merge or delegated label",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969891327/job/36174499038"
               },
               {
                 "__typename": "CheckRun",
@@ -831,6 +1010,22 @@
               },
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIbCrX5g",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969884932/job/36174485478"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIbCsMsw",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969891329/job/36174498995"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAIZbUPVQ",
                 "name": "post-or-update-summary-comment",
                 "conclusion": "SUCCESS",
@@ -844,6 +1039,22 @@
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12931686089/job/36066143092"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIbCrYKw",
+                "name": "Fix style issues from lint",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969884929/job/36174485547"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIbCsNFQ",
+                "name": "Fix style issues from lint",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12969891333/job/36174499093"
               },
               {
                 "__typename": "CheckRun",
@@ -921,7 +1132,7 @@
           }
         },
         "title": "feat: show module name and range in `#find_syntax`",
-        "updatedAt": "2025-01-23T14:47:26Z",
+        "updatedAt": "2025-01-26T01:06:37Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/20908",
         "timelineItems": {
           "nodes": [
@@ -1014,6 +1225,72 @@
               "commit": {
                 "oid": "88efc6b313e2fcdfe136802e15334afa7715fa7f"
               }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6b0NMf",
+              "createdAt": "2025-01-26T00:44:09Z",
+              "body": "Showing the range seems quite strange here; do we want to link it in a widget instead?",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6b0NTx",
+              "createdAt": "2025-01-26T00:46:08Z",
+              "body": "In fact, since the declaration name is already linked, I think the position information is pretty much useless to the reader. The module information is a good idea, for people wondering which `import` it came from though.",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6Zbc_x",
+              "createdAt": "2025-01-26T00:47:08Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6ZbdBW",
+              "createdAt": "2025-01-26T00:47:59Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c6m-1GzzwAAAAO9wtS_",
+              "createdAt": "2025-01-26T00:48:26Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABh1mAHA",
+                "name": "maintainer-merge"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c6m-1GzzwAAAAO9wtTA",
+              "createdAt": "2025-01-26T00:48:26Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6b0OZ8",
+              "createdAt": "2025-01-26T01:06:36Z",
+              "body": "Here's a proposed alternative format:\r\n```lean\r\nelab \"#find_syntax \" id:str d:(&\" approx\")? : command => do\r\n  let prsr : Array Expr := #[.const ``ParserDescr [], .const ``TrailingParserDescr []]\r\n  let mut symbs : Std.HashSet (Name × Array Expr) := {}\r\n  -- We scan the environment in search of \"parsers\" whose name is not internal and that\r\n  -- contain some `symbol` information and we store them in `symbs`\r\n  for (declName, cinfo) in (← getEnv).constants do\r\n    if prsr.contains cinfo.type && cinfo.hasValue then\r\n      let ls := extractSymbols cinfo.value!\r\n      if !declName.isInternal && !ls.isEmpty then symbs := symbs.insert (declName, ls)\r\n  -- From among the parsers in `symbs`, we extract the ones whose `symbols` contain the input `str`\r\n  let mut match_results : NameMap (Array (Name × String)) := {}\r\n  for (nm, ar) in symbs.toList do\r\n    let rem : String := \" _ \".intercalate (ar.map litToString).toList\r\n    -- If either the name of the parser or the regenerated syntax stub contains the input string,\r\n    -- then we include an entry into the final message.\r\n    if 2 ≤ (nm.toString.splitOn id.getString).length || 2 ≤ (rem.splitOn id.getString).length then\r\n      let some mod := ← findModuleOf? nm | pure default\r\n      match_results := match_results.insert mod <| (match_results.findD mod #[]).push (nm, rem.trim)\r\n  -- We sort the messages to produce a more stable output.\r\n  -- let msgsToString ← msgs.mapM (·.toString)\r\n  let mods := (match_results.toList).map fun (mod, msgs) =>\r\n    m!\"In `{mod}`:\" ++ (MessageData.nest 2 <|\r\n      m!\"\".joinSep <| msgs.toList.map fun (decl, patt) =>\r\n        m!\"\\n{MessageData.ofConstName decl}: '{patt}'\")\r\n  let uses := (match_results.toList.map fun (_, msgs) => msgs.size).sum\r\n  let numSymbs := if d.isSome then s!\"over {(symbs.size / 100) * 100}\" else s!\"{symbs.size}\"\r\n  let head := m!\"Found {uses} use{if uses == 1 then \"\" else \"s\"} \\\r\n                among {numSymbs} syntax declarations\"\r\n  logInfo <| head ++ m!\"\\n\" ++ m!\"\\n\\n\".joinSep mods\r\n```",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "UnsubscribedEvent"
             }
           ]
         }
