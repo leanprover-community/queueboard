@@ -52,6 +52,14 @@
                       },
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIcCu_gQ",
+                        "name": "Add ready-to-merge or delegated label",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12995284735/job/36241653633"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAIaCVumQ",
                         "name": "Add topic label",
                         "conclusion": "SUCCESS",
@@ -68,11 +76,27 @@
                       },
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIcCu-1w",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12995284723/job/36241653463"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAIaCVvWw",
                         "name": "post-or-update-summary-comment",
                         "conclusion": "SUCCESS",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12945074596/job/36107022171"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIcCu_Pw",
+                        "name": "Fix style issues from lint",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12995284725/job/36241653567"
                       },
                       {
                         "__typename": "CheckRun",
@@ -188,7 +212,17 @@
           ]
         },
         "latestReviews": {
-          "nodes": []
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c6ZjFLf",
+              "body": "Thanks for this nice PR! I'm really happy to see that the \"MeromorphicAt\" stuff is turning out to be useful. I've suggested a few ways the proofs can be streamlined.",
+              "state": "COMMENTED",
+              "author": {
+                "login": "loefflerd"
+              },
+              "submittedAt": "2025-01-27T18:02:03Z"
+            }
+          ]
         },
         "maintainerCanModify": false,
         "mergeCommit": null,
@@ -199,7 +233,7 @@
         "milestone": null,
         "number": 21015,
         "potentialMergeCommit": {
-          "oid": "a97cf4031780e1a9a0393c9034be37c5e2a3c008"
+          "oid": "118ba32c878ff75ef1fdc86fb9f7ddb0fd9f1640"
         },
         "projectCards": {
           "nodes": []
@@ -256,20 +290,66 @@
         ],
         "reviewDecision": null,
         "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
           "nodes": [
             {
-              "requestedReviewer": {
-                "id": "MDQ6VXNlcjM0Mzk2ODg=",
+              "id": "PRR_kwDOFcwZ1c6ZjFLf",
+              "body": "Thanks for this nice PR! I'm really happy to see that the \"MeromorphicAt\" stuff is turning out to be useful. I've suggested a few ways the proofs can be streamlined.",
+              "state": "COMMENTED",
+              "author": {
                 "login": "loefflerd"
-              }
+              },
+              "submittedAt": "2025-01-27T18:02:03Z"
             }
           ]
         },
-        "reviews": {
-          "nodes": []
-        },
         "reviewThreads": {
-          "nodes": []
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5zF5lh",
+                    "body": "I strongly recommend the `filter_upwards` tactic for almost any filter-related goals:\r\n```suggestion\r\n  rw [order_eq_top_iff] at *\r\n  filter_upwards [h'f] with z hz using by simp [hz]\r\n```",
+                    "createdAt": "2025-01-27T17:31:20Z",
+                    "author": {
+                      "login": "loefflerd"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5zGDsI",
+                    "body": "```suggestion\r\n  cases' h₂f : hf.order with m h₂f\r\n  · simp [hf.order_of_locallyZero_mul_meromorphic hg, h₂f]\r\n  cases' h₂g : hg.order with n h₂f\r\n  · simp [mul_comm f g, hg.order_of_locallyZero_mul_meromorphic hf, h₂g]\r\n  -- Non-trivial case: both functions do not vanish around z₀\r\n  rw [← WithTop.coe_add, order_eq_int_iff]\r\n  obtain ⟨F, h₁F, h₂F, h₃F⟩ := (hf.order_eq_int_iff _).1 h₂f\r\n  obtain ⟨G, h₁G, h₂G, h₃G⟩ := (hg.order_eq_int_iff _).1 h₂g\r\n  use F * G, h₁F.mul h₁G, by simp [h₂F, h₂G]\r\n  filter_upwards [self_mem_nhdsWithin, h₃F, h₃G] with a ha hfa hga\r\n  simp only [Pi.mul_apply, hfa, hga, zpow_add₀ (sub_ne_zero.mpr ha), smul_eq_mul]\r\n  ring\r\n```\r\n\r\nPoints to note here:\r\n\r\n- `cases` and its cousin `cases'`, applied to a type has several constructors (such as `WithTop`), will generate a branch for each of the possible ways you can make a `WithTop`. So in the second branch of `cases'` we already have, in the context, an `m : ℤ` and a proof that `hf.order = ↑m`; we don't have to mess about with `untop`. \r\n- The fact that the intersection of two punctured neighbourhoods of `x` is itself a punctured nhd of `x` is already implicit in the fact that `𝓝[≠] x` is a filter; and `filter_upwards` knows this. \r\n- Probably `MeromorphicAt.order_eq_int_iff` should have its `n` variable made implicit (mea culpa!), since it can be inferred from either side of the `iff` statement. That would give a nicer syntax for the `obtain` blocks.",
+                    "createdAt": "2025-01-27T17:55:39Z",
+                    "author": {
+                      "login": "loefflerd"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5zGFXL",
+                    "body": "How much harder would it be to prove `order_smul`, with `f` scalar-valued and `g` valued in a normed space `E`? I suspect the proof would be basically the same; and then it would be a one-liner to deduce `order_mul` from it. Of course the case of scalar-valued functions is clearly the most interesting one, but if we can wring a little bit more generality out of the proofs then we may as well do so.\r\n",
+                    "createdAt": "2025-01-27T18:01:09Z",
+                    "author": {
+                      "login": "loefflerd"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
         },
         "closingIssuesReferences": {
           "nodes": []
@@ -279,6 +359,10 @@
             {
               "id": "MDQ6VXNlcjUxMTA5NzY=",
               "login": "kebekus"
+            },
+            {
+              "id": "MDQ6VXNlcjM0Mzk2ODg=",
+              "login": "loefflerd"
             }
           ]
         },
@@ -293,6 +377,14 @@
                 "conclusion": "SKIPPED",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12944963337/job/36106726251"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIcCu_gQ",
+                "name": "Add ready-to-merge or delegated label",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12995284735/job/36241653633"
               },
               {
                 "__typename": "CheckRun",
@@ -312,11 +404,27 @@
               },
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIcCu-1w",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12995284723/job/36241653463"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAIaCVvWw",
                 "name": "post-or-update-summary-comment",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12945074596/job/36107022171"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIcCu_Pw",
+                "name": "Fix style issues from lint",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/12995284725/job/36241653567"
               },
               {
                 "__typename": "CheckRun",
@@ -394,7 +502,7 @@
           }
         },
         "title": "feat: establish additivity of MeromorphicAt.order under multiplication of meromorphic functions",
-        "updatedAt": "2025-01-24T07:19:02Z",
+        "updatedAt": "2025-01-27T18:02:03Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/21015",
         "timelineItems": {
           "nodes": [
@@ -429,6 +537,15 @@
               "label": {
                 "id": "LA_kwDOFcwZ1c8AAAABViJeVg",
                 "name": "t-analysis"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6ZjFLf",
+              "createdAt": "2025-01-27T17:31:20Z",
+              "body": "Thanks for this nice PR! I'm really happy to see that the \"MeromorphicAt\" stuff is turning out to be useful. I've suggested a few ways the proofs can be streamlined.",
+              "author": {
+                "login": "loefflerd"
               }
             }
           ]
