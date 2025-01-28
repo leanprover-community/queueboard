@@ -188,7 +188,7 @@ class Label(NamedTuple):
 class BasicPRInformation(NamedTuple):
     number: int  # PR number, non-negative
     # Just the author's github handle; the corresponding URL is determined automatically.
-    # For dependabot PRs, this can be `None` due to quirks in the data returned by Github's rest API.
+    # For dependabot PRs, this can be `None` due to quirks in the data returned by Github's REST API.
     author_name: str | None
     title: str
     url: str
@@ -609,7 +609,7 @@ def write_on_the_queue_page(
             status = curr2
         else:
             if pr_data.last_status_change.current_status not in [PRStatus.NotReady, PRStatus.Closed]:
-                if pr_data.last_status_change.current_status != current_status:
+                if pr_data.last_status_change.current_status != current_status and pr_data.last_status_change.status == DataStatus.Valid:
                     print(
                         f"WARNING: mismatch for {pr.number}: current status (from REST API data) is {current_status}, "
                         f"but the 'last status' from the aggregate data is {pr_data.last_status_change.current_status}", file=sys.stderr
@@ -633,7 +633,7 @@ def write_on_the_queue_page(
         '<a title="not in draft state or labelled as in progress">ready?</a>',
         '<a title="not labelled awaiting-author, awaiting-zulip, awaiting-CI">awaiting review?</a>',
         "On the review queue?",
-        "PR's overall status (experimental)",
+        "PR's overall status",
     ]
     head = _write_table_header(headings, "    ")
     table = f"  <table>\n{head}{body}  </table>"
