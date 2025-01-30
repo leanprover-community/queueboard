@@ -66,6 +66,8 @@ class Dashboard(Enum):
     ContradictoryLabels = auto()
     # PRs with at least one "approved" review by a community member.
     Approved = auto()
+    # Every open PR in mathlib.
+    All = auto()
 
 
 def short_description(kind: Dashboard) -> str:
@@ -94,6 +96,7 @@ def short_description(kind: Dashboard) -> str:
         Dashboard.BadTitle: "ready PRs whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
         Dashboard.ContradictoryLabels: "PRs with contradictory labels",
         Dashboard.Approved: "PRs that have an 'approved' review",
+        Dashboard.All: "open PRs",
     }[kind]
 
 
@@ -125,6 +128,7 @@ def long_description(kind: Dashboard) -> str:
         Dashboard.BadTitle: "all PRs without draft status or 'WIP' label whose title does not start with an abbreviation like 'feat', 'style' or 'perf'",
         Dashboard.ContradictoryLabels: "PRs whose labels are contradictory, such as 'WIP' and 'ready-to-merge'",
         Dashboard.Approved: "PRs that have at least one 'approved' review by a community member",
+        Dashboard.All: "all open PRs",
     }[kind]
 
 
@@ -173,6 +177,7 @@ def getIdTitle(kind: Dashboard) -> Tuple[str, str]:
             "PRs with contradictory labels",
         ),
         Dashboard.Approved: ("approved", "PRs with an 'approved' review"),
+        Dashboard.All: ("all", "All open PRs")
     }[kind]
 
 
@@ -533,8 +538,10 @@ def main() -> None:
     # TODO: try to enable |use_aggregate_queue| 'queue_prs' again, once all the root causes
     # for PRs getting 'dropped' by 'gather_stats.sh' are found and fixed.
     prs_to_list = determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_info, False)
+    # FIXME: move setting this value into determine_pr_dashboards
+    prs_to_list[Dashboard.All] = input_data.all_open_prs
 
-    # FUTURE: can this time be displayed in the local time zone of  the user viewing this page?
+    # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
     write_overview_page(updated)
     # Future idea: add a histogram with the most common areas,
@@ -813,6 +820,7 @@ def write_triage_page(
         (getIdTitle(Dashboard.OtherBase)[0], "PRs not into master"),
         (getIdTitle(Dashboard.FromFork)[0], "PRs from a fork"),
         getIdTitle(Dashboard.Approved),
+        getIdTitle(Dashboard.All),
         ("other", "Other lists of PRs"),
     ]
     subsections_mapped = [
@@ -886,7 +894,7 @@ def write_triage_page(
 
     # XXX: when updating the definition of "stale assigned" PRs, make sure to update all the dashboard descriptions
     setting = ExtraColumnSettings.with_approvals(True).with_assignee(True)
-    remainder = write_dashboard(prs_to_list, Dashboard.QueueStaleAssigned, aggregate_info, setting)
+    further = write_dashboard(prs_to_list, Dashboard.QueueStaleAssigned, aggregate_info, setting)
 
     others = [
         Dashboard.InessentialCIFails,
@@ -896,10 +904,11 @@ def write_triage_page(
         Dashboard.StaleNewContributor,
         Dashboard.OtherBase,
         Dashboard.FromFork,
-        Dashboard.Approved
+        Dashboard.Approved,
+        Dashboard.All,
     ]
     for kind in others:
-        remainder += write_dashboard(prs_to_list, kind, aggregate_info)
+        further += write_dashboard(prs_to_list, kind, aggregate_info)
 
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
 
@@ -926,13 +935,13 @@ def write_triage_page(
     list_items = [
         f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items2
     ]
-    remainder += f"""\n{_make_h2('other', 'Other lists of PRs')}
+    remainder = f"""\n{_make_h2('other', 'Other lists of PRs')}
     Some other lists of PRs which could be useful:
     <ul>{'    '.join(list_items)}  </ul>
     """
     # XXX: do I want to add a giant table with all PRs and their status!
 
-    body = f"{title}\n  {welcome}\n  {toc}\n  {stats}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {remainder}\n"
+    body = f"{title}\n  {welcome}\n  {toc}\n  {stats}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {further}\n  {remainder}\n"
     setting = ExtraColumnSettings.with_approvals(kind == Dashboard.Approved).with_assignee(True)
     dashboards = [write_dashboard(prs_to_list, kind, aggregate_info, setting) for (kind, _, _, _) in items2]
     body += "\n".join(dashboards) + "\n"
