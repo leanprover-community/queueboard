@@ -202,7 +202,7 @@ def main() -> None:
     thead = _write_table_header(["User", open_assigned, "Number of them", all_recent, ""], "    ")
     tbody = ""
     for name, (prs, n_all) in stats.assignments.items():
-        formatted_prs = [pr_link(int(pr), infer_pr_url(pr)) for pr in prs]
+        formatted_prs = [pr_link(int(pr), infer_pr_url(pr), parsed[pr].title) for pr in prs]
         tbody += _write_table_row([user_link(name), ", ".join(formatted_prs), str(len(prs)), str(n_all), ""], "    ")
     table = f"  <table>\n{thead}{tbody}  </table>"
     stats_section = f"{header}\n{intro}\n{stat}\n{table}"
