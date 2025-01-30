@@ -225,22 +225,26 @@ def main() -> None:
     table = f"  <table>\n{thead}{tbody}  </table>"
     reviewers = f"{header}\n{intro}\n{table}"
 
-    header = _make_h2("propose-reviewers", "Finding reviewers for unassigned PRs")
+    header = _make_h2("propose-reviewers", "Finding reviewers for stale unassigned PRs")
     pr_lists = compute_pr_list_from_aggregate_data_only(parsed)
     suggestions = {
         pr.number: suggest_reviewers(stats.assignments, parsed_reviewers, pr.number, parsed[pr.number])
-        for pr in pr_lists[Dashboard.QueueStaleUnassigned]
+        for pr in pr_lists[Dashboard.Queue]
     }
     # Future: have another column with a button to send a zulip DM to a
     # potential (e.g. selecting from the suggested ones).
     settings = ExtraColumnSettings(show_assignee=False, show_approvals=True, potential_reviewers=True, hide_update=True, show_last_real_update=True)
     table = write_dashboard(pr_lists, Dashboard.QueueStaleUnassigned, parsed, settings, False, suggestions)
-    propose = f"{header}\n{table}\n"
+    propose_stale = f"{header}\n{table}\n"
     # NB. This line becomes actual javascript code, so uses JS' string interpolation syntax.
     msg = "Dear ${name}, I'm triaging unassigned PRs. #${number} matches your interests; would you like to review it? Thanks!"
     extra = "  function contactMessage(name, number) {\n    alert(`msg`);\n  }".replace("msg", msg)
 
-    write_webpage(f"{title}\n{welcome}\n{update}\n{stats_section}\n{reviewers}\n{propose}", "assign-reviewer.html", extra_script=extra)
+    header = _make_h2("propose-reviewers-all", "Finding reviewers for all unassigned PRs")
+    table = write_dashboard(pr_lists, Dashboard.Queue, parsed, settings, False, suggestions)
+    propose_all = f"{header}\n{table}\n"
+
+    write_webpage(f"{title}\n{welcome}\n{update}\n{stats_section}\n{reviewers}\n{propose_all}\n{propose_stale}", "assign-reviewer.html", extra_script=extra)
     print('Finished generating a PR assignment overview page. Open "assign-reviewer.html" in your browser to view it.')
 
 
