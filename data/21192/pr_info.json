@@ -112,6 +112,14 @@
               "author": {
                 "login": "mattrobball"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6caCzr",
+              "body": "I'm finding it hard to make a definitive statement because I don't really know how to profile the `simp` tactic: if I just say `set_option trace.profiler true; set_option trace.Meta.Tactic.simp true` then there's a lot of rewrites firing but none of them indicate any running time.\r\n\r\nI can figure a couple reasons that things get slower though:\r\n\r\n1. Terms are generally bigger because applying a hom `f : X ⟶ Y` now looks like `FunLike.coe (ConcreteCategory.hom f) x` instead of `FunLike.coe f x`, and they have quite a few subterms.\r\n2. Especially for adjunctions we have compositions of functors mapping `f` so the objects in those terms will look like `(F ⋙ G).obj X`, and `simp` will rewrite `Functor.comp_obj` then maybe fire rewrite lemmas for the functors individually, then probably also a `ToType (of ...)` lemma. And objects appear four times for each function application.\r\n3. `@[simps]` doesn't see through `ofHom` so it will generate lemmas with `ofHom ...` in the RHS, leading to an extra `hom_ofHom` rewrite step.\r\n4. `aesop` simply needs to do more work since there's an extra extensionality step with the `Hom` structure.\r\n\r\nBut if I try to compensate for points 3 and 4 in e.g. `CommGrp.forget₂CommMonAdj`, then we get maybe `0.2`s of the `1.2`s slowdown on my machine. So there probably are some bad `simp` lemmas now.",
+              "createdAt": "2025-01-30T10:18:24Z",
+              "author": {
+                "login": "Vierkantor"
+              }
             }
           ]
         },
@@ -961,7 +969,7 @@
           }
         },
         "title": "[Merged by Bors] - feat(Algebra/Category): concrete category refactor for `Grp`",
-        "updatedAt": "2025-01-30T09:47:29Z",
+        "updatedAt": "2025-01-30T10:18:26Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/21192",
         "timelineItems": {
           "nodes": [
@@ -1218,6 +1226,15 @@
               "body": "We should have a `#run_simpNF` with the diagnostics enabled in the trace. ",
               "author": {
                 "login": "mattrobball"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6caCzr",
+              "createdAt": "2025-01-30T10:18:24Z",
+              "body": "I'm finding it hard to make a definitive statement because I don't really know how to profile the `simp` tactic: if I just say `set_option trace.profiler true; set_option trace.Meta.Tactic.simp true` then there's a lot of rewrites firing but none of them indicate any running time.\r\n\r\nI can figure a couple reasons that things get slower though:\r\n\r\n1. Terms are generally bigger because applying a hom `f : X ⟶ Y` now looks like `FunLike.coe (ConcreteCategory.hom f) x` instead of `FunLike.coe f x`, and they have quite a few subterms.\r\n2. Especially for adjunctions we have compositions of functors mapping `f` so the objects in those terms will look like `(F ⋙ G).obj X`, and `simp` will rewrite `Functor.comp_obj` then maybe fire rewrite lemmas for the functors individually, then probably also a `ToType (of ...)` lemma. And objects appear four times for each function application.\r\n3. `@[simps]` doesn't see through `ofHom` so it will generate lemmas with `ofHom ...` in the RHS, leading to an extra `hom_ofHom` rewrite step.\r\n4. `aesop` simply needs to do more work since there's an extra extensionality step with the `Hom` structure.\r\n\r\nBut if I try to compensate for points 3 and 4 in e.g. `CommGrp.forget₂CommMonAdj`, then we get maybe `0.2`s of the `1.2`s slowdown on my machine. So there probably are some bad `simp` lemmas now.",
+              "author": {
+                "login": "Vierkantor"
               }
             }
           ]
