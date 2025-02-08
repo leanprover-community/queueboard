@@ -1,0 +1,2799 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 115,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "rmhi"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "Given an element `a` in an `R`-algebra `A` and an `A`-module `M`,\r\ndefine an `R[X]`-module `Module.AEval R M a`, whose elements correspond to\r\nelements of `M`, and where the action of `f : R[X]` is `f • m = aeval a f • m`. \r\nEquivalently, `X • m = a • m`.\r\n\r\nThis module is abbreviated to `Module.AEval' φ` in the special case that `A` is the algebra of `R`-linear maps and `φ : M → M` is an `R`-linear map.\r\n\r\nThis is needed in #7419.\r\n\r\n---\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 2,
+        "closed": true,
+        "closedAt": "2023-11-01T18:30:50Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5pSfZF",
+              "body": "This sounds like it has the same goal as https://leanprover-community.github.io/mathlib4_docs/Mathlib/RingTheory/FiniteType.html#modulePolynomialOfEndo, this PR should redefine that material in terms of this I think. (I think using a type synonym is probably a nicer way to go, and it looks like you added more api here) ",
+              "createdAt": "2023-10-17T13:46:20Z",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5pSgtX",
+              "body": "> This sounds like it has the same goal as https://leanprover-community.github.io/mathlib4_docs/Mathlib/RingTheory/FiniteType.html#modulePolynomialOfEndo, this PR should redefine that material in terms of this I think. (I think using a type synonym is probably a nicer way to go, and it looks like you added more api here)\r\n\r\nWhy is this in `Mathlib.RingTheory.FiniteType`?! Nice found BTW. ",
+              "createdAt": "2023-10-17T13:49:13Z",
+              "author": {
+                "login": "riccardobrasca"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5pShsI",
+              "body": "I think because its only used to prove the result below! But it really shouldn't be indeed",
+              "createdAt": "2023-10-17T13:51:15Z",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5pX45K",
+              "body": "> This sounds like it has the same goal as https://leanprover-community.github.io/mathlib4_docs/Mathlib/RingTheory/FiniteType.html#modulePolynomialOfEndo, this PR should redefine that material in terms of this I think. (I think using a type synonym is probably a nicer way to go, and it looks like you added more api here)\r\n\r\nThanks very much for that; I didn't think it was already in Mathlib. I'll try doing what you suggest.",
+              "createdAt": "2023-10-18T07:44:38Z",
+              "author": {
+                "login": "rmhi"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5pZtJj",
+              "body": "I think it should still go in Polynomial/Module if that works though, just add an import to that from the finitetype file, as Riccardo says FiniteType is a non-obvious place for this construction to live",
+              "createdAt": "2023-10-18T12:27:16Z",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5paS_s",
+              "body": "> I think it should still go in Polynomial/Module if that works though, just add an import to that from the finitetype file, as Riccardo says FiniteType is a non-obvious place for this construction to live\r\n\r\nThanks, I've switched that around now. I also needed to swap the imports, so that now FiniteType imports Polynomial/Module, whereas previously it was the other way around. I've moved my code to the start of Polynomial/Module, because it is now used later down that file. I have left Vasconcelos' theorem in FiniteType, but its proof now uses `AEval'` instead of `ModulePolynomialOfEndo`. This avoids the creation of instances at the start of the proof, and also a `have` statement, which is a lemma for `AEval'`.\r\n",
+              "createdAt": "2023-10-18T13:48:12Z",
+              "author": {
+                "login": "rmhi"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5pjlBM",
+              "body": "Ok looks good to me now, I left two last small comments, but after those I think this should be good to go",
+              "createdAt": "2023-10-19T12:56:07Z",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5pju_e",
+              "body": "maintainer merge",
+              "createdAt": "2023-10-19T13:19:23Z",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5pjvFw",
+              "body": "🚀 Pull request has been placed on the maintainer queue by alexjbest.",
+              "createdAt": "2023-10-19T13:19:38Z",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5qYx0C",
+              "body": "> Sorry for coming in so late with this observation, but there's an instance diamond I'm worried about:\r\n> \r\n> ```lean\r\n> /-- In the special case where `A = M = R[X]` (eg multivariate polynomials), we have two conflicting\r\n> actions which agree only in the special case of of `a = X`. -/\r\n> example (a : R[X]) (h : a ≠ X):\r\n>     (instModuleEval a : Module R[X] (AEval R R[X] a)) ≠\r\n>     (instModulePolynomial a  : Module R[X] (AEval R R[X] a)) := by\r\n>   intro H\r\n>   apply h\r\n>   replace H := congr_fun₂ (congr_arg (@HSMul.hSMul _ _ _ <| @instHSMul _ _ ·.toSMul) H)\r\n>   dsimp [instModuleEval, instModulePolynomial, smul_def] at H\r\n>   replace H := H X (1 : R[X])\r\n>   simpa using H.symm\r\n> ```\r\n> \r\n> I think either we:\r\n> \r\n> * Put a warning in the docstring that it is not safe to use `AEval` in this way (and commit the `example` that demonstrates it.\r\n> * Remove the `Module A (AEval R M a)` instance, especially if you weren't actually using it\r\n\r\nMany thanks for pointing this out. I have use this instance quite a lot (for example, in order to state smul_def, which is used in several places). I can see that this would cause problems, so I'll have a think about it.",
+              "createdAt": "2023-10-30T10:18:30Z",
+              "author": {
+                "login": "rmhi"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5qY68U",
+              "body": "> Many thanks for pointing this out. I have use this instance quite a lot (for example, in order to state smul_def, which is used in several places). I can see that this would cause problems, so I'll have a think about it.\r\n\r\nOne resolution here would be to state `smul_def` as `f • m = of (aeval a f • of.symm m)`; that is, perform the scaling in the original module. Obviously you'll need to make `of` an `R`-linear equiv, not an `A`-linear one.\r\n\r\nA slight better pair of statements would be `of_symm_smul : of.symm (f • m) = aeval a f • of.symm m` and `of_aeval_smul : of (aeval a f • m) = (f • of m : AEval R M a)` ",
+              "createdAt": "2023-10-30T10:42:20Z",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5qcNk9",
+              "body": "Many thanks for all you help!",
+              "createdAt": "2023-10-30T18:07:38Z",
+              "author": {
+                "login": "rmhi"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5qoU2Q",
+              "body": ":v: rmhi can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "createdAt": "2023-11-01T13:27:12Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5qoxcG",
+              "body": "bors r+",
+              "createdAt": "2023-11-01T14:37:55Z",
+              "author": {
+                "login": "rmhi"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5qo45T",
+              "body": "Canceled.",
+              "createdAt": "2023-11-01T14:56:29Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5qpiMj",
+              "body": "\r\nbors r+",
+              "createdAt": "2023-11-01T16:31:48Z",
+              "author": {
+                "login": "rmhi"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5qqOCd",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6722954242/job/18271972634)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6722954242/job/18271971070)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6722954242/job/18271971365)",
+              "createdAt": "2023-11-01T18:30:49Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "e86175e8ed3864f5e0278ff7267a6e4c97433702",
+                "additions": 102,
+                "deletions": 0,
+                "committedDate": "2023-10-16T11:54:09Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5a214e86906a6f96f512d99121f3e178255c1cc0",
+                "additions": 9,
+                "deletions": 15,
+                "committedDate": "2023-10-16T12:14:04Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ececa39c406874a2d63bc27be2407e06fdac5bb7",
+                "additions": 44,
+                "deletions": 62,
+                "committedDate": "2023-10-17T09:17:14Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "428845fc62f03ed5164fbad27c39447dca3dc380",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-10-17T09:20:44Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4ed60f60426bcc4d22bfe4c859d14b1e4d427853",
+                "additions": 9,
+                "deletions": 27,
+                "committedDate": "2023-10-17T13:10:29Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "71ac67a80be4c76835e084d5ec2f71b5c8d1037f",
+                "additions": 1,
+                "deletions": 0,
+                "committedDate": "2023-10-17T13:15:19Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4078a167a0c6d6faebb86201f625570f0629bb62",
+                "additions": 0,
+                "deletions": 1,
+                "committedDate": "2023-10-17T13:18:08Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3f38b92f5f7603de978af7b5e24700605264dda1",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-10-18T07:46:33Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "86743862+rmhi@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "da9728abf817f041c37741a7fd4207c32e55d5d1",
+                "additions": 79,
+                "deletions": 78,
+                "committedDate": "2023-10-18T10:21:20Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1a66b35a8b792e4610b88f2bf5260bd3c990f2e4",
+                "additions": 57,
+                "deletions": 0,
+                "committedDate": "2023-10-18T10:25:59Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "81b886698163945e02be06d1d9e4ddd9759b5e63",
+                "additions": 0,
+                "deletions": 57,
+                "committedDate": "2023-10-18T10:26:12Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f68d90e5b1192dec55f8f83771e5225d71b75936",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-10-18T11:27:16Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a5c128079977b52ffa06f670161512413cb8b310",
+                "additions": 83,
+                "deletions": 112,
+                "committedDate": "2023-10-18T13:29:04Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d7e953f9dcd6d4ecec280a13c4f9a3b610c69c23",
+                "additions": 4,
+                "deletions": 8,
+                "committedDate": "2023-10-18T14:12:33Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e2fe26ba2674dcd294bdf2e05ae21e8c1dc40641",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-10-18T16:34:54Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "86743862+rmhi@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "35902faa910f66b56c64c80090e2d95c442764fe",
+                "additions": 5,
+                "deletions": 1,
+                "committedDate": "2023-10-19T10:19:50Z",
+                "author": {
+                  "name": "rmhi",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1065e1bc3371486a59ecac1de4d5cbaf4bffe3bd",
+                "additions": 8,
+                "deletions": 32,
+                "committedDate": "2023-10-19T11:58:30Z",
+                "author": {
+                  "name": "rmhi",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7e6d8a4b102b23209c2118caba8d79869eddd106",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-10-19T13:01:57Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "86743862+rmhi@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f9b9ce48ab1777694f56bb509156e8e701a171fb",
+                "additions": 7,
+                "deletions": 0,
+                "committedDate": "2023-10-19T13:17:13Z",
+                "author": {
+                  "name": "rmhi",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "623ab7d3d5b3cda05a58077e74a979e8c0ddcd1d",
+                "additions": 27,
+                "deletions": 0,
+                "committedDate": "2023-10-20T14:28:15Z",
+                "author": {
+                  "name": "rmhi",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8b3de8aa1cdb6e420c4062bf18bf4fc6c524f5c1",
+                "additions": 2,
+                "deletions": 1,
+                "committedDate": "2023-10-20T15:34:27Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f0fa215246251bcd897347ab67dee0413eb6aa59",
+                "additions": 12,
+                "deletions": 12,
+                "committedDate": "2023-10-20T15:39:05Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "96d0589f2d445e83885277e94d0ace14bae25147",
+                "additions": 4,
+                "deletions": 23,
+                "committedDate": "2023-10-29T21:15:09Z",
+                "author": {
+                  "name": "Eric Wieser",
+                  "email": "wieser.eric@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0daa2414cf6dfdb7317bfb65a44a419117e6b10c",
+                "additions": 32,
+                "deletions": 21,
+                "committedDate": "2023-10-30T11:47:26Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "828367d17f571c14d5e64e1de399a383d4924d3e",
+                "additions": 28,
+                "deletions": 14,
+                "committedDate": "2023-10-30T13:52:17Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9848f6df9edca738d354a9507cc4f8b691c9d7ea",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-10-30T13:54:09Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "86743862+rmhi@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ea549d5e6216b0ef393536e06b389452db31050b",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-10-30T14:02:02Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "86743862+rmhi@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3529eb97a065be8a752e6cd2fbd81b6e09331dd7",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-10-30T14:04:20Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "86743862+rmhi@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5767a7d869fa2450f2b63b562818538ec3d16e19",
+                "additions": 4,
+                "deletions": 4,
+                "committedDate": "2023-10-30T14:08:34Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2c0f376f23833eabe3441f94f233f68294ee4254",
+                "additions": 8,
+                "deletions": 6,
+                "committedDate": "2023-10-30T14:58:23Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "eded971c1b4f2e930a7aea9c5e7e872c54d30d37",
+                "additions": 2,
+                "deletions": 1,
+                "committedDate": "2023-10-30T15:03:01Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c04d03c4ea04afc0d047af39dbc14741285fe78d",
+                "additions": 5,
+                "deletions": 2,
+                "committedDate": "2023-10-30T16:05:32Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "04b29820c49ef5d4ab14c5d5e98feb44b1d24a71",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-10-30T16:40:01Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "86743862+rmhi@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "add4071fc8e95b4a966210e4d6da4a848ec0c4ad",
+                "additions": 4,
+                "deletions": 2,
+                "committedDate": "2023-10-30T16:51:03Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "00f4e404729719adaae7755bff03cb51cf5234d9",
+                "additions": 1,
+                "deletions": 2,
+                "committedDate": "2023-10-30T16:52:43Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "61bb6cb35717c4ca3cef121005e14851a1be4510",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-10-30T16:54:29Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "86743862+rmhi@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "648d3aaaca0d2f11f696a7727fb699f1e0d1994b",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-10-30T16:56:53Z",
+                "author": {
+                  "name": "Richard",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b2325d0f6df573d69a93d061f2f591b9ef0589fd",
+                "additions": 6,
+                "deletions": 8,
+                "committedDate": "2023-10-30T18:35:24Z",
+                "author": {
+                  "name": "Eric Wieser",
+                  "email": "wieser.eric@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c27dde47257821c3f554e970349260eb5028cb58",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-10-30T18:52:51Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "r.m.hill@ucl.ac.uk"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "07b29ac787ea46454e18501591c268cf6f860572",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-11-01T13:50:07Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "86743862+rmhi@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e08736884e32905bc111e0dfbdfa8e38c092be1f",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-11-01T13:50:41Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "86743862+rmhi@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "11c55858dfe6b5c9a9e10ea84844a30c32c93164",
+                "additions": 2,
+                "deletions": 0,
+                "committedDate": "2023-11-01T13:52:22Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "86743862+rmhi@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5bc381c2f4f77a72632333b38a58441e48bc16f8",
+                "additions": 3,
+                "deletions": 0,
+                "committedDate": "2023-11-01T13:52:59Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "86743862+rmhi@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "38ffca2c5ee882622a1d00dc5ffc2d06791c997d",
+                "additions": 0,
+                "deletions": 1,
+                "committedDate": "2023-11-01T13:53:30Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "86743862+rmhi@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "626470a6b102e0c38003c024f18941d4d285d442",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-11-01T14:56:27Z",
+                "author": {
+                  "name": "Richard M. Hill",
+                  "email": "86743862+rmhi@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-10-17T09:56:29Z",
+        "deletions": 57,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib/Data/Polynomial/Module.lean",
+              "additions": 101,
+              "deletions": 7
+            },
+            {
+              "path": "Mathlib/RingTheory/FiniteType.lean",
+              "additions": 14,
+              "deletions": 50
+            }
+          ]
+        },
+        "headRefName": "CompAEval",
+        "headRefOid": "626470a6b102e0c38003c024f18941d4d285d442",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5c_wb-",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+              "color": "bfd4f2",
+              "name": "delegated"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5l0_Oi",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-11-01T14:51:00Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5kl7Tk",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-10-19T12:55:28Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5l0p8o",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "riccardobrasca"
+              },
+              "submittedAt": "2023-11-01T14:08:40Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5l0iY8",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "github-actions"
+              },
+              "submittedAt": "2023-11-01T13:52:57Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 7728,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": "APPROVED",
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5kQvVa",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "riccardobrasca"
+              },
+              "submittedAt": "2023-10-17T11:44:33Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5kRWPs",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "rmhi"
+              },
+              "submittedAt": "2023-10-17T12:57:58Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5kRtWo",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "riccardobrasca"
+              },
+              "submittedAt": "2023-10-17T13:26:07Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5kR_Bb",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-10-17T13:53:10Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5kR_Ga",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-10-17T13:53:18Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5kZL7I",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "rmhi"
+              },
+              "submittedAt": "2023-10-18T07:46:00Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5kdWXr",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-10-18T15:34:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5kl4z9",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-10-19T12:52:25Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5kl7Tk",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-10-19T12:55:28Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5kmJPv",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "rmhi"
+              },
+              "submittedAt": "2023-10-19T13:18:45Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5kmNbJ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-10-19T13:25:36Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5knptw",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "rmhi"
+              },
+              "submittedAt": "2023-10-19T15:53:23Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5kntkb",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "riccardobrasca"
+              },
+              "submittedAt": "2023-10-19T16:00:55Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5koMJ_",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "riccardobrasca"
+              },
+              "submittedAt": "2023-10-19T17:03:00Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5koghw",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-10-19T17:54:38Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ksrRF",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "rmhi"
+              },
+              "submittedAt": "2023-10-20T07:42:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5lZkOm",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "rmhi"
+              },
+              "submittedAt": "2023-10-27T07:56:16Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5lgkuI",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-10-29T21:15:33Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5lgkv1",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-10-29T21:16:26Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5lgk5l",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-10-29T21:22:17Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5lglUO",
+              "body": "Sorry for coming in so late with this observation, but there's an instance diamond I'm worried about:\r\n```lean\r\n/-- In the special case where `A = M = R[X]` (eg multivariate polynomials), we have two conflicting\r\nactions which agree only in the special case of of `a = X`. -/\r\nexample (a : R[X]) (h : a ≠ X):\r\n    (instModuleEval a : Module R[X] (AEval R R[X] a)) ≠\r\n    (instModulePolynomial a  : Module R[X] (AEval R R[X] a)) := by\r\n  intro H\r\n  apply h\r\n  replace H := congr_fun₂ (congr_arg (@HSMul.hSMul _ _ _ <| @instHSMul _ _ ·.toSMul) H)\r\n  dsimp [instModuleEval, instModulePolynomial, smul_def] at H\r\n  replace H := H X (1 : R[X])\r\n  simpa using H.symm\r\n```\r\nI think either we:\r\n* Put a warning in the docstring that it is not safe to use `AEval` in this way (and commit the `example` that demonstrates it.\r\n* Remove the `Module A (AEval R M a)` instance, especially if you weren't actually using it",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-10-29T21:36:45Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5li-xg",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "rmhi"
+              },
+              "submittedAt": "2023-10-30T09:41:51Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ljRGc",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "rmhi"
+              },
+              "submittedAt": "2023-10-30T10:19:05Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5lj6qt",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-10-30T11:56:54Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5lj65B",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-10-30T11:57:25Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5lj7Os",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-10-30T11:58:03Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5lk-07",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "github-actions"
+              },
+              "submittedAt": "2023-10-30T13:52:53Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5llAC-",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-10-30T13:55:02Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5llAim",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-10-30T13:55:50Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5llClU",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "rmhi"
+              },
+              "submittedAt": "2023-10-30T13:58:40Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5llGrl",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-10-30T14:05:02Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5lmXMG",
+              "body": "This is looking good now, thanks!",
+              "state": "APPROVED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-10-30T16:17:20Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5lmjjR",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "rmhi"
+              },
+              "submittedAt": "2023-10-30T16:34:43Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5lmkFb",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "rmhi"
+              },
+              "submittedAt": "2023-10-30T16:35:41Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5lml48",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "rmhi"
+              },
+              "submittedAt": "2023-10-30T16:38:37Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5lmtQ4",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "rmhi"
+              },
+              "submittedAt": "2023-10-30T16:53:06Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5l0UK7",
+              "body": "Sorry again for the long review time, but this is very good now, thanks! (I've left a couple of trivial comments.)\r\n\r\nbors d+",
+              "state": "APPROVED",
+              "author": {
+                "login": "riccardobrasca"
+              },
+              "submittedAt": "2023-11-01T13:27:10Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5l0aNY",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-11-01T13:34:52Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5l0aZr",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-11-01T13:35:18Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5l0iY8",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "github-actions"
+              },
+              "submittedAt": "2023-11-01T13:52:57Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5l0pid",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "rmhi"
+              },
+              "submittedAt": "2023-11-01T14:07:47Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5l0p8o",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "riccardobrasca"
+              },
+              "submittedAt": "2023-11-01T14:08:40Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5l0_Oi",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-11-01T14:51:00Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5l1Dfk",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "rmhi"
+              },
+              "submittedAt": "2023-11-01T14:59:18Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RLjX_",
+                    "body": "I don't think there is any need to create a new structure here, you can just use a type synonym. In practice you define `AEval R M a := M` (as a type) and then you provide the `R`-module structure by hand. You can have a look of what we do for [PiLp](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Analysis/NormedSpace/PiLp.html#PiLp), do define the product with the Lp metric.",
+                    "createdAt": "2023-10-17T11:44:33Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RL5G0",
+                    "body": "Thank you for the really quick response.\r\n\r\nIn my original PR on this (7419) I did define the module as a type synonym, and was advised that it would be clearer to make it a single-field structure. I will change it back.",
+                    "createdAt": "2023-10-17T12:57:58Z",
+                    "author": {
+                      "login": "rmhi"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RMCyU",
+                    "body": "Well, I am not 100% sure. @eric-wieser what do you think?",
+                    "createdAt": "2023-10-17T13:26:07Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RMOdY",
+                    "body": "It took me a minute to work out how these proofs even work, I think using `inferInstanceAs (AddCommMonoid M)` is probably cleaner",
+                    "createdAt": "2023-10-17T13:53:10Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RQ9ho",
+                    "body": "Thanks for showing me that; it is much clearer.",
+                    "createdAt": "2023-10-18T07:46:00Z",
+                    "author": {
+                      "login": "rmhi"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RMOhR",
+                    "body": "```suggestion\r\ndef AEval (R M : Type*) {A : Type*} [CommSemiring R] [Semiring A] [Algebra R A]\r\n```",
+                    "createdAt": "2023-10-17T13:53:17Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RTlWx",
+                    "body": "This line should be preserved ",
+                    "createdAt": "2023-10-18T15:28:42Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RTllu",
+                    "body": "Not sure what happened here ",
+                    "createdAt": "2023-10-18T15:29:26Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RTmPK",
+                    "body": "This modulePolynomialOfEndo stuff could hopefully just be deleted completely now",
+                    "createdAt": "2023-10-18T15:31:26Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RTnF_",
+                    "body": "```suggestion\ndef AEval (R M : Type*) {A : Type*} [CommSemiring R] [Semiring A] [Algebra R A]\n```\n",
+                    "createdAt": "2023-10-18T15:34:07Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RY49H",
+                    "body": "```suggestion\r\n    f • m = aeval (Finsupp.lmapDomain M R Nat.succ) f m := by\r\n```",
+                    "createdAt": "2023-10-19T12:52:25Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RY6PC",
+                    "body": "Can you add a couple of lines here in the module header about `AEval` also?",
+                    "createdAt": "2023-10-19T12:55:28Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RZDV7",
+                    "body": "Thanks for pointing that out.",
+                    "createdAt": "2023-10-19T13:18:45Z",
+                    "author": {
+                      "login": "rmhi"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RZGYx",
+                    "body": "As we discussed in #7419, I think this should be a one-field structure; semireducible type aliases are messy in Lean 4, so we should only use them where the cost is worth it.\r\n\r\nIf you do really want to keep this as not a structure, then can you add the canonical `LienarEquiv` between `M` and `AEval R M a`?",
+                    "createdAt": "2023-10-19T13:25:35Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RaCrg",
+                    "body": "It seems that you are asking me to undo a change requested by another reviewer, and his request was that I undo an earlier change requested you. I don't have the experience to make a judgement on which way is better.",
+                    "createdAt": "2023-10-19T15:53:23Z",
+                    "author": {
+                      "login": "rmhi"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RaFBL",
+                    "body": "It is probably my fault, sorry. I am not sure which approach is better, I just find the type synonym simpler.",
+                    "createdAt": "2023-10-19T16:00:54Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RaXSc",
+                    "body": "OK, it is definitely my fault. Can you please go back to the approach with a structure? Sorry for the waste of time.",
+                    "createdAt": "2023-10-19T17:02:59Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RakIh",
+                    "body": "I'm happy with the compromise of sticking with the synonym and just adding the isomorphism ",
+                    "createdAt": "2023-10-19T17:54:38Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RdJzM",
+                    "body": "Thanks for the compromise. I'll sort this out some time in the next few days (I'll be teaching all day today).",
+                    "createdAt": "2023-10-20T07:42:14Z",
+                    "author": {
+                      "login": "rmhi"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5R6Lcf",
+                    "body": "is this ok now?",
+                    "createdAt": "2023-10-27T07:56:15Z",
+                    "author": {
+                      "login": "rmhi"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5R_Kye",
+                    "body": "I pushed some cleanup",
+                    "createdAt": "2023-10-29T21:15:33Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5R_K1P",
+                    "body": "This instance is bad, it assumes `[AddCommMonoid M]` and `[AddCommGroup M]` simultaneously.",
+                    "createdAt": "2023-10-29T21:16:25Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SAwAF",
+                    "body": "Thank you for finding that mistake.",
+                    "createdAt": "2023-10-30T09:41:51Z",
+                    "author": {
+                      "login": "rmhi"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5R_LAa",
+                    "body": "Please give these and the other module instance explicit names, to make it easy to tell them apart in the infoview. Perhaps `instModuleOrig`, `instModuleEval`, and `instModulePolynomial`?",
+                    "createdAt": "2023-10-29T21:22:17Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SA7j4",
+                    "body": "Thank you.",
+                    "createdAt": "2023-10-30T10:19:05Z",
+                    "author": {
+                      "login": "rmhi"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SBVn8",
+                    "body": "This lemma is poorly-typed, the LHS has type `AEval R M a` but the RHS has type `M`. You can fix that with\r\n```suggestion\r\nlemma smul_def (f : R[X]) (m : M) : f • of R M a m = of (aeval a f • m) := by\r\n```",
+                    "createdAt": "2023-10-30T11:56:53Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SBVwz",
+                    "body": "I think you'll find this useful:\r\n```suggestion\r\n  smul_assoc r f m := of.symm.injective by\r\n```\r\nwhich turns it into an equality of `M`. Then you can probably lose the `change` below.",
+                    "createdAt": "2023-10-30T11:57:25Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SCDIz",
+                    "body": "many thanks; I did find the change annoying.",
+                    "createdAt": "2023-10-30T13:58:40Z",
+                    "author": {
+                      "login": "rmhi"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SBV9v",
+                    "body": "This one is also poorly-typed.",
+                    "createdAt": "2023-10-30T11:58:03Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SCBD6",
+                    "body": "**[lint-style]** <sub>reported by [reviewdog](https://github.com/reviewdog/reviewdog) :dog:</sub><br>\n```suggestion\n    (of R M a).symm (f • m) = (aeval a f • (of R M a).symm m) := by rfl\n```\n",
+                    "createdAt": "2023-10-30T13:52:52Z",
+                    "author": {
+                      "login": "github-actions"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SCBz9",
+                    "body": "I think this is a better name (and also that this is a good `simp` lemma:\r\n```suggestion\r\n@[simp] lemma of_symm_smul (f : R[X]) (m : AEval R M a) :\r\n```",
+                    "createdAt": "2023-10-30T13:55:02Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SCCF5",
+                    "body": "This can be given a nicer name if you write it in reverse:\r\n```suggestion\r\nlemma of_aeval_smul (f : R[X]) (m : M) : of R M a (aeval a f • m) = f • of R M := rfl\r\n```",
+                    "createdAt": "2023-10-30T13:55:49Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SCFeI",
+                    "body": "Can you rename these in the same way to match the above?",
+                    "createdAt": "2023-10-30T14:05:02Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SC2y0",
+                    "body": "```suggestion\r\nlemma of_aeval_smul (f : R[X]) (m : M) : of R M a (aeval a f • m) = f • of R M a m := rfl\r\n```",
+                    "createdAt": "2023-10-30T16:11:49Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SMGyA",
+                    "body": "This one also still applies. I'd recommend not resolving suggestions in future until you see them marked as [outdated], otherwise you might have forgotten to apply them!",
+                    "createdAt": "2023-11-01T14:51:00Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SMJdB",
+                    "body": "sorry about that. I think I must have messed up with git somehow.",
+                    "createdAt": "2023-11-01T14:59:18Z",
+                    "author": {
+                      "login": "rmhi"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SC21B",
+                    "body": "```suggestion\r\n    (of R M a).symm (f • m) = aeval a f • (of R M a).symm m := rfl\r\n```",
+                    "createdAt": "2023-10-30T16:11:55Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SC-T5",
+                    "body": "Thank you.",
+                    "createdAt": "2023-10-30T16:34:42Z",
+                    "author": {
+                      "login": "rmhi"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SLv7g",
+                    "body": "This comment still applies; `rfl` is better than `by rfl` because it trains `dsimp`.",
+                    "createdAt": "2023-11-01T13:35:17Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SC3Lx",
+                    "body": "This one is not well-typed, it should be \r\n```suggestion\r\nlemma AEval'.of_symm_X_smul (m : AEval' φ) : (AEval'.of φ).symm ((X : R[X]) • m) = φ ((AEval'.of φ).symm m) :=\r\n```",
+                    "createdAt": "2023-10-30T16:13:03Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SC4BF",
+                    "body": "(There are plenty of downsides to the one-field structure approach, but one nice upside is that Lean would catch this for you!)",
+                    "createdAt": "2023-10-30T16:15:37Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SC_tn",
+                    "body": "yes, I am certainly seeing the advantages of the one-field structure. I had considered making this change, but I have been using the lemma from right to left (in a place where I should really have been more rigorous). I'll resolve the issue.",
+                    "createdAt": "2023-10-30T16:38:36Z",
+                    "author": {
+                      "login": "rmhi"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SC3o5",
+                    "body": "You should never omit for the type for `abbrev`/`def`, as it makes it harder to read:\r\n```suggestion\r\nabbrev AEval'.of : M ≃ₗ[R] AEval' φ := AEval.of R M φ\r\n```",
+                    "createdAt": "2023-10-30T16:14:28Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SC3zf",
+                    "body": "```suggestion\r\nabbrev AEval' : Type _ := AEval R M φ\r\n```",
+                    "createdAt": "2023-10-30T16:14:58Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SC-pl",
+                    "body": "I'm quite curious to find out what difference this will make.",
+                    "createdAt": "2023-10-30T16:35:41Z",
+                    "author": {
+                      "login": "rmhi"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SC4nl",
+                    "body": "I think you should merge these docstrings; this second comment looks like it would be helpful to see in the API docs too.",
+                    "createdAt": "2023-10-30T16:17:10Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SDEal",
+                    "body": "thank you",
+                    "createdAt": "2023-10-30T16:53:05Z",
+                    "author": {
+                      "login": "rmhi"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SLsKV",
+                    "body": "```suggestion\r\nLoosely speaking, `Module.AEval R M a` is the `R[X]`-module with elements `m : M`,\r\n```",
+                    "createdAt": "2023-11-01T13:21:22Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SLsth",
+                    "body": "It seems the `instance` just above this line uses exactly these variables. Can you move the `variable` line before the `instance` to make the declaration more readable?",
+                    "createdAt": "2023-11-01T13:23:35Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SL5Nw",
+                    "body": "This isn't quite true. The instance on line 41 assumes [AddCommGroup M], not [AddCommMonoid M]. If I moved the variables higher up then that instance would get an extra hypothesis.",
+                    "createdAt": "2023-11-01T14:07:47Z",
+                    "author": {
+                      "login": "rmhi"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SL5dq",
+                    "body": "Ah sorry, let's keep the instance like that then.",
+                    "createdAt": "2023-11-01T14:08:40Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SLtAv",
+                    "body": "Are you sure we want this to be a `simp` lemma? The RHS even contains `.symm`...",
+                    "createdAt": "2023-11-01T13:24:47Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SLv0N",
+                    "body": "I'd say yes; if you have `(of R M a).symm` on the outside, you probably want to push it in to end up with an equation in `M` rather than `AEval R M a`. This is consistent with things like `Multiplicative.ofAdd_smul`.",
+                    "createdAt": "2023-11-01T13:34:52Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SLtUc",
+                    "body": "```suggestion\r\nlemma AEval'_def : AEval' φ = AEval R M φ := rfl\r\nlemma AEval'.X_smul_of (m : M) : (X : R[X]) • AEval'.of φ m = AEval'.of φ (φ m) :=\r\n  AEval.X_smul_of _ _\r\n  \r\nlemma AEval'.of_symm_X_smul (m : AEval' φ) :\r\n    (AEval'.of φ).symm ((X : R[X]) • m) = φ ((AEval'.of φ).symm m) := AEval.of_symm_X_smul _ _\r\n\r\ninstance [Finite R M] : Finite R[X] <| AEval' φ := inferInstance\r\n```",
+                    "createdAt": "2023-11-01T13:25:49Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SLtbF",
+                    "body": "```suggestion\r\ninstance instAddCommMonoid : AddCommMonoid <| AEval R M a := inferInstanceAs (AddCommMonoid M)\r\n\r\ninstance instModuleOrig : Module R <| AEval R M a := inferInstanceAs (Module R M)\r\n\r\ninstance instFiniteOrig [Finite R M] : Finite R <| AEval R M a := inferInstanceAs (Finite R M)\r\n\r\ninstance instModulePolynomial : Module R[X] <| AEval R M a := compHom M (aeval a).toRingHom\r\n```",
+                    "createdAt": "2023-11-01T13:26:10Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SL05j",
+                    "body": "**[lint-style]** <sub>reported by [reviewdog](https://github.com/reviewdog/reviewdog) :dog:</sub><br>\n```suggestion\n```\n",
+                    "createdAt": "2023-11-01T13:52:56Z",
+                    "author": {
+                      "login": "github-actions"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjg2NzQzODYy",
+              "login": "rmhi"
+            },
+            {
+              "id": "MDQ6VXNlcjE2ODg1MzM=",
+              "login": "alexjbest"
+            },
+            {
+              "id": "MDQ6VXNlcjMyNDkwNTMy",
+              "login": "riccardobrasca"
+            },
+            {
+              "id": "MDQ6VXNlcjQyNTI2MA==",
+              "login": "eric-wieser"
+            },
+            {
+              "id": "U_kgDOB75MNQ",
+              "login": "leanprover-community-mathlib4-bot"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat(Data/Polynomial/Module) : define an R[X] module, given a linear map.",
+        "updatedAt": "2023-11-01T18:30:57Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/7728",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e86175e8ed3864f5e0278ff7267a6e4c97433702"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5a214e86906a6f96f512d99121f3e178255c1cc0"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ececa39c406874a2d63bc27be2407e06fdac5bb7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "428845fc62f03ed5164fbad27c39447dca3dc380"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50DUf-zwAAAAJ8Wgth",
+              "createdAt": "2023-10-17T09:56:55Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c50DUf-zwAAAAJ8WtRG",
+              "createdAt": "2023-10-17T10:00:32Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjMyNDkwNTMy",
+                "login": "riccardobrasca"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50DUf-zwAAAAJ8WxLP",
+              "createdAt": "2023-10-17T10:01:45Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50DUf-zwAAAAJ8WxLY",
+              "createdAt": "2023-10-17T10:01:45Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5kQvVa",
+              "createdAt": "2023-10-17T11:44:33Z",
+              "body": "",
+              "author": {
+                "login": "riccardobrasca"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4ed60f60426bcc4d22bfe4c859d14b1e4d427853"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "71ac67a80be4c76835e084d5ec2f71b5c8d1037f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4078a167a0c6d6faebb86201f625570f0629bb62"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5pSfZF",
+              "createdAt": "2023-10-17T13:46:20Z",
+              "body": "This sounds like it has the same goal as https://leanprover-community.github.io/mathlib4_docs/Mathlib/RingTheory/FiniteType.html#modulePolynomialOfEndo, this PR should redefine that material in terms of this I think. (I think using a type synonym is probably a nicer way to go, and it looks like you added more api here) ",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5pSgtX",
+              "createdAt": "2023-10-17T13:49:13Z",
+              "body": "> This sounds like it has the same goal as https://leanprover-community.github.io/mathlib4_docs/Mathlib/RingTheory/FiniteType.html#modulePolynomialOfEndo, this PR should redefine that material in terms of this I think. (I think using a type synonym is probably a nicer way to go, and it looks like you added more api here)\r\n\r\nWhy is this in `Mathlib.RingTheory.FiniteType`?! Nice found BTW. ",
+              "author": {
+                "login": "riccardobrasca"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5pShsI",
+              "createdAt": "2023-10-17T13:51:15Z",
+              "body": "I think because its only used to prove the result below! But it really shouldn't be indeed",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5kR_Bb",
+              "createdAt": "2023-10-17T13:53:10Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5kR_Ga",
+              "createdAt": "2023-10-17T13:53:17Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "UnsubscribedEvent"
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50DUf-zwAAAAJ8qIv_",
+              "createdAt": "2023-10-17T16:59:55Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50DUf-zwAAAAJ8qIwO",
+              "createdAt": "2023-10-17T16:59:55Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5pX45K",
+              "createdAt": "2023-10-18T07:44:38Z",
+              "body": "> This sounds like it has the same goal as https://leanprover-community.github.io/mathlib4_docs/Mathlib/RingTheory/FiniteType.html#modulePolynomialOfEndo, this PR should redefine that material in terms of this I think. (I think using a type synonym is probably a nicer way to go, and it looks like you added more api here)\r\n\r\nThanks very much for that; I didn't think it was already in Mathlib. I'll try doing what you suggest.",
+              "author": {
+                "login": "rmhi"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3f38b92f5f7603de978af7b5e24700605264dda1"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "da9728abf817f041c37741a7fd4207c32e55d5d1"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1a66b35a8b792e4610b88f2bf5260bd3c990f2e4"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "81b886698163945e02be06d1d9e4ddd9759b5e63"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f68d90e5b1192dec55f8f83771e5225d71b75936"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5pZtJj",
+              "createdAt": "2023-10-18T12:27:16Z",
+              "body": "I think it should still go in Polynomial/Module if that works though, just add an import to that from the finitetype file, as Riccardo says FiniteType is a non-obvious place for this construction to live",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a5c128079977b52ffa06f670161512413cb8b310"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5paS_s",
+              "createdAt": "2023-10-18T13:48:12Z",
+              "body": "> I think it should still go in Polynomial/Module if that works though, just add an import to that from the finitetype file, as Riccardo says FiniteType is a non-obvious place for this construction to live\r\n\r\nThanks, I've switched that around now. I also needed to swap the imports, so that now FiniteType imports Polynomial/Module, whereas previously it was the other way around. I've moved my code to the start of Polynomial/Module, because it is now used later down that file. I have left Vasconcelos' theorem in FiniteType, but its proof now uses `AEval'` instead of `ModulePolynomialOfEndo`. This avoids the creation of instances at the start of the proof, and also a `have` statement, which is a lemma for `AEval'`.\r\n",
+              "author": {
+                "login": "rmhi"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50DUf-zwAAAAJ9YDtn",
+              "createdAt": "2023-10-18T13:50:00Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50DUf-zwAAAAJ9YDt4",
+              "createdAt": "2023-10-18T13:50:00Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50DUf-zwAAAAJ9YDuE",
+              "createdAt": "2023-10-18T13:50:00Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d7e953f9dcd6d4ecec280a13c4f9a3b610c69c23"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50DUf-zwAAAAJ9ceAJ",
+              "createdAt": "2023-10-18T15:11:20Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c50DUf-zwAAAAJ9crFW",
+              "createdAt": "2023-10-18T15:15:02Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjE2ODg1MzM=",
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5kdWXr",
+              "createdAt": "2023-10-18T15:28:42Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e2fe26ba2674dcd294bdf2e05ae21e8c1dc40641"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "35902faa910f66b56c64c80090e2d95c442764fe"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1065e1bc3371486a59ecac1de4d5cbaf4bffe3bd"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5kl4z9",
+              "createdAt": "2023-10-19T12:52:24Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5kl7Tk",
+              "createdAt": "2023-10-19T12:55:28Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5pjlBM",
+              "createdAt": "2023-10-19T12:56:07Z",
+              "body": "Ok looks good to me now, I left two last small comments, but after those I think this should be good to go",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7e6d8a4b102b23209c2118caba8d79869eddd106"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f9b9ce48ab1777694f56bb509156e8e701a171fb"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5pju_e",
+              "createdAt": "2023-10-19T13:19:23Z",
+              "body": "maintainer merge",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5pjvFw",
+              "createdAt": "2023-10-19T13:19:38Z",
+              "body": "🚀 Pull request has been placed on the maintainer queue by alexjbest.",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5kmNbJ",
+              "createdAt": "2023-10-19T13:25:35Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50DUf-zwAAAAJ-oGpc",
+              "createdAt": "2023-10-19T16:17:05Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50DUf-zwAAAAJ-oGpo",
+              "createdAt": "2023-10-19T16:17:05Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "623ab7d3d5b3cda05a58077e74a979e8c0ddcd1d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8b3de8aa1cdb6e420c4062bf18bf4fc6c524f5c1"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f0fa215246251bcd897347ab67dee0413eb6aa59"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50DUf-zwAAAAJ_XFZJ",
+              "createdAt": "2023-10-20T16:41:30Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50DUf-zwAAAAJ_XFZV",
+              "createdAt": "2023-10-20T16:41:30Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c50DUf-zwAAAAJ_XHp9",
+              "createdAt": "2023-10-20T16:42:35Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjQyNTI2MA==",
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "96d0589f2d445e83885277e94d0ace14bae25147"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5lgkv1",
+              "createdAt": "2023-10-29T21:16:25Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5lgk5l",
+              "createdAt": "2023-10-29T21:22:17Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5lglUO",
+              "createdAt": "2023-10-29T21:36:45Z",
+              "body": "Sorry for coming in so late with this observation, but there's an instance diamond I'm worried about:\r\n```lean\r\n/-- In the special case where `A = M = R[X]` (eg multivariate polynomials), we have two conflicting\r\nactions which agree only in the special case of of `a = X`. -/\r\nexample (a : R[X]) (h : a ≠ X):\r\n    (instModuleEval a : Module R[X] (AEval R R[X] a)) ≠\r\n    (instModulePolynomial a  : Module R[X] (AEval R R[X] a)) := by\r\n  intro H\r\n  apply h\r\n  replace H := congr_fun₂ (congr_arg (@HSMul.hSMul _ _ _ <| @instHSMul _ _ ·.toSMul) H)\r\n  dsimp [instModuleEval, instModulePolynomial, smul_def] at H\r\n  replace H := H X (1 : R[X])\r\n  simpa using H.symm\r\n```\r\nI think either we:\r\n* Put a warning in the docstring that it is not safe to use `AEval` in this way (and commit the `example` that demonstrates it.\r\n* Remove the `Module A (AEval R M a)` instance, especially if you weren't actually using it",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5qYx0C",
+              "createdAt": "2023-10-30T10:18:30Z",
+              "body": "> Sorry for coming in so late with this observation, but there's an instance diamond I'm worried about:\r\n> \r\n> ```lean\r\n> /-- In the special case where `A = M = R[X]` (eg multivariate polynomials), we have two conflicting\r\n> actions which agree only in the special case of of `a = X`. -/\r\n> example (a : R[X]) (h : a ≠ X):\r\n>     (instModuleEval a : Module R[X] (AEval R R[X] a)) ≠\r\n>     (instModulePolynomial a  : Module R[X] (AEval R R[X] a)) := by\r\n>   intro H\r\n>   apply h\r\n>   replace H := congr_fun₂ (congr_arg (@HSMul.hSMul _ _ _ <| @instHSMul _ _ ·.toSMul) H)\r\n>   dsimp [instModuleEval, instModulePolynomial, smul_def] at H\r\n>   replace H := H X (1 : R[X])\r\n>   simpa using H.symm\r\n> ```\r\n> \r\n> I think either we:\r\n> \r\n> * Put a warning in the docstring that it is not safe to use `AEval` in this way (and commit the `example` that demonstrates it.\r\n> * Remove the `Module A (AEval R M a)` instance, especially if you weren't actually using it\r\n\r\nMany thanks for pointing this out. I have use this instance quite a lot (for example, in order to state smul_def, which is used in several places). I can see that this would cause problems, so I'll have a think about it.",
+              "author": {
+                "login": "rmhi"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50DUf-zwAAAAKEEBMP",
+              "createdAt": "2023-10-30T10:19:32Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50DUf-zwAAAAKEEBMY",
+              "createdAt": "2023-10-30T10:19:32Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5qY68U",
+              "createdAt": "2023-10-30T10:42:20Z",
+              "body": "> Many thanks for pointing this out. I have use this instance quite a lot (for example, in order to state smul_def, which is used in several places). I can see that this would cause problems, so I'll have a think about it.\r\n\r\nOne resolution here would be to state `smul_def` as `f • m = of (aeval a f • of.symm m)`; that is, perform the scaling in the original module. Obviously you'll need to make `of` an `R`-linear equiv, not an `A`-linear one.\r\n\r\nA slight better pair of statements would be `of_symm_smul : of.symm (f • m) = aeval a f • of.symm m` and `of_aeval_smul : of (aeval a f • m) = (f • of m : AEval R M a)` ",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0daa2414cf6dfdb7317bfb65a44a419117e6b10c"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5lj6qt",
+              "createdAt": "2023-10-30T11:56:53Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5lj65B",
+              "createdAt": "2023-10-30T11:57:25Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5lj7Os",
+              "createdAt": "2023-10-30T11:58:03Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "828367d17f571c14d5e64e1de399a383d4924d3e"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5lk-07",
+              "createdAt": "2023-10-30T13:52:52Z",
+              "body": "",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9848f6df9edca738d354a9507cc4f8b691c9d7ea"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5llAC-",
+              "createdAt": "2023-10-30T13:55:02Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5llAim",
+              "createdAt": "2023-10-30T13:55:49Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ea549d5e6216b0ef393536e06b389452db31050b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3529eb97a065be8a752e6cd2fbd81b6e09331dd7"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5llGrl",
+              "createdAt": "2023-10-30T14:05:02Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5767a7d869fa2450f2b63b562818538ec3d16e19"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2c0f376f23833eabe3441f94f233f68294ee4254"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "eded971c1b4f2e930a7aea9c5e7e872c54d30d37"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c04d03c4ea04afc0d047af39dbc14741285fe78d"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5lmXMG",
+              "createdAt": "2023-10-30T16:11:48Z",
+              "body": "This is looking good now, thanks!",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "04b29820c49ef5d4ab14c5d5e98feb44b1d24a71"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "add4071fc8e95b4a966210e4d6da4a848ec0c4ad"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "00f4e404729719adaae7755bff03cb51cf5234d9"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "61bb6cb35717c4ca3cef121005e14851a1be4510"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "648d3aaaca0d2f11f696a7727fb699f1e0d1994b"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5qcNk9",
+              "createdAt": "2023-10-30T18:07:38Z",
+              "body": "Many thanks for all you help!",
+              "author": {
+                "login": "rmhi"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b2325d0f6df573d69a93d061f2f591b9ef0589fd"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c27dde47257821c3f554e970349260eb5028cb58"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50DUf-zwAAAAKEeRiq",
+              "createdAt": "2023-10-30T19:58:48Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50DUf-zwAAAAKEeRit",
+              "createdAt": "2023-10-30T19:58:48Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5l0UK7",
+              "createdAt": "2023-11-01T13:21:22Z",
+              "body": "Sorry again for the long review time, but this is very good now, thanks! (I've left a couple of trivial comments.)\r\n\r\nbors d+",
+              "author": {
+                "login": "riccardobrasca"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5qoU2Q",
+              "createdAt": "2023-11-01T13:27:12Z",
+              "body": ":v: rmhi can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50DUf-zwAAAAKFqaKx",
+              "createdAt": "2023-11-01T13:27:26Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+                "name": "delegated"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50DUf-zwAAAAKFqaNb",
+              "createdAt": "2023-11-01T13:27:27Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "07b29ac787ea46454e18501591c268cf6f860572"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e08736884e32905bc111e0dfbdfa8e38c092be1f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "11c55858dfe6b5c9a9e10ea84844a30c32c93164"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5l0iY8",
+              "createdAt": "2023-11-01T13:52:56Z",
+              "body": "",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5bc381c2f4f77a72632333b38a58441e48bc16f8"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "38ffca2c5ee882622a1d00dc5ffc2d06791c997d"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5qoxcG",
+              "createdAt": "2023-11-01T14:37:55Z",
+              "body": "bors r+",
+              "author": {
+                "login": "rmhi"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "626470a6b102e0c38003c024f18941d4d285d442"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5qo45T",
+              "createdAt": "2023-11-01T14:56:29Z",
+              "body": "Canceled.",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5qpiMj",
+              "createdAt": "2023-11-01T16:31:48Z",
+              "body": "\r\nbors r+",
+              "author": {
+                "login": "rmhi"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5qqOCd",
+              "createdAt": "2023-11-01T18:30:49Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6722954242/job/18271972634)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6722954242/job/18271971070)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6722954242/job/18271971365)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c50DUf-zwAAAAKF2kGp",
+              "createdAt": "2023-11-01T18:30:51Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c50DUf-zwAAAAKF2kXu",
+              "createdAt": "2023-11-01T18:30:57Z"
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5TL9uq",
+              "createdAt": "2024-06-08T06:57:16Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5x0zEW",
+                "title": "[Merged by Bors] - Chore(Algebra/Polynomial/Module/Basic): Refactor out Module.AEval ",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/13613"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
