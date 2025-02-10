@@ -376,6 +376,11 @@ def test_determine_status() -> None:
     # with failing CI is 'blocked', not 'not ready'.abs
     check2(PRState.with_labels_and_ci([LabelKind.Blocked], CIStatus.Fail), PRStatus.Blocked)
 
+    # Two specific cases that came up in the wild.
+    check([LabelKind.Delegated, LabelKind.Bors], PRStatus.AwaitingBors)
+    # This can arise with both the auto-merge-after-CI and bors labels.
+    check([LabelKind.Bors, LabelKind.Bors], PRStatus.AwaitingBors)
+
 
 if __name__ == '__main__':
     test_determine_status()
