@@ -611,10 +611,12 @@ def write_on_the_queue_page(
         }[current_status]
         if current_status == PRStatus.NotReady:
             # We emit more fine-grained information for "not ready" PRs.
+            if aggregate_info[pr.number].is_draft:
+                curr2 = "marked draft"
             if "WIP" in [l.name for l in aggregate_info[pr.number].labels]:
                 curr2 = "labelled WIP"
-            elif aggregate_info[pr.number].is_draft:
-                curr2 = "marked draft"
+            elif "awaiting-CI" in [l.name for l in aggregate_info[pr.number].labels]:
+                (curr1, curr2) = ("", "does not pass CI")
             else:
                 match aggregate_info[pr.number].CI_status:
                     case CIStatus.Fail:
