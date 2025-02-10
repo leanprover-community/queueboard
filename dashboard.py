@@ -610,7 +610,26 @@ def write_on_the_queue_page(
             PRStatus.FromFork: ("is", "opened from a fork"),
         }[current_status]
         if current_status == PRStatus.NotReady:
-            curr2 = "labelled WIP" if "WIP" in [l.name for l in aggregate_info[pr.number].labels] else "marked draft"
+            # We emit more fine-grained information for "not ready" PRs.
+            if "WIP" in [l.name for l in aggregate_info[pr.number].labels]:
+                curr2 = "labelled WIP"
+            elif aggregate_info[pr.number].is_draft:
+                curr2 = "marked draft"
+            else:
+                match aggregate_info[pr.number].CI_status:
+                    case CIStatus.Fail:
+                        (curr1, curr2) = ("has", "failing CI")
+                    case CIStatus.Running:
+                        curr2 = "running CI"
+                    case CIStatus.Missing:
+                        curr2 = "missing CI information"
+                    case CIStatus.FailInessential:
+                        # Future: one could be more specific, but this would have to be in a hover.
+                        (curr1, curr2) = ("has", "infrastructure-related CI failing")
+                    case CIStatus.Pass:
+                        pass  # should not happen!
+                    case _:
+                        raise ValueError(f"missing case: {aggregate_info[pr.number].CI_status}")
         pr_data = aggregate_info[pr.number]
         if pr_data.last_status_change is None or pr_data.total_queue_time is None:
             status = curr2
