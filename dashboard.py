@@ -1007,14 +1007,14 @@ def write_main_page(
 # draft status and base branch (and more, which we do not use).
 # If no detailed information was available for a given PR number, 'None' is returned.
 def compute_pr_statusses(aggregate_info: dict[int, AggregatePRInfo], prs: List[BasicPRInformation]) -> dict[int, PRStatus]:
-    def determine_status(aggregate_info: AggregatePRInfo, info: BasicPRInformation) -> PRStatus:
+    def determine_status(aggregate_info: AggregatePRInfo) -> PRStatus:
         # Ignore all "other" labels, which are not relevant for this anyway.
-        labels = [label_categorisation_rules[lab.name] for lab in info.labels if lab.name in label_categorisation_rules]
+        labels = [label_categorisation_rules[lab.name] for lab in aggregate_info.labels if lab.name in label_categorisation_rules]
         from_fork = aggregate_info.head_repo != "leanprover-community"
         state = PRState(labels, aggregate_info.CI_status, aggregate_info.is_draft, from_fork)
         return determine_PR_status(datetime.now(timezone.utc), state)
 
-    return {info.number: determine_status(aggregate_info[info.number] or PLACEHOLDER_AGGREGATE_INFO, info) for info in prs}
+    return {info.number: determine_status(aggregate_info[info.number] or PLACEHOLDER_AGGREGATE_INFO) for info in prs}
 
 # If the link to a dashboard goes to a separate page |subpage|, open the link in a new tab.
 # |force_same_page| disables that parameter, i.e. all links always go to the current page.
