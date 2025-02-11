@@ -32,6 +32,30 @@
               "author": {
                 "login": "kim-em"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6d-Im1",
+              "body": "Thank you very much!\r\n\r\nI just have one more suggestion.  How about accumulating the `verbose` messages and reporting them all together as a single message, using `cross/check-emoji`s to highlight non-reducible/reducible transparencies?\r\n\r\nHere is what I have in mind:\r\n```lean\r\n/--\r\nCheck if two expressions are different at reducible transparency.\r\nAttempt to log an info message for the first subexpressions which are different\r\n(but agree at default transparency).\r\n\r\nAlso returns an array of messages for the `verbose` report.\r\n-/\r\ndef logDiffs (tk : Syntax) (e₁ e₂ : Expr) : MetaM (Bool × Array MessageData) := do\r\n  withOptions (fun opts => opts.setBool `pp.analyze true) do\r\n  let verbose := (← getOptions).get `tactic.erw?.verbose (defVal := false)\r\n  let mut verbMsgs := #[]\r\n  if ← withReducible (isDefEq e₁ e₂) then\r\n    if verbose then\r\n      verbMsgs := verbMsgs.push\r\n        m!\"{e₁}\\n  and\\n{e₂}\\n{checkEmoji} are defeq at reducible transparency.\"\r\n    -- They agree at reducible transparency, we're done.\r\n    return (false, verbMsgs)\r\n  else\r\n    if verbose then\r\n      verbMsgs := verbMsgs.push\r\n        m!\"{e₁}\\n  and\\n{e₂}\\n{crossEmoji} are not defeq at reducible transparency.\"\r\n    if ← isDefEq e₁ e₂ then\r\n      match e₁, e₂ with\r\n      | Expr.app f₁ a₁, Expr.app f₂ a₂ =>\r\n        let (newDiff, newMsgs) ← logDiffs tk a₁ a₂\r\n        verbMsgs := verbMsgs ++ newMsgs\r\n        if newDiff then\r\n          return (true, verbMsgs)\r\n        else\r\n        let (newDiff, newMsgs) ← logDiffs tk f₁ f₂\r\n        verbMsgs := verbMsgs ++ newMsgs\r\n        if newDiff then\r\n          return (true, verbMsgs)\r\n        else\r\n          logInfoAt tk m!\"{e₁}\\n  and\\n{e₂}\\n{crossEmoji} \\\r\n            are defeq at default transparency, but not at reducible transparency.\"\r\n          return (true, verbMsgs)\r\n      | Expr.const _ _, Expr.const _ _ =>\r\n        logInfoAt tk m!\"{e₁}\\n  and\\n{e₂}\\n{crossEmoji} \\\r\n            are defeq at default transparency, but not at reducible transparency.\"\r\n        return (true, verbMsgs)\r\n      | _, _ =>\r\n        if verbose then\r\n          verbMsgs := verbMsgs.push\r\n            m!\"{e₁}\\n  and\\n{e₂}\\n{crossEmoji} are not both applications.\"\r\n        return (false, verbMsgs)\r\n    else\r\n      if verbose then\r\n        verbMsgs := verbMsgs.push\r\n          m!\"{e₁}\\n  and\\n{e₂}\\n{crossEmoji} are not defeq at default transparency.\"\r\n      return (false, verbMsgs)\r\n\r\nelab_rules : tactic\r\n  | `(tactic| erw?%$tk [$r]) => withMainContext do\r\n    let verbose := (← getOptions).get `tactic.erw?.verbose (defVal := false)\r\n    let g ← getMainGoal\r\n    evalTactic (← `(tactic| erw [$r]))\r\n    let e := (← instantiateMVars (mkMVar g)).headBeta\r\n    match e.getAppFnArgs with\r\n    | (``Eq.mpr, #[_, _, e, _]) =>\r\n      match e.getAppFnArgs with\r\n      | (``id, #[ty, e]) =>\r\n        match ty.eq? with\r\n        | some (_, tgt, _) =>\r\n          if verbose then logInfoAt tk m!\"Expression appearing in target: {tgt}\"\r\n          match (← inferType e).eq? with\r\n          | some (_, inferred, _) =>\r\n            let (_, msgs) ← logDiffs tk tgt inferred\r\n            if verbose then\r\n              logInfoAt tk <| .joinSep (m!\"Expression from `erw`: {inferred}\" :: msgs.toList) \"\\n\\n\"\r\n          | _ => logErrorAt tk \"Unexpected term produced by `erw`, \\\r\n                  inferred type is not an equality.\"\r\n        | _ => logErrorAt tk \"Unexpected term produced by `erw`, type hint is not an equality.\"\r\n      | _ => logErrorAt tk \"Unexpected term produced by `erw`, not of the form: `Eq.mpr (id _) _`.\"\r\n    | _ => logErrorAt tk \"Unexpected term produced by `erw`, head is not an `Eq.mpr`.\"\r\n```\r\n\r\nand then updating the tests, possibly adding one that also tracks the `verbose` option.",
+              "createdAt": "2025-02-11T09:55:40Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6d-JEw",
+              "body": "I'll leave it up to you to make the choice for message reporting!\r\n\r\nSince this is mostly a \"diagnostic\" tool, I think that it is good to make it available quickly and debug as issues get reported!  Thanks!\r\n\r\nbors d+",
+              "createdAt": "2025-02-11T09:56:31Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6d-JGu",
+              "body": ":v: kim-em can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "createdAt": "2025-02-11T09:56:34Z",
+              "author": {
+                "login": "mathlib-bors"
+              }
             }
           ]
         },
@@ -678,6 +702,14 @@
                     "nodes": [
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAInkJdUQ",
+                        "name": "set_pr_emoji",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13260217151/job/37014887761"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAIneAIvA",
                         "name": "Lint style (fork)",
                         "conclusion": "SKIPPED",
@@ -718,19 +750,19 @@
                       },
                       {
                         "__typename": "CheckRun",
-                        "id": "CR_kwDOFcwZ1c8AAAAIneAIiA",
-                        "name": "Build",
-                        "conclusion": null,
-                        "status": "IN_PROGRESS",
-                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13258099001/job/37008443528"
-                      },
-                      {
-                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAIneAKGg",
                         "name": "Build (fork)",
                         "conclusion": "SKIPPED",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13258099008/job/37008443930"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIneAIiA",
+                        "name": "Build",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13258099001/job/37008443528"
                       },
                       {
                         "__typename": "CheckRun",
@@ -747,6 +779,14 @@
                         "conclusion": "SKIPPED",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13258099008/job/37008444181"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIngp26A",
+                        "name": "Post-CI job",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13258099001/job/37011224296"
                       },
                       {
                         "__typename": "CheckRun",
@@ -819,6 +859,11 @@
         "labels": {
           "nodes": [
             {
+              "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+              "color": "bfd4f2",
+              "name": "delegated"
+            },
+            {
               "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
               "color": "33DBEC",
               "name": "t-meta"
@@ -847,7 +892,7 @@
         "milestone": null,
         "number": 21643,
         "potentialMergeCommit": {
-          "oid": "5c914f5f58de3653e13d6efe9f0caba14ce1c896"
+          "oid": "65c27e5caec3df01d7c0de943b7857816afd0682"
         },
         "projectCards": {
           "nodes": []
@@ -1024,6 +1069,10 @@
             {
               "id": "MDQ6VXNlcjI5NDY3NzQ1",
               "login": "adomani"
+            },
+            {
+              "id": "U_kgDOB75MNQ",
+              "login": "leanprover-community-mathlib4-bot"
             }
           ]
         },
@@ -1031,6 +1080,14 @@
         "statusCheckRollup": {
           "contexts": {
             "nodes": [
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAInkJdUQ",
+                "name": "set_pr_emoji",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13260217151/job/37014887761"
+              },
               {
                 "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAIneAIvA",
@@ -1073,19 +1130,19 @@
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAIneAIiA",
-                "name": "Build",
-                "conclusion": null,
-                "status": "IN_PROGRESS",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13258099001/job/37008443528"
-              },
-              {
-                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAIneAKGg",
                 "name": "Build (fork)",
                 "conclusion": "SKIPPED",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13258099008/job/37008443930"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIneAIiA",
+                "name": "Build",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13258099001/job/37008443528"
               },
               {
                 "__typename": "CheckRun",
@@ -1102,6 +1159,14 @@
                 "conclusion": "SKIPPED",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13258099008/job/37008444181"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIngp26A",
+                "name": "Post-CI job",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13258099001/job/37011224296"
               },
               {
                 "__typename": "CheckRun",
@@ -1123,7 +1188,7 @@
           }
         },
         "title": "feat: `erw?`, a tool to explain why `erw` is necessary",
-        "updatedAt": "2025-02-11T07:47:33Z",
+        "updatedAt": "2025-02-11T09:56:43Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/21643",
         "timelineItems": {
           "nodes": [
@@ -1206,6 +1271,42 @@
               "body": "I added an extremely primitive test (which indeed revealed problems in option handling!)\r\n\r\n",
               "author": {
                 "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6d-Im1",
+              "createdAt": "2025-02-11T09:55:40Z",
+              "body": "Thank you very much!\r\n\r\nI just have one more suggestion.  How about accumulating the `verbose` messages and reporting them all together as a single message, using `cross/check-emoji`s to highlight non-reducible/reducible transparencies?\r\n\r\nHere is what I have in mind:\r\n```lean\r\n/--\r\nCheck if two expressions are different at reducible transparency.\r\nAttempt to log an info message for the first subexpressions which are different\r\n(but agree at default transparency).\r\n\r\nAlso returns an array of messages for the `verbose` report.\r\n-/\r\ndef logDiffs (tk : Syntax) (e₁ e₂ : Expr) : MetaM (Bool × Array MessageData) := do\r\n  withOptions (fun opts => opts.setBool `pp.analyze true) do\r\n  let verbose := (← getOptions).get `tactic.erw?.verbose (defVal := false)\r\n  let mut verbMsgs := #[]\r\n  if ← withReducible (isDefEq e₁ e₂) then\r\n    if verbose then\r\n      verbMsgs := verbMsgs.push\r\n        m!\"{e₁}\\n  and\\n{e₂}\\n{checkEmoji} are defeq at reducible transparency.\"\r\n    -- They agree at reducible transparency, we're done.\r\n    return (false, verbMsgs)\r\n  else\r\n    if verbose then\r\n      verbMsgs := verbMsgs.push\r\n        m!\"{e₁}\\n  and\\n{e₂}\\n{crossEmoji} are not defeq at reducible transparency.\"\r\n    if ← isDefEq e₁ e₂ then\r\n      match e₁, e₂ with\r\n      | Expr.app f₁ a₁, Expr.app f₂ a₂ =>\r\n        let (newDiff, newMsgs) ← logDiffs tk a₁ a₂\r\n        verbMsgs := verbMsgs ++ newMsgs\r\n        if newDiff then\r\n          return (true, verbMsgs)\r\n        else\r\n        let (newDiff, newMsgs) ← logDiffs tk f₁ f₂\r\n        verbMsgs := verbMsgs ++ newMsgs\r\n        if newDiff then\r\n          return (true, verbMsgs)\r\n        else\r\n          logInfoAt tk m!\"{e₁}\\n  and\\n{e₂}\\n{crossEmoji} \\\r\n            are defeq at default transparency, but not at reducible transparency.\"\r\n          return (true, verbMsgs)\r\n      | Expr.const _ _, Expr.const _ _ =>\r\n        logInfoAt tk m!\"{e₁}\\n  and\\n{e₂}\\n{crossEmoji} \\\r\n            are defeq at default transparency, but not at reducible transparency.\"\r\n        return (true, verbMsgs)\r\n      | _, _ =>\r\n        if verbose then\r\n          verbMsgs := verbMsgs.push\r\n            m!\"{e₁}\\n  and\\n{e₂}\\n{crossEmoji} are not both applications.\"\r\n        return (false, verbMsgs)\r\n    else\r\n      if verbose then\r\n        verbMsgs := verbMsgs.push\r\n          m!\"{e₁}\\n  and\\n{e₂}\\n{crossEmoji} are not defeq at default transparency.\"\r\n      return (false, verbMsgs)\r\n\r\nelab_rules : tactic\r\n  | `(tactic| erw?%$tk [$r]) => withMainContext do\r\n    let verbose := (← getOptions).get `tactic.erw?.verbose (defVal := false)\r\n    let g ← getMainGoal\r\n    evalTactic (← `(tactic| erw [$r]))\r\n    let e := (← instantiateMVars (mkMVar g)).headBeta\r\n    match e.getAppFnArgs with\r\n    | (``Eq.mpr, #[_, _, e, _]) =>\r\n      match e.getAppFnArgs with\r\n      | (``id, #[ty, e]) =>\r\n        match ty.eq? with\r\n        | some (_, tgt, _) =>\r\n          if verbose then logInfoAt tk m!\"Expression appearing in target: {tgt}\"\r\n          match (← inferType e).eq? with\r\n          | some (_, inferred, _) =>\r\n            let (_, msgs) ← logDiffs tk tgt inferred\r\n            if verbose then\r\n              logInfoAt tk <| .joinSep (m!\"Expression from `erw`: {inferred}\" :: msgs.toList) \"\\n\\n\"\r\n          | _ => logErrorAt tk \"Unexpected term produced by `erw`, \\\r\n                  inferred type is not an equality.\"\r\n        | _ => logErrorAt tk \"Unexpected term produced by `erw`, type hint is not an equality.\"\r\n      | _ => logErrorAt tk \"Unexpected term produced by `erw`, not of the form: `Eq.mpr (id _) _`.\"\r\n    | _ => logErrorAt tk \"Unexpected term produced by `erw`, head is not an `Eq.mpr`.\"\r\n```\r\n\r\nand then updating the tests, possibly adding one that also tracks the `verbose` option.",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6d-JEw",
+              "createdAt": "2025-02-11T09:56:31Z",
+              "body": "I'll leave it up to you to make the choice for message reporting!\r\n\r\nSince this is mostly a \"diagnostic\" tool, I think that it is good to make it available quickly and debug as issues get reported!  Thanks!\r\n\r\nbors d+",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6d-JGu",
+              "createdAt": "2025-02-11T09:56:34Z",
+              "body": ":v: kim-em can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "author": {
+                "login": "mathlib-bors"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c6pZ96ozwAAAAPJR2QS",
+              "createdAt": "2025-02-11T09:56:43Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+                "name": "delegated"
               }
             }
           ]
