@@ -1,6 +1,12 @@
 """
 # Computing a better estimate how long a PR was been awaiting review.
 
+This code is rather project-agnostic, *provided* the definitions in classify_pr_state.py
+have been updated to match the current project. More precisely, the methods
+|first_on_queue_inner| and |total_queue_time_inner| assume there is a variant PRStatus.AwaitingReview
+(which is a rather mild assumption). If a project prefers naming this differently,
+they should adjust the variant name.
+
 **Problem.** We would like a way to track the progress of PRs, and especially learn which PRs
 have been waiting long for review. Currently, we have no good way of obtaining this information:
 we use the crude heuristic of
@@ -232,19 +238,23 @@ class Metadata(NamedTuple):
     from_fork: bool
 
 
-# Determine the total amount of time this PR was awaiting review.
-#
-# FUTURE ideas for tweaking this reporting:
-#  - ignore short intervals of merge conflicts, say less than a day?
-#  - ignore short intervals of CI running (if successful before and after)?
-def total_queue_time_inner(now: datetime, metadata: Metadata) -> Tuple[Tuple[timedelta, relativedelta], str]:
+# Determine the total amount of time this PR was in a given status.
+def total_time_in_status_inner(now: datetime, metadata: Metadata, status: PRStatus) -> Tuple[Tuple[timedelta, relativedelta], str]:
     # We assume the PR was created in passing state without labels.
     initial_state = PRState([], CIStatus.Pass, metadata.created_as_draft, metadata.from_fork)
-    return total_time_in_status(metadata.created_at, now, initial_state, metadata.events, PRStatus.AwaitingReview)
+    return total_time_in_status(metadata.created_at, now, initial_state, metadata.events, status)
+
+# Determine the total amount of time this PR was awaiting review.
+#
+# NB. This method is slightly mathlib-specific: it assumes there is a PRStatus variant "AwaitingReview"
+# (which seems broadly reasonable: other projects might want to name this variant differently,
+# but will presumably want to have this.)
+def total_queue_time_inner(now: datetime, metadata: Metadata) -> Tuple[Tuple[timedelta, relativedelta], str]:
+    return total_time_in_status_inner(now, metadata, PRStatus.AwaitingReview)
 
 
-# Determine the first point in time a PR was on the review queue; return None if this never happened so far.
-def first_on_queue(metadata) -> datetime | None:
+# Determine the first point in time a PR was in a given status; return None if this never happened so far.
+def first_in_status_inner(metadata, status: PRStatus) -> datetime | None:
     # We assume the PR was created in passing state without labels.
     initial_state = PRState([], CIStatus.Pass, metadata.created_as_draft, metadata.from_fork)
     evolution_status = determine_status_changes(metadata.created_at, initial_state, metadata.events)
@@ -253,15 +263,24 @@ def first_on_queue(metadata) -> datetime | None:
     if len(evolution_status) > 1:
         if evolution_status[0][0] == evolution_status[1][0]:
             _ = evolution_status.pop(0)
-    for (time, status) in evolution_status:
-        if status == PRStatus.AwaitingReview:
+    for (time, estatus) in evolution_status:
+        if estatus == status:
             return time
     return None
 
 
+# Determine the first point in time a PR was on the review queue; return None if this never happened so far.
+#
+# NB. This method is slightly mathlib-specific: it assumes there is a PRStatus variant "AwaitingReview"
+# (which seems broadly reasonable: other projects might want to name this variant differently,
+# but will presumably want to have this.)
+def first_on_queue_inner(metadata) -> datetime | None:
+    return first_in_status_inner(metadata, PRStatus.AwaitingReview)
+
+
 # Return the total time since this PR's last status change,
 # as a tuple (absolute time, time since now).
-def last_status_update(now: datetime, metadata: Metadata) -> Tuple[datetime, relativedelta, PRStatus]:
+def last_status_update_inner(now: datetime, metadata: Metadata) -> Tuple[datetime, relativedelta, PRStatus]:
     '''Compute the total time since this PR's state changed last.'''
     # We assume the PR was created in passing state without labels.
     initial_state = PRState([], CIStatus.Pass, metadata.created_as_draft, metadata.from_fork)
@@ -336,9 +355,9 @@ def _process_data(data: dict) -> Metadata:
 # TODO: this algorithm pretends CI always passes, i.e. ignores failing or running CI
 #   (the *classification* doesn't, but I don't parse CI info yet... that only works
 #    for full data, so this would need a "full data" boolean to not yield errors)
-def last_real_update(data: dict) -> Tuple[datetime, relativedelta, PRStatus]:
+def last_status_update(data: dict) -> Tuple[datetime, relativedelta, PRStatus]:
     metadata = _process_data(data)
-    return last_status_update(datetime.now(timezone.utc), metadata)
+    return last_status_update_inner(datetime.now(timezone.utc), metadata)
 
 
 def total_queue_time(data: dict) -> Tuple[Tuple[timedelta, relativedelta], str]:
@@ -348,4 +367,4 @@ def total_queue_time(data: dict) -> Tuple[Tuple[timedelta, relativedelta], str]:
 
 def first_time_on_queue(data: dict) -> datetime | None:
     metadata = _process_data(data)
-    return first_on_queue(metadata)
+    return first_on_queue_inner(metadata)

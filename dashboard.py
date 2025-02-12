@@ -16,7 +16,6 @@ from dateutil import parser, relativedelta
 from ci_status import CIStatus
 from classify_pr_state import (PRState, PRStatus,
                                determine_PR_status, label_categorisation_rules)
-from state_evolution import first_time_on_queue, last_real_update, total_queue_time
 from util import my_assert_eq, format_delta, timedelta_tryParse, relativedelta_tryParse
 
 

@@ -171,14 +171,14 @@ def test_total_queue_time() -> None:
 # Some basic tests for last_status_update and first time on the queue.
 def test_last_status_update():
     def check_with_initial(now: datetime, state: Metadata, expected: Tuple[datetime, relativedelta, PRStatus]) -> None:
-        (absolute, relative, last_status) = last_status_update(now, state)
+        (absolute, relative, last_status) = last_status_update_inner(now, state)
         assert absolute == expected[0], f"basic test failed: expected last update on {expected[0]} in review, obtained {absolute} instead"
         assert relative == expected[1], f"basic test failed: expected last update on {expected[1]} in review, obtained {relative} instead"
         assert last_status == expected[2], f"expected last PR status of {expected[2]}, obtained {last_status} instead"
     def check_basic(created: datetime, now: datetime, events: List[Event], expected: Tuple[datetime, relativedelta, PRStatus]) -> None:
         check_with_initial(now, Metadata(created, events, False, False), expected)
     def check_first(metadata: Metadata, expected: datetime) -> None:
-        actual = first_on_queue(metadata)
+        actual = first_on_queue_inner(metadata)
         assert actual == expected, f"expect first time on the queue of {expected}, obtained {actual} instead"
     def check_first_basic(created: datetime, events: List[Event], expected: datetime) -> None:
         check_first(Metadata(created, events, False, False), expected)

@@ -17,7 +17,7 @@ from os import listdir, path
 from typing import List
 
 from classify_pr_state import PRStatus
-from state_evolution import first_time_on_queue, last_real_update, total_queue_time
+from state_evolution import first_time_on_queue, last_status_update, total_queue_time
 from util import eprint, parse_json_file, relativedelta_tryParse, timedelta_tryParse, timedelta_tostr
 
 
@@ -189,7 +189,7 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
             first_on_queue = first_time_on_queue(pr_data)
             stringified = None if first_on_queue is None else datetime.strftime(first_on_queue, time_format)
             aggregate_data["first_on_queue"] = {"status": validity_status, "date": stringified}
-            (time, delta, current_status) = last_real_update(pr_data)
+            (time, delta, current_status) = last_status_update(pr_data)
             assert relativedelta_tryParse(repr(delta)) == delta
             d = {
                 "status": validity_status,
