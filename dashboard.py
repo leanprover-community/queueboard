@@ -21,6 +21,8 @@ from mathlib_dashboards import Dashboard, short_description, long_description, g
 from util import my_assert_eq, format_delta, timedelta_tryParse, relativedelta_tryParse
 
 
+### Reading the input files passed to this script ###
+
 # Information passed to this script, via various JSON files.
 class JSONInputData(NamedTuple):
     # All aggregate information stored for every open PR.
@@ -116,6 +118,8 @@ def read_json_files() -> JSONInputData:
     return JSONInputData(aggregate_info, all_open_prs)
 
 
+### Helper methods: writing HTML code for various parts of the generated webpage ###
+
 # Determine HTML code for writing a table header with entries 'entries'.
 # base_indent is the indentation of the <table> tag; we add two additional space per additional level.
 def _write_table_header(entries: List[str], base_indent: str) -> str:
@@ -207,6 +211,220 @@ from dateutil import tz
 assert parser.isoparse("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 51, tzinfo=tz.tzutc())
 
 
+### Core logic: writing out a dashboard of PRs ###
+
+# This javascript code is placed at the bottom of each dashboard page.
+STANDARD_SCRIPT = """
+  let diff_stat = DataTable.type('diff_stat', {
+    detect: function (data) { return false; },
+    order: {
+      pre: function (data) {
+        let parts = data.split('/', 2);
+        return Number(parts[0]) + Number(parts[1]);
+      }
+    },
+  });
+  let formatted_relativedelta = DataTable.type('formatted_relativedelta', {
+    detect: function (data) { return data.startsWith('<div style="display:none">'); },
+    order: {
+      pre: function (data) {
+        let main = (data.split('</div>', 2))[0].slice('<div style="display:none">'.length);
+        // If there is no input data, main is the empty string.
+        if (!main.includes('-')) {
+            return -1;
+        }
+        const [days, seconds, ...rest] = main.split('-');
+        return 100000 * Number(days) + Number(seconds);
+      }
+    }
+  })
+$(document).ready( function () {
+  $('table').DataTable({
+    stateSave: true,
+    stateDuration: 0,
+    pageLength: 10,
+    "searching": true,
+    columnDefs: [{ type: 'diff_stat', targets: 4}],
+  });
+});
+"""
+
+
+# Settings for which 'extra columns' to display in a PR dashboard.
+class ExtraColumnSettings(NamedTuple):
+    # Show which github user(s) this PR is assigned to (if any)
+    show_assignee: bool
+    # Show the number of users who left an approving review on this PR (with a tooltip for their github handles).
+    # 'Maintainer merge/delegate' comments are inconsistently labelled as approving or not.
+    # In practice, this is not an issue as 'maintainer merge'd PRs are shown separately anyway.
+    show_approvals: bool
+    potential_reviewers: bool
+    hide_update: bool
+    show_last_real_update: bool
+    # Future possibilities:
+    # - number of (transitive) dependencies (with PR numbers)
+
+    @staticmethod
+    def default():
+        return ExtraColumnSettings(True, False, False, False, show_last_real_update=True)
+
+    @staticmethod
+    def with_approvals(val: bool):
+        self = ExtraColumnSettings.default()
+        return ExtraColumnSettings(self.show_assignee, val, self.potential_reviewers, self.hide_update, self.show_last_real_update)
+
+    @classmethod
+    def with_assignee(self, val: bool):
+        return ExtraColumnSettings(val, self.show_approvals, self.potential_reviewers, self.hide_update, self.show_last_real_update)
+
+
+# Compute the table entries about a sequence of PRs.
+# 'aggregate_information' maps each PR number to the corresponding aggregate information
+# (and may contain information on PRs not to be printed).
+# TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
+# in the latter is always kept updated.
+def _compute_pr_entries(
+    prs: List[BasicPRInformation], aggregate_information: dict[int, AggregatePRInfo],
+    extra_settings: ExtraColumnSettings, potential_reviewers: dict[int, Tuple[str, List[str]]] | None=None,
+) -> str:
+    result = ""
+    for pr in prs:
+        # XXX: compare the basic and aggregate author names to see if there are any differences
+        name = aggregate_information[pr.number].author
+        if pr.url != infer_pr_url(pr.number):
+            print(f"warning: PR {pr.number} has url differing from the inferred one:\n  actual:   {pr.url}\n  inferred: {infer_pr_url(pr.number)}", file=sys.stderr)
+        entries = [pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url), _write_labels(pr.labels)]
+        # Detailed information about the current PR.
+        pr_info = None
+        if pr.number in aggregate_information:
+            pr_info = aggregate_information[pr.number]
+        if pr_info is None:
+            print(f"main dashboard: found no aggregate information for PR {pr.number}", file=sys.stderr)
+            entries.extend(["-1/-1", "-1", "-1"])
+            if extra_settings.show_assignee:
+                entries.append("???")
+            if extra_settings.show_approvals:
+                entries.append("???")
+            if extra_settings.potential_reviewers and potential_reviewers is not None:
+                entries.append("???")
+        else:
+            na = '<a title="no data available">n/a</a>'
+            total_comments = na if pr_info.number_total_comments is None else str(pr_info.number_total_comments)
+            entries.extend([
+                "{}/{}".format(pr_info.additions, pr_info.deletions),
+                str(pr_info.number_modified_files),
+                total_comments,
+            ])
+            if extra_settings.show_assignee:
+                match sorted(pr_info.assignees):
+                    case []:
+                        assignees = "nobody"
+                    case [user]:
+                        assignees = user
+                    case [user1, user2]:
+                        assignees = f"{user1} and {user2}"
+                    case several_users:
+                        assignees = ", ".join(several_users)
+                entries.append(assignees)
+            if extra_settings.show_approvals:
+                # Deduplicate the users with approving reviews.
+                # FIXME: should one indicate the number of such approvals per user instead?
+                approvals_dedup = set(pr_info.approvals)
+                app = ", ".join(approvals_dedup)
+                approval_link = f'<a title="{app}">{len(approvals_dedup)}' if approvals_dedup else "none"
+                entries.append(approval_link)
+            if extra_settings.potential_reviewers and potential_reviewers is not None:
+                (reviewer_str, names) = potential_reviewers[pr.number]
+                entries.append(reviewer_str)
+                if names:
+                    # Just allow contacting the first reviewer, for now.
+                    # FUTURE: add a button with a drop-down, for the various options.
+                    fn = f"contactMessage('{names[0]}', {pr.number})"
+                    entries.append(f'<button onclick="{fn}">Ask {names[0]} for review</button>')
+                else:
+                    entries.append("")
+        if not extra_settings.hide_update:
+            entries.append(time_info(pr.updatedAt))
+        if extra_settings.show_last_real_update:
+            # Always start this column with a <div> with display:none, this is important for auto-detecting the column type!
+            real_update = '<div style="display:none"></div><a title="the last actual update for this PR could not be determined">unknown</a>'
+            total_time = '<div style="display:none"></div><a title="this PR\'s total time in review could not be determined">unknown</a>'
+            if pr_info:
+                last_update = aggregate_information[pr.number].last_status_change
+                if last_update is not None and last_update.status != DataStatus.Missing:
+                    real_update = f'{last_update.time} ({format_delta(last_update.delta)} ago)'
+                    if last_update.status == DataStatus.Incomplete:
+                        real_update += '<a title="caution: this data is likely incomplete">*</a>'
+                tqt = aggregate_information[pr.number].total_queue_time
+                if tqt is not None and tqt.status != DataStatus.Missing:
+                    prefix = f'<div style="display:none">{format_delta2(tqt.value_td)}</div> '
+                    total_time = f'{prefix}<a title="{tqt.explanation}">{format_delta(tqt.value_rd)}</a>'
+                    if tqt.status == DataStatus.Incomplete:
+                        total_time += '<a title="caution: this data is likely incomplete">*</a>'
+            entries.append(real_update)
+            entries.append(total_time)
+        result += _write_table_row(entries, "    ")
+    return result
+
+
+# Write the code for a dashboard of a given list of PRs.
+# 'aggregate_information' maps each PR number to the corresponding aggregate information
+# (and may contain information on PRs not to be printed).
+# TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
+# in the latter is always kept updated.
+# If 'header' is false, a table header is omitted and just the dashboard is printed.
+#
+# |potential_reviewers| maps each PR number to a tuple (HTML code, reviewer names).
+# The full string is shown on the webpage; the list of reviewer names is used for offering
+# a contact button.
+def write_dashboard(
+    prs: dict[Dashboard, List[BasicPRInformation]], kind: Dashboard, aggregate_info: dict[int, AggregatePRInfo],
+    extra_settings: ExtraColumnSettings | None=None, header=True, potential_reviewers: dict[int, Tuple[str, List[str]]]|None =None
+) -> str:
+    def _inner(
+        prs: List[BasicPRInformation], kind: Dashboard, aggregate_info: dict[int, AggregatePRInfo],
+        extra_settings: ExtraColumnSettings, add_header: bool
+    ):
+        # Title of each list, and the corresponding HTML anchor.
+        # Explain what each dashboard contains upon hovering the heading.
+        if add_header:
+            (id, title) = getIdTitle(kind)
+            title = _make_h2(id, title, long_description(kind))
+            # If there are no PRs, skip the table header and print a bold notice such as
+            # "There are currently **no** stale `delegated` PRs. Congratulations!".
+            if not prs:
+                return f"{title}\nThere are currently <b>no</b> {short_description(kind)}. Congratulations!\n"
+        else:
+            title = ""
+        headings = [
+            "Number", "Author", "Title", "Labels",
+            '<a title="number of added/deleted lines">+/-</a>',
+            '<a title="number of files modified">&#128221;</a>',
+            '<a title="number of standard or review comments on this PR">&#128172;</a>',
+        ]
+        if extra_settings.show_assignee:
+            headings.append('<a title="github user(s) this PR is assigned to (if any)">Assignee(s)</a>')
+        if extra_settings.show_approvals:
+            headings.append('<a title="github user(s) who have left an approving review of this PR (if any)">Approval(s)</a>')
+        if extra_settings.potential_reviewers and potential_reviewers is not None:
+            headings.append("Potential reviewers")
+            headings.append("Contact")
+        if not extra_settings.hide_update:
+            headings.append("<a title=\"this pull request's last update, according to github\">Updated</a>")
+        if extra_settings.show_last_real_update:
+            # TODO: are there better headings for this and the other header?
+            headings.append('<a title="The last time this PR\'s status changed from e.g. review to merge conflict, awaiting-author">Last status change</a>')
+            headings.append("total time in review")
+        head = _write_table_header(headings, "    ")
+        body = _compute_pr_entries(prs, aggregate_info, extra_settings, potential_reviewers)
+        return f"{title}\n  <table>\n{head}{body}  </table>"
+
+    if extra_settings is None:
+        extra_settings = ExtraColumnSettings.default()
+    return _inner(prs[kind], kind, aggregate_info, extra_settings, header)
+
+# Specific code for writing the actual webpage files.
+
 HTML_HEADER = """
 <!DOCTYPE html>
 <html>
@@ -236,6 +454,9 @@ def write_webpage(body: str, outfile: str, extra_script: str | None = None) -> N
         footer = f"<script>{script}</script>\n</body>\n</html>"
         print(f"{HTML_HEADER}\n{body}\n{footer}", file=fi)
 
+
+### Main logic: generating the various webpages ###
+# This part is mathlib-specific again; the pieces above were not.
 
 def main() -> None:
     input_data = read_json_files()
@@ -754,216 +975,6 @@ def write_main_page(
         else:
             body += f"{write_dashboard(prs_to_list, kind, aggregate_info)}\n"
     write_webpage(body, "index-old.html")
-
-
-STANDARD_SCRIPT = """
-  let diff_stat = DataTable.type('diff_stat', {
-    detect: function (data) { return false; },
-    order: {
-      pre: function (data) {
-        let parts = data.split('/', 2);
-        return Number(parts[0]) + Number(parts[1]);
-      }
-    },
-  });
-  let formatted_relativedelta = DataTable.type('formatted_relativedelta', {
-    detect: function (data) { return data.startsWith('<div style="display:none">'); },
-    order: {
-      pre: function (data) {
-        let main = (data.split('</div>', 2))[0].slice('<div style="display:none">'.length);
-        // If there is no input data, main is the empty string.
-        if (!main.includes('-')) {
-            return -1;
-        }
-        const [days, seconds, ...rest] = main.split('-');
-        return 100000 * Number(days) + Number(seconds);
-      }
-    }
-  })
-$(document).ready( function () {
-  $('table').DataTable({
-    stateSave: true,
-    stateDuration: 0,
-    pageLength: 10,
-    "searching": true,
-    columnDefs: [{ type: 'diff_stat', targets: 4}],
-  });
-});
-"""
-
-
-# Settings for which 'extra columns' to display.
-class ExtraColumnSettings(NamedTuple):
-    # Show which github user(s) this PR is assigned to (if any)
-    show_assignee: bool
-    # Show the number of users who left an approving review on this PR (with a tooltip for their github handles).
-    # 'Maintainer merge/delegate' comments are inconsistently labelled as approving or not.
-    # In practice, this is not an issue as 'maintainer merge'd PRs are shown separately anyway.
-    show_approvals: bool
-    potential_reviewers: bool
-    hide_update: bool
-    show_last_real_update: bool
-    # Future possibilities:
-    # - number of (transitive) dependencies (with PR numbers)
-
-    @staticmethod
-    def default():
-        return ExtraColumnSettings(True, False, False, False, show_last_real_update=True)
-
-    @staticmethod
-    def with_approvals(val: bool):
-        self = ExtraColumnSettings.default()
-        return ExtraColumnSettings(self.show_assignee, val, self.potential_reviewers, self.hide_update, self.show_last_real_update)
-
-    @classmethod
-    def with_assignee(self, val: bool):
-        return ExtraColumnSettings(val, self.show_approvals, self.potential_reviewers, self.hide_update, self.show_last_real_update)
-
-
-# Compute the table entries about a sequence of PRs.
-# 'aggregate_information' maps each PR number to the corresponding aggregate information
-# (and may contain information on PRs not to be printed).
-# TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
-# in the latter is always kept updated.
-def _compute_pr_entries(
-    prs: List[BasicPRInformation], aggregate_information: dict[int, AggregatePRInfo],
-    extra_settings: ExtraColumnSettings, potential_reviewers: dict[int, Tuple[str, List[str]]] | None=None,
-) -> str:
-    result = ""
-    for pr in prs:
-        # XXX: compare the basic and aggregate author names to see if there are any differences
-        name = aggregate_information[pr.number].author
-        if pr.url != infer_pr_url(pr.number):
-            print(f"warning: PR {pr.number} has url differing from the inferred one:\n  actual:   {pr.url}\n  inferred: {infer_pr_url(pr.number)}", file=sys.stderr)
-        entries = [pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url), _write_labels(pr.labels)]
-        # Detailed information about the current PR.
-        pr_info = None
-        if pr.number in aggregate_information:
-            pr_info = aggregate_information[pr.number]
-        if pr_info is None:
-            print(f"main dashboard: found no aggregate information for PR {pr.number}", file=sys.stderr)
-            entries.extend(["-1/-1", "-1", "-1"])
-            if extra_settings.show_assignee:
-                entries.append("???")
-            if extra_settings.show_approvals:
-                entries.append("???")
-            if extra_settings.potential_reviewers and potential_reviewers is not None:
-                entries.append("???")
-        else:
-            na = '<a title="no data available">n/a</a>'
-            total_comments = na if pr_info.number_total_comments is None else str(pr_info.number_total_comments)
-            entries.extend([
-                "{}/{}".format(pr_info.additions, pr_info.deletions),
-                str(pr_info.number_modified_files),
-                total_comments,
-            ])
-            if extra_settings.show_assignee:
-                match sorted(pr_info.assignees):
-                    case []:
-                        assignees = "nobody"
-                    case [user]:
-                        assignees = user
-                    case [user1, user2]:
-                        assignees = f"{user1} and {user2}"
-                    case several_users:
-                        assignees = ", ".join(several_users)
-                entries.append(assignees)
-            if extra_settings.show_approvals:
-                # Deduplicate the users with approving reviews.
-                # FIXME: should one indicate the number of such approvals per user instead?
-                approvals_dedup = set(pr_info.approvals)
-                app = ", ".join(approvals_dedup)
-                approval_link = f'<a title="{app}">{len(approvals_dedup)}' if approvals_dedup else "none"
-                entries.append(approval_link)
-            if extra_settings.potential_reviewers and potential_reviewers is not None:
-                (reviewer_str, names) = potential_reviewers[pr.number]
-                entries.append(reviewer_str)
-                if names:
-                    # Just allow contacting the first reviewer, for now.
-                    # FUTURE: add a button with a drop-down, for the various options.
-                    fn = f"contactMessage('{names[0]}', {pr.number})"
-                    entries.append(f'<button onclick="{fn}">Ask {names[0]} for review</button>')
-                else:
-                    entries.append("")
-        if not extra_settings.hide_update:
-            entries.append(time_info(pr.updatedAt))
-        if extra_settings.show_last_real_update:
-            # Always start this column with a <div> with display:none, this is important for auto-detecting the column type!
-            real_update = '<div style="display:none"></div><a title="the last actual update for this PR could not be determined">unknown</a>'
-            total_time = '<div style="display:none"></div><a title="this PR\'s total time in review could not be determined">unknown</a>'
-            if pr_info:
-                last_update = aggregate_information[pr.number].last_status_change
-                if last_update is not None and last_update.status != DataStatus.Missing:
-                    real_update = f'{last_update.time} ({format_delta(last_update.delta)} ago)'
-                    if last_update.status == DataStatus.Incomplete:
-                        real_update += '<a title="caution: this data is likely incomplete">*</a>'
-                tqt = aggregate_information[pr.number].total_queue_time
-                if tqt is not None and tqt.status != DataStatus.Missing:
-                    prefix = f'<div style="display:none">{format_delta2(tqt.value_td)}</div> '
-                    total_time = f'{prefix}<a title="{tqt.explanation}">{format_delta(tqt.value_rd)}</a>'
-                    if tqt.status == DataStatus.Incomplete:
-                        total_time += '<a title="caution: this data is likely incomplete">*</a>'
-            entries.append(real_update)
-            entries.append(total_time)
-        result += _write_table_row(entries, "    ")
-    return result
-
-
-# Write the code for a dashboard of a given list of PRs.
-# 'aggregate_information' maps each PR number to the corresponding aggregate information
-# (and may contain information on PRs not to be printed).
-# TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
-# in the latter is always kept updated.
-# If 'header' is false, a table header is omitted and just the dashboard is printed.
-#
-# |potential_reviewers| maps each PR number to a tuple (HTML code, reviewer names).
-# The full string is shown on the webpage; the list of reviewer names is used for offering
-# a contact button.
-def write_dashboard(
-    prs: dict[Dashboard, List[BasicPRInformation]], kind: Dashboard, aggregate_info: dict[int, AggregatePRInfo],
-    extra_settings: ExtraColumnSettings | None=None, header=True, potential_reviewers: dict[int, Tuple[str, List[str]]]|None =None
-) -> str:
-    def _inner(
-        prs: List[BasicPRInformation], kind: Dashboard, aggregate_info: dict[int, AggregatePRInfo],
-        extra_settings: ExtraColumnSettings, add_header: bool
-    ):
-        # Title of each list, and the corresponding HTML anchor.
-        # Explain what each dashboard contains upon hovering the heading.
-        if add_header:
-            (id, title) = getIdTitle(kind)
-            title = _make_h2(id, title, long_description(kind))
-            # If there are no PRs, skip the table header and print a bold notice such as
-            # "There are currently **no** stale `delegated` PRs. Congratulations!".
-            if not prs:
-                return f"{title}\nThere are currently <b>no</b> {short_description(kind)}. Congratulations!\n"
-        else:
-            title = ""
-        headings = [
-            "Number", "Author", "Title", "Labels",
-            '<a title="number of added/deleted lines">+/-</a>',
-            '<a title="number of files modified">&#128221;</a>',
-            '<a title="number of standard or review comments on this PR">&#128172;</a>',
-        ]
-        if extra_settings.show_assignee:
-            headings.append('<a title="github user(s) this PR is assigned to (if any)">Assignee(s)</a>')
-        if extra_settings.show_approvals:
-            headings.append('<a title="github user(s) who have left an approving review of this PR (if any)">Approval(s)</a>')
-        if extra_settings.potential_reviewers and potential_reviewers is not None:
-            headings.append("Potential reviewers")
-            headings.append("Contact")
-        if not extra_settings.hide_update:
-            headings.append("<a title=\"this pull request's last update, according to github\">Updated</a>")
-        if extra_settings.show_last_real_update:
-            # TODO: are there better headings for this and the other header?
-            headings.append('<a title="The last time this PR\'s status changed from e.g. review to merge conflict, awaiting-author">Last status change</a>')
-            headings.append("total time in review")
-        head = _write_table_header(headings, "    ")
-        body = _compute_pr_entries(prs, aggregate_info, extra_settings, potential_reviewers)
-        return f"{title}\n  <table>\n{head}{body}  </table>"
-
-    if extra_settings is None:
-        extra_settings = ExtraColumnSettings.default()
-    return _inner(prs[kind], kind, aggregate_info, extra_settings, header)
 
 
 if __name__ == "__main__":
