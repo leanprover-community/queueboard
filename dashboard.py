@@ -458,55 +458,8 @@ def write_webpage(body: str, outfile: str, extra_script: str | None = None) -> N
 ### Main logic: generating the various webpages ###
 # This part is mathlib-specific again; the pieces above were not.
 
-def main() -> None:
-    input_data = read_json_files()
-    # Populate basic information from the input data: splitting into draft and non-draft PRs
-    # (mostly, we only use the latter); extract separate dictionaries for CI status and base branch.
 
-    # NB. We handle missing metadata by adding "default" values for its aggregate data
-    # (ready for review, open, against master, failing CI and just updated now).
-    aggregate_info = input_data.aggregate_info.copy()
-    for pr in input_data.all_open_prs:
-        if pr.number not in input_data.aggregate_info:
-            print(f"warning: found no aggregate information for PR {pr.number}; filling in defaults", file=sys.stderr)
-            aggregate_info[pr.number] = PLACEHOLDER_AGGREGATE_INFO
-    draft_PRs = [pr for pr in input_data.all_open_prs if aggregate_info[pr.number].is_draft]
-    nondraft_PRs = [pr for pr in input_data.all_open_prs if not aggregate_info[pr.number].is_draft]
-
-    # The only exception is for the "on the queue" page,
-    # which points out missing information explicitly, hence is passed the non-filled in data.
-    CI_status: dict[int, CIStatus] = dict()
-    for pr in nondraft_PRs:
-        if pr.number in input_data.aggregate_info:
-            CI_status[pr.number] = input_data.aggregate_info[pr.number].CI_status
-        else:
-            CI_status[pr.number] = CIStatus.Missing
-    base_branch: dict[int, str] = dict()
-    for pr in nondraft_PRs:
-        base_branch[pr.number] = aggregate_info[pr.number].base_branch
-    prs_from_fork = [pr for pr in nondraft_PRs if aggregate_info[pr.number].head_repo != "leanprover-community"]
-    all_pr_status = compute_pr_statusses(aggregate_info, input_data.all_open_prs)
-    write_on_the_queue_page(all_pr_status, aggregate_info, nondraft_PRs, prs_from_fork, CI_status, base_branch)
-
-    # TODO: try to enable |use_aggregate_queue| 'queue_prs' again, once all the root causes
-    # for PRs getting 'dropped' by 'gather_stats.sh' are found and fixed.
-    prs_to_list = determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_info, False)
-    # FIXME: move setting this value into determine_pr_dashboards
-    prs_to_list[Dashboard.All] = input_data.all_open_prs
-
-    # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
-    updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
-    write_overview_page(updated)
-    # Future idea: add a histogram with the most common areas,
-    # or dedicated tables for common areas (and perhaps one for t-algebra, because it's hard to filter)
-    write_review_queue_page(updated, prs_to_list, aggregate_info)
-    write_maintainers_quick_page(updated, prs_to_list, aggregate_info)
-    write_help_out_page(updated, prs_to_list, aggregate_info)
-    write_triage_page(updated, prs_to_list, all_pr_status, aggregate_info, nondraft_PRs, draft_PRs)
-    write_main_page(aggregate_info, all_pr_status, prs_to_list, nondraft_PRs, draft_PRs, updated)
-
-
-EXPLANATION = """
+EXPLANATION_ON_THE_QUEUE_PAGE = """
 <p>To appear on the review queue, your open pull request must...</p>
 <ul>
 <li>be opened from the mathlib repository itself (not from a fork),</li>
@@ -638,7 +591,7 @@ def write_on_the_queue_page(
     # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
     start = f"  <h1>Why is my PR not on the queue?</h1>\n  <small>This page was last updated on: {updated}</small>"
-    write_webpage(f"{start}\n{EXPLANATION}\n{table}", "on_the_queue.html")
+    write_webpage(f"{start}\n{EXPLANATION_ON_THE_QUEUE_PAGE}\n{table}", "on_the_queue.html")
 
 
 def write_overview_page(updated: str) -> None:
@@ -975,6 +928,54 @@ def write_main_page(
         else:
             body += f"{write_dashboard(prs_to_list, kind, aggregate_info)}\n"
     write_webpage(body, "index-old.html")
+
+
+def main() -> None:
+    input_data = read_json_files()
+    # Populate basic information from the input data: splitting into draft and non-draft PRs
+    # (mostly, we only use the latter); extract separate dictionaries for CI status and base branch.
+
+    # NB. We handle missing metadata by adding "default" values for its aggregate data
+    # (ready for review, open, against master, failing CI and just updated now).
+    aggregate_info = input_data.aggregate_info.copy()
+    for pr in input_data.all_open_prs:
+        if pr.number not in input_data.aggregate_info:
+            print(f"warning: found no aggregate information for PR {pr.number}; filling in defaults", file=sys.stderr)
+            aggregate_info[pr.number] = PLACEHOLDER_AGGREGATE_INFO
+    draft_PRs = [pr for pr in input_data.all_open_prs if aggregate_info[pr.number].is_draft]
+    nondraft_PRs = [pr for pr in input_data.all_open_prs if not aggregate_info[pr.number].is_draft]
+
+    # The only exception is for the "on the queue" page,
+    # which points out missing information explicitly, hence is passed the non-filled in data.
+    CI_status: dict[int, CIStatus] = dict()
+    for pr in nondraft_PRs:
+        if pr.number in input_data.aggregate_info:
+            CI_status[pr.number] = input_data.aggregate_info[pr.number].CI_status
+        else:
+            CI_status[pr.number] = CIStatus.Missing
+    base_branch: dict[int, str] = dict()
+    for pr in nondraft_PRs:
+        base_branch[pr.number] = aggregate_info[pr.number].base_branch
+    prs_from_fork = [pr for pr in nondraft_PRs if aggregate_info[pr.number].head_repo != "leanprover-community"]
+    all_pr_status = compute_pr_statusses(aggregate_info, input_data.all_open_prs)
+    write_on_the_queue_page(all_pr_status, aggregate_info, nondraft_PRs, prs_from_fork, CI_status, base_branch)
+
+    # TODO: try to enable |use_aggregate_queue| 'queue_prs' again, once all the root causes
+    # for PRs getting 'dropped' by 'gather_stats.sh' are found and fixed.
+    prs_to_list = determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_info, False)
+    # FIXME: move setting this value into determine_pr_dashboards
+    prs_to_list[Dashboard.All] = input_data.all_open_prs
+
+    # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
+    updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
+    write_overview_page(updated)
+    # Future idea: add a histogram with the most common areas,
+    # or dedicated tables for common areas (and perhaps one for t-algebra, because it's hard to filter)
+    write_review_queue_page(updated, prs_to_list, aggregate_info)
+    write_maintainers_quick_page(updated, prs_to_list, aggregate_info)
+    write_help_out_page(updated, prs_to_list, aggregate_info)
+    write_triage_page(updated, prs_to_list, all_pr_status, aggregate_info, nondraft_PRs, draft_PRs)
+    write_main_page(aggregate_info, all_pr_status, prs_to_list, nondraft_PRs, draft_PRs, updated)
 
 
 if __name__ == "__main__":
