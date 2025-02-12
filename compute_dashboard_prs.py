@@ -162,7 +162,121 @@ def prs_without_any_label(prs: List[BasicPRInformation], label_names: List[str])
     return [prinfo for prinfo in prs if all([not _has_label(prinfo, name) for name in label_names])]
 
 
+# XXX: this method should go into dashboard.py, but cannot as gather_pr_statistics_inner also uses it.
+
+# Compute the HTML code for a link to a particular dashboard |kind|.
+# If the link to a dashboard goes to a separate page |subpage|, open the link in a new tab.
+# |force_same_page| disables that parameter, i.e. all links always go to the current page.
+def link_to(kind: Dashboard, name="these ones", subpage=None, force_same_page=False) -> str:
+    if subpage and not force_same_page:
+        return f'<a href="{subpage or ""}#{getIdTitle(kind)[0]}">{name}</a>'
+    else:
+        return f'<a href="#{getIdTitle(kind)[0]}" target="_self">{name}</a>'
+
+
 # The following logic is mathlib-dependent again.
+
+
+# Compute aggregate information about a collection of PRs, including a piechart of the PRs by their status.abs
+# Returns a tuple (number_all, details, pie_chart) of
+#   - the number of all PRs in the collection
+#   - a break-down of these PRs by PR state (formatted as HTML list)
+#   - code for generating a pie-chart, inside a complete <div> element.
+# If aggregate information about a PR is missing, we treat it as non-draft, failing CI and against 'master'.
+# (Though, in fact, we assume that 'aggregate_info' is complete, by prior normalisation.)
+def gather_pr_statistics(
+    all_pr_statusses: dict[int, PRStatus],
+    aggregate_info: dict[int, AggregatePRInfo],
+    prs: dict[Dashboard, List[BasicPRInformation]],
+    all_ready_prs: List[BasicPRInformation],
+    all_draft_prs: List[BasicPRInformation],
+    is_triage_board: bool,
+) -> str:
+    queue_prs = prs[Dashboard.Queue]
+    justmerge_prs = prs[Dashboard.NeedsMerge]
+
+    # Collect the number of PRs in each possible status.
+    # NB. The order of these statusses is meaningful; the statistics are shown in the order of these items.
+    statusses = [
+        PRStatus.AwaitingReview, PRStatus.Blocked, PRStatus.AwaitingAuthor, PRStatus.MergeConflict,
+        PRStatus.HelpWanted,PRStatus.NotReady,
+        PRStatus.AwaitingDecision,
+        PRStatus.FromFork,
+        PRStatus.Contradictory,
+        PRStatus.Delegated, PRStatus.AwaitingBors,
+    ]
+    numbers = [pr.number for pr in all_ready_prs]
+    ready_pr_status = { n: all_pr_statusses[n] for n in numbers }
+    number_prs: Dict[PRStatus, int] = {
+        status: len([number for number in ready_pr_status if ready_pr_status[number] == status]) for status in statusses
+    }
+    number_prs[PRStatus.NotReady] += len(all_draft_prs)
+    # Check that we did not miss any variant above
+    for status in PRStatus._member_map_.values():
+        assert status == PRStatus.Closed or status in number_prs.keys()
+
+    # For some kinds, we have this data already: the review queue and the "not merged" kinds come to mind.
+    # Let us compare with the classification logic.
+    queue_prs_numbers = [pr for pr in ready_pr_status if ready_pr_status[pr] == PRStatus.AwaitingReview]
+    msg = "the review queue (left) with all PRs classified as awaiting review (right)"
+    if my_assert_eq(msg, queue_prs_numbers, [i.number for i in queue_prs]):
+        print("review queue: two computations match, hooray", file=sys.stderr)
+    # TODO: also cross-check the data for merge conflicts
+    # add the "needs-decision" status with the awaiting-zulip dashboard
+
+    number_all = len(all_ready_prs) + len(all_draft_prs)
+
+    def number_percent(n: int, total: int, color: str = "") -> str:
+        if color:
+            return f'{n} (<span style="color: {color};">{n/total:.1%}</span>)'
+        else:
+            return f"{n} (<span>{n/total:.1%}</span>)"
+
+    instatus = {
+        PRStatus.AwaitingReview: f"are awaiting review ({link_to(Dashboard.Queue, subpage='review_dashboard.html', force_same_page=is_triage_board)}), among these <b>{number_percent(len(prs[Dashboard.QueueNewContributor]), len(queue_prs))}</b> by new contributors ({link_to(Dashboard.QueueNewContributor, subpage='review_dashboard.html')})",
+        PRStatus.HelpWanted: f"are labelled help-wanted or please-adopt ({link_to(Dashboard.NeedsHelp, 'roughly these', 'help_out.html', is_triage_board)})",
+        PRStatus.AwaitingAuthor: "are awaiting the PR author's action",
+        PRStatus.AwaitingDecision: f"are awaiting the outcome of a zulip discussion ({link_to(Dashboard.NeedsDecision)})",
+        PRStatus.FromFork: f"are opened from a fork of mathlib ({link_to(Dashboard.FromFork)})",
+        PRStatus.Blocked: "are blocked on another PR",
+        PRStatus.Delegated: f"are delegated (stale ones are {link_to(Dashboard.StaleDelegated, 'here', 'help_out.html', is_triage_board)})",
+        PRStatus.AwaitingBors: f"have been sent to bors (stale ones are {link_to(Dashboard.StaleReadyToMerge, 'here', 'maintainers_quick.html', is_triage_board)})",
+        PRStatus.MergeConflict: f"have a merge conflict: among these, <b>{number_percent(len(justmerge_prs), number_prs[PRStatus.MergeConflict])}</b> would be ready for review otherwise: {link_to(Dashboard.NeedsMerge, 'these')}",
+        PRStatus.Contradictory: f"have contradictory labels ({link_to(Dashboard.ContradictoryLabels)})",
+        PRStatus.NotReady: "are marked as draft or work in progress",
+    }
+    assert set(instatus.keys()) == set(statusses)
+    color = {
+        PRStatus.AwaitingReview: "#33b4ec",
+        PRStatus.HelpWanted: "#cc317c",
+        PRStatus.AwaitingAuthor: "#f6ae9a",
+        PRStatus.AwaitingDecision: "#086ad4",
+        PRStatus.FromFork: "#FF8000",
+        PRStatus.Blocked: "#8A6A1C",
+        PRStatus.Delegated: "#689dea",
+        PRStatus.AwaitingBors: "#098306",
+        PRStatus.MergeConflict: "#f17075",
+        PRStatus.Contradictory: "black",
+        PRStatus.NotReady: "#e899cd",
+    }
+    assert set(color.keys()) == set(statusses)
+    details = "\n".join([f"  <li><b>{number_percent(number_prs[s], number_all, color[s])}</b> {instatus[s]}</li>" for s in statusses])
+    # Generate a simple pie chart showing the distribution of PR statusses.
+    # Doing so requires knowing the cumulative sums, of all statusses so far.
+    numbers = [number_prs[s] for s in statusses]
+    cumulative = [sum(numbers[: i + 1]) for i in range(len(numbers))]
+    piechart = ", ".join([f"{color[s]} 0 {cumulative[i] * 360 // number_all}deg" for (i, s) in enumerate(statusses)])
+    piechart_style = f"width: 200px;height: 200px;border-radius: 50%;border: 1px solid black;background-image: conic-gradient( {piechart} );"
+    if cumulative[-1] != number_all:
+        dict = "{" + ", ".join([f"{s}: {number_prs[s]}" for s in statusses]) + "}"
+        msg = f"""error: statistics calculation is inconsistent, all PR kinds do not add up!
+            cumulative sum of PRs is {cumulative[-1]}, while there are {number_all} PRs in total
+            detailed stats dictionary is {dict}"""
+        print(msg, file=sys.stderr)
+        # TODO: compare these lists of PRs in detail, to verify if this exposes anything other than outdated data!
+        # assert False
+
+    return (number_all, f"<ul>\n{details}\n</ul>", '<div class="piechart" style="{piechart_style}"></div>')
 
 
 def has_contradictory_labels(pr: BasicPRInformation) -> bool:
