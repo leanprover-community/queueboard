@@ -207,6 +207,27 @@ from dateutil import tz
 assert parser.isoparse("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 51, tzinfo=tz.tzutc())
 
 
+HTML_HEADER = """
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.datatables.net; style-src 'self' 'unsafe-inline' https://cdn.datatables.net; form-action 'none'; base-uri 'none'">
+<title>Mathlib review and triage dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
+    integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg=="
+	crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.css"
+    integrity="sha384-eCorNQ6xLKDT9aok8iCYVVP8S813O3kaugZFLBt1YhfR80d1ZgkNcf2ghiTRzRno" crossorigin="anonymous">
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.js"
+    integrity="sha384-cDXquhvkdBprgcpTQsrhfhxXRN4wfwmWauQ3wR5ZTyYtGrET2jd68wvJ1LlDqlQG" crossorigin="anonymous"></script>
+<link rel='stylesheet' href='style.css'>
+<base target="_blank">
+</head>
+<body>
+""".strip()
+
+
 # Write a webpage with body out a file called 'outfile*.
 # 'extra_script' is expected to be newline-delimited and appropriately indented.
 def write_webpage(body: str, outfile: str, extra_script: str | None = None) -> None:
@@ -734,26 +755,6 @@ def write_main_page(
             body += f"{write_dashboard(prs_to_list, kind, aggregate_info)}\n"
     write_webpage(body, "index-old.html")
 
-
-HTML_HEADER = """
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.datatables.net; style-src 'self' 'unsafe-inline' https://cdn.datatables.net; form-action 'none'; base-uri 'none'">
-<title>Mathlib review and triage dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
-    integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg=="
-	crossorigin="anonymous"></script>
-<link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.css"
-    integrity="sha384-eCorNQ6xLKDT9aok8iCYVVP8S813O3kaugZFLBt1YhfR80d1ZgkNcf2ghiTRzRno" crossorigin="anonymous">
-<script src="https://cdn.datatables.net/2.1.8/js/dataTables.js"
-    integrity="sha384-cDXquhvkdBprgcpTQsrhfhxXRN4wfwmWauQ3wR5ZTyYtGrET2jd68wvJ1LlDqlQG" crossorigin="anonymous"></script>
-<link rel='stylesheet' href='style.css'>
-<base target="_blank">
-</head>
-<body>
-""".strip()
 
 STANDARD_SCRIPT = """
   let diff_stat = DataTable.type('diff_stat', {
