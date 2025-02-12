@@ -1,10 +1,16 @@
-"""Helper utilities for determining the current state of a pull request from e.g. its labels."""
+"""Helper utilities for determining the current state of a pull request from its labels,
+CI status and other relevant state.
+
+Most of this logic is at least partially specific to mathlib.
+"""
 
 from datetime import datetime
 from enum import Enum, auto
 from typing import List, NamedTuple
 
 from dateutil import tz
+
+from ci_status import CIStatus
 
 
 # The different kinds of PR labels we care about.
@@ -25,6 +31,27 @@ class LabelKind(Enum):
     Bors = auto()  # ready-to-merge or auto-merge-after-CI
     # any other label, such as t-something (but also "easy", "bug" and a few more)
     Other = auto()
+
+
+# All relevant state of a PR at each point in time.
+# NB. This enum should not need to be changed for non-mathlib projects.
+class PRState(NamedTuple):
+    labels: List[LabelKind]
+    ci: CIStatus
+    draft: bool
+    """True if and only if this PR is marked as draft."""
+    from_fork: bool
+
+    @staticmethod
+    def with_labels(labels: List[LabelKind]):
+        """Create a PR state with just these labels, passing CI and ready for review"""
+        return PRState(labels, CIStatus.Pass, False, False)
+    @staticmethod
+    def with_labels_and_ci(labels: List[LabelKind], ci: CIStatus):
+        return PRState(labels, ci, False, False)
+    @staticmethod
+    def with_labels_ci_draft(labels: List[LabelKind], ci: CIStatus, is_draft: bool):
+        return PRState(labels, ci, is_draft, False)
 
 
 # Map a label name (as a string) to a `LabelKind`.
@@ -50,51 +77,6 @@ label_categorisation_rules: dict[str, LabelKind] = {
     "help-wanted": LabelKind.HelpWanted,
     "please-adopt": LabelKind.HelpWanted,
 }
-
-
-class CIStatus(Enum):
-    # All build jobs pass (or are skipped).
-    Pass = auto()
-    # Some build job fails which is not "inessential" (see below).
-    Fail = auto()
-    # Some build job fails, but all failing jobs are (usually) spurious failures,
-    # or related to defects in the infrastructure.
-    # Unless a PR actively modifies such infrastructure, this is not a bug in the PR.
-    FailInessential = auto()
-    # CI is currently running
-    Running = auto()
-    # Missing data.
-    Missing = auto()
-
-    @staticmethod
-    def from_string(s: str):
-        return {
-            "pass": CIStatus.Pass,
-            "fail": CIStatus.Fail,
-            "fail-inessential": CIStatus.FailInessential,
-            "running": CIStatus.Running,
-            None: CIStatus.Missing,
-        }[s]
-
-
-# All relevant state of a PR at each point in time.
-class PRState(NamedTuple):
-    labels: List[LabelKind]
-    ci: CIStatus
-    draft: bool
-    """True if and only if this PR is marked as draft."""
-    from_fork: bool
-
-    @staticmethod
-    def with_labels(labels: List[LabelKind]):
-        """Create a PR state with just these labels, passing CI and ready for review"""
-        return PRState(labels, CIStatus.Pass, False, False)
-    @staticmethod
-    def with_labels_and_ci(labels: List[LabelKind], ci: CIStatus):
-        return PRState(labels, ci, False, False)
-    @staticmethod
-    def with_labels_ci_draft(labels: List[LabelKind], ci: CIStatus, is_draft: bool):
-        return PRState(labels, ci, is_draft, False)
 
 
 # Describes the current status of a pull request in terms of the categories we care about.

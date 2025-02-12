@@ -15,7 +15,7 @@ from typing import List, NamedTuple, Tuple
 
 from dateutil import parser
 
-from classify_pr_state import CIStatus
+from ci_status import CIStatus
 from dashboard import (
     AggregatePRInfo,
     BasicPRInformation,
