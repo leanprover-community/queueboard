@@ -42,7 +42,7 @@ from dateutil import parser, tz
 from dateutil.relativedelta import relativedelta
 
 from ci_status import CIStatus
-from classify_pr_state import (LabelKind, PRState, PRStatus, determine_PR_status, label_categorisation_rules, label_to_prstatus)
+from classify_pr_state import (LabelKind, PRState, PRStatus, canonicalise_label, determine_PR_status, label_categorisation_rules, label_to_prstatus)
 from util import format_delta
 
 
@@ -271,12 +271,6 @@ def last_status_update(now: datetime, metadata: Metadata) -> Tuple[datetime, rel
     assert len(evolution_status) == len(metadata.events) + 1
     last : datetime = evolution_status[-1][0]
     return (last, relativedelta(now, last), evolution_status[-1][1])
-
-
-# Canonicalise a (potentially historical) label name to its current one.
-# Github's events data uses the label names at that time.
-def canonicalise_label(name: str) -> str:
-    return "awaiting-review-DONT-USE" if name == "awaiting-review" else name
 
 
 # Parse the detailed information about a given PR and return a pair

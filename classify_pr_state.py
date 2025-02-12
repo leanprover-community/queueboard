@@ -81,6 +81,12 @@ label_categorisation_rules: dict[str, LabelKind] = {
 }
 
 
+# Canonicalise a (potentially historical) label name to its current one.
+# Github's events data uses the label names at that time.
+def canonicalise_label(name: str) -> str:
+    return "awaiting-review-DONT-USE" if name == "awaiting-review" else name
+
+
 # Describes the current status of a pull request in terms of the categories we care about.
 class PRStatus(Enum):
     # This PR is opened from a fork of mathlib:
