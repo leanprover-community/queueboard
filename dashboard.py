@@ -142,6 +142,71 @@ def _write_labels(labels: List[Label]) -> str:
         return f"\n        {label_part}\n      "
 
 
+# Write the code for a h2 heading linking to itself, with id |id|, title |title|,
+# and optional tooltip |tooltip| (implemented as an <a title> attribute).
+def _make_h2(id: str, title: str, tooltip=None) -> str:
+    if tooltip:
+        return f'<h2 id="{id}"><a href="#{id}" title="{tooltip}">{title}</a></h2>'
+    return f'<h2 id="{id}"><a href="#{id}">{title}</a></h2>'
+
+
+# An HTML link to a mathlib PR from the PR number
+def pr_link(number: int, url: str, title=None) -> str:
+    # The PR number is intentionally not prefixed with a #, so it is correctly
+    # recognised and sorted as a number (with HTML formatting, a `html-num` type),
+    # and not sorted as a string.
+    return f"<a href='{url}' title='{title or ''}'>{number}</a>"
+
+
+# An HTML link to a GitHub user profile
+def user_link(author_name: str, details: str | None = None) -> str:
+    url = f"https://github.com/{author_name}"
+    title = f" title='{details}'" if details else ""
+    return f"<a href='{url}'{title}>{author_name}</a>"
+
+
+# An HTML link to a mathlib PR from the PR title
+def title_link(title: str, url: str) -> str:
+    return f"<a href='{url}'>{title}</a>"
+
+
+# An HTML link to a Github label in the mathlib repo
+def label_link(label: Label) -> str:
+    # Function to check if the colour of the label is light or dark
+    # adapted from https://codepen.io/WebSeed/pen/pvgqEq
+    # r, g and b are integers between 0 and 255.
+    def isLight(r: int, g: int, b: int) -> bool:
+        # Counting the perceptive luminance
+        # human eye favors green color...
+        a = 1 - (0.299 * r + 0.587 * g + 0.114 * b) / 255
+        return a < 0.5
+
+    bgcolor = label.color
+    fgcolor = "000000" if isLight(int(bgcolor[:2], 16), int(bgcolor[2:4], 16), int(bgcolor[4:], 16)) else "FFFFFF"
+    return f"<a href='{label.url}'><span class='label' style='color: #{fgcolor}; background: #{bgcolor}'>{label.name}</span></a>"
+
+
+# Function to format the time of the last update
+# Input is in the format: "2020-11-02T14:23:56Z" (i.e., in ISO format).
+# Output is in the format: "2020-11-02 14:23 (2 days ago)"
+def time_info(updatedAt: datetime) -> str:
+    updated = updatedAt
+    now = datetime.now(timezone.utc)
+    # Calculate the difference in time
+    delta = relativedelta.relativedelta(now, updated)
+    # Format the output
+    s = updated.strftime("%Y-%m-%d %H:%M")
+    return f"{s} ({format_delta(delta)} ago)"
+
+# Auxiliary function, used for sorting the "total time in review".
+def format_delta2(delta: timedelta) -> str:
+    return f"{delta.days}-{delta.seconds}"
+
+from dateutil import tz
+
+assert parser.isoparse("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 51, tzinfo=tz.tzutc())
+
+
 # Write a webpage with body out a file called 'outfile*.
 # 'extra_script' is expected to be newline-delimited and appropriately indented.
 def write_webpage(body: str, outfile: str, extra_script: str | None = None) -> None:
@@ -465,14 +530,6 @@ def write_help_out_page(
     write_webpage(body, "help_out.html")
 
 
-# Write the code for a h2 heading linking to itself, with id |id|, title |title|,
-# and optional tooltip |tooltip| (implemented as an <a title> attribute).
-def _make_h2(id: str, title: str, tooltip=None) -> str:
-    if tooltip:
-        return f'<h2 id="{id}"><a href="#{id}" title="{tooltip}">{title}</a></h2>'
-    return f'<h2 id="{id}"><a href="#{id}">{title}</a></h2>'
-
-
 def pr_statistics(
     all_pr_statusses: dict[int, PRStatus],
     aggregate_info: dict[int, AggregatePRInfo],
@@ -736,63 +793,6 @@ $(document).ready( function () {
 
 def infer_pr_url(number: int) -> str:
     return f"https://github.com/leanprover-community/mathlib4/pull/{number}"
-
-
-# An HTML link to a mathlib PR from the PR number
-def pr_link(number: int, url: str, title=None) -> str:
-    # The PR number is intentionally not prefixed with a #, so it is correctly
-    # recognised and sorted as a number (with HTML formatting, a `html-num` type),
-    # and not sorted as a string.
-    return f"<a href='{url}' title='{title or ''}'>{number}</a>"
-
-
-# An HTML link to a GitHub user profile
-def user_link(author_name: str, details: str | None = None) -> str:
-    url = f"https://github.com/{author_name}"
-    title = f" title='{details}'" if details else ""
-    return f"<a href='{url}'{title}>{author_name}</a>"
-
-
-# An HTML link to a mathlib PR from the PR title
-def title_link(title: str, url: str) -> str:
-    return f"<a href='{url}'>{title}</a>"
-
-
-# An HTML link to a Github label in the mathlib repo
-def label_link(label: Label) -> str:
-    # Function to check if the colour of the label is light or dark
-    # adapted from https://codepen.io/WebSeed/pen/pvgqEq
-    # r, g and b are integers between 0 and 255.
-    def isLight(r: int, g: int, b: int) -> bool:
-        # Counting the perceptive luminance
-        # human eye favors green color...
-        a = 1 - (0.299 * r + 0.587 * g + 0.114 * b) / 255
-        return a < 0.5
-
-    bgcolor = label.color
-    fgcolor = "000000" if isLight(int(bgcolor[:2], 16), int(bgcolor[2:4], 16), int(bgcolor[4:], 16)) else "FFFFFF"
-    return f"<a href='{label.url}'><span class='label' style='color: #{fgcolor}; background: #{bgcolor}'>{label.name}</span></a>"
-
-
-# Function to format the time of the last update
-# Input is in the format: "2020-11-02T14:23:56Z" (i.e., in ISO format).
-# Output is in the format: "2020-11-02 14:23 (2 days ago)"
-def time_info(updatedAt: datetime) -> str:
-    updated = updatedAt
-    now = datetime.now(timezone.utc)
-    # Calculate the difference in time
-    delta = relativedelta.relativedelta(now, updated)
-    # Format the output
-    s = updated.strftime("%Y-%m-%d %H:%M")
-    return f"{s} ({format_delta(delta)} ago)"
-
-# Auxiliary function, used for sorting the "total time in review".
-def format_delta2(delta: timedelta) -> str:
-    return f"{delta.days}-{delta.seconds}"
-
-from dateutil import tz
-
-assert parser.isoparse("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 51, tzinfo=tz.tzutc())
 
 
 # Settings for which 'extra columns' to display.
