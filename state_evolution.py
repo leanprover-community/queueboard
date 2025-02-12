@@ -30,8 +30,8 @@ From this information, we can compute the total time a PR was waiting for review
 
 ## Implementation notes
 
-This algorithm is just a skeleton: it contains the *analysis* of the given input data,
-but does not parse the input data from any other input. (That is a second step.)
+This file contains the *analysis* of the given input data; the input data parsing
+is done elsewhere.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -80,12 +80,12 @@ class MarkedReady(NamedTuple):
 
 # Something changed on a PR which we care about:
 # - a new label got added or removed
-# - the PR was (un)marked draft: omitting this for now
-# - the PR status changed (passing or failing to build)
+# - the PR was (un)marked draft
+# - the PR's CI status changed (e.g., it passes or fails now)
 PRChange = LabelAdded | LabelRemoved | LabelAddedRemoved | MarkedDraft | MarkedReady | CIStatusChanged
 
 
-# Something changed on this PR.
+# Something changed on this PR, at a given time.
 class Event(NamedTuple):
     time: datetime
     change: PRChange
@@ -115,9 +115,8 @@ class Event(NamedTuple):
         return Event(time, CIStatusChanged(new))
 
 
-# Update the current PR state in light of some change.
+# Update the current PR state in light of some `Event`.
 def update_state(current: PRState, ev: Event) -> PRState:
-    #print(f"current state is {current}, incoming event is {ev}")
     match ev.change:
         case MarkedDraft():
             return PRState(current.labels, current.ci, True, current.from_fork)
@@ -126,7 +125,7 @@ def update_state(current: PRState, ev: Event) -> PRState:
         case CIStatusChanged(new_state):
             return PRState(current.labels, new_state, current.draft, current.from_fork)
         case LabelAdded(name):
-            # Depending on the label added, update the PR status.
+            # Depending on the label added, update the PR status. We ignore irrelevant labels.
             if name in label_categorisation_rules:
                 label_kind = label_categorisation_rules[name]
                 return PRState(current.labels + [label_kind], current.ci, current.draft, current.from_fork)
@@ -182,7 +181,6 @@ def determine_status_changes(
     initial_time: datetime, initial_state: PRState, events: List[Event]
 ) -> List[Tuple[datetime, PRStatus]]:
     evolution = determine_state_changes(initial_time, initial_state, events)
-    #print(f"state changes are {evolution}")
     res = []
     for time, state in evolution:
         res.append((time, determine_PR_status(time, state)))

@@ -55,6 +55,8 @@ class PRState(NamedTuple):
 
 
 # Map a label name (as a string) to a `LabelKind`.
+# Any label which is relevant for the state classification *must* be contained
+# in this list; any other label name is considered irrelevant for the classification.
 #
 # NB. Make sure this mapping reflects the *current* label names on github.
 # For historical purposes, it might be necessary to also track their
