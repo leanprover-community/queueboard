@@ -116,23 +116,6 @@ def read_json_files() -> JSONInputData:
     return JSONInputData(aggregate_info, all_open_prs)
 
 
-EXPLANATION = """
-<p>To appear on the review queue, your open pull request must...</p>
-<ul>
-<li>be opened from the mathlib repository itself (not from a fork),</li>
-<li>be based on the <em>master</em> branch of mathlib,</li>
-<li>pass mathlib's CI,</li>
-<li>not be blocked by another PR (as marked by the labels <em>blocked-by-other-PR</em> and similar)</li>
-<li>have no merge conflict (as marked by the <em>merge-conflict</em>),</li>
-<li>not be in draft status, nor labelled with one of <em>WIP</em>, <em>help-wanted</em> or <em>please-adopt</em>: these mean the PR is not fully ready yet;</li>
-<li>not be labelled <em>awaiting-CI</em>, <em>awaiting-author</em> or <em>awaiting-zulip</em>,</li>
-<li>not be labelled <em>delegated</em>, <em>auto-merge-after-CI</em> or <em>ready-to-merge</em>: these labels mean your PR is already approved.</li>
-</ul>
-<p>
-The table below contains all open PRs against the <em>master</em> branch which are not in draft mode. For each PR, it shows whether the checks above are satisfied.
-You can filter that list by entering terms into the search box, such as the PR number or your github username.</p>""".lstrip()
-
-
 # Determine HTML code for writing a table header with entries 'entries'.
 # base_indent is the indentation of the <table> tag; we add two additional space per additional level.
 def _write_table_header(entries: List[str], base_indent: str) -> str:
@@ -214,6 +197,23 @@ def main() -> None:
     write_help_out_page(updated, prs_to_list, aggregate_info)
     write_triage_page(updated, prs_to_list, all_pr_status, aggregate_info, nondraft_PRs, draft_PRs)
     write_main_page(aggregate_info, all_pr_status, prs_to_list, nondraft_PRs, draft_PRs, updated)
+
+
+EXPLANATION = """
+<p>To appear on the review queue, your open pull request must...</p>
+<ul>
+<li>be opened from the mathlib repository itself (not from a fork),</li>
+<li>be based on the <em>master</em> branch of mathlib,</li>
+<li>pass mathlib's CI,</li>
+<li>not be blocked by another PR (as marked by the labels <em>blocked-by-other-PR</em> and similar)</li>
+<li>have no merge conflict (as marked by the <em>merge-conflict</em>),</li>
+<li>not be in draft status, nor labelled with one of <em>WIP</em>, <em>help-wanted</em> or <em>please-adopt</em>: these mean the PR is not fully ready yet;</li>
+<li>not be labelled <em>awaiting-CI</em>, <em>awaiting-author</em> or <em>awaiting-zulip</em>,</li>
+<li>not be labelled <em>delegated</em>, <em>auto-merge-after-CI</em> or <em>ready-to-merge</em>: these labels mean your PR is already approved.</li>
+</ul>
+<p>
+The table below contains all open PRs against the <em>master</em> branch which are not in draft mode. For each PR, it shows whether the checks above are satisfied.
+You can filter that list by entering terms into the search box, such as the PR number or your github username.</p>""".lstrip()
 
 
 # Print a webpage "why is my PR not on the queue" to the file "on_the_queue.html".
