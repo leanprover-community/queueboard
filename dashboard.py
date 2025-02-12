@@ -791,10 +791,6 @@ $(document).ready( function () {
 """
 
 
-def infer_pr_url(number: int) -> str:
-    return f"https://github.com/leanprover-community/mathlib4/pull/{number}"
-
-
 # Settings for which 'extra columns' to display.
 class ExtraColumnSettings(NamedTuple):
     # Show which github user(s) this PR is assigned to (if any)

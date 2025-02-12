@@ -177,6 +177,10 @@ def link_to(kind: Dashboard, name="these ones", subpage=None, force_same_page=Fa
 # The following logic is mathlib-dependent again.
 
 
+def infer_pr_url(number: int) -> str:
+    return f"https://github.com/leanprover-community/mathlib4/pull/{number}"
+
+
 # Compute aggregate information about a collection of PRs, including a piechart of the PRs by their status.abs
 # Returns a tuple (number_all, details, pie_chart) of
 #   - the number of all PRs in the collection
