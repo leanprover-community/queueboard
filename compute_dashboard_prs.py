@@ -8,8 +8,9 @@ This file contains the code for computing the PRs on each dashboard in |mathlib_
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto, unique
 import json
+import sys
 from dateutil import parser, relativedelta
-from typing import List, NamedTuple, Tuple
+from typing import Dict, List, NamedTuple, Tuple
 
 from ci_status import CIStatus
 from classify_pr_state import (PRState, PRStatus,
@@ -195,7 +196,7 @@ def gather_pr_statistics(
     all_ready_prs: List[BasicPRInformation],
     all_draft_prs: List[BasicPRInformation],
     is_triage_board: bool,
-) -> str:
+) -> Tuple[int, str, str]:
     queue_prs = prs[Dashboard.Queue]
     justmerge_prs = prs[Dashboard.NeedsMerge]
 
