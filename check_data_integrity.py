@@ -17,8 +17,9 @@ from typing import List, NamedTuple, Tuple
 from dateutil import parser
 
 from ci_status import CIStatus
+from compute_dashboard_prs import AggregatePRInfo, infer_pr_url, Label
+from dashboard import parse_aggregate_file
 from util import eprint, parse_json_file
-
 
 # Read the input JSON files, return a dictionary mapping each PR number
 # to the (current) last update data github provides.
@@ -246,9 +247,100 @@ def remove_broken_data(number: int) -> None:
     _inner(number, "closed_prs_to_backfill.txt")
 
 
+# All data contained in the files all-open-PRs.json passed to the dashboard.
+class RESTData(NamedTuple):
+    number: int
+    url: str
+    author: str
+    title: str
+    state: str
+    updatedAt: str
+    labels: List[Label]
+
+
+# Return a list of PR numbers whose aggregate data differs from the REST data,
+# and whose aggregate data is not newer than the REST data.
+def compare_data_inner(rest: List[RESTData], aggregate: dict[int, AggregatePRInfo]) -> List[int]:
+    # Return whether left and right are equal. Print an error if not.
+    def different(left, right, field_name, number) -> bool:
+        if left != right:
+            print(f"mismatched data field '{field_name}' for PR {number}: REST data says {left}, aggregate data {right}")
+            return True
+        return False
+
+    outdated = []
+    # For each PR in the REST data, check if the aggregate data matches.
+    # This will overlook aggregate PRs with no REST data; this is fine.
+    for pr in rest:
+        if pr.number not in aggregate:
+            print(f"error: no aggregate data for PR {pr.number}")
+            outdated.append(pr.number)
+            continue
+        agg = aggregate[pr.number]
+        if parser.isoparse(pr.updatedAt) < agg.last_updated:
+            # If the aggregate information is newer, different data is fine.
+            continue
+        if pr.url != infer_pr_url(pr.number):
+            print(f"error for PR {pr.number}: REST data has url {pr.url}, but inferred {infer_pr_url(pr.number)}")
+            outdated.append(pr.number)
+        elif different(pr.author, agg.author, "author", pr.number):
+            outdated.append(pr.number)
+        elif different(pr.title, agg.title, "title", pr.number):
+            outdated.append(pr.number)
+        elif different(pr.state.lower(), agg.state, "state", pr.number):
+            outdated.append(pr.number)
+        elif different(parser.isoparse(pr.updatedAt), agg.last_updated, "updatedAt", pr.number):
+            outdated.append(pr.number)
+        else:
+            # For PR labels, also normalise the colours into lower-case and sort alphabetically.
+            norm1 = [Label(lab.name, lab.color.lower(), lab.url.replace(" ", "%20")) for lab in sorted(pr.labels, key=lambda l: l.name)]
+            norm2 = [Label(lab.name, lab.color.lower(), lab.url.replace(" ", "%20")) for lab in sorted(agg.labels, key=lambda l: l.name)]
+            if different(norm1, norm2, "labels", pr.number):
+                outdated.append(pr.number)
+    print(f"Compared information about {len(rest)} PRs, found {len(outdated)} PRs with different data")
+    return outdated
+
+
+# Compare the information from the aggregate data file with the contents of
+# a pr_info.json file downloaded via the REST API: the goal is to find PRs
+# where the data differs, to find PRs with outdated information sooner.
+def compare_data_aggressive() -> List[int]:
+    rest_data: List[RESTData] = []
+    with open("all-open-PRs-1.json", "r") as fi:
+        data1 = json.load(fi)
+    with open("all-open-PRs-2.json", "r") as fi:
+        data2 = json.load(fi)
+    for page in data1["output"]:
+        for pr in page["data"]["search"]["nodes"]:
+            parsed_labels = [Label(lab["name"], lab["color"], lab["url"]) for lab in pr["labels"]["nodes"]]
+            author = pr["author"]["login"]
+            url = pr["author"]["url"]
+            if url != f'https://github.com/{author}':
+                print("warning: PR author {author} has URL {url}, which is unexpected", file=sys.stderr)
+            rest_data.append(RESTData(
+                int(pr["number"]), pr["url"], author, pr["title"], pr["state"], pr["updatedAt"], parsed_labels
+            ))
+    for page in data2["output"]:
+        for pr in page["data"]["search"]["nodes"]:
+            parsed_labels = [Label(lab["name"], lab["color"], lab["url"]) for lab in pr["labels"]["nodes"]]
+            author = pr["author"]["login"]
+            url = pr["author"]["url"]
+            if url != f'https://github.com/{author}':
+                print("warning: PR author {author} has URL {url}, which is unexpected", file=sys.stderr)
+            rest_data.append(RESTData(
+                int(pr["number"]), pr["url"], author, pr["title"], pr["state"], pr["updatedAt"], parsed_labels
+            ))
+    with open(os.path.join("processed_data", "all_pr_data.json"), "r") as f:
+        aggregate_data = parse_aggregate_file(json.load(f))
+    return compare_data_inner(rest_data, aggregate_data)
+
+
 # Read the last updated fields of the aggregate data file, and compare it with the
 # dates from querying github.
 def main() -> None:
+    # Future: use this list to guide re-downloads. For now, just run this in CI.
+    _outdated = compare_data_aggressive()
+
     # "Last updated" information as found in the aggregate data file.
     (normal_prs_with_errors, stubborn_prs_with_errors) = check_data_directory_contents()
     # Prune broken data for all PRs, and remove superfluous entries from 'missing_prs.txt'.
