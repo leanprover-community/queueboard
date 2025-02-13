@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
 # This script XXX describe input files! displays the data in an HTML dashboard.
-# It assumes that for each PR N which should appear in some dashboard,
-# there is a file N.json in the `data` directory, which contains all necessary detailed information about that PR.
+# This only depends on processed_data/open_pr_data.json.
 
 import json
 import sys
