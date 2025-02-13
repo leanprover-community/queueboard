@@ -339,7 +339,7 @@ def compare_data_aggressive() -> List[int]:
 # dates from querying github.
 def main() -> None:
     # Future: use this list to guide re-downloads. For now, just run this in CI.
-    _outdated = compare_data_aggressive()
+    outdated_aggressive = compare_data_aggressive()
 
     # "Last updated" information as found in the aggregate data file.
     (normal_prs_with_errors, stubborn_prs_with_errors) = check_data_directory_contents()
@@ -407,6 +407,11 @@ def main() -> None:
         elif ci_status == CIStatus.Missing and aggregate_last_updated[pr_number].state == "open":
             print(f"outdated data: PR {pr_number} has missing CI data")
             outdated_prs.append(pr_number)
+
+    for pr_number in outdated_aggressive:
+        if pr_number not in outdated_prs:
+            print(f"PR {pr_number} has outdated aggregate data, found only by deep comparison")
+            # outdated_prs.append(pr_number)
 
     # Some PRs are marked as stubborn: for them, only basic information is downloaded.
     stubborn_prs = []
