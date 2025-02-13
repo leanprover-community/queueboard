@@ -280,6 +280,9 @@ def compare_data_inner(rest: List[RESTData], aggregate: dict[int, AggregatePRInf
         if parser.isoparse(pr.updatedAt) < agg.last_updated:
             # If the aggregate information is newer, different data is fine.
             continue
+        elif parser.isoparse(pr.updatedAt) + timedelta(minutes=10) <= agg.last_updated:
+            # If the aggregate data is less than 10 minutes behind, we also shouldn't warn yet.
+            continue
         if pr.url != infer_pr_url(pr.number):
             print(f"error for PR {pr.number}: REST data has url {pr.url}, but inferred {infer_pr_url(pr.number)}")
             outdated.append(pr.number)
