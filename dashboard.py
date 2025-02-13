@@ -872,9 +872,7 @@ def main() -> None:
     all_pr_status = compute_pr_statusses(aggregate_info, all_open_prs)
     write_on_the_queue_page(all_pr_status, aggregate_info, nondraft_PRs, prs_from_fork, CI_status, base_branch)
 
-    prs_to_list = determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_info)
-    # FIXME: move setting this value into determine_pr_dashboards
-    prs_to_list[Dashboard.All] = all_open_prs
+    prs_to_list = determine_pr_dashboards(all_open_prs, nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_info)
 
     # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")

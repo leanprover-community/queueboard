@@ -389,6 +389,7 @@ def compute_dashboards_bad_labels_title(
 
 
 def determine_pr_dashboards(
+    all_open_prs: List[BasicPRInformation],
     nondraft_PRs: List[BasicPRInformation],
     base_branch: dict[int, str],
     prs_from_fork: List[BasicPRInformation],
@@ -397,6 +398,7 @@ def determine_pr_dashboards(
 ) -> dict[Dashboard, List[BasicPRInformation]]:
     approved = [pr for pr in nondraft_PRs if aggregate_info[pr.number].approvals]
     prs_to_list: dict[Dashboard, List[BasicPRInformation]] = dict()
+    prs_to_list[Dashboard.All] = all_open_prs
     # The 'tech debt', 'other base' and 'from fork' boards are obtained
     # from filtering the list of all non-draft PRs (without the WIP label).
     all_ready_prs = prs_without_label(nondraft_PRs, "WIP")
