@@ -310,6 +310,7 @@ def parse_data(data: dict) -> Tuple[datetime, List[Event]]:
         "MergedEvent", "BaseRefForcePushedEvent", "MarkedAsDuplicateEvent",
         "PullRequestRevisionMarker", "BaseRefDeletedEvent", "HeadRefRestoredEvent",
         "AddedToMergeQueueEvent", "RemovedFromMergeQueueEvent", "LockedEvent", "UnlockedEvent",
+        "AutoMergeEnabledEvent", "AutoMergeDisabledEvent",
     ]
     for event in events_data:
         match event.get("__typename"):
