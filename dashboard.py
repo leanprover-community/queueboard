@@ -16,7 +16,7 @@ from dateutil import parser, relativedelta
 from ci_status import CIStatus
 from classify_pr_state import PRState, PRStatus
 from compute_dashboard_prs import (AggregatePRInfo, BasicPRInformation, Label, DataStatus, LastStatusChange, TotalQueueTime,
-    PLACEHOLDER_AGGREGATE_INFO, compute_pr_statusses, determine_pr_dashboards, infer_pr_url, link_to, gather_pr_statistics, _extract_prs)
+    PLACEHOLDER_AGGREGATE_INFO, compute_pr_statusses, determine_pr_dashboards, infer_pr_url, link_to, parse_aggregate_file, gather_pr_statistics, _extract_prs)
 from mathlib_dashboards import Dashboard, short_description, long_description, getIdTitle
 from util import my_assert_eq, format_delta, timedelta_tryParse, relativedelta_tryParse
 
@@ -29,75 +29,6 @@ class JSONInputData(NamedTuple):
     aggregate_info: dict[int, AggregatePRInfo]
     # Information about all open PRs
     all_open_prs: List[BasicPRInformation]
-
-
-# Parse the contents |data| of an aggregate json file into a dictionary pr number -> AggregatePRInfo.
-def parse_aggregate_file(data: dict) -> dict[int, AggregatePRInfo]:
-    label_colours = data["label_colours"]
-
-    def toLabel(name: str) -> Label:
-        url = f"https://github.com/leanprover-community/mathlib4/labels/{name}"
-        if name.startswith("t-"):
-            colour = label_colours["t-analysis"]
-        elif name.startswith("blocked-by"):
-            colour = label_colours["blocked-by-other-PR"]
-        else:
-            colour = label_colours[name]
-        return Label(name, colour, url)
-
-    aggregate_info = dict()
-    for pr in data["pr_statusses"]:
-        date = parser.isoparse(pr["last_updated"])
-        label_names = pr["label_names"]
-        # Some PRs only have basic information present.
-        if "number_comments" in pr:
-            number_all_comments = pr["number_comments"] + pr["number_review_comments"]
-            # If status information is invalid, omit it.
-            st = pr["last_status_change"]
-            if st["status"] == "missing":
-                last_status_change = None
-            else:
-                (status, raw_time, raw_delta, raw_current_status) = st["status"], st["time"], st["delta"], st["current_status"]
-                delta = relativedelta_tryParse(raw_delta)
-                current_status = PRStatus.tryFrom_str(raw_current_status)
-                if delta is None:
-                    print(f"error: invalid data, input {raw_delta} for 'delta' field of 'last_status_change' is invalid", file=sys.stderr)
-                elif current_status is None:
-                    print(f"error: invalid data, input {raw_current_status} for 'current_status' field of 'last_status_change' is invalid", file=sys.stderr)
-                last_status_change = LastStatusChange(status, parser.isoparse(raw_time), delta, current_status)
-
-            foq = pr["first_on_queue"]
-            if foq["status"] == "missing":
-                first_on_queue = None
-            else:
-                date2 = None if foq["date"] is None else parser.isoparse(foq["date"])
-                first_on_queue = (foq["status"], date2)
-
-            tqt = pr["total_queue_time"]
-            if tqt["status"] == "missing":
-                total_queue_time = None
-            else:
-                (status, value_td, value_rd, explanation) = (tqt["status"], tqt["value_td"], tqt["value_rd"], tqt["explanation"])
-                td = timedelta_tryParse(value_td)
-                rd = relativedelta_tryParse(value_rd)
-                if rd is None:
-                    print(f"error: invalid data, input {rd} for 'value_rd' field of 'total_queue_time' is invalid", file=sys.stderr)
-                elif td is None:
-                    print(f"error: invalid data, input {td} for 'value_td' field of 'total_queue_time' is invalid", file=sys.stderr)
-                total_queue_time = TotalQueueTime(status, td, rd, explanation)
-        else:
-            number_all_comments = None
-            last_status_change = None
-            first_on_queue = None
-            total_queue_time = None
-        info = AggregatePRInfo(
-            pr["is_draft"], CIStatus.from_string(pr["CI_status"]), pr["base_branch"], pr["head_repo"]["login"],
-            pr["state"], date, pr["author"], pr["title"], [toLabel(name) for name in label_names],
-            pr["additions"], pr["deletions"], pr["num_files"], pr["review_approvals"], pr["assignees"],
-            number_all_comments, last_status_change, first_on_queue, total_queue_time,
-        )
-        aggregate_info[pr["number"]] = info
-    return aggregate_info
 
 
 # Validate the command-line arguments and try to read all data passed in via JSON files.
