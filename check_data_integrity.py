@@ -391,7 +391,7 @@ def main() -> None:
                 print(f"mismatch: the aggregate file says PR {pr_number} is still open, which is wrong.")
                 outdated_prs.append(pr_number)
 
-    # Also check for PRs whose aggregate CI data needs is "almost surely not up to date".
+    # Also check for PRs whose aggregate CI data is "almost surely not up to date".
     # Most commonly, this is about CI which is "running", but whose last update was at least 60 minutes old.
     # (Such runs are almost certainly already complete. 60 minutes is rather conservative).
     # Another, very rare, possibility is PR whose CI data is `None`. In both cases, we ask for re-downloading.
@@ -404,7 +404,7 @@ def main() -> None:
                 f"but was last updated more than {ci_limit} minutes ago"
             )
             outdated_prs.append(pr_number)
-        elif ci_status == CIStatus.Missing:
+        elif ci_status == CIStatus.Missing and aggregate_last_updated[pr_number].state == "open":
             print(f"outdated data: PR {pr_number} has missing CI data")
             outdated_prs.append(pr_number)
 
