@@ -94,8 +94,9 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
     assignees = [ass["login"] for ass in inner["assignees"]["nodes"]]
     # Get information about the latest CI run; `None` if that information seems missing.
     # For closed PRs, missing information is fine, however: do not warn there.
-    if inner["statusCheckRollup"] is None and state == "open":
-        print(f'warning: PR {number} has missing information ("null") for CI status checks')
+    if inner["statusCheckRollup"] is None:
+        if state == "open":
+            print(f'warning: PR {number} has missing information ("null") for CI status checks')
         CI_status = None
     else:
         CI_status = determine_ci_status(number, inner["statusCheckRollup"]["contexts"]["nodes"])
