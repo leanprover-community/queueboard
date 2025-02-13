@@ -439,13 +439,13 @@ def determine_pr_dashboards(
     foo = [pr for pr in interesting_CI if base_branch[pr.number] == "master" and pr not in prs_from_fork]
     prs_to_list[Dashboard.InessentialCIFails] = prs_without_any_label(foo, other_labels + ["merge-conflict"])
 
-    queue_prs2 = None
-    with open("queue.json", "r") as queuefile:
-        queue_prs2 = _extract_prs(json.load(queuefile))
-        queue_pr_numbers2 = [pr.number for pr in queue_prs2]
-    msg = "comparing this page's review dashboard (left) with the Github #queue (right)"
-    if my_assert_eq(msg, [pr.number for pr in queue_prs], queue_pr_numbers2):
-        print("Review dashboard and #queue match, hooray!", file=sys.stderr)
+    # queue_prs2 = None
+    # with open("queue.json", "r") as queuefile:
+    #     queue_prs2 = _extract_prs(json.load(queuefile))
+    #     queue_pr_numbers2 = [pr.number for pr in queue_prs2]
+    # msg = "comparing this page's review dashboard (left) with the Github #queue (right)"
+    # if my_assert_eq(msg, [pr.number for pr in queue_prs], queue_pr_numbers2):
+    #     print("Review dashboard and #queue match, hooray!", file=sys.stderr)
 
     prs_to_list[Dashboard.Queue] = queue_prs
     queue = prs_to_list[Dashboard.Queue]
