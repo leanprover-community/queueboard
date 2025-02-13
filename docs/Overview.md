@@ -1,5 +1,7 @@
 Thanks for coming here! This page documents miscellaneous cross-cutting facts about the project.
 
+TODO: update this file in light of the recent file splitting!
+
 **Testing**: see [the architecture file](ARCHITECTURE.md#testing).
 
 **Common changes and how to test them**

@@ -3,7 +3,7 @@
 This document describes the high-level architecture of the review dashboard. If you want to familiarize yourself with the code base, you are just in the right place!
 
 ## High-level overview
-This repository contains zeo separate, but related pieces of code.
+This repository contains two separate, but related pieces of code.
 
 The first half is infrastructure to query and download metadata about all currently open pull requests on *mathlib*, tracking their state over time. A github workflow periodically checks for updates on pull requests and downloads the current data for all pull requests with updates. Currently, this happens about every five minutes.
 This data is tracked in the repository: hence, this repository also functions as a cache of information, allowing to only download meta-data for updated PRs (as opposed to download all PRs' data each time the dashboard is re-generated).
@@ -59,8 +59,9 @@ All of this is orchestrated in the `update_metadata.yml` workflow, which calls t
 
 See `docs/Workflow ordering and design.md` for more detailed considerations of the workflow split, and describing the current architecture.
 
-
 **Part 2: generating webpages**
+TODO: update this file in light of the recent file splitting!
+
 `dashboard.sh` (a shell script) is the main entry point:
 - it queries github's API for the data above and creates a number of JSON files containing the relevant data
 - it then calls `dashboard.py` (with the JSON files passed as explicit arguments) to create a dashboard.
