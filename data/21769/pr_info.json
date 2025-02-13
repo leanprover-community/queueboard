@@ -2,7 +2,7 @@
   "data": {
     "repository": {
       "pullRequest": {
-        "additions": 446,
+        "additions": 477,
         "assignees": {
           "nodes": []
         },
@@ -12,14 +12,14 @@
         "autoMergeRequest": null,
         "baseRefName": "master",
         "body": "This was started by point (3) of https://leanprover.zulipchat.com/#narrow/channel/287929-mathlib4/topic/Possible.20improvements.20to.20Lean.2FMathlib/near/499085779\r\n\r\nTo be able to use `push_neg` more generally, this PR reimplements the tactic so that it is extensible. So, users can tag lemmas to be used by `push_neg`.\r\n\r\nThis PR tags lemmas concerning empty/nonempty, subsingleton/nontrivial, and finite/infinite to be used in `push_neg`.\r\n\r\nAdditionally, the tactic is extended to be able to push any constant that you want to push, and `push_neg` is now a macro for `push Not`. So far, I've tried to add lemmas for pushing `Real.log`. I could imagine it could also be used for `Real.exp`, `pow`, `mul`, `smul`, or even `Set.mem`. (the `Set.mem` lemmas are mostly tagged with `@[simp]` already, but `push_mem` could be more readable than `simp` or `dsimp`). Or a combination of pushing `Not` and `Set.compl` could be useful.\r\n\r\nThe implementation is with the `simp` infrastructure, but instead of using post lemmas, like in `simp`, `push` uses `pre` lemmas, so we rewrite each expression before its subterms are rewritten. This is a more efficient way to \"push\" constants recursively. Most lemmas are added via the `@[push]` attribute, but a few cases require some special handling, so they are implemented \"by hand\" in a simproc that is tried after the `push` lemmas.\r\n\r\nFor example the simproc simplifies `¬∀ n, p` ⇨ `∃ n, ¬p`, but, this is overridden by the `push` lemma that rewrites `¬(p → q)` ⇨ `p ∧ ¬q` (which doesn't apply at every forall)\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nFor details on the \"pull request lifecycle\" in mathlib, please see:\r\nhttps://leanprover-community.github.io/contribute/index.html\r\n\r\nIn particular, note that most reviewers will only notice your PR\r\nif it passes the continuous integration checks.\r\nPlease ask for help on https://leanprover.zulipchat.com if needed.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nIf you are moving or deleting declarations, please include these lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nMoves:\r\n- Vector.* -> List.Vector.*\r\n- ...\r\n\r\nDeletions:\r\n- Nat.bit1_add_bit1\r\n- ...\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
-        "changedFiles": 61,
+        "changedFiles": 62,
         "closed": false,
         "closedAt": null,
         "comments": {
           "nodes": [
             {
               "id": "IC_kwDOFcwZ1c6eG0mr",
-              "body": "### PR summary [a1c8071269](https://github.com/leanprover-community/mathlib4/pull/21769/commits/a1c8071269d0db8a31c9de5b5adaa475dfadad92)\n\nImport changes exceeding 2%\n\n| %      | File |\n| -      | -    |\n| +5.63% | `Mathlib.Logic.IsEmpty` |\n| +2.70% | `Mathlib.Logic.Nontrivial.Defs` |\n| +2.22% | `Mathlib.Order.Defs.LinearOrder` |\n\n<details><summary>\n\n#### Import changes for modified files\n\n</summary>\n\nDependency changes\n\n| File | Base Count | Head Count | Change |\n| --- | --- | --- | --- |\n| Mathlib.Tactic.PushNeg | 62 | 0 | -62 (-100.00%) |\n| Mathlib.Tactic.Contrapose | 63 | 45 | -18 (-28.57%) |\n| Mathlib.Tactic.ByContra | 64 | 46 | -18 (-28.12%) |\n| Mathlib.Logic.IsEmpty | 71 | 75 | +4 (+5.63%) |\n| Mathlib.Tactic.Common | 240 | 238 | -2 (-0.83%) |\n\n\n<details><summary>Import changes for all files</summary>\n\n|Files|Import difference|\n|-|-|\nThere are 5432 files with changed transitive imports taking up over 229648 characters: this is too many to display!\nYou can run `scripts/import_trans_difference.sh all` locally to see the whole output.\n\n</details>\n\n</details>\n\n---\n\n<details><summary>\n\n#### Declarations diff\n\n</summary>\n\n`+ PushSimpConfig`\n`+ elabPush`\n`+ elabPushConv`\n`+ nonempty_iff_empty_ne'`\n`+ not_finite`\n`+ not_imp`\n`+ not_not`\n`+ pushCore`\n`+ pushStep`\n`++ nonempty_iff_empty_ne`\n`+-+ not_iff`\n`- elabPushNegConv`\n`- empty_ne_eq_nonempty`\n`- ne_empty_eq_nonempty`\n`- not_ge_eq`\n`- not_gt_eq`\n`- not_implies_eq`\n`- not_le_eq`\n`- not_lt_eq`\n`- not_ne_eq`\n`- not_nonempty_eq`\n`- not_not_eq`\n`- not_or_eq`\n`- pushNegCore`\n`- transformNegationStep`\n<details>\n  <summary>You can run this locally as follows</summary>\n\n\n```bash\n## summary with just the declaration names:\n./scripts/declarations_diff.sh <optional_commit>\n\n## more verbose report:\n./scripts/declarations_diff.sh long <optional_commit>\n```\n</details>\n\nThe doc-module for `script/declarations_diff.sh` contains some details about this script.\n\n</details>\n\n---\n\n<details><summary>No changes to technical debt.</summary>\n\nYou can run this locally as\n```\n./scripts/technical-debt-metrics.sh pr_summary\n```\n* The `relative` value is the weighted *sum* of the differences with weight given by the *inverse* of the current value of the statistic.\n* The `absolute` value is the `relative` value divided by the total sum of the inverses of the current values (i.e. the weighted *average* of the differences).\n</details>\n",
+              "body": "### PR summary [60ed9f6591](https://github.com/leanprover-community/mathlib4/pull/21769/commits/60ed9f6591a4bc307c0ee949959647dad1950663)\n\nImport changes exceeding 2%\n\n| %      | File |\n| -      | -    |\n| +5.63% | `Mathlib.Logic.IsEmpty` |\n| +2.70% | `Mathlib.Logic.Nontrivial.Defs` |\n| +2.22% | `Mathlib.Order.Defs.LinearOrder` |\n\n<details><summary>\n\n#### Import changes for modified files\n\n</summary>\n\nDependency changes\n\n| File | Base Count | Head Count | Change |\n| --- | --- | --- | --- |\n| Mathlib.Tactic.PushNeg | 62 | 0 | -62 (-100.00%) |\n| Mathlib.Tactic.Contrapose | 63 | 45 | -18 (-28.57%) |\n| Mathlib.Tactic.ByContra | 64 | 46 | -18 (-28.12%) |\n| Mathlib.Logic.IsEmpty | 71 | 75 | +4 (+5.63%) |\n| Mathlib.Tactic.Common | 240 | 238 | -2 (-0.83%) |\n\n\n<details><summary>Import changes for all files</summary>\n\n|Files|Import difference|\n|-|-|\nThere are 5432 files with changed transitive imports taking up over 229648 characters: this is too many to display!\nYou can run `scripts/import_trans_difference.sh all` locally to see the whole output.\n\n</details>\n\n</details>\n\n---\n\n<details><summary>\n\n#### Declarations diff\n\n</summary>\n\n`+ PushSimpConfig`\n`+ elabPush`\n`+ elabPushConv`\n`+ nonempty_iff_empty_ne'`\n`+ not_finite`\n`+ not_imp`\n`+ not_not`\n`+ pushCore`\n`+ pushStep`\n`++ nonempty_iff_empty_ne`\n`+-+ not_iff`\n`- elabPushNegConv`\n`- empty_ne_eq_nonempty`\n`- ne_empty_eq_nonempty`\n`- not_ge_eq`\n`- not_gt_eq`\n`- not_implies_eq`\n`- not_le_eq`\n`- not_lt_eq`\n`- not_ne_eq`\n`- not_nonempty_eq`\n`- not_not_eq`\n`- not_or_eq`\n`- pushNegCore`\n`- transformNegationStep`\n<details>\n  <summary>You can run this locally as follows</summary>\n\n\n```bash\n## summary with just the declaration names:\n./scripts/declarations_diff.sh <optional_commit>\n\n## more verbose report:\n./scripts/declarations_diff.sh long <optional_commit>\n```\n</details>\n\nThe doc-module for `script/declarations_diff.sh` contains some details about this script.\n\n</details>\n\n---\n\n<details><summary>No changes to technical debt.</summary>\n\nYou can run this locally as\n```\n./scripts/technical-debt-metrics.sh pr_summary\n```\n* The `relative` value is the weighted *sum* of the differences with weight given by the *inverse* of the current value of the statistic.\n* The `absolute` value is the `relative` value divided by the total sum of the inverses of the current values (i.e. the weighted *average* of the differences).\n</details>\n",
               "createdAt": "2025-02-12T03:42:16Z",
               "author": {
                 "login": "github-actions"
@@ -1815,11 +1815,130 @@
                   }
                 }
               }
+            },
+            {
+              "commit": {
+                "oid": "4748a7ddb631e940b8185fc7167027b83375284f",
+                "additions": 7,
+                "deletions": 0,
+                "committedDate": "2025-02-13T19:04:23Z",
+                "author": {
+                  "name": "Jovan Gerbscheid",
+                  "email": "jovan.gerbscheid@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "60ed9f6591a4bc307c0ee949959647dad1950663",
+                "additions": 29,
+                "deletions": 6,
+                "committedDate": "2025-02-13T19:04:52Z",
+                "author": {
+                  "name": "Jovan Gerbscheid",
+                  "email": "jovan.gerbscheid@gmail.com"
+                },
+                "statusCheckRollup": {
+                  "contexts": {
+                    "nodes": [
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIqIh4PQ",
+                        "name": "Lint style (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315160382/job/37187254333"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIqIiELQ",
+                        "name": "label-and-report-new-contributor",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315161635/job/37187257389"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIqIiEyg",
+                        "name": "post-or-update-summary-comment",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315161638/job/37187257546"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIqIh2ew",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315160393/job/37187253883"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIqIiEXA",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315161643/job/37187257436"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIqIh4Gg",
+                        "name": "Build",
+                        "conclusion": null,
+                        "status": "IN_PROGRESS",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315160393/job/37187254298"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIqIh2Xg",
+                        "name": "Build (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315160382/job/37187253854"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIqIiGAA",
+                        "name": "Check all files imported",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315161643/job/37187257856"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIqIh6SQ",
+                        "name": "Post-CI job (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315160382/job/37187254857"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIqIihCw",
+                        "name": "New Contributor Check",
+                        "conclusion": "NEUTRAL",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/runs/37187264779"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIqIlS9A",
+                        "name": "Summary",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=21769&login=leanprover-community&repository=mathlib4"
+                      }
+                    ]
+                  }
+                }
+              }
             }
           ]
         },
         "createdAt": "2025-02-12T03:41:15Z",
-        "deletions": 341,
+        "deletions": 342,
         "files": {
           "nodes": [
             {
@@ -2079,7 +2198,7 @@
             },
             {
               "path": "Mathlib/Tactic/Push.lean",
-              "additions": 207,
+              "additions": 214,
               "deletions": 0
             },
             {
@@ -2118,9 +2237,14 @@
               "deletions": 3
             },
             {
+              "path": "MathlibTest/push.lean",
+              "additions": 7,
+              "deletions": 0
+            },
+            {
               "path": "MathlibTest/push_neg.lean",
-              "additions": 74,
-              "deletions": 2
+              "additions": 91,
+              "deletions": 3
             },
             {
               "path": "scripts/noshake.json",
@@ -2130,7 +2254,7 @@
           ]
         },
         "headRefName": "push_neg-Finite",
-        "headRefOid": "a1c8071269d0db8a31c9de5b5adaa475dfadad92",
+        "headRefOid": "60ed9f6591a4bc307c0ee949959647dad1950663",
         "headRepository": {
           "name": "mathlib4",
           "owner": {
@@ -2179,7 +2303,7 @@
         "milestone": null,
         "number": 21769,
         "potentialMergeCommit": {
-          "oid": "0a30821714b73b5c697ea533f5b2ff22a4244e8f"
+          "oid": "04448563b0387e06e1005e83f65e54dc6df24017"
         },
         "projectCards": {
           "nodes": []
@@ -2270,7 +2394,13 @@
           ]
         },
         "closingIssuesReferences": {
-          "nodes": []
+          "nodes": [
+            {
+              "id": "I_kwDOFcwZ1c6p-w2O",
+              "title": "`push` tactic that generalizes `push_neg` from `neg` to any def.",
+              "url": "https://github.com/leanprover-community/mathlib4/issues/21841"
+            }
+          ]
         },
         "participants": {
           "nodes": [
@@ -2298,103 +2428,87 @@
             "nodes": [
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAIp7Nf7g",
-                "name": "set_pr_emoji",
-                "conclusion": "SKIPPED",
-                "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13311003853/job/37173288942"
-              },
-              {
-                "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAIp6U1Hw",
+                "id": "CR_kwDOFcwZ1c8AAAAIqIh4PQ",
                 "name": "Lint style (fork)",
                 "conclusion": "SKIPPED",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13310726532/job/37172360479"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315160382/job/37187254333"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAIp6UsBA",
+                "id": "CR_kwDOFcwZ1c8AAAAIqIiELQ",
                 "name": "label-and-report-new-contributor",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13310726220/job/37172358148"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315161635/job/37187257389"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAIp6Urvw",
+                "id": "CR_kwDOFcwZ1c8AAAAIqIiEyg",
                 "name": "post-or-update-summary-comment",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13310726211/job/37172358079"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315161638/job/37187257546"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAIp6qz1Q",
+                "id": "CR_kwDOFcwZ1c8AAAAIqIh2ew",
                 "name": "Lint style",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13310726450/job/37172720597"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315160393/job/37187253883"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAIp6Urww",
+                "id": "CR_kwDOFcwZ1c8AAAAIqIiEXA",
                 "name": "Lint style",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13310726200/job/37172358083"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315161643/job/37187257436"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAIp6qx5Q",
+                "id": "CR_kwDOFcwZ1c8AAAAIqIh4Gg",
                 "name": "Build",
-                "conclusion": "FAILURE",
-                "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13310726450/job/37172720101"
+                "conclusion": null,
+                "status": "IN_PROGRESS",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315160393/job/37187254298"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAIp6Ux7Q",
+                "id": "CR_kwDOFcwZ1c8AAAAIqIh2Xg",
                 "name": "Build (fork)",
                 "conclusion": "SKIPPED",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13310726532/job/37172359661"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315160382/job/37187253854"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAIp6Ut8w",
+                "id": "CR_kwDOFcwZ1c8AAAAIqIiGAA",
                 "name": "Check all files imported",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13310726200/job/37172358643"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315161643/job/37187257856"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAIp6U3Ug",
+                "id": "CR_kwDOFcwZ1c8AAAAIqIh6SQ",
                 "name": "Post-CI job (fork)",
                 "conclusion": "SKIPPED",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13310726532/job/37172361042"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13315160382/job/37187254857"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAIp9it_A",
-                "name": "Post-CI job",
-                "conclusion": "SKIPPED",
-                "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13310726450/job/37175733756"
-              },
-              {
-                "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAIp6VRpg",
+                "id": "CR_kwDOFcwZ1c8AAAAIqIihCw",
                 "name": "New Contributor Check",
                 "conclusion": "NEUTRAL",
                 "status": "COMPLETED",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/runs/37172367782"
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/runs/37187264779"
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAIp6XnvA",
+                "id": "CR_kwDOFcwZ1c8AAAAIqIlS9A",
                 "name": "Summary",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
@@ -2404,7 +2518,7 @@
           }
         },
         "title": "feat: extensible `push_neg` tactic",
-        "updatedAt": "2025-02-13T15:20:47Z",
+        "updatedAt": "2025-02-13T19:06:02Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/21769",
         "timelineItems": {
           "nodes": [
@@ -2427,7 +2541,7 @@
               "__typename": "IssueComment",
               "id": "IC_kwDOFcwZ1c6eG0mr",
               "createdAt": "2025-02-12T03:42:16Z",
-              "body": "### PR summary [a1c8071269](https://github.com/leanprover-community/mathlib4/pull/21769/commits/a1c8071269d0db8a31c9de5b5adaa475dfadad92)\n\nImport changes exceeding 2%\n\n| %      | File |\n| -      | -    |\n| +5.63% | `Mathlib.Logic.IsEmpty` |\n| +2.70% | `Mathlib.Logic.Nontrivial.Defs` |\n| +2.22% | `Mathlib.Order.Defs.LinearOrder` |\n\n<details><summary>\n\n#### Import changes for modified files\n\n</summary>\n\nDependency changes\n\n| File | Base Count | Head Count | Change |\n| --- | --- | --- | --- |\n| Mathlib.Tactic.PushNeg | 62 | 0 | -62 (-100.00%) |\n| Mathlib.Tactic.Contrapose | 63 | 45 | -18 (-28.57%) |\n| Mathlib.Tactic.ByContra | 64 | 46 | -18 (-28.12%) |\n| Mathlib.Logic.IsEmpty | 71 | 75 | +4 (+5.63%) |\n| Mathlib.Tactic.Common | 240 | 238 | -2 (-0.83%) |\n\n\n<details><summary>Import changes for all files</summary>\n\n|Files|Import difference|\n|-|-|\nThere are 5432 files with changed transitive imports taking up over 229648 characters: this is too many to display!\nYou can run `scripts/import_trans_difference.sh all` locally to see the whole output.\n\n</details>\n\n</details>\n\n---\n\n<details><summary>\n\n#### Declarations diff\n\n</summary>\n\n`+ PushSimpConfig`\n`+ elabPush`\n`+ elabPushConv`\n`+ nonempty_iff_empty_ne'`\n`+ not_finite`\n`+ not_imp`\n`+ not_not`\n`+ pushCore`\n`+ pushStep`\n`++ nonempty_iff_empty_ne`\n`+-+ not_iff`\n`- elabPushNegConv`\n`- empty_ne_eq_nonempty`\n`- ne_empty_eq_nonempty`\n`- not_ge_eq`\n`- not_gt_eq`\n`- not_implies_eq`\n`- not_le_eq`\n`- not_lt_eq`\n`- not_ne_eq`\n`- not_nonempty_eq`\n`- not_not_eq`\n`- not_or_eq`\n`- pushNegCore`\n`- transformNegationStep`\n<details>\n  <summary>You can run this locally as follows</summary>\n\n\n```bash\n## summary with just the declaration names:\n./scripts/declarations_diff.sh <optional_commit>\n\n## more verbose report:\n./scripts/declarations_diff.sh long <optional_commit>\n```\n</details>\n\nThe doc-module for `script/declarations_diff.sh` contains some details about this script.\n\n</details>\n\n---\n\n<details><summary>No changes to technical debt.</summary>\n\nYou can run this locally as\n```\n./scripts/technical-debt-metrics.sh pr_summary\n```\n* The `relative` value is the weighted *sum* of the differences with weight given by the *inverse* of the current value of the statistic.\n* The `absolute` value is the `relative` value divided by the total sum of the inverses of the current values (i.e. the weighted *average* of the differences).\n</details>\n",
+              "body": "### PR summary [60ed9f6591](https://github.com/leanprover-community/mathlib4/pull/21769/commits/60ed9f6591a4bc307c0ee949959647dad1950663)\n\nImport changes exceeding 2%\n\n| %      | File |\n| -      | -    |\n| +5.63% | `Mathlib.Logic.IsEmpty` |\n| +2.70% | `Mathlib.Logic.Nontrivial.Defs` |\n| +2.22% | `Mathlib.Order.Defs.LinearOrder` |\n\n<details><summary>\n\n#### Import changes for modified files\n\n</summary>\n\nDependency changes\n\n| File | Base Count | Head Count | Change |\n| --- | --- | --- | --- |\n| Mathlib.Tactic.PushNeg | 62 | 0 | -62 (-100.00%) |\n| Mathlib.Tactic.Contrapose | 63 | 45 | -18 (-28.57%) |\n| Mathlib.Tactic.ByContra | 64 | 46 | -18 (-28.12%) |\n| Mathlib.Logic.IsEmpty | 71 | 75 | +4 (+5.63%) |\n| Mathlib.Tactic.Common | 240 | 238 | -2 (-0.83%) |\n\n\n<details><summary>Import changes for all files</summary>\n\n|Files|Import difference|\n|-|-|\nThere are 5432 files with changed transitive imports taking up over 229648 characters: this is too many to display!\nYou can run `scripts/import_trans_difference.sh all` locally to see the whole output.\n\n</details>\n\n</details>\n\n---\n\n<details><summary>\n\n#### Declarations diff\n\n</summary>\n\n`+ PushSimpConfig`\n`+ elabPush`\n`+ elabPushConv`\n`+ nonempty_iff_empty_ne'`\n`+ not_finite`\n`+ not_imp`\n`+ not_not`\n`+ pushCore`\n`+ pushStep`\n`++ nonempty_iff_empty_ne`\n`+-+ not_iff`\n`- elabPushNegConv`\n`- empty_ne_eq_nonempty`\n`- ne_empty_eq_nonempty`\n`- not_ge_eq`\n`- not_gt_eq`\n`- not_implies_eq`\n`- not_le_eq`\n`- not_lt_eq`\n`- not_ne_eq`\n`- not_nonempty_eq`\n`- not_not_eq`\n`- not_or_eq`\n`- pushNegCore`\n`- transformNegationStep`\n<details>\n  <summary>You can run this locally as follows</summary>\n\n\n```bash\n## summary with just the declaration names:\n./scripts/declarations_diff.sh <optional_commit>\n\n## more verbose report:\n./scripts/declarations_diff.sh long <optional_commit>\n```\n</details>\n\nThe doc-module for `script/declarations_diff.sh` contains some details about this script.\n\n</details>\n\n---\n\n<details><summary>No changes to technical debt.</summary>\n\nYou can run this locally as\n```\n./scripts/technical-debt-metrics.sh pr_summary\n```\n* The `relative` value is the weighted *sum* of the differences with weight given by the *inverse* of the current value of the statistic.\n* The `absolute` value is the `relative` value divided by the total sum of the inverses of the current values (i.e. the weighted *average* of the differences).\n</details>\n",
               "author": {
                 "login": "github-actions"
               }
@@ -2608,6 +2722,31 @@
             },
             {
               "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c56Pgvu",
+              "createdAt": "2025-02-13T18:29:03Z",
+              "source": {
+                "id": "I_kwDOFcwZ1c6p-w2O",
+                "title": "`push` tactic that generalizes `push_neg` from `neg` to any def.",
+                "url": "https://github.com/leanprover-community/mathlib4/issues/21841"
+              }
+            },
+            {
+              "__typename": "ConnectedEvent"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4748a7ddb631e940b8185fc7167027b83375284f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "60ed9f6591a4bc307c0ee949959647dad1950663"
+              }
             }
           ]
         }
