@@ -11,7 +11,7 @@
         },
         "autoMergeRequest": null,
         "baseRefName": "master",
-        "body": "This is point (3) of https://leanprover.zulipchat.com/#narrow/channel/287929-mathlib4/topic/Possible.20improvements.20to.20Lean.2FMathlib/near/499085779\r\n\r\nUnfortunately this adds a relatively large import to the `push_neg` tactic.\r\n\r\nShould the `push_neg` tactic become extensible with an `@[push_neg]` tag?\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nFor details on the \"pull request lifecycle\" in mathlib, please see:\r\nhttps://leanprover-community.github.io/contribute/index.html\r\n\r\nIn particular, note that most reviewers will only notice your PR\r\nif it passes the continuous integration checks.\r\nPlease ask for help on https://leanprover.zulipchat.com if needed.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nIf you are moving or deleting declarations, please include these lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nMoves:\r\n- Vector.* -> List.Vector.*\r\n- ...\r\n\r\nDeletions:\r\n- Nat.bit1_add_bit1\r\n- ...\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "body": "This was started by point (3) of https://leanprover.zulipchat.com/#narrow/channel/287929-mathlib4/topic/Possible.20improvements.20to.20Lean.2FMathlib/near/499085779\r\n\r\nTo be able to use `push_neg` more generally, this PR reimplements the tactic so that it is extensible. So, users can tag lemmas to be used by `push_neg`.\r\n\r\nThis PR tags lemmas concerning empty/nonempty, subsingleton/nontrivial, and finite/infinite to be used in `push_neg`.\r\n\r\nAdditionally, the tactic is extended to be able to push any constant that you want to push, and `push_neg` is now a macro for `push Not`. So far, I've tried to add lemmas for pushing `Real.log`. I could imagine it could also be used for `Real.exp`, `pow`, `mul`, `smul`, or even `Set.mem`. (the `Set.mem` lemmas are mostly tagged with `@[simp]` already, but `push_mem` could be more readable than `simp` or `dsimp`). Or a combination of pushing `Not` and `Set.compl` could be useful.\r\n\r\nThe implementation is with the `simp` infrastructure, but instead of using post lemmas, like in `simp`, `push` uses `pre` lemmas, so we rewrite each expression before its subterms are rewritten. This is a more efficient way to \"push\" constants recursively. Most lemmas are added via the `@[push]` attribute, but a few cases require some special handling, so they are implemented \"by hand\" in a simproc that is tried after the `push` lemmas.\r\n\r\nFor example the simproc simplifies `¬∀ n, p` ⇨ `∃ n, ¬p`, but, this is overridden by the `push` lemma that rewrites `¬(p → q)` ⇨ `p → ¬q` (which doesn't apply at every forall)\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nFor details on the \"pull request lifecycle\" in mathlib, please see:\r\nhttps://leanprover-community.github.io/contribute/index.html\r\n\r\nIn particular, note that most reviewers will only notice your PR\r\nif it passes the continuous integration checks.\r\nPlease ask for help on https://leanprover.zulipchat.com if needed.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nIf you are moving or deleting declarations, please include these lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nMoves:\r\n- Vector.* -> List.Vector.*\r\n- ...\r\n\r\nDeletions:\r\n- Nat.bit1_add_bit1\r\n- ...\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
         "changedFiles": 63,
         "closed": false,
         "closedAt": null,
@@ -991,8 +991,8 @@
                         "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAIpeJ54w",
                         "name": "Build",
-                        "conclusion": null,
-                        "status": "IN_PROGRESS",
+                        "conclusion": "FAILURE",
+                        "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13301206595/job/37142821347"
                       },
                       {
@@ -1018,6 +1018,14 @@
                         "conclusion": "SKIPPED",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13301206587/job/37142821791"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIpegMTw",
+                        "name": "Post-CI job",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13301206595/job/37143186511"
                       },
                       {
                         "__typename": "CheckRun",
@@ -1526,8 +1534,8 @@
                 "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAIpeJ54w",
                 "name": "Build",
-                "conclusion": null,
-                "status": "IN_PROGRESS",
+                "conclusion": "FAILURE",
+                "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13301206595/job/37142821347"
               },
               {
@@ -1556,6 +1564,14 @@
               },
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIpegMTw",
+                "name": "Post-CI job",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13301206595/job/37143186511"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAIpeKF5w",
                 "name": "New Contributor Check",
                 "conclusion": "NEUTRAL",
@@ -1574,7 +1590,7 @@
           }
         },
         "title": "feat: let `push_neg` replace `¬Finite` with `Infinite`",
-        "updatedAt": "2025-02-13T05:39:25Z",
+        "updatedAt": "2025-02-13T06:04:45Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/21769",
         "timelineItems": {
           "nodes": [
