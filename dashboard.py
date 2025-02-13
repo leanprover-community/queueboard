@@ -16,7 +16,7 @@ from dateutil import parser, relativedelta
 from ci_status import CIStatus
 from classify_pr_state import PRState, PRStatus
 from compute_dashboard_prs import (AggregatePRInfo, BasicPRInformation, Label, DataStatus, LastStatusChange, TotalQueueTime,
-    PLACEHOLDER_AGGREGATE_INFO, compute_pr_statusses, determine_pr_dashboards, link_to, gather_pr_statistics, _extract_prs)
+    PLACEHOLDER_AGGREGATE_INFO, compute_pr_statusses, determine_pr_dashboards, infer_pr_url, link_to, gather_pr_statistics, _extract_prs)
 from mathlib_dashboards import Dashboard, short_description, long_description, getIdTitle
 from util import my_assert_eq, format_delta, timedelta_tryParse, relativedelta_tryParse
 
