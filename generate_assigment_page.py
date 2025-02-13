@@ -52,7 +52,7 @@ def compute_pr_list_from_aggregate_data_only(aggregate_data: dict[int, Aggregate
     for pr in nondraft_PRs:
         base_branch[pr.number] = aggregate_data[pr.number].base_branch
     prs_from_fork = [pr for pr in nondraft_PRs if aggregate_data[pr.number].head_repo != "leanprover-community"]
-    return determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_data, True)
+    return determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_data)
 
 
 class ReviewerInfo(NamedTuple):
