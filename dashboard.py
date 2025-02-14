@@ -893,9 +893,7 @@ def main() -> None:
 
     # TODO: try to enable |use_aggregate_queue| 'queue_prs' again, once all the root causes
     # for PRs getting 'dropped' by 'gather_stats.sh' are found and fixed.
-    prs_to_list = determine_pr_dashboards(nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_info, False)
-    # FIXME: move setting this value into determine_pr_dashboards
-    prs_to_list[Dashboard.All] = input_data.all_open_prs
+    prs_to_list = determine_pr_dashboards(input_data.all_open_prs, nondraft_PRs, base_branch, prs_from_fork, CI_status, aggregate_info, False)
 
     # FUTURE: can this time be displayed in the local time zone of the user viewing this page?
     updated = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
