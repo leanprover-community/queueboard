@@ -11,7 +11,7 @@
         },
         "autoMergeRequest": null,
         "baseRefName": "master",
-        "body": "See [Zulip](https://leanprover.zulipchat.com/#narrow/stream/287929-mathlib4/topic/The.20plan.20to.20remove.20cases'/near/468053239) for the Python scripts used to effect this replacement.",
+        "body": "To get all uses of `cases'` apply the following diff and run `lake build -q > cases-targets`:\r\n```diff\r\ndiff --git a/Mathlib/Tactic/Cases.lean b/Mathlib/Tactic/Cases.lean\r\nindex 34ad80c0277..944d54b992c 100644\r\n--- a/Mathlib/Tactic/Cases.lean\r\n+++ b/Mathlib/Tactic/Cases.lean\r\n@@ -164,6 +164,8 @@ elab (name := cases') \"cases' \" tgts:(Parser.Tactic.casesTarget,+) usingArg:((\"\r\n       g.assign result.elimApp\r\n       let subgoals ← ElimApp.evalNames elimInfo result.alts withArg\r\n          (numEqs := targets.size) (toClear := targetsNew) (toTag := toTag)\r\n+      let body ← inferType (targets.get! 0)\r\n+      logWarningAt tgts m!\"{body.getAppFn.setPPExplicit true} {subgoals.toList.length}\"\r\n       setGoals <| subgoals.toList ++ gs\r\n \r\n end Mathlib.Tactic\r\n```\r\n\r\nThe automated replacement was done by the following Python script:\r\n```python\r\n#!/usr/bin/env python3\r\nimport re\r\ntarget_re = re.compile(r\"warning: \\./\\./\\./\\./(.*?):(\\d+):(\\d+): ([^ ]+?) .*(\\d)\\n\")\r\ncases_re = re.compile(r\"cases' (.*?) with (.*?)(?=\\n|;| <;>)\")\r\nkeys = {}\r\nwith open(\"cases-targets\", 'r') as f:\r\n    for l in f:\r\n        if (m := target_re.fullmatch(l)):\r\n            filename, line_n, col_n, head, n_subgoals = m.groups()\r\n            if filename not in keys:\r\n                keys[filename] = {}\r\n            if line_n not in keys[filename]:\r\n                keys[filename][line_n] = {}\r\n            keys[filename][line_n].update({col_n: (head, n_subgoals)})\r\n        elif not l.startswith('⚠'):\r\n            raise ValueError\r\n\r\nfor (filename, d) in keys.items():\r\n    with open(filename, 'r') as f:\r\n        lines = f.readlines()\r\n    for (line_n, t) in d.items():\r\n        i = int(line_n) - 1\r\n        line = lines[i]\r\n        replacements = []\r\n        for (col_n, (head, n_subgoals)) in t.items():\r\n            if (m := cases_re.match(line, int(col_n) - 7)):\r\n                body, nvars = m.groups()\r\n                nvars = nvars.split()\r\n                nstr = None\r\n                if head == \"Or\" and int(n_subgoals) == 2:\r\n                    nstr = f\"rcases {body} with {' | '.join(nvars)}\"\r\n                if nstr != None:\r\n                    replacements.append(m.span() + (nstr,))\r\n        for (start, end, rep) in sorted(replacements, reverse=True):\r\n            line = line[:start] + rep + line[end:]\r\n        lines[i] = line\r\n    with open(filename, 'w') as f:\r\n        f.write(\"\".join(lines))\r\n```\r\n\r\nSee [Zulip](https://leanprover.zulipchat.com/#narrow/stream/287929-mathlib4/topic/The.20plan.20to.20remove.20cases'/near/468053239).",
         "changedFiles": 256,
         "closed": false,
         "closedAt": null,
@@ -1270,16 +1270,24 @@
         "labels": {
           "nodes": [
             {
+              "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+              "color": "e899cd",
+              "name": "WIP"
+            },
+            {
               "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+              "color": "f99094",
               "name": "merge-conflict"
             },
             {
               "id": "LA_kwDOFcwZ1c8AAAABlkjS4g",
+              "color": "0EFB96",
               "name": "tech debt"
             },
             {
-              "id": "LA_kwDOFcwZ1c8AAAABmPU_0w",
-              "name": "awaiting-zulip"
+              "id": "LA_kwDOFcwZ1c8AAAAB5WtGew",
+              "color": "230f38",
+              "name": "depriming"
             }
           ]
         },
@@ -1547,25 +1555,40 @@
             ]
           }
         },
-        "title": "chore: `Or 2` automated replacement of `cases'`",
-        "updatedAt": "2024-09-09T10:14:55Z",
+        "title": "chore: automatically replace `cases'` used to split `Or`",
+        "updatedAt": "2025-02-15T09:25:57Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/16526",
         "timelineItems": {
           "nodes": [
             {
-              "__typename": "PullRequestCommit"
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "935ec6dfd6821d426e0cd35e51728b48f1edab86"
+              }
             },
             {
-              "__typename": "PullRequestCommit"
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "bbacab61a5c93f18e5b915931d327b6b3d02da7b"
+              }
             },
             {
-              "__typename": "PullRequestCommit"
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "157e3f79cd08f50002296b247ec56a93677722df"
+              }
             },
             {
-              "__typename": "PullRequestCommit"
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "cc98c3ad1744000c4e23fa286ed00b6e7f9c3734"
+              }
             },
             {
-              "__typename": "PullRequestCommit"
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7e0098cc9a0b43d8f43c5465ee0c11efb0ff927a"
+              }
             },
             {
               "__typename": "LabeledEvent",
@@ -1614,7 +1637,10 @@
               }
             },
             {
-              "__typename": "PullRequestCommit"
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "fb0d7e2caaab657e78aa65d7586e9f7f1efce6c3"
+              }
             },
             {
               "__typename": "LabeledEvent",
@@ -1623,6 +1649,36 @@
               "label": {
                 "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
                 "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c6VmggZzwAAAAPM0Idi",
+              "createdAt": "2025-02-15T09:22:13Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABmPU_0w",
+                "name": "awaiting-zulip"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c6VmggZzwAAAAPM0Idl",
+              "createdAt": "2025-02-15T09:22:13Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c6VmggZzwAAAAPM0JIG",
+              "createdAt": "2025-02-15T09:23:29Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAAB5WtGew",
+                "name": "depriming"
               }
             }
           ]
