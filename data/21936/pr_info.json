@@ -64,6 +64,14 @@
               "author": {
                 "login": "jsm28"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6epOtj",
+              "body": "What do you think about skipping straight to the n-ary version? At some point we'll presumably want \"no four points form a plane\" or something. That could look like:\r\n```lean\r\n/-- Whether a predicate holds for all ordered `n`-tuples of elements of a list.\r\n\r\nNote that we need `Function.OfArity α (PUnit.{u + 1} → Prop) n)` not just `Function.OfArity α Prop n` because of universe polymorphism issues.\r\nIn practice, that means every predicate must take one final dummy argument.\r\n-/\r\ninductive List.Tupletwise {α : Type u} : ∀ {n} (p : Function.OfArity α (PUnit.{u + 1} → Prop) n), List α → Prop\r\n  /-- For zero-tuples, tupletwise means the property is just true -/\r\n  | of_true {l : List α} {p : Function.OfArity α (PUnit.{u + 1} → Prop) 0} (h : p .unit) : l.Tupletwise (n := 0) p\r\n  /-- For non-empty tuples, the property is always true on empty lists. -/\r\n  | nil : [].Tupletwise (n := n + 1) p\r\n  /-- For non-empty tuples, the property is true on `a :: l` if it is true on `l` and the `a`-curried version is also true on `l`. -/\r\n  | cons {a : α} {l : List α} {n} {p : Function.OfArity α (PUnit.{u + 1} → Prop) (n + 1)} :\r\n      l.Tupletwise (n := n) (p a) → (l.Tupletwise (n := n + 1)) p → (a :: l).Tupletwise (n := n + 1) p\r\n\r\ntheorem List.Tupletwise.prop {α : Type u} {l : List α} {p : Function.OfArity α (PUnit.{u + 1} → Prop) 0} (h : l.Tupletwise p) :\r\n    p .unit :=\r\n  match h with\r\n  | of_true h => h\r\n\r\ntheorem List.Tupletwise.forall {α : Type u} {l : List α} {p : Function.OfArity α (PUnit.{u + 1} → Prop) 1} (h : l.Tupletwise p) :\r\n    ∀ x ∈ l, p x .unit :=\r\n  match h with\r\n  | .nil => by simp\r\n  | .cons head tail => forall_mem_cons.mpr ⟨head.prop, tail.forall⟩\r\n\r\ntheorem List.Tupletwise.of_forall {α : Type u} {l : List α} {p : α → Prop} (h : ∀ x ∈ l, p x) :\r\n    l.Tupletwise (n := 1) fun x _ => p x  :=\r\n  match l with\r\n  | .nil => .nil\r\n  | .cons _ _ => let ⟨h1, h2⟩ := forall_mem_cons.mp h; .cons (.of_true h1) <| .of_forall h2\r\n\r\ntheorem List.Tupletwise.pairwise {α : Type u} {l : List α} {p : Function.OfArity α (PUnit.{u + 1} → Prop) 2} (h : l.Tupletwise p) :\r\n    l.Pairwise (fun x y => p x y .unit) :=\r\n  match h with\r\n  | .nil => .nil\r\n  | .cons head tail => .cons head.forall tail.pairwise\r\n\r\ntheorem List.Tupletwise.of_pairwise {α : Type u} {l : List α} {p : α → α → Prop} (h : l.Pairwise p) :\r\n    l.Tupletwise (n := 2) fun x y _ => p x y :=\r\n  match h with\r\n  | .nil => .nil\r\n  | .cons head tail => .cons (.of_forall head) (.of_pairwise tail)\r\n```\r\nthough the `PUnit` in `Function.OfArity` is a little unfortunate.",
+              "createdAt": "2025-02-16T20:40:08Z",
+              "author": {
+                "login": "eric-wieser"
+              }
             }
           ]
         },
@@ -1730,7 +1738,7 @@
         "milestone": null,
         "number": 21936,
         "potentialMergeCommit": {
-          "oid": "d4c48b1bad38733fc5e1ef14bd3cdb2f10eec43c"
+          "oid": "a048f647c24d44be5941a1d2ff14800c0c7eb2f2"
         },
         "projectCards": {
           "nodes": []
@@ -2076,7 +2084,7 @@
           }
         },
         "title": "feat(Data/List/Tripletwise): `List.Tripletwise`",
-        "updatedAt": "2025-02-16T18:31:16Z",
+        "updatedAt": "2025-02-16T20:40:20Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/21936",
         "timelineItems": {
           "nodes": [
@@ -2303,6 +2311,15 @@
               "body": "Added `tripletwise_append` and `tripletwise_reverse`.",
               "author": {
                 "login": "jsm28"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6epOtj",
+              "createdAt": "2025-02-16T20:40:08Z",
+              "body": "What do you think about skipping straight to the n-ary version? At some point we'll presumably want \"no four points form a plane\" or something. That could look like:\r\n```lean\r\n/-- Whether a predicate holds for all ordered `n`-tuples of elements of a list.\r\n\r\nNote that we need `Function.OfArity α (PUnit.{u + 1} → Prop) n)` not just `Function.OfArity α Prop n` because of universe polymorphism issues.\r\nIn practice, that means every predicate must take one final dummy argument.\r\n-/\r\ninductive List.Tupletwise {α : Type u} : ∀ {n} (p : Function.OfArity α (PUnit.{u + 1} → Prop) n), List α → Prop\r\n  /-- For zero-tuples, tupletwise means the property is just true -/\r\n  | of_true {l : List α} {p : Function.OfArity α (PUnit.{u + 1} → Prop) 0} (h : p .unit) : l.Tupletwise (n := 0) p\r\n  /-- For non-empty tuples, the property is always true on empty lists. -/\r\n  | nil : [].Tupletwise (n := n + 1) p\r\n  /-- For non-empty tuples, the property is true on `a :: l` if it is true on `l` and the `a`-curried version is also true on `l`. -/\r\n  | cons {a : α} {l : List α} {n} {p : Function.OfArity α (PUnit.{u + 1} → Prop) (n + 1)} :\r\n      l.Tupletwise (n := n) (p a) → (l.Tupletwise (n := n + 1)) p → (a :: l).Tupletwise (n := n + 1) p\r\n\r\ntheorem List.Tupletwise.prop {α : Type u} {l : List α} {p : Function.OfArity α (PUnit.{u + 1} → Prop) 0} (h : l.Tupletwise p) :\r\n    p .unit :=\r\n  match h with\r\n  | of_true h => h\r\n\r\ntheorem List.Tupletwise.forall {α : Type u} {l : List α} {p : Function.OfArity α (PUnit.{u + 1} → Prop) 1} (h : l.Tupletwise p) :\r\n    ∀ x ∈ l, p x .unit :=\r\n  match h with\r\n  | .nil => by simp\r\n  | .cons head tail => forall_mem_cons.mpr ⟨head.prop, tail.forall⟩\r\n\r\ntheorem List.Tupletwise.of_forall {α : Type u} {l : List α} {p : α → Prop} (h : ∀ x ∈ l, p x) :\r\n    l.Tupletwise (n := 1) fun x _ => p x  :=\r\n  match l with\r\n  | .nil => .nil\r\n  | .cons _ _ => let ⟨h1, h2⟩ := forall_mem_cons.mp h; .cons (.of_true h1) <| .of_forall h2\r\n\r\ntheorem List.Tupletwise.pairwise {α : Type u} {l : List α} {p : Function.OfArity α (PUnit.{u + 1} → Prop) 2} (h : l.Tupletwise p) :\r\n    l.Pairwise (fun x y => p x y .unit) :=\r\n  match h with\r\n  | .nil => .nil\r\n  | .cons head tail => .cons head.forall tail.pairwise\r\n\r\ntheorem List.Tupletwise.of_pairwise {α : Type u} {l : List α} {p : α → α → Prop} (h : l.Pairwise p) :\r\n    l.Tupletwise (n := 2) fun x y _ => p x y :=\r\n  match h with\r\n  | .nil => .nil\r\n  | .cons head tail => .cons (.of_forall head) (.of_pairwise tail)\r\n```\r\nthough the `PUnit` in `Function.OfArity` is a little unfortunate.",
+              "author": {
+                "login": "eric-wieser"
               }
             }
           ]
