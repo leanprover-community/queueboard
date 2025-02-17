@@ -20,13 +20,17 @@ stubborn_prs=$(cat "stubborn_prs.txt" | grep --invert-match "^--" | sort | uniq)
 # Do not use with stubborn PRs: usually, this would time out.
 function download_normal {
     local dir="data/$1"
-    mkdir -p "$dir"
+    local tmpdir=$dir-temp
+    mkdir -p "$tmpdir"
     # Run pr_info.sh and pr_reactions.sh and save the output.
-    # "parse error: Invalid numeric literal at line N, column M'" comes from jq complaining about e.g. an empty file
-    ./pr_info.sh "$1" | jq '.' > "$dir/pr_info.json"
-    ./pr_reactions.sh "$1" | jq '.' > "$dir/pr_reactions.json"
+    # "parse error: Invalid numeric literal at line N, column M'" comes from jq complaining about e.g. an empty file.
+
+    # Save the output to a temporary directory, which we delete in case anything goes wrong.
+    ./pr_info.sh "$1" | jq '.' > "$tmpdir/pr_info.json"
     # Save the current timestamp.
-    echo "$CURRENT_TIME" > "$dir/timestamp.txt"
+    echo "$CURRENT_TIME" > "$tmpdir/timestamp.txt"
+    { ./pr_reactions.sh "$1" | jq '.' > "$tmpdir/pr_reactions.json"; } || { rm -r $tmpdir && return 1; }
+    mv -f $tmpdir $dir
 }
 
 # |download_stubborn $pr| downloads "stubborn" info for the PR '$pr' into the appropriate directory.
