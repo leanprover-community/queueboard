@@ -258,6 +258,11 @@ class RESTData(NamedTuple):
     labels: List[Label]
 
 
+# If the aggregate data is less than this amount behind the REST data,
+# we don't warn yet (but allow for `gather_stats.sh` to download this normally).
+ALLOWED_DELAY_MINS = 12
+
+
 # Return a list of PR numbers whose aggregate data differs from the REST data,
 # and whose aggregate data is not newer than the REST data.
 def compare_data_inner(rest: List[RESTData], aggregate: dict[int, AggregatePRInfo]) -> List[int]:
@@ -280,8 +285,8 @@ def compare_data_inner(rest: List[RESTData], aggregate: dict[int, AggregatePRInf
         if parser.isoparse(pr.updatedAt) < agg.last_updated:
             # If the aggregate information is newer, different data is fine.
             continue
-        elif parser.isoparse(pr.updatedAt) + timedelta(minutes=12) <= agg.last_updated:
-            # If the aggregate data is less than 12 minutes behind, we also shouldn't warn yet.
+        elif parser.isoparse(pr.updatedAt) <= agg.last_updated + timedelta(minutes=ALLOWED_DELAY_MINS):
+            # If the aggregate data just very slightly outdated, we don't warn either.
             continue
         if pr.url != infer_pr_url(pr.number):
             print(f"error for PR {pr.number}: REST data has url {pr.url}, but inferred {infer_pr_url(pr.number)}")
@@ -379,8 +384,8 @@ def main() -> None:
         aggregate_updated = parser.isoparse(aggregate_last_updated[pr_number].last_updated)
 
         # current_updated should be at least as new,
-        # aggregate_updated is allowed to lag behind by at most 12 minutes.
-        if aggregate_updated < current_updated - timedelta(minutes=12):
+        # aggregate_updated is allowed to lag behind by a small amount.
+        if aggregate_updated < current_updated - timedelta(minutes=ALLOWED_DELAY_MINS):
             delta = current_updated - aggregate_updated
             print(f"mismatch: the aggregate file for PR {pr_number} is outdated by {delta}, please re-download!")
             print(f"  the aggregate file says {aggregate_updated}, current last update is {current_updated}")
