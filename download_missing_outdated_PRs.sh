@@ -29,7 +29,7 @@ function download_normal {
     ./pr_info.sh "$1" | jq '.' > "$tmpdir/pr_info.json"
     # Save the current timestamp.
     echo "$CURRENT_TIME" > "$tmpdir/timestamp.txt"
-    { ./pr_reactions.sh "$1" | jq '.' > "$tmpdir/pr_reactions.json"; } || { rm -r $tmpdir && return 1; }
+    { ./pr_reactions.sh "$1" | jq '.' > "$tmpdir/pr_reactions.json"; } || { rm -r -f $tmpdir && return 1; }
     rm -r -f $dir
     mv -f $tmpdir/ $dir/
     echo "dir afterwards"
