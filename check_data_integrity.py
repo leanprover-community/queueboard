@@ -416,10 +416,7 @@ def main() -> None:
             print(f"outdated data: PR {pr_number} has missing CI data")
             outdated_prs.append(pr_number)
 
-    for pr_number in outdated_aggressive:
-        if pr_number not in outdated_prs:
-            print(f"PR {pr_number} has outdated aggregate data, found only by deep comparison")
-            outdated_prs.append(pr_number)
+    outdated_prs.extend(outdated_aggressive)
 
     # Some PRs are marked as stubborn: for them, only basic information is downloaded.
     stubborn_prs = []
