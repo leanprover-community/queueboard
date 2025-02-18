@@ -94,7 +94,7 @@ def check_data_directory_contents() -> Tuple[List[int], List[int]]:
             expected = ["basic_pr_info.json", "timestamp.txt"]
             files = sorted(os.listdir(os.path.join("data", dir)))
             if files != expected:
-                eprint(f"files for PR {number} did not match what I wanted: expected {expected}, got {files}")
+                eprint(f"files for PR {number} (in directory {dir}) did not match what I wanted: expected {expected}, got {files}")
                 stubborn_prs_with_errors.append(int(number))
                 continue
             if not _check_directory(os.path.join("data", dir), int(number), files):
@@ -103,7 +103,7 @@ def check_data_directory_contents() -> Tuple[List[int], List[int]]:
             expected = ["pr_info.json", "pr_reactions.json", "timestamp.txt"]
             files = sorted(os.listdir(os.path.join("data", dir)))
             if files != expected:
-                eprint(f"files for PR {dir} did not match what I wanted: expected {expected}, got {files}")
+                eprint(f"files for PR {dir} (in directory {dir}) did not match what I wanted: expected {expected}, got {files}")
                 normal_prs_with_errors.append(int(dir))
                 continue
             if not _check_directory(os.path.join("data", dir), int(dir), files):

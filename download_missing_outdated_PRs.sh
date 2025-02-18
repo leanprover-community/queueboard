@@ -20,7 +20,7 @@ stubborn_prs=$(cat "stubborn_prs.txt" | grep --invert-match "^--" | sort | uniq)
 # Do not use with stubborn PRs: usually, this would time out.
 function download_normal {
     local dir="data/$1"
-    local tmpdir=$dir-temp
+    local tmpdir="data/$1-temp"
     mkdir -p "$tmpdir"
     # Run pr_info.sh and pr_reactions.sh and save the output.
     # "parse error: Invalid numeric literal at line N, column M'" comes from jq complaining about e.g. an empty file.
