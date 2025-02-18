@@ -30,10 +30,7 @@ function download_normal {
     # Save the current timestamp.
     echo "$CURRENT_TIME" > "$tmpdir/timestamp.txt"
     { ./pr_reactions.sh "$1" | jq '.' > "$tmpdir/pr_reactions.json"; } || { rm -r $tmpdir && return 1; }
-    echo "before move, tmpdir contents are:"
-    ls $tmpdir
-    echo "dir contents are:"
-    ls $dir
+    rm $dir
     mv -f $tmpdir $dir
     echo "dir afterwards"
     ls $dir
