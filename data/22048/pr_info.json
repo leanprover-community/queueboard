@@ -32,6 +32,14 @@
               "author": {
                 "login": "kmill"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6fBSZJ",
+              "body": "This prints `sum (filter s fun x ↦ p x) fun x ↦ f x` as `∑ x ∈ univ with p x, f x` instead of `∑ x with p x, f x`, but thank you! I'll take it from there.",
+              "createdAt": "2025-02-19T08:35:26Z",
+              "author": {
+                "login": "YaelDillies"
+              }
             }
           ]
         },
@@ -228,7 +236,7 @@
         "milestone": null,
         "number": 22048,
         "potentialMergeCommit": {
-          "oid": "387a68b7f424d2c84a309f5676618c418c88aed2"
+          "oid": "dbc6d2a2c8789f6b92c84cbdcb1fbd6a47f18833"
         },
         "projectCards": {
           "nodes": []
@@ -436,7 +444,7 @@
           }
         },
         "title": "feat: delaborator for `∑ x ∈ s with p x, f x` notation",
-        "updatedAt": "2025-02-19T03:45:29Z",
+        "updatedAt": "2025-02-19T08:35:28Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/22048",
         "timelineItems": {
           "nodes": [
@@ -480,6 +488,15 @@
               "body": "Lightly tested:\r\n```lean\r\nprivate inductive FinsetResult where\r\n  | finset (s : Term)\r\n  | univ\r\n  | filter (s : Term) (p : Term)\r\n\r\n/-- Delaborates a finset. In case it is a `Finset.filter`, `i` is used for the binder name. -/\r\nprivate def delabFinsetArg (i : Ident) :\r\n    DelabM FinsetResult := do\r\n  let s ← getExpr\r\n  if s.isAppOfArity ``Finset.univ 2 then\r\n    return .univ\r\n  else if s.isAppOfArity ``Finset.filter 4 then\r\n    let ss ← withNaryArg 3 delab\r\n    withNaryArg 1 do\r\n      if (← getExpr).isLambda then\r\n        withBindingBody i.getId do\r\n          let p ← delab\r\n          return .filter ss p\r\n      else\r\n        let p ← delab\r\n        return .filter ss (← `($p $i))\r\n  else\r\n    let ss ← delab\r\n    return .finset ss\r\n\r\n/-- Delaborator for `Finset.prod`. The `pp.piBinderTypes` option controls whether\r\nto show the domain type when the product is over `Finset.univ`. -/\r\n@[app_delab Finset.prod] def delabFinsetProd : Delab :=\r\n  whenPPOption getPPNotation <| withOverApp 5 <| do\r\n  let #[_, _, _, _, f] := (← getExpr).getAppArgs | failure\r\n  guard <| f.isLambda\r\n  let ppDomain ← getPPOption getPPPiBinderTypes\r\n  let (i, body) ← withAppArg <| withBindingBodyUnusedName fun i => do\r\n    return ((⟨i⟩ : Ident), ← delab)\r\n  let res ← withNaryArg 3 <| delabFinsetArg i\r\n  match res with\r\n  | .finset ss => `(∏ $i:ident ∈ $ss, $body)\r\n  | .univ =>\r\n    let binder ←\r\n    if ppDomain then\r\n      let ty ← withNaryArg 0 delab\r\n      `(bigOpBinder| $i:ident : $ty)\r\n    else\r\n      `(bigOpBinder| $i:ident)\r\n    `(∏ $binder:bigOpBinder, $body)\r\n  | .filter ss p =>\r\n    `(∏ $i:ident ∈ $ss with $p, $body)\r\n\r\n/-- Delaborator for `Finset.sum`. The `pp.piBinderTypes` option controls whether\r\nto show the domain type when the sum is over `Finset.univ`. -/\r\n@[app_delab Finset.sum] def delabFinsetSum : Delab :=\r\n  whenPPOption getPPNotation <| withOverApp 5 <| do\r\n  let #[_, _, _, _, f] := (← getExpr).getAppArgs | failure\r\n  guard <| f.isLambda\r\n  let ppDomain ← getPPOption getPPPiBinderTypes\r\n  let (i, body) ← withAppArg <| withBindingBodyUnusedName fun i => do\r\n    return ((⟨i⟩ : Ident), ← delab)\r\n  let res ← withNaryArg 3 <| delabFinsetArg i\r\n  match res with\r\n  | .finset ss => `(∑ $i:ident ∈ $ss, $body)\r\n  | .univ =>\r\n    let binder ←\r\n    if ppDomain then\r\n      let ty ← withNaryArg 0 delab\r\n      `(bigOpBinder| $i:ident : $ty)\r\n    else\r\n      `(bigOpBinder| $i:ident)\r\n    `(∑ $binder:bigOpBinder, $body)\r\n  | .filter ss p =>\r\n    `(∑ $i:ident ∈ $ss with $p, $body)\r\n```",
               "author": {
                 "login": "kmill"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6fBSZJ",
+              "createdAt": "2025-02-19T08:35:26Z",
+              "body": "This prints `sum (filter s fun x ↦ p x) fun x ↦ f x` as `∑ x ∈ univ with p x, f x` instead of `∑ x with p x, f x`, but thank you! I'll take it from there.",
+              "author": {
+                "login": "YaelDillies"
               }
             }
           ]
