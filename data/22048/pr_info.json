@@ -24,6 +24,14 @@
               "author": {
                 "login": "github-actions"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6e_eWD",
+              "body": "Lightly tested:\r\n```lean\r\nprivate inductive FinsetResult where\r\n  | finset (s : Term)\r\n  | univ\r\n  | filter (s : Term) (p : Term)\r\n\r\n/-- Delaborates a finset. In case it is a `Finset.filter`, `i` is used for the binder name. -/\r\nprivate def delabFinsetArg (i : Ident) :\r\n    DelabM FinsetResult := do\r\n  let s ← getExpr\r\n  if s.isAppOfArity ``Finset.univ 2 then\r\n    return .univ\r\n  else if s.isAppOfArity ``Finset.filter 4 then\r\n    let ss ← withNaryArg 3 delab\r\n    withNaryArg 1 do\r\n      if (← getExpr).isLambda then\r\n        withBindingBody i.getId do\r\n          let p ← delab\r\n          return .filter ss p\r\n      else\r\n        let p ← delab\r\n        return .filter ss (← `($p $i))\r\n  else\r\n    let ss ← delab\r\n    return .finset ss\r\n\r\n/-- Delaborator for `Finset.prod`. The `pp.piBinderTypes` option controls whether\r\nto show the domain type when the product is over `Finset.univ`. -/\r\n@[app_delab Finset.prod] def delabFinsetProd : Delab :=\r\n  whenPPOption getPPNotation <| withOverApp 5 <| do\r\n  let #[_, _, _, _, f] := (← getExpr).getAppArgs | failure\r\n  guard <| f.isLambda\r\n  let ppDomain ← getPPOption getPPPiBinderTypes\r\n  let (i, body) ← withAppArg <| withBindingBodyUnusedName fun i => do\r\n    return ((⟨i⟩ : Ident), ← delab)\r\n  let res ← withNaryArg 3 <| delabFinsetArg i\r\n  match res with\r\n  | .finset ss => `(∏ $i:ident ∈ $ss, $body)\r\n  | .univ =>\r\n    let binder ←\r\n    if ppDomain then\r\n      let ty ← withNaryArg 0 delab\r\n      `(bigOpBinder| $i:ident : $ty)\r\n    else\r\n      `(bigOpBinder| $i:ident)\r\n    `(∏ $binder:bigOpBinder, $body)\r\n  | .filter ss p =>\r\n    `(∏ $i:ident ∈ $ss with $p, $body)\r\n\r\n/-- Delaborator for `Finset.sum`. The `pp.piBinderTypes` option controls whether\r\nto show the domain type when the sum is over `Finset.univ`. -/\r\n@[app_delab Finset.sum] def delabFinsetSum : Delab :=\r\n  whenPPOption getPPNotation <| withOverApp 5 <| do\r\n  let #[_, _, _, _, f] := (← getExpr).getAppArgs | failure\r\n  guard <| f.isLambda\r\n  let ppDomain ← getPPOption getPPPiBinderTypes\r\n  let (i, body) ← withAppArg <| withBindingBodyUnusedName fun i => do\r\n    return ((⟨i⟩ : Ident), ← delab)\r\n  let res ← withNaryArg 3 <| delabFinsetArg i\r\n  match res with\r\n  | .finset ss => `(∑ $i:ident ∈ $ss, $body)\r\n  | .univ =>\r\n    let binder ←\r\n    if ppDomain then\r\n      let ty ← withNaryArg 0 delab\r\n      `(bigOpBinder| $i:ident : $ty)\r\n    else\r\n      `(bigOpBinder| $i:ident)\r\n    `(∑ $binder:bigOpBinder, $body)\r\n  | .filter ss p =>\r\n    `(∑ $i:ident ∈ $ss with $p, $body)\r\n```",
+              "createdAt": "2025-02-19T03:45:29Z",
+              "author": {
+                "login": "kmill"
+              }
             }
           ]
         },
@@ -220,7 +228,7 @@
         "milestone": null,
         "number": 22048,
         "potentialMergeCommit": {
-          "oid": "ee3c5b232e8286d68591927a6dc4ea6ac7106bd9"
+          "oid": "387a68b7f424d2c84a309f5676618c418c88aed2"
         },
         "projectCards": {
           "nodes": []
@@ -293,6 +301,10 @@
             {
               "id": "MDQ6VXNlcjE0MDkwNTkz",
               "login": "YaelDillies"
+            },
+            {
+              "id": "MDQ6VXNlcjIzNTMwNw==",
+              "login": "kmill"
             }
           ]
         },
@@ -424,7 +436,7 @@
           }
         },
         "title": "feat: delaborator for `∑ x ∈ s with p x, f x` notation",
-        "updatedAt": "2025-02-18T15:22:14Z",
+        "updatedAt": "2025-02-19T03:45:29Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/22048",
         "timelineItems": {
           "nodes": [
@@ -459,6 +471,15 @@
               "body": "### PR summary [d7b8422088](https://github.com/leanprover-community/mathlib4/pull/22048/commits/d7b8422088b116febab3aa026cec1cde95332513)\n\n#### Import changes for modified files\n\nNo significant changes to the import graph\n\n\n<details><summary>Import changes for all files</summary>\n\n|Files|Import difference|\n|-|-|\n\n</details>\n\n---\n\n#### Declarations diff\n\n`+ getFinsetFilter`\n<details>\n  <summary>You can run this locally as follows</summary>\n\n\n```bash\n## summary with just the declaration names:\n./scripts/declarations_diff.sh <optional_commit>\n\n## more verbose report:\n./scripts/declarations_diff.sh long <optional_commit>\n```\n</details>\n\nThe doc-module for `script/declarations_diff.sh` contains some details about this script.\n\n---\n\n<details><summary>No changes to technical debt.</summary>\n\nYou can run this locally as\n```\n./scripts/technical-debt-metrics.sh pr_summary\n```\n* The `relative` value is the weighted *sum* of the differences with weight given by the *inverse* of the current value of the statistic.\n* The `absolute` value is the `relative` value divided by the total sum of the inverses of the current values (i.e. the weighted *average* of the differences).\n</details>\n",
               "author": {
                 "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6e_eWD",
+              "createdAt": "2025-02-19T03:45:29Z",
+              "body": "Lightly tested:\r\n```lean\r\nprivate inductive FinsetResult where\r\n  | finset (s : Term)\r\n  | univ\r\n  | filter (s : Term) (p : Term)\r\n\r\n/-- Delaborates a finset. In case it is a `Finset.filter`, `i` is used for the binder name. -/\r\nprivate def delabFinsetArg (i : Ident) :\r\n    DelabM FinsetResult := do\r\n  let s ← getExpr\r\n  if s.isAppOfArity ``Finset.univ 2 then\r\n    return .univ\r\n  else if s.isAppOfArity ``Finset.filter 4 then\r\n    let ss ← withNaryArg 3 delab\r\n    withNaryArg 1 do\r\n      if (← getExpr).isLambda then\r\n        withBindingBody i.getId do\r\n          let p ← delab\r\n          return .filter ss p\r\n      else\r\n        let p ← delab\r\n        return .filter ss (← `($p $i))\r\n  else\r\n    let ss ← delab\r\n    return .finset ss\r\n\r\n/-- Delaborator for `Finset.prod`. The `pp.piBinderTypes` option controls whether\r\nto show the domain type when the product is over `Finset.univ`. -/\r\n@[app_delab Finset.prod] def delabFinsetProd : Delab :=\r\n  whenPPOption getPPNotation <| withOverApp 5 <| do\r\n  let #[_, _, _, _, f] := (← getExpr).getAppArgs | failure\r\n  guard <| f.isLambda\r\n  let ppDomain ← getPPOption getPPPiBinderTypes\r\n  let (i, body) ← withAppArg <| withBindingBodyUnusedName fun i => do\r\n    return ((⟨i⟩ : Ident), ← delab)\r\n  let res ← withNaryArg 3 <| delabFinsetArg i\r\n  match res with\r\n  | .finset ss => `(∏ $i:ident ∈ $ss, $body)\r\n  | .univ =>\r\n    let binder ←\r\n    if ppDomain then\r\n      let ty ← withNaryArg 0 delab\r\n      `(bigOpBinder| $i:ident : $ty)\r\n    else\r\n      `(bigOpBinder| $i:ident)\r\n    `(∏ $binder:bigOpBinder, $body)\r\n  | .filter ss p =>\r\n    `(∏ $i:ident ∈ $ss with $p, $body)\r\n\r\n/-- Delaborator for `Finset.sum`. The `pp.piBinderTypes` option controls whether\r\nto show the domain type when the sum is over `Finset.univ`. -/\r\n@[app_delab Finset.sum] def delabFinsetSum : Delab :=\r\n  whenPPOption getPPNotation <| withOverApp 5 <| do\r\n  let #[_, _, _, _, f] := (← getExpr).getAppArgs | failure\r\n  guard <| f.isLambda\r\n  let ppDomain ← getPPOption getPPPiBinderTypes\r\n  let (i, body) ← withAppArg <| withBindingBodyUnusedName fun i => do\r\n    return ((⟨i⟩ : Ident), ← delab)\r\n  let res ← withNaryArg 3 <| delabFinsetArg i\r\n  match res with\r\n  | .finset ss => `(∑ $i:ident ∈ $ss, $body)\r\n  | .univ =>\r\n    let binder ←\r\n    if ppDomain then\r\n      let ty ← withNaryArg 0 delab\r\n      `(bigOpBinder| $i:ident : $ty)\r\n    else\r\n      `(bigOpBinder| $i:ident)\r\n    `(∑ $binder:bigOpBinder, $body)\r\n  | .filter ss p =>\r\n    `(∑ $i:ident ∈ $ss with $p, $body)\r\n```",
+              "author": {
+                "login": "kmill"
               }
             }
           ]
