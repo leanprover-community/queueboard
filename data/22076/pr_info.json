@@ -32,6 +32,14 @@
               "author": {
                 "login": "j-loreaux"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6fg09T",
+              "body": "I can't get it to work. Here's my best attempt (put it at the end of `Data.Finset.BooleanAlgebra`). Somehow `trySynthInstance q(DecidableEq $α)` fails even though `DecidableEq α` is in context.\r\n\r\n```\r\nnamespace Mathlib.Meta\r\nopen Lean Elab Term Meta Batteries.ExtendedBinder Parser.Term PrettyPrinter.Delaborator SubExpr Qq\r\n\r\n/-- Delaborator for `Finset.filter`. The `pp.funBinderTypes` option controls whether\r\nto show the domain type when the filter is over `Finset.univ`. -/\r\n@[app_delab Finset.filter] def delabFinsetFilter : Delab :=\r\n  whenPPOption getPPNotation do\r\n  let ppDomain ← getPPOption getPPFunBinderTypes\r\n  let #[_, p, _, s] := (← getExpr).getAppArgs | failure\r\n  guard p.isLambda\r\n  let i ← withNaryArg 1 <| withBindingBodyUnusedName fun i => pure (⟨i⟩ : Ident)\r\n  let p ← withNaryArg 1 <| withBindingBody i.getId do\r\n    let p ← delab\r\n    return p\r\n  let ⟨.succ u, ~q(Finset $α), s⟩ ← inferTypeQ s | failure\r\n  logInfo \"hi\"\r\n  match s with\r\n  | ~q(@Finset.univ _ $inst) =>\r\n    if ppDomain then\r\n      let ty ← withNaryArg 0 delab\r\n      `({$i:ident : $ty | $p})\r\n    else\r\n      `({$i:ident | $p})\r\n  | s =>\r\n    match ← trySynthInstanceQ q(DecidableEq $α), ← trySynthInstanceQ q(Fintype $α) with\r\n    | .some _, .some _ =>\r\n      match s with\r\n      | ~q({$a}ᶜ) =>\r\n        let a ← withNaryArg 3 <| withNaryArg 2 <| withNaryArg 3 delab\r\n        `({$i:ident ≠ $a | $p})\r\n      | ~q($s) =>\r\n        let t ← withNaryArg 3 <| withNaryArg 2 delab\r\n        `({$i:ident ∉ $t | $p})\r\n      | _ =>\r\n        let t ← withNaryArg 3 delab\r\n        `({$i:ident ∈ $t | $p})\r\n    | _, _ =>\r\n      let t ← withNaryArg 3 delab\r\n      `({$i:ident ∈ $t | $p})\r\n\r\nend Mathlib.Meta\r\n```\r\n\r\n",
+              "createdAt": "2025-02-22T12:42:49Z",
+              "author": {
+                "login": "YaelDillies"
+              }
             }
           ]
         },
@@ -354,6 +362,14 @@
                       },
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIxAr_fA",
+                        "name": "set_pr_emoji",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13473005083/job/37648793468"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAIuTsljw",
                         "name": "Add ready-to-merge or delegated label",
                         "conclusion": "SUCCESS",
@@ -509,11 +525,6 @@
         "labels": {
           "nodes": [
             {
-              "id": "LA_kwDOFcwZ1c7P265b",
-              "color": "f9d0c4",
-              "name": "awaiting-author"
-            },
-            {
               "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
               "color": "33DBEC",
               "name": "t-meta"
@@ -542,7 +553,7 @@
         "milestone": null,
         "number": 22076,
         "potentialMergeCommit": {
-          "oid": "691e59e207f034699b7a4a70450d9bd2999fab16"
+          "oid": "4854632857635cbb4cc176a5f5d707c9bfe74808"
         },
         "projectCards": {
           "nodes": []
@@ -713,6 +724,14 @@
               },
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIxAr_fA",
+                "name": "set_pr_emoji",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13473005083/job/37648793468"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAIuTsljw",
                 "name": "Add ready-to-merge or delegated label",
                 "conclusion": "SUCCESS",
@@ -827,7 +846,7 @@
           }
         },
         "title": "feat: delaborator for finset builder notation",
-        "updatedAt": "2025-02-19T21:51:43Z",
+        "updatedAt": "2025-02-22T12:43:01Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/22076",
         "timelineItems": {
           "nodes": [
@@ -940,6 +959,24 @@
               "__typename": "LabeledEvent",
               "id": "LE_lADOFcwZ1c6qqYBgzwAAAAPP3Q1Y",
               "createdAt": "2025-02-19T21:51:43Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6fg09T",
+              "createdAt": "2025-02-22T12:42:49Z",
+              "body": "I can't get it to work. Here's my best attempt (put it at the end of `Data.Finset.BooleanAlgebra`). Somehow `trySynthInstance q(DecidableEq $α)` fails even though `DecidableEq α` is in context.\r\n\r\n```\r\nnamespace Mathlib.Meta\r\nopen Lean Elab Term Meta Batteries.ExtendedBinder Parser.Term PrettyPrinter.Delaborator SubExpr Qq\r\n\r\n/-- Delaborator for `Finset.filter`. The `pp.funBinderTypes` option controls whether\r\nto show the domain type when the filter is over `Finset.univ`. -/\r\n@[app_delab Finset.filter] def delabFinsetFilter : Delab :=\r\n  whenPPOption getPPNotation do\r\n  let ppDomain ← getPPOption getPPFunBinderTypes\r\n  let #[_, p, _, s] := (← getExpr).getAppArgs | failure\r\n  guard p.isLambda\r\n  let i ← withNaryArg 1 <| withBindingBodyUnusedName fun i => pure (⟨i⟩ : Ident)\r\n  let p ← withNaryArg 1 <| withBindingBody i.getId do\r\n    let p ← delab\r\n    return p\r\n  let ⟨.succ u, ~q(Finset $α), s⟩ ← inferTypeQ s | failure\r\n  logInfo \"hi\"\r\n  match s with\r\n  | ~q(@Finset.univ _ $inst) =>\r\n    if ppDomain then\r\n      let ty ← withNaryArg 0 delab\r\n      `({$i:ident : $ty | $p})\r\n    else\r\n      `({$i:ident | $p})\r\n  | s =>\r\n    match ← trySynthInstanceQ q(DecidableEq $α), ← trySynthInstanceQ q(Fintype $α) with\r\n    | .some _, .some _ =>\r\n      match s with\r\n      | ~q({$a}ᶜ) =>\r\n        let a ← withNaryArg 3 <| withNaryArg 2 <| withNaryArg 3 delab\r\n        `({$i:ident ≠ $a | $p})\r\n      | ~q($s) =>\r\n        let t ← withNaryArg 3 <| withNaryArg 2 delab\r\n        `({$i:ident ∉ $t | $p})\r\n      | _ =>\r\n        let t ← withNaryArg 3 delab\r\n        `({$i:ident ∈ $t | $p})\r\n    | _, _ =>\r\n      let t ← withNaryArg 3 delab\r\n      `({$i:ident ∈ $t | $p})\r\n\r\nend Mathlib.Meta\r\n```\r\n\r\n",
+              "author": {
+                "login": "YaelDillies"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c6qqYBgzwAAAAPSRWkr",
+              "createdAt": "2025-02-22T12:43:01Z",
               "label": {
                 "id": "LA_kwDOFcwZ1c7P265b",
                 "name": "awaiting-author"
