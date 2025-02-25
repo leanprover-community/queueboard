@@ -48,6 +48,14 @@
               "author": {
                 "login": "github-actions"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6f6jrD",
+              "body": "Here's a bigger Qq rewrite:\r\n```lean\r\n-- set_option linter.unusedVariables false in\r\n/-- For an expression `p` of the form `fun (x : α) ↦ (body : Prop)`, checks whether\r\n`body` implies `x = a` for some `a`, and constructs a proof of `(∃ x, p x) = p a` using\r\n`exists_of_imp_eq`. -/\r\npartial def findImpEqProof {u} {α : Q(Sort u)} (p : Q($α → Prop)) :\r\n    MetaM <| Option ((a : Q($α)) × Q((∃ x, $p x) = $p $a)) := do\r\n  lambdaTelescope p fun xs (body : Q(Prop)) => do\r\n    let #[(x : Q($α))] := xs | return none\r\n    withLocalDeclQ .anonymous .default q($body) fun h => withNewMCtxDepth do\r\n      let .some ⟨res, proof⟩ ← go x h | return none\r\n      let pf1 : Q(∀ (b : «$α»), «$p» b → «$res» = b) ← mkLambdaFVars #[x, h] proof\r\n      return .some ⟨res, q(exists_of_imp_eq _ $pf1)⟩\r\nwhere\r\n  /-- Traverses the expression `h`, branching at each `And`, to find a proof of `x = a`\r\n  for some `a`. -/\r\n  go (x : Q($α)) {e : Q(Prop)} (h : Q($e)) : MetaM <| Option ((a : Q($α)) × Q($a = $x)) := do\r\n    match e, h with\r\n    | ~q(@Eq.{u} $β $a $b) => do\r\n      let .defEq _ := ← isDefEqQ q($α) q($β) | return none\r\n      if let .defEq _ ← isDefEqQ q($x) q($a) then\r\n        return .some ⟨b, q(($h).symm)⟩\r\n      else if let .defEq _ ← isDefEqQ x (b : Q($α)) then\r\n        return .some ⟨a, q(($h))⟩\r\n      else\r\n        return .none\r\n    | ~q(And $a $b) =>\r\n      if let .some res ← go x q(And.left $h) then\r\n        return res\r\n      if let .some res ← go x q(And.right $h) then\r\n        return res\r\n      return none\r\n    | _ => return none\r\n\r\nend existsAndEq\r\n\r\n/-- Checks whether `P a'` has the form `... ∧ a' = a ∧ ...` or `... ∧ a = a' ∧ ...` in\r\nthe goal `∃ a', P a'`. If so, rewrites the goal as `P a`. -/\r\nsimproc existsAndEq (Exists (fun _ => And _ _)) := fun e => do\r\n  let ⟨1, ~q(Prop), ~q(Exists $p)⟩ ← inferTypeQ e | return .continue \r\n  let .some ⟨rhs, pf⟩ ← existsAndEq.findImpEqProof p | return .continue\r\n  return .visit {expr := q($p $rhs), proof? := pf}\r\n```\r\nusing the moral \"stay in Qq as long as possible\"",
+              "createdAt": "2025-02-25T18:26:15Z",
+              "author": {
+                "login": "eric-wieser"
+              }
             }
           ]
         },
@@ -1673,7 +1681,7 @@
         "milestone": null,
         "number": 22273,
         "potentialMergeCommit": {
-          "oid": "09c0d13fc86bffb0029dba2c5f00b1eb55510e2a"
+          "oid": "776ae415f30ce78210025f57e4d7ef2ae88af7ee"
         },
         "projectCards": {
           "nodes": []
@@ -2152,7 +2160,7 @@
           }
         },
         "title": "feat(Simproc): simproc for `∃ a', ... ∧ a' = a ∧ ...`",
-        "updatedAt": "2025-02-25T18:18:23Z",
+        "updatedAt": "2025-02-25T18:26:33Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/22273",
         "timelineItems": {
           "nodes": [
@@ -2367,6 +2375,15 @@
               "__typename": "PullRequestCommit",
               "commit": {
                 "oid": "2714b6fc9190d1b054a0d68851dd7ba105f25c17"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6f6jrD",
+              "createdAt": "2025-02-25T18:26:15Z",
+              "body": "Here's a bigger Qq rewrite:\r\n```lean\r\n-- set_option linter.unusedVariables false in\r\n/-- For an expression `p` of the form `fun (x : α) ↦ (body : Prop)`, checks whether\r\n`body` implies `x = a` for some `a`, and constructs a proof of `(∃ x, p x) = p a` using\r\n`exists_of_imp_eq`. -/\r\npartial def findImpEqProof {u} {α : Q(Sort u)} (p : Q($α → Prop)) :\r\n    MetaM <| Option ((a : Q($α)) × Q((∃ x, $p x) = $p $a)) := do\r\n  lambdaTelescope p fun xs (body : Q(Prop)) => do\r\n    let #[(x : Q($α))] := xs | return none\r\n    withLocalDeclQ .anonymous .default q($body) fun h => withNewMCtxDepth do\r\n      let .some ⟨res, proof⟩ ← go x h | return none\r\n      let pf1 : Q(∀ (b : «$α»), «$p» b → «$res» = b) ← mkLambdaFVars #[x, h] proof\r\n      return .some ⟨res, q(exists_of_imp_eq _ $pf1)⟩\r\nwhere\r\n  /-- Traverses the expression `h`, branching at each `And`, to find a proof of `x = a`\r\n  for some `a`. -/\r\n  go (x : Q($α)) {e : Q(Prop)} (h : Q($e)) : MetaM <| Option ((a : Q($α)) × Q($a = $x)) := do\r\n    match e, h with\r\n    | ~q(@Eq.{u} $β $a $b) => do\r\n      let .defEq _ := ← isDefEqQ q($α) q($β) | return none\r\n      if let .defEq _ ← isDefEqQ q($x) q($a) then\r\n        return .some ⟨b, q(($h).symm)⟩\r\n      else if let .defEq _ ← isDefEqQ x (b : Q($α)) then\r\n        return .some ⟨a, q(($h))⟩\r\n      else\r\n        return .none\r\n    | ~q(And $a $b) =>\r\n      if let .some res ← go x q(And.left $h) then\r\n        return res\r\n      if let .some res ← go x q(And.right $h) then\r\n        return res\r\n      return none\r\n    | _ => return none\r\n\r\nend existsAndEq\r\n\r\n/-- Checks whether `P a'` has the form `... ∧ a' = a ∧ ...` or `... ∧ a = a' ∧ ...` in\r\nthe goal `∃ a', P a'`. If so, rewrites the goal as `P a`. -/\r\nsimproc existsAndEq (Exists (fun _ => And _ _)) := fun e => do\r\n  let ⟨1, ~q(Prop), ~q(Exists $p)⟩ ← inferTypeQ e | return .continue \r\n  let .some ⟨rhs, pf⟩ ← existsAndEq.findImpEqProof p | return .continue\r\n  return .visit {expr := q($p $rhs), proof? := pf}\r\n```\r\nusing the moral \"stay in Qq as long as possible\"",
+              "author": {
+                "login": "eric-wieser"
               }
             }
           ]
