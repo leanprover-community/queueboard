@@ -32,6 +32,22 @@
               "author": {
                 "login": "Timeroot"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6gShAm",
+              "body": "Btw this is also hurt by the fact that addition isn't a group, even when the underlying structure is. e.g. Take `x = (-3,1)`, then `-x = (-1,3)`, and so `x + (-x) = (-4, 4)`. There aren't additive inverses. Similarly, there aren't multiplicative inverses (even for strictly positive elements.)\r\n\r\nSo, after a bit of work, I think the best one can do (for \"nice\" structures like Z/Q/R) is:\r\n\r\n```\r\nOrderedCancelAddCommMonoid, AddCommMonoidWithOne, CancelCommMonoidWithZero,\r\nSubtractionCommMonoid, HasDistribNeg, ZeroLEOneClass, Archimedean\r\n```\r\nI tried pretty hard to \"optimize\" this list as in, it's maximal (it has all the true properties) and minimal (there's no redundant classes, and no classes that combine two of these), but I could've made a mistake.\r\n\r\nThen there's accompanying `NatCast, IntCast, RatCast` ... and probably with some variants of `StrictPosMulMono`.\r\n\r\nI think `OrderedCancelAddCommMonoid`+`AddCommMonoidWithOne` kind of \"conflict\" in the sense that they both extend `Add`, so we couldn't provide separate instances for each, right? Like we'd need a class that combines these. And similarly for `CancelCommMonoidWithZero`+`SubtractionCommMonoid` each building off `Mul`.\r\n\r\nA `NatCast` instance would come from `AddCommMonoidWithOne`, but then `IntCast` and `RatCast` don't, so those would need to be given separately.\r\n\r\nWould it be desirable to define a class that essentially combines these those first 7 together, something like `IntervalArithmeticlike`? That's a terrible name, there's probably something better. Either that, or defining `OrderedCancelAddCommMonoidWithOne` and `CancelSubtractionCommMonoidWithZero`, and then just giving the various instance?\r\n",
+              "createdAt": "2025-02-27T22:03:05Z",
+              "author": {
+                "login": "Timeroot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6gShrA",
+              "body": "FWIW, the \"just throw all the instances together\" is the approach I have [here](https://github.com/Timeroot/ComputableReal/blob/f68d40377c4ef1459a95727e5ad281d988b48b22/ComputableReal/ComputableRSeq.lean#L1027C1-L1029C76).",
+              "createdAt": "2025-02-27T22:04:43Z",
+              "author": {
+                "login": "Timeroot"
+              }
             }
           ]
         },
@@ -494,7 +510,7 @@
         "milestone": null,
         "number": 20636,
         "potentialMergeCommit": {
-          "oid": "e9ed23e4e969e1cd707f6da6eb068bc373e73795"
+          "oid": "8c208f31f8bd4e4adb82b377b93a054714f28693"
         },
         "projectCards": {
           "nodes": []
@@ -1157,7 +1173,7 @@
           }
         },
         "title": "feat: multiplication of intervals in rings",
-        "updatedAt": "2025-02-27T21:24:01Z",
+        "updatedAt": "2025-02-27T22:04:44Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/20636",
         "timelineItems": {
           "nodes": [
@@ -1217,6 +1233,24 @@
               "id": "IC_kwDOFcwZ1c6gQGTZ",
               "createdAt": "2025-02-27T17:03:00Z",
               "body": "I looked at this a bit, and unfortunately the `left_distrib` property actually _doesn't hold_, slightly to my surprise ... which explains why I had trouble proving it. (I tried, for a quite while, in the past when I was working on ComputableReals). Here's a concrete example:\r\n[live.lean-lang.org](https://live.lean-lang.org/#codez=JYWwDg9gTgLgBAWQIYwBYBtgCMBQOB2SIApgM5hIDGxcAchPseDAJ4CS+MxUAbkujj5RgSLOhoBtADLBGSKAHkoAE27FlAZSbBh+AOZxAjcABdPAHoAtBbgBVfJgDWNAAb1Gzdp2590AOlmkMAgArujOADRwaMCkcADu0A6xAGbQcKTaunqkvnAWZjgBMEj41HBFIegKyVogOrIGAFyIoXAAFG5MYKwcXLz8RgCU8ahqOHBwIK1IcFhwjQC84xNwAN5wyYHzC3BIvpvwAFSz+1uAyUS7p0cnpPjKcBd7t/fHWFcPl89wr77PyyvpO7bS4Hb4nUGAFKIQVsfl8oU8gT9IZ9ETc7v8VgcAPriLFfRazFgYgHKUigMDElZIMBgdAscr4ZI44h44JgXwwKAlWIAfixlImekoDD0UAFuxpdIZTNxpDZHK5+F5/IBAKFIrFqqpkvpshlLLl7M53LgfPFUGS6DgAF88MQgZ0PL1vPw8KIsFBiDxdvM4IAsQmBFgAzDh3Z7vXNmgGCQBGUNYD1euCUX3RnYAdnjie99yjwIAHFnw3AaHmCRY42Gk8lU8CAAx4ADEXoGbUAF+RtpDhLCAS/Ju/SLege2C2hMO5Rwso+1gB5bhwBqOAd4jhZLT2dDuDDZqO7qePo+f2DJstq3tzvd9dwQfD47jydXm9wRcdru9/vXudgpdtldrj9PjuDBdD0Xj9FafqDEAA)\r\n\r\nWith `a = (-3,1)`, `b = (7,8)`, `c = (-1,0)`, then we have `a * (b + c) = (-24, 8)`, but `a * b + a * c = (-25, 11)`. This isn't a total surprise, because (for instance) interval arithmetic is typically defined in a way such that `a^2 != a*a` for essentially the same reason ... when an expression is used twice, we could take a different value at each site. This means we can't have `Distrib`, or indeed any kind `...Ring`-ish type.\r\n\r\nWe do have associativity of multiplication, and negation is well-behaved, and adding zero etc.\r\nSo some instances we *could* have:\r\n * `OrderedRing α` -> `InvolutiveNeg (NonemptyInterval α)`\r\n * `OrderedCommMonoid α` -> `CommMonoid (NonemptyInterval α)`\r\n ",
+              "author": {
+                "login": "Timeroot"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6gShAm",
+              "createdAt": "2025-02-27T22:03:05Z",
+              "body": "Btw this is also hurt by the fact that addition isn't a group, even when the underlying structure is. e.g. Take `x = (-3,1)`, then `-x = (-1,3)`, and so `x + (-x) = (-4, 4)`. There aren't additive inverses. Similarly, there aren't multiplicative inverses (even for strictly positive elements.)\r\n\r\nSo, after a bit of work, I think the best one can do (for \"nice\" structures like Z/Q/R) is:\r\n\r\n```\r\nOrderedCancelAddCommMonoid, AddCommMonoidWithOne, CancelCommMonoidWithZero,\r\nSubtractionCommMonoid, HasDistribNeg, ZeroLEOneClass, Archimedean\r\n```\r\nI tried pretty hard to \"optimize\" this list as in, it's maximal (it has all the true properties) and minimal (there's no redundant classes, and no classes that combine two of these), but I could've made a mistake.\r\n\r\nThen there's accompanying `NatCast, IntCast, RatCast` ... and probably with some variants of `StrictPosMulMono`.\r\n\r\nI think `OrderedCancelAddCommMonoid`+`AddCommMonoidWithOne` kind of \"conflict\" in the sense that they both extend `Add`, so we couldn't provide separate instances for each, right? Like we'd need a class that combines these. And similarly for `CancelCommMonoidWithZero`+`SubtractionCommMonoid` each building off `Mul`.\r\n\r\nA `NatCast` instance would come from `AddCommMonoidWithOne`, but then `IntCast` and `RatCast` don't, so those would need to be given separately.\r\n\r\nWould it be desirable to define a class that essentially combines these those first 7 together, something like `IntervalArithmeticlike`? That's a terrible name, there's probably something better. Either that, or defining `OrderedCancelAddCommMonoidWithOne` and `CancelSubtractionCommMonoidWithZero`, and then just giving the various instance?\r\n",
+              "author": {
+                "login": "Timeroot"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6gShrA",
+              "createdAt": "2025-02-27T22:04:43Z",
+              "body": "FWIW, the \"just throw all the instances together\" is the approach I have [here](https://github.com/Timeroot/ComputableReal/blob/f68d40377c4ef1459a95727e5ad281d988b48b22/ComputableReal/ComputableRSeq.lean#L1027C1-L1029C76).",
               "author": {
                 "login": "Timeroot"
               }
