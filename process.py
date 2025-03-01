@@ -139,7 +139,7 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
         events_not_commit = [n for n in inner["timelineItems"]["nodes"]
             if "__typename" not in n or n["__typename"] != "PullRequestCommit"]
 
-        # All these PRs have (something far) more than commits or 250 events, so re-downloading their
+        # All these PRs have (sometimes far) more than commits or 250 events, so re-downloading their
         # data now would not help: do not print information about them.
         do_not_redownload = [
             6057, 6277, 6468, 7849, 8585, 9013,
