@@ -11,7 +11,7 @@ This is not difficult, but requires changes in multiple stages.
 1. Edit `process.py`, change the `get_aggregate_data` function to extract the data you want.
 Pay attention to the fact that there is "basic" and "full" PR info; not all information might be available in both files.
 2. Run `process.py` locally to update the generated file; commit the changes (except for the changed time-stamp). This step is optional; you can also just push the previous step and let CI perform this update.
-3. Once step 2 is complete, edit the definition of `AggregatePRInfo` in `compute_dashboard_prs.py` to include your new data field. Update `PLACEHOLDER_AGGREGATE_INFO` as well. Update `read_json_files` in `dashboard.py` to parse this field as well.
+3. Once step 2 is complete, edit the definition of `AggregatePRInfo` in `compute_dashboard_prs.py` to include your new data field. Update `PLACEHOLDER_AGGREGATE_INFO` accordingly, and adjust `parse_aggregate_file` as well.
 4. Congratulations, now you have made some new metadata available to the dashboard processing. (For making use of this, see the next bullet points for changing the dashboard.)
 
 
