@@ -346,7 +346,6 @@ def compare_data_aggressive() -> List[int]:
 # Read the last updated fields of the aggregate data file, and compare it with the
 # dates from querying github.
 def main() -> None:
-    # Future: use this list to guide re-downloads. For now, just run this in CI.
     outdated_aggressive = compare_data_aggressive()
 
     # "Last updated" information as found in the aggregate data file.

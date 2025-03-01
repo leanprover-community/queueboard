@@ -220,7 +220,6 @@ def _compute_pr_entries(
 ) -> str:
     result = ""
     for pr in prs:
-        # XXX: compare the basic and aggregate author names to see if there are any differences
         name = aggregate_information[pr.number].author
         if pr.url != infer_pr_url(pr.number):
             print(f"warning: PR {pr.number} has url differing from the inferred one:\n  actual:   {pr.url}\n  inferred: {infer_pr_url(pr.number)}", file=sys.stderr)
