@@ -394,6 +394,7 @@ EXPLANATION_ON_THE_QUEUE_PAGE = """
 <li>not be labelled <em>awaiting-CI</em>, <em>awaiting-author</em> or <em>awaiting-zulip</em>,</li>
 <li>not be labelled <em>delegated</em>, <em>auto-merge-after-CI</em> or <em>ready-to-merge</em>: these labels mean your PR is already approved.</li>
 </ul>
+<p>For PRs which add new code (as opposed to e.g. performance optimisation, refactoring or documentation), it is very helpful to add a corresponding area label. Otherwise, it may take longer to find a suitable reviewer.</p>
 <p>
 The table below contains all open PRs against the <em>master</em> branch which are not in draft mode. For each PR, it shows whether the checks above are satisfied.
 You can filter that list by entering terms into the search box, such as the PR number or your github username.</p>""".lstrip()
@@ -439,7 +440,9 @@ def write_on_the_queue_page(
             # TODO: take the author from the aggregate information instead
             # requires refactoring this function accordingly
             name = "dependabot(?)"
-
+        has_topic_label = any(lab.name.startswith("t-") for lab in pr.labels)
+        missing_topic_label = pr.title.startswith("feat") and (not has_topic_label)
+        topic_label_symbol = '<a title="this feature PR has no topic label">⚠️</a>' if missing_topic_label else ""
         current_status = PRStatus.Closed if aggregate_info[pr.number].state == "closed" else all_pr_status[pr.number]
         (curr1, curr2) = {
             PRStatus.AwaitingBors: ("is", "awaiting bors"),
@@ -496,7 +499,8 @@ def write_on_the_queue_page(
         entries = [
             pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url),
             _write_labels(pr.labels), icon(not from_fork), status_symbol[CI_status[pr.number]],
-            icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall), status
+            icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall),
+            topic_label_symbol, status
         ]
         result = _write_table_row(entries, "    ")
         body += result
@@ -507,6 +511,7 @@ def write_on_the_queue_page(
         '<a title="not in draft state or labelled as in progress">ready?</a>',
         '<a title="not labelled awaiting-author, awaiting-zulip, awaiting-CI">awaiting review?</a>',
         "On the review queue?",
+        "Missing topic label?",
         "PR's overall status",
     ]
     head = _write_table_header(headings, "    ")
