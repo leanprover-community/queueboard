@@ -121,18 +121,6 @@ def label_link(label: Label) -> str:
     return f"<a href='{label.url}'><span class='label' style='color: #{fgcolor}; background: #{bgcolor}'>{label.name}</span></a>"
 
 
-# Function to format the time of the last update
-# Input is in the format: "2020-11-02T14:23:56Z" (i.e., in ISO format).
-# Output is in the format: "2020-11-02 14:23 (2 days ago)"
-def time_info(updatedAt: datetime) -> str:
-    updated = updatedAt
-    now = datetime.now(timezone.utc)
-    # Calculate the difference in time
-    delta = relativedelta.relativedelta(now, updated)
-    # Format the output
-    s = updated.strftime("%Y-%m-%d %H:%M")
-    return f"{s} ({format_delta(delta)} ago)"
-
 # Auxiliary function, used for sorting the "total time in review".
 def format_delta2(delta: timedelta) -> str:
     return f"{delta.days}-{delta.seconds}"
@@ -274,7 +262,12 @@ def _compute_pr_entries(
                 else:
                     entries.append("")
         if not extra_settings.hide_update:
-            entries.append(time_info(pr.updatedAt))
+            update = pr.updatedAt
+            tooltip = update.strftime("%Y-%m-%d %H:%M")
+            now = datetime.now(timezone.utc)
+            rd = relativedelta.relativedelta(now, update)
+            prefix = f'<div style="display:none">{format_delta2(now - update)}</div> '
+            entries.append(f'{prefix}<a title="{tooltip}">{format_delta(rd)} ago</a>')
         if extra_settings.show_last_real_update:
             # Always start this column with a <div> with display:none, this is important for auto-detecting the column type!
             real_update = '<div style="display:none"></div><a title="the last actual update for this PR could not be determined">unknown</a>'
