@@ -115,15 +115,15 @@ There are several levels at which this project can be tested. Currently, there a
 - `classify_pr_state.py` has unit tests: to run them, use e.g. `nose` (which will pick them up automatically), or run `python3 classify_pr_state.py`
 - `state_evolution.py` has unit tests in the file `test_state_evolution.py`: running either `python3 test_state_evolution.py` or `nose` will run them
 
-TODO: there are more generated HTML files now; recommend copying the folder instead...
-- changes to just `dashboard.py` can be tested using the JSON files in the `test` directory: run the following from the `test` directory.
-`python3 ../dashboard.py all-open-PRs-1.json all-open-PRs-2.json`.
-This creates two webpages named `on_the_queue.html` and `index.html`, overwriting any previous files named thus.
-You can run this command before and after your changes and compare the resulting files (using `diff` or a similar tool). Because of the overwriting, take care to copy e.g. the old version of the output to a different file before running the tool again.
-(The output file needs to be in the top-level directory in order for the styling to work.)
+Changes to just `dashboard.py` can be tested using the JSON files in the `test` directory.
+Doing so requires a one-time set-up step: create a copy of the two relevant test files in the top-level directory. For instance, you can run `ln test/all-open-PRs-1.json all-open-PRs-1.json && ln test/all-open-PRs-2.json all-open-PRs-2.json`. (Another option is simply copying over these files.)
+Once this is done, you can run `python3 dashboard.py all-open-PRs-1.json all-open-PRs-2.json` (in the top-level directory) to execute the script. If you just want to test everything still works, you're done.
+Caution: to view the generated file, make sure to read the file in the top-level directory (otherwise, the .css file is not found.)
 
-## TODO document
-- `data` directory, metadata updating via `gather_stats.sh` (and the other workflow)
-- data integrity check (once written)
+If you want to ensure the generated output didn't change (or check if you made subtle mistakes), you can use `diff` or a similar tool to compare the generated files before and after the change. For instance, the testing step would become
+- run `mkdir -p before && cp *.html before` before performing your changes; this copies the current .html files to the `before` directory
+- change the script; run `python3 dashboard.py all-open-PRs-1.json all-open-PRs-2.json` as above. Repeat this until you're happy.
+- run `mkdir -p after && cp *.html after` to copy the new files; now you can compare the `before` and `after` directories.
 
-- additional tools for testing `mypy`, `ruff`, `isort`, (black)
+
+**TODO**: document additional tools for testing like `mypy`, `ruff check` and `ruff format`, `isort`
