@@ -271,7 +271,8 @@ def _compute_pr_entries(
         if pr.url != infer_pr_url(pr.number):
             print(f"warning: PR {pr.number} has url differing from the inferred one:\n  actual:   {pr.url}\n  inferred: {infer_pr_url(pr.number)}", file=sys.stderr)
         labels = _write_labels(pr.labels, page_name, id)
-        entries = [pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url), labels]
+        branch_name = aggregate_information[pr.number].branch_name if pr.number in aggregate_information else "missing"
+        entries = [pr_link(pr.number, pr.url, branch_name), user_link(name), title_link(pr.title, pr.url), labels]
         # Detailed information about the current PR.
         pr_info = None
         if pr.number in aggregate_information:
