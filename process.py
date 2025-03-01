@@ -14,7 +14,7 @@ import sys
 from datetime import datetime, timezone
 from datetime import datetime, timedelta, timezone
 from os import listdir, path
-from typing import List
+from typing import List, Tuple
 
 from classify_pr_state import PRStatus
 from state_evolution import first_time_on_queue, last_status_update, total_queue_time
@@ -71,6 +71,58 @@ def determine_ci_status(number, CI_check_nodes: dict) -> str:
         return "running"
     else:
         return "pass"
+
+
+# Compute information about this PR's real status changes, using the code in state_evolution.py.
+# `is_incomplete` is True if the PR's data is known to be incomplete.
+# Return a tuple of three dictionaries, describing
+# - the first time a given PR was on the review queue,
+# - the last time a PR's status changed
+# - the total time a PR was on the review queue.
+# Each dictionary contains its answer status (which can be "missing", "incomplete" or "valid")
+# and (if data is present) the computed value.
+def _compute_status_change_data(pr_data: dict, number: int, is_incomplete: bool) -> Tuple[dict, dict, dict]:
+    # These particular PRs have one label noted as removed several times in a row.
+    # This trips up my algorithm. Omit the analysis for now. FIXME: make smarter?
+    bad_prs = [
+        10655, 10823, 10878, 11703, 11711, 11385, 11874, 12076, 12268, 12311, 12371,
+        12435, 12488, 12561, 13149, 13248, 13270, 13273, 13697, 14008, 14065,
+        13089, # TODO: investigate more closely!
+        6595, # TODO: investigate more closely!
+    ]
+    if number in bad_prs:
+        missing = {"status": "missing"}
+        return (missing, missing, missing)
+
+    # PRs with "missing" status are the ones above; basic PRs omit this field.
+    validity_status = "incomplete" if is_incomplete else "valid"
+    # Match the format produced by github, and expected by all the code.
+    # Produces output like "2024-07-15T21:08:42Z".
+    time_format = "%Y-%m-%dT%H:%M:%SZ"
+
+    # I *could* cache the computed metadata (through _parse_data),
+    # computing it only once and not thrice per PR. However,
+    # this does not seem to make a big performance difference.
+    first_on_queue = first_time_on_queue(pr_data)
+    stringified = None if first_on_queue is None else datetime.strftime(first_on_queue, time_format)
+    res_first_on_queue = {"status": validity_status, "date": stringified}
+    (time, delta, current_status) = last_status_update(pr_data)
+    assert relativedelta_tryParse(repr(delta)) == delta
+    res_last_status_change = {
+        "status": validity_status,
+        "time": datetime.strftime(time, time_format),
+        "delta": repr(delta),
+        "current_status": PRStatus.to_str(current_status),
+    }
+    ((value_td, value_rd), explanation) = total_queue_time(pr_data)
+    assert relativedelta_tryParse(repr(value_rd)) == value_rd
+    res_total_queue_time = {
+        "status": validity_status,
+        "value_td": timedelta_tostr(value_td),
+        "value_rd": repr(value_rd),
+        "explanation": explanation,
+    }
+    return (res_first_on_queue, res_last_status_change, res_total_queue_time)
 
 
 def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
@@ -164,51 +216,10 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
                 print(f"process.py: {state} PR {number} has exactly 100 commits; please double-check if this data is complete", file=sys.stderr)
 
         # Compute information about this PR's real status changes, using the code in state_evolution.py.
-
-        # These particular PRs have one label noted as removed several times in a row.
-        # This trips up my algorithm. Omit the analysis for now. FIXME: make smarter?
-        bad_prs = [
-            10655, 10823, 10878, 11703, 11711, 11385, 11874, 12076, 12268, 12311, 12371,
-            12435, 12488, 12561, 13149, 13248, 13270, 13273, 13697, 14008, 14065,
-            13089, # TODO: investigate more closely!
-            6595, # TODO: investigate more closely!
-        ]
-        if number in bad_prs:
-            aggregate_data["first_on_queue"] = {"status": "missing"}
-            aggregate_data["last_status_change"] = {"status": "missing"}
-            aggregate_data["total_queue_time"] = {"status": "missing"}
-        else:
-            # PRs with "missing" status are the ones above; basic PRs omit this field.
-            validity_status = "incomplete" if num_events == 250 else "valid"
-
-            # Match the format produced by github, and expected by all the code.
-            # Produces output like "2024-07-15T21:08:42Z".
-            time_format = "%Y-%m-%dT%H:%M:%SZ"
-
-            # I *could* cache the computed metadata (through _parse_data),
-            # computing it only once and not thrice per PR. However,
-            # this does not seem to make a big performance difference.
-            first_on_queue = first_time_on_queue(pr_data)
-            stringified = None if first_on_queue is None else datetime.strftime(first_on_queue, time_format)
-            aggregate_data["first_on_queue"] = {"status": validity_status, "date": stringified}
-            (time, delta, current_status) = last_status_update(pr_data)
-            assert relativedelta_tryParse(repr(delta)) == delta
-            d = {
-                "status": validity_status,
-                "time": datetime.strftime(time, time_format),
-                "delta": repr(delta),
-                "current_status": PRStatus.to_str(current_status),
-            }
-            aggregate_data["last_status_change"] = d
-            ((value_td, value_rd), explanation) = total_queue_time(pr_data)
-            assert relativedelta_tryParse(repr(value_rd)) == value_rd
-            d = {
-                "status": validity_status,
-                "value_td": timedelta_tostr(value_td),
-                "value_rd": repr(value_rd),
-                "explanation": explanation,
-            }
-            aggregate_data["total_queue_time"] = d
+        (res_first_on_queue, res_last_status_change, res_total_queue_time) = _compute_status_change_data(pr_data, number, num_events == 250)
+        aggregate_data["first_on_queue"] = res_first_on_queue
+        aggregate_data["last_status_change"] = res_last_status_change
+        aggregate_data["total_queue_time"] = res_total_queue_time
     return aggregate_data
 
 
