@@ -241,7 +241,7 @@ def _compute_pr_entries(
             na = '<a title="no data available">n/a</a>'
             total_comments = na if pr_info.number_total_comments is None else str(pr_info.number_total_comments)
             entries.extend([
-                "{}/{}".format(pr_info.additions, pr_info.deletions),
+                '<span style="color:green">{}</span>/<span style="color:red">{}</span>'.format(pr_info.additions, pr_info.deletions),
                 str(pr_info.number_modified_files),
                 total_comments,
             ])
