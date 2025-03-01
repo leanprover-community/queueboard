@@ -159,10 +159,12 @@ STANDARD_SCRIPT = """
   })
 $(document).ready( function () {
   // Parse the URL for any initial configuration settings.
+  // Future: use this for deciding which table to apply the options to.
+  let fragment = window.location.hash;
   const params = new URLSearchParams(document.location.search);
   const search_params = params.get("search");
+  const pageLength = params.get("length") || 10;
   const sort_params = params.getAll("sort");
-  const pageLength = params.get("length");
   // The configuration for initial sorting of tables.
   let sort_config = [];
   for (const config of sort_params) {
@@ -179,17 +181,14 @@ $(document).ready( function () {
    }
   const options = {
     stateDuration: 0,
-    pageLength: 10,
+    pageLength: pageLength,
     "searching": true,
     columnDefs: [{ type: 'diff_stat', targets: 4}],
   };
-  if (search_params != null) {
+  if (params.has("search")) {
     options.search = {
         search: search_params
     };
-  }
-  if (pageLength != null) {
-    options.pageLength = pageLength;
   }
   options.order = sort_config;
   $('table').DataTable(options);
