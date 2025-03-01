@@ -87,6 +87,8 @@ class AggregatePRInfo(NamedTuple):
     CI_status: CIStatus
     # The branch this PR is opened against: should be 'master' (for most PRs)
     base_branch: str
+    # The name of this PR's branch.
+    branch_name: str
     # The repository this PR was opened from: should be 'leanprover-community',
     # otherwise it is a PR from a fork.
     head_repo: str
@@ -117,7 +119,8 @@ class AggregatePRInfo(NamedTuple):
 
 # Missing aggregate information will be replaced by this default item.
 PLACEHOLDER_AGGREGATE_INFO = AggregatePRInfo(
-    False, CIStatus.Missing, "master", "leanprover-community", "open", datetime.now(timezone.utc),
+    False, CIStatus.Missing, "master", "leanprover-community", "default-branch-name",
+    "open", datetime.now(timezone.utc),
     "unknown", "unknown title", [], -1, -1, -1, [], [], None, None, None, None,
 )
 
@@ -182,7 +185,7 @@ def parse_aggregate_file(data: dict) -> dict[int, AggregatePRInfo]:
             first_on_queue = None
             total_queue_time = None
         info = AggregatePRInfo(
-            pr["is_draft"], CIStatus.from_string(pr["CI_status"]), pr["base_branch"], pr["head_repo"]["login"],
+            pr["is_draft"], CIStatus.from_string(pr["CI_status"]), pr["base_branch"], pr["branch_name"], pr["head_repo"]["login"],
             pr["state"], date, pr["author"], pr["title"], [toLabel(name) for name in label_names],
             pr["additions"], pr["deletions"], pr["num_files"], pr["review_approvals"], pr["assignees"],
             number_all_comments, last_status_change, first_on_queue, total_queue_time,
