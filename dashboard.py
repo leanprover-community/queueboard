@@ -158,13 +158,42 @@ STANDARD_SCRIPT = """
     }
   })
 $(document).ready( function () {
-  $('table').DataTable({
+  // Parse the URL for any initial configuration settings.
+  const params = new URLSearchParams(document.location.search);
+  const search_params = params.get("search");
+  const sort_params = params.getAll("sort");
+  const pageLength = params.get("length");
+  // The configuration for initial sorting of tables.
+  let sort_config = [];
+  for (const config of sort_params) {
+    if (!config.includes('-')) {
+      console.log(`invalid value ${config} passed as sort parameter`);
+      continue;
+    }
+    const [col, dir, ...rest] = config.split('-');
+    if (dir != "asc" && dir != "desc") {
+      console.log(`invalid sorting direction ${dir} passed as sorting configuration`);
+      continue;
+    }
+    sort_config.push([col, dir]);
+   }
+  const options = {
     stateSave: true,
     stateDuration: 0,
     pageLength: 10,
     "searching": true,
     columnDefs: [{ type: 'diff_stat', targets: 4}],
-  });
+  };
+  if (search_params != null) {
+    options.search = {
+        search: search_params
+    };
+  }
+  if (pageLength != null) {
+    options.pageLength = pageLength;
+  }
+  options.order = sort_config;
+  $('table').DataTable(options);
 });
 """
 
