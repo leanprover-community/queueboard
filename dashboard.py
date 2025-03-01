@@ -178,7 +178,6 @@ $(document).ready( function () {
     sort_config.push([col, dir]);
    }
   const options = {
-    stateSave: true,
     stateDuration: 0,
     pageLength: 10,
     "searching": true,
