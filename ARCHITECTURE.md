@@ -5,13 +5,16 @@ This document describes the high-level architecture of the review dashboard. If 
 ## High-level overview
 This repository contains two separate, but related pieces of code.
 
-The first half is infrastructure to query and download metadata about all currently open pull requests on *mathlib*, tracking their state over time. A github workflow periodically checks for updates on pull requests and downloads the current data for all pull requests with updates. Currently, this happens about every five minutes.
-This data is tracked in the repository: hence, this repository also functions as a cache of information, allowing to only download meta-data for updated PRs (as opposed to download all PRs' data each time the dashboard is re-generated).
+The first half (the "backend") is infrastructure to query and download metadata about pull request on *mathlib*, tracking their state over time. (This covers all open pull requests, but --- as of February 2025 --- not all past PRs yet.)
+A github workflow periodically checks for updates on pull requests and downloads the current data for all pull requests with updates. This data is tracked in the repository: hence, this repository also functions as a cache of information, allowing to only download meta-data for updated PRs (as opposed to downloading all PRs' data each time the dashboard is re-generated).
 
-The second half contains scripts and a github workflow to generate the mathlib triage and review dashboard, using the data from the previous step. Generating this dashboard proceeds by
+The second half (the "frontend") contains scripts and a github workflow to generate the mathlib triage and review dashboard, using the data from the previous step. Generating this dashboard proceeds by
 - generating a static webpage from this information
 - publishing the webpage using github pages
-These steps also are run regularly, using a cronjob. (This step happends independently of the other half of the script.) As of November 2024, a workflow run takes about two minutes, and a new job starts every five minutes. All in all, this means the data on the dashboard has a latency of around ten minutes.
+These steps also are run regularly, using a cronjob.
+
+As of February 2025, these steps are always run next to each other, every 8 minutes. Right after the backend data is updated, the webpage is regenerated accordingly. One workflow run takes about 3 minutes --- so all in all, this means the data on the dashboard has a latency of around ten minutes.
+(There are future plans to make both the downloading of updated metadata more "push-driven" (i.e., a PR update triggering a re-download automatically), which would allow for faster webpage updates.)
 
 
 ## Relevant files

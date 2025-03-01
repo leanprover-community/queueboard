@@ -1,6 +1,6 @@
 # Workflow design
 
-This file aims to document why the workflows for this project are designed the way they are.
+This file aims to document why the Github workflows for this project are designed the way they are.
 This is incomplete, to be completed!
 
 **Initial choice and history** TODO write! some things to cover

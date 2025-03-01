@@ -4,7 +4,7 @@
 **Answer.** Being opened from a fork means mathlib's CI cannot run normally (because of the caching set-up, for example), hence the PR will never be merged as-is (and there is no complete information on its CI status). Pull requests opened from a fork should be re-opened from the main branch: hence, merely reporting on the existence of such PRs is sufficient for our purposes, and avoids misleading answers.
 
 **Question.** Isn't `awaiting-zulip` and `awaiting-review` a contradiction?
-**Answer.** This algorithm considers `awaiting-zulip` are more refined version of "waiting for review": if both were present, a PR's state switches to "waiting on zulip". In practice, since there's no `awaiting-review` label in use any more, this just means `awaiting-zulip` switches a PR's state from ready for review to waiting on a zulip decision.
+**Answer.** This algorithm considers `awaiting-zulip` are more refined version of "waiting for review": if both are present, a PR's state switches to "waiting on zulip". In practice, since there's no `awaiting-review` label in use any more, this just means `awaiting-zulip` switches a PR's state from ready for review to waiting on a zulip decision.
 
 **Question.** Isn't `awaiting-author` and `awaiting-zulip` a contradictory combination?
 **Answer.** This was discussed [on zulip](XXX LINK): the answer is no, as these signal different things. The former signals the author has changes to make (even if reception on zulip is positive); the latter indicates a decision needs to be reached. `awaiting-zulip` is considered the higher priority label.
