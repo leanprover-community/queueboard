@@ -23,4 +23,3 @@ class CIStatus(Enum):
             "running": CIStatus.Running,
             None: CIStatus.Missing,
         }[s]
-
