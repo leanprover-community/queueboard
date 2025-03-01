@@ -128,6 +128,7 @@ def _compute_status_change_data(pr_data: dict, number: int, is_incomplete: bool)
 def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
     inner = pr_data["data"]["repository"]["pullRequest"]
     number = inner["number"]
+    branch_name = inner["headRefName"]
     head_repo = inner["headRepositoryOwner"]
     base_branch = inner["baseRefName"]
     is_draft = inner["isDraft"]
@@ -166,6 +167,7 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
         "CI_status": CI_status,
         "head_repo": head_repo,
         "base_branch": base_branch,
+        "branch_name": branch_name,
         "state": state,
         "last_updated": last_updated,
         "author": author,
