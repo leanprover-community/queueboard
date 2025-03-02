@@ -177,7 +177,26 @@ $(document).ready( function () {
       console.log(`invalid sorting direction ${dir} passed as sorting configuration`);
       continue;
     }
-    sort_config.push([col, dir]);
+    let idx = col;
+    switch (col) {
+      case "number":
+        idx = 0;
+        break;
+      case "author":
+        idx = 1;
+        break;
+      case "title":
+        idx = 2;
+        break;
+      case "labels":
+        idx = 3;
+        break;
+      case "diff":
+        idx = 4;
+      // Future: add further aliasses, once it's clearer which column indices may vary or not.
+      // 7 assignee, 8 last_update, 9 last status change, 10 total time in review
+    }
+    sort_config.push([idx, dir]);
    }
   const options = {
     stateDuration: 0,
