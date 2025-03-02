@@ -95,6 +95,14 @@ def pr_link(number: int, url: str, title=None) -> str:
     return f"<a href='{url}' title='{title or ''}'>{number}</a>"
 
 
+# Create a link to the set of all PRs from the current dashboard from this user.
+# |page| is the name of the current webpage (e.g. "review_dashboard.html"),
+# |id| is the fragment ID of the current table (e.g. "queue").
+def user_filter_link(author_name: str, page: str, id: str) -> str:
+    # Future: should this *add* to current search terms, instead of replacing them?
+    id = f"#{id}" if id else ""
+    return f"<a href='{page}?search={author_name}{id}'>{author_name}</a>"
+
 # An HTML link to a GitHub user profile
 def user_link(author_name: str, details: str | None = None) -> str:
     url = f"https://github.com/{author_name}"
@@ -272,7 +280,7 @@ def _compute_pr_entries(
             print(f"warning: PR {pr.number} has url differing from the inferred one:\n  actual:   {pr.url}\n  inferred: {infer_pr_url(pr.number)}", file=sys.stderr)
         labels = _write_labels(pr.labels, page_name, id)
         branch_name = aggregate_information[pr.number].branch_name if pr.number in aggregate_information else "missing"
-        entries = [pr_link(pr.number, pr.url, branch_name), user_link(name), title_link(pr.title, pr.url), labels]
+        entries = [pr_link(pr.number, pr.url, branch_name), user_filter_link(name, page_name, id), title_link(pr.title, pr.url), labels]
         # Detailed information about the current PR.
         pr_info = None
         if pr.number in aggregate_information:
@@ -561,7 +569,7 @@ def write_on_the_queue_page(
             if pr_data.last_status_change.status == "incomplete" or pr_data.total_queue_time.status == "incomplete":
                 status += '<a title="caution: this data is likely incomplete">*</a>'
         entries = [
-            pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url),
+            pr_link(pr.number, pr.url), user_filter_link(name, "on_the_queue.html", ""), title_link(pr.title, pr.url),
             _write_labels(pr.labels, "on_the_queue.html", ""), icon(not from_fork), status_symbol[CI_status[pr.number]],
             icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall),
             topic_label_symbol, status
