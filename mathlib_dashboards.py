@@ -136,7 +136,7 @@ def getIdTitle(kind: Dashboard) -> Tuple[str, str]:
         ),
         Dashboard.QueueEasy: ("queue-easy", "PRs on the review queue labelled 'easy'"),
         Dashboard.QueueTechDebt: ("queue-tech-debt", "PRs on the review queue labelled 'tech debt' or 'longest-pole'"),
-        Dashboard.QueueStaleAssigned: ("queue-stale-unassigned", "Stale assigned PRs on the review queue"),
+        Dashboard.QueueStaleAssigned: ("queue-stale-assigned", "Stale assigned PRs on the review queue"),
         Dashboard.QueueStaleUnassigned: ("queue-stale-unassigned", "Stale unassigned PRs on the review queue"),
         Dashboard.StaleDelegated: ("stale-delegated", "Stale delegated PRs"),
         Dashboard.StaleNewContributor: (
