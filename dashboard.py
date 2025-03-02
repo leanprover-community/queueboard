@@ -67,13 +67,15 @@ def _write_table_row(entries: List[str], base_indent: str) -> str:
     return f"{base_indent}<tr>\n{indent}{body}\n{base_indent}</tr>\n"
 
 
-def _write_labels(labels: List[Label]) -> str:
+# |page| is the name of the current webpage (e.g. "review_dashboard.html"),
+# |id| is the fragment ID of the current table (e.g. "queue").
+def _write_labels(labels: List[Label], page: str, id: str) -> str:
     if len(labels) == 0:
         return ""
     elif len(labels) == 1:
-        return label_link(labels[0])
+        return label_link(labels[0], page, id)
     else:
-        label_part = "\n        ".join(label_link(label) for label in labels)
+        label_part = "\n        ".join(label_link(label, page, id) for label in labels)
         return f"\n        {label_part}\n      "
 
 
@@ -105,8 +107,11 @@ def title_link(title: str, url: str) -> str:
     return f"<a href='{url}'>{title}</a>"
 
 
-# An HTML link to a Github label in the mathlib repo
-def label_link(label: Label) -> str:
+# Create a button showing this label's title, and linking to the set of
+# all PRs from the current dashboard which have this label.
+# |page| is the name of the current webpage (e.g. "review_dashboard.html"),
+# |id| is the fragment ID of the current table (e.g. "queue").
+def label_link(label: Label, page: str, id: str) -> str:
     # Function to check if the colour of the label is light or dark
     # adapted from https://codepen.io/WebSeed/pen/pvgqEq
     # r, g and b are integers between 0 and 255.
@@ -116,9 +121,14 @@ def label_link(label: Label) -> str:
         a = 1 - (0.299 * r + 0.587 * g + 0.114 * b) / 255
         return a < 0.5
 
+    # Do not link to github's label page (searching for all PRs with that label),
+    # but instead to all PRs in the current dashboard with that label.
+    # Future: should this *add* to current search terms, instead of replacing them?
+    id = f"#{id}" if id else ""
+    url = f"{page}?search={label.name}{id}"
     bgcolor = label.color
     fgcolor = "000000" if isLight(int(bgcolor[:2], 16), int(bgcolor[2:4], 16), int(bgcolor[4:], 16)) else "FFFFFF"
-    return f"<a href='{label.url}'><span class='label' style='color: #{fgcolor}; background: #{bgcolor}'>{label.name}</span></a>"
+    return f"<a href='{url}'><span class='label' style='color: #{fgcolor}; background: #{bgcolor}'>{label.name}</span></a>"
 
 
 # Auxiliary function, used for sorting the "total time in review".
@@ -244,11 +254,14 @@ class ExtraColumnSettings(NamedTuple):
 
 
 # Compute the table entries about a sequence of PRs.
+# |page| is the name of the current webpage (e.g. "review_dashboard.html"),
+# |id| is the fragment ID of the current table (e.g. "queue").
 # 'aggregate_information' maps each PR number to the corresponding aggregate information
 # (and may contain information on PRs not to be printed).
 # TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
 # in the latter is always kept updated.
 def _compute_pr_entries(
+    page_name: str, id: str,
     prs: List[BasicPRInformation], aggregate_information: dict[int, AggregatePRInfo],
     extra_settings: ExtraColumnSettings, potential_reviewers: dict[int, Tuple[str, List[str]]] | None=None,
 ) -> str:
@@ -257,7 +270,8 @@ def _compute_pr_entries(
         name = aggregate_information[pr.number].author
         if pr.url != infer_pr_url(pr.number):
             print(f"warning: PR {pr.number} has url differing from the inferred one:\n  actual:   {pr.url}\n  inferred: {infer_pr_url(pr.number)}", file=sys.stderr)
-        entries = [pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url), _write_labels(pr.labels)]
+        labels = _write_labels(pr.labels, page_name, id)
+        entries = [pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url), labels]
         # Detailed information about the current PR.
         pr_info = None
         if pr.number in aggregate_information:
@@ -337,6 +351,7 @@ def _compute_pr_entries(
 
 
 # Write the code for a dashboard of a given list of PRs.
+# "page_name" is the name of the page this dashboard lives in (e.g. triage.html).
 # 'aggregate_information' maps each PR number to the corresponding aggregate information
 # (and may contain information on PRs not to be printed).
 # TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
@@ -347,8 +362,10 @@ def _compute_pr_entries(
 # The full string is shown on the webpage; the list of reviewer names is used for offering
 # a contact button.
 def write_dashboard(
+    page_name: str,
     prs: dict[Dashboard, List[BasicPRInformation]], kind: Dashboard, aggregate_info: dict[int, AggregatePRInfo],
-    extra_settings: ExtraColumnSettings | None=None, header=True, potential_reviewers: dict[int, Tuple[str, List[str]]]|None =None
+    extra_settings: ExtraColumnSettings | None=None, header=True,
+    potential_reviewers: dict[int, Tuple[str, List[str]]] | None=None, custom_subpage: str | None=None
 ) -> str:
     def _inner(
         prs: List[BasicPRInformation], kind: Dashboard, aggregate_info: dict[int, AggregatePRInfo],
@@ -385,7 +402,7 @@ def write_dashboard(
             headings.append('<a title="The last time this PR\'s status changed from e.g. review to merge conflict, awaiting-author">Last status change</a>')
             headings.append("total time in review")
         head = _write_table_header(headings, "    ")
-        body = _compute_pr_entries(prs, aggregate_info, extra_settings, potential_reviewers)
+        body = _compute_pr_entries(page_name, custom_subpage or getIdTitle(kind)[0], prs, aggregate_info, extra_settings, potential_reviewers)
         return f"{title}\n  <table>\n{head}{body}  </table>"
 
     if extra_settings is None:
@@ -544,7 +561,7 @@ def write_on_the_queue_page(
                 status += '<a title="caution: this data is likely incomplete">*</a>'
         entries = [
             pr_link(pr.number, pr.url), user_link(name), title_link(pr.title, pr.url),
-            _write_labels(pr.labels), icon(not from_fork), status_symbol[CI_status[pr.number]],
+            _write_labels(pr.labels, "on_the_queue.html", ""), icon(not from_fork), status_symbol[CI_status[pr.number]],
             icon(not is_blocked), icon(not has_merge_conflict), icon(is_ready), icon(review), icon(overall),
             topic_label_symbol, status
         ]
@@ -622,7 +639,7 @@ def write_review_queue_page(
         f'<li><a href="#{getIdTitle(kind)[0]}">{description}</a>{unlinked}</li>\n' for (kind, description, unlinked) in items
     ]
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
-    dashboards = [write_dashboard(prs_to_list, kind, aggregate_info) for (kind, _, _) in items]
+    dashboards = [write_dashboard("review_dashboard.html", prs_to_list, kind, aggregate_info) for (kind, _, _) in items]
     body += "\n".join(dashboards) + "\n"
     write_webpage(body, "review_dashboard.html")
 
@@ -647,7 +664,7 @@ def write_maintainers_quick_page(
     ]
     post = 'If you realise you actually have a bit more time, you can also look at the <a href="review_dashboard.html">page for reviewers</a>, or look at the <a href="triage.html">triage page!</a>'
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  {post}<br>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
-    dashboards = [write_dashboard(prs_to_list, kind, aggregate_info) for (kind, _, _) in items]
+    dashboards = [write_dashboard("maintainers_quick.html", prs_to_list, kind, aggregate_info) for (kind, _, _) in items]
     body += "\n".join(dashboards) + "\n"
     write_webpage(body, "maintainers_quick.html")
 
@@ -696,7 +713,7 @@ def write_help_out_page(
         f'<li>{pre}<a href="#{getIdTitle(kind)[0]}">{description}</a>{post}</li>\n' for (kind, pre, description, post) in items
     ]
     body = f"{title}\n  {welcome}\n  <ul>{'    '.join(list_items)}  </ul>\n  <small>This dashboard was last updated on: {updated}</small>\n\n"
-    dashboards = [write_dashboard(prs_to_list, kind, aggregate_info) for (kind, _, _, _) in items]
+    dashboards = [write_dashboard("help_out.html", prs_to_list, kind, aggregate_info) for (kind, _, _, _) in items]
     body += "\n".join(dashboards) + "\n"
     write_webpage(body, "help_out.html")
 
@@ -762,8 +779,9 @@ def write_triage_page(
 
     stats = pr_statistics(all_pr_status, aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, False)
 
+    output_file = "triage.html"
     some_stale = f": <strong>{len(prs_to_list[Dashboard.StaleReadyToMerge])}</strong> of them are stale, and merit another look</li>\n"
-    some_stale += write_dashboard(prs_to_list, Dashboard.StaleReadyToMerge, aggregate_info, header=False)
+    some_stale += write_dashboard(output_file, prs_to_list, Dashboard.StaleReadyToMerge, aggregate_info, header=False)
     no_stale = " &mdash; among these <strong>no</strong> stale ones, congratulations!</li>"
     ready_to_merge = f"<strong>{len(prs_to_list[Dashboard.AllReadyToMerge])}</strong> PRs are ready to merge{some_stale if prs_to_list[Dashboard.StaleReadyToMerge] else no_stale}"
 
@@ -772,7 +790,7 @@ def write_triage_page(
     mm = f'<strong>{len(prs_to_list[Dashboard.AllMaintainerMerge])}</strong> PRs are waiting on maintainer approval (<a href="maintainers_quick.html#all-maintainer-merge">these</a>), {stale_mm if prs_to_list[Dashboard.StaleMaintainerMerge] else no_stale_mm}'
 
     no_stale_delegated = "<li><strong>no</strong> PRs have been delegated and not updated in a day, congratulations!</li>"
-    stale_delegated = f"<li><details><summary><strong>{len(prs_to_list[Dashboard.StaleDelegated])}</strong> PRs have been delegated and not updated in a day</summary>\n  \n  {write_dashboard(prs_to_list, Dashboard.StaleDelegated, aggregate_info, header=False)}</details></li>"
+    stale_delegated = f"<li><details><summary><strong>{len(prs_to_list[Dashboard.StaleDelegated])}</strong> PRs have been delegated and not updated in a day</summary>\n  \n  {write_dashboard(output_file, prs_to_list, Dashboard.StaleDelegated, aggregate_info, header=False)}</details></li>"
 
     notlanded = f"""{_make_h2('not-yet-landed', 'Approved, not yet landed PRs')}
 
@@ -814,11 +832,11 @@ def write_triage_page(
 
     # Write a dashboard of unassigned PRs: we can safely skip the "assignee" column.
     config = ExtraColumnSettings.with_approvals(True)
-    stale_unassigned = write_dashboard(prs_to_list, Dashboard.QueueStaleUnassigned, aggregate_info, config)
+    stale_unassigned = write_dashboard(output_file, prs_to_list, Dashboard.QueueStaleUnassigned, aggregate_info, config)
 
     # XXX: when updating the definition of "stale assigned" PRs, make sure to update all the dashboard descriptions
     setting = ExtraColumnSettings.with_approvals(True).with_assignee(True)
-    further = write_dashboard(prs_to_list, Dashboard.QueueStaleAssigned, aggregate_info, setting)
+    further = write_dashboard(output_file, prs_to_list, Dashboard.QueueStaleAssigned, aggregate_info, setting)
 
     others = [
         Dashboard.InessentialCIFails,
@@ -832,7 +850,7 @@ def write_triage_page(
         Dashboard.All,
     ]
     for kind in others:
-        further += write_dashboard(prs_to_list, kind, aggregate_info)
+        further += write_dashboard(output_file, prs_to_list, kind, aggregate_info)
 
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
 
@@ -867,9 +885,9 @@ def write_triage_page(
 
     body = f"{title}\n  {welcome}\n  {toc}\n  {stats}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {further}\n  {remainder}\n"
     setting = ExtraColumnSettings.with_approvals(kind == Dashboard.Approved).with_assignee(True)
-    dashboards = [write_dashboard(prs_to_list, kind, aggregate_info, setting) for (kind, _, _, _) in items2]
+    dashboards = [write_dashboard(output_file, prs_to_list, kind, aggregate_info, setting) for (kind, _, _, _) in items2]
     body += "\n".join(dashboards) + "\n"
-    write_webpage(body, "triage.html")
+    write_webpage(body, output_file)
 
 
 # Write the main page for the dashboard to the file index-old.html.
@@ -902,7 +920,7 @@ def write_main_page(
         if kind not in prs_to_list:
             print(f"error: forgot to include data for dashboard kind {kind}", file=sys.stderr)
         else:
-            body += f"{write_dashboard(prs_to_list, kind, aggregate_info)}\n"
+            body += f"{write_dashboard('index-old.html', prs_to_list, kind, aggregate_info)}\n"
     write_webpage(body, "index-old.html")
 
 
