@@ -1,0 +1,2633 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 168,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "dagurtomas"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "A presheaf preserving a particular product `IsSheafFor` the corresponding `Presieve.ofArrows`. Conversely, if a presheaf `IsSheafFor` a `Presieve.ofArrows` and the empty presive on an initial object, then it preserves the corresponding product.\r\n\r\n---\r\n\r\n- [x] depends on: #8302 \r\n- [x] depends on: #7918 \r\n\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 3,
+        "closed": true,
+        "closedAt": "2023-11-14T08:10:50Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5ptcLN",
+              "body": "I am a little bit worried by the need to remove initial objects. I think the right path is to define a specialized API for testing the sheaf condition for presieves obtained by `Presieve.ofArrows`. As far as I can remember, and this is confirmed by reading one of the sources https://stacks.math.columbia.edu/tag/00VM there is no condition that the map from the index set `I` to the category of arrows is injective. Then, I think that an alternate \"equalizer diagram\" using the original index type `I` should be defined for these presieves, and it should not be hard to get the equivalence with `IsSheafFor`. Using this approach would certainly clarify the proofs in this PR, and this would also provide a very practical API for other users of Grothendieck topologies.",
+              "createdAt": "2023-10-20T23:28:03Z",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5puKDj",
+              "body": "I see what you mean, I agree! I'll try to prove this sheaf condition for arrow presieves.",
+              "createdAt": "2023-10-21T07:40:00Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5pu_st",
+              "body": "Note: I have pushed an update to the lean toolchain because this PR was on a [buggy version](https://leanprover.zulipchat.com/#narrow/stream/113488-general/topic/Potential.20data.20loss.20from.20.60lake.20clean.60.20with.204.2E2.2E0-rc2.2F3/near/397875701) of the toolchain. **WARNING**: checking out old commits of this PR using v4.2.0-rc2 or v4.2.0-rc3 can cause `lake clean` to delete your mathlib folder! If you need to do so, make sure to delete `lakefile.olean` manually before running any `lake` commands.",
+              "createdAt": "2023-10-21T21:31:40Z",
+              "author": {
+                "login": "digama0"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5pwHL1",
+              "body": "> ... one of the sources https://stacks.math.columbia.edu/tag/00VM there is no condition that the map from the index set `I` to the category of arrows is injective. Then, I think that an alternate \"equalizer diagram\" using the original index type `I` should be defined for these presieves, and it should not be hard to get the equivalence with `IsSheafFor`. \r\n\r\nLet's define `IsSheafFor'` as the sheaf condition stated in the Stacks project for a particular `Presieve.ofArrows` (or rather, it's a condition on a family of morphisms with fixed target, repetitions allowed). Then that condition is in fact strictly stronger than the `IsSheafFor` condition of Mathlib. Building on an example you gave me on Zulip: consider a category with one object and one morphism. Then take the `Presieve.ofArrows` corresponding to a family of two copies of that morphism, and any presheaf sending the object to any non-terminal object in `Type`. Then this presheaf satisfies the `IsSheafFor` condition for that presieve, but not the `IsSheafFor'` condition.\r\n\r\nThis example of course only arises as a consequence of a stupid way of specifying a presieve consisting of a single arrow. But I hadn't noticed this subtlety before.\r\n",
+              "createdAt": "2023-10-22T22:45:18Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5p2yRt",
+              "body": "> Let's define `IsSheafFor'` as the sheaf condition stated in the Stacks project for a particular `Presieve.ofArrows` (or rather, it's a condition on a family of morphisms with fixed target, repetitions allowed). Then that condition is in fact strictly stronger than the `IsSheafFor` condition of Mathlib. Building on an example you gave me on Zulip: consider a category with one object and one morphism. Then take the `Presieve.ofArrows` corresponding to a family of two copies of that morphism, and any presheaf sending the object to any non-terminal object in `Type`. Then this presheaf satisfies the `IsSheafFor` condition for that presieve, but not the `IsSheafFor'` condition.\r\n\r\nAre you 100% sure it is a counterexample? It seems to me it is not. (The question is whether this non-terminal object `X`\r\nin `Type` is the equalizer of two particular maps `X^2 ⟶ X^4`, and I believe it is.)\r\n\r\n> This example of course only arises as a consequence of a stupid way of specifying a presieve consisting of a single arrow. But I hadn't noticed this subtlety before.\r\n\r\nFamilies with duplicates are not pathological. Just consider a topological space `X`, and two open subsets `U` and `V`, then if `W` is the union of `U` and `V`, we may certainly consider the family `(U ⟶ W, V ⟶ W)`. Then, if `F` is a presheaf, whatever it is, the sheaf condition should say that `F(W)` is the pullback of `F(U)` and `F(V)` over `F(U intersection V)`. I hope this remains true even if by accident `U = V`!\r\n\r\n(It seems to me that the notion of presieve is only an implementation detail which may have been necessary for the definition of pretopologies. Otherwise, the API should be more developed for sieves generated by a family of arrows.)",
+              "createdAt": "2023-10-23T20:28:59Z",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5p3Fi0",
+              "body": "Hmm I agree, this isn't a counterexample. \r\n\r\nPresieves are different from families with fixed target, because the former don't see duplicates. But you're right for the sheaf condition it shouldn't matter. ",
+              "createdAt": "2023-10-23T21:26:29Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5p3b2I",
+              "body": "Ok I have both directions now at #7855. I'll clean it up tomorrow, add the pullback case and some more API.",
+              "createdAt": "2023-10-23T22:45:45Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5p561E",
+              "body": "The first part of this new API (#7855) is awaiting CI and then ready for review. It's the sheaf condition phrased in terms of unique amalgamations. I plan to add the \"categorical one\" in a new PR.",
+              "createdAt": "2023-10-24T08:51:01Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5q5YF7",
+              "body": "I have left some comments on the dependent PR https://github.com/leanprover-community/mathlib4/pull/7949 which actually apply to this PR.",
+              "createdAt": "2023-11-04T12:07:36Z",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5q5oq-",
+              "body": "I've updated both PRs",
+              "createdAt": "2023-11-04T16:49:53Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5rtt2I",
+              "body": "This PR/issue depends on:\n* ~~leanprover-community/mathlib4#8302~~\n* ~~leanprover-community/mathlib4#7918~~\nBy **[Dependent Issues](https://github.com/z0al/dependent-issues)** (🤖). Happy coding!\n<!-- By Dependent Issues (Action) - DO NOT REMOVE -->",
+              "createdAt": "2023-11-12T14:36:18Z",
+              "author": {
+                "login": "leanprover-community-mathlib4-bot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5r3WQX",
+              "body": "Thanks!\r\n\r\nbors merge",
+              "createdAt": "2023-11-14T07:28:25Z",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5r3h74",
+              "body": "Pull request successfully merged into master.\n\nBuild succeeded:\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6860485776/job/18654401484)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6860485776/job/18654401349)\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6860485776/job/18654401610)",
+              "createdAt": "2023-11-14T08:10:49Z",
+              "author": {
+                "login": "mathlib-bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "be11ab8035f57a480d05fe505dca4e0f39a06591",
+                "additions": 71,
+                "deletions": 0,
+                "committedDate": "2023-10-19T13:49:55Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b4db673a173f517f004a409e12c2db4eb44b8a0b",
+                "additions": 120,
+                "deletions": 3,
+                "committedDate": "2023-10-19T16:44:13Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "784cf02e72b6ab257acd14c8324406d960a804c5",
+                "additions": 124,
+                "deletions": 56,
+                "committedDate": "2023-10-20T14:40:27Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "18406bb1eb331aaa0f9fe18204585104c4c432e5",
+                "additions": 30,
+                "deletions": 44,
+                "committedDate": "2023-10-20T16:01:46Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ad9a92fb2bfa3dd1c8a1add34d963bad6f266cb9",
+                "additions": 19,
+                "deletions": 14,
+                "committedDate": "2023-10-20T16:23:35Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "dfa7f7b1a5705075402f7f788750fe2184c902cd",
+                "additions": 85,
+                "deletions": 59,
+                "committedDate": "2023-10-20T21:38:25Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a4e8a96f23775fcd7331be4b492c66edd705a32a",
+                "additions": 1,
+                "deletions": 0,
+                "committedDate": "2023-10-20T21:40:05Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d66e9e77adbf9d071f222c4dc25c03a00bb2020e",
+                "additions": 4116,
+                "deletions": 2470,
+                "committedDate": "2023-10-20T21:50:26Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e0ca0d245d3d884ef2cbc99359b340b77ce7c267",
+                "additions": 0,
+                "deletions": 1,
+                "committedDate": "2023-10-20T21:55:33Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "559a0d2ccffba1cb866569e393c11921521605b0",
+                "additions": 5,
+                "deletions": 12,
+                "committedDate": "2023-10-20T22:13:49Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0158dc2a49d4ff3b3e4a26d52c932ba89266c306",
+                "additions": 61,
+                "deletions": 0,
+                "committedDate": "2023-10-21T16:32:57Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d8e9ab1bb73d7420d60c2440035cdb07bde0cb18",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-10-21T21:31:38Z",
+                "author": {
+                  "name": "Mario Carneiro",
+                  "email": "di.gama@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5499441ab750e2f0b9c8ee9a3e2306cf699f3c73",
+                "additions": 984,
+                "deletions": 959,
+                "committedDate": "2023-10-23T09:00:54Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4cd8a43ae9e069aded092c4dd21677d300177c47",
+                "additions": 33,
+                "deletions": 0,
+                "committedDate": "2023-10-23T09:13:36Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0ded8c6ce452788ba9399d36b421228e06d0eb8e",
+                "additions": 3,
+                "deletions": 0,
+                "committedDate": "2023-10-23T09:16:12Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "395a69ef8bdaf0eb8d81e306270a7b56cba9a638",
+                "additions": 3,
+                "deletions": 0,
+                "committedDate": "2023-10-23T09:16:40Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "075eeabccc7d9976aca5e8834982e0ee049970f8",
+                "additions": 28,
+                "deletions": 15,
+                "committedDate": "2023-10-23T09:38:44Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0369ebb098ddc9d4af52a47b7040f42abf145a76",
+                "additions": 15,
+                "deletions": 9,
+                "committedDate": "2023-10-23T10:28:07Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d88e5b809db71274fd0de977385d84872e232e44",
+                "additions": 45,
+                "deletions": 0,
+                "committedDate": "2023-10-23T22:44:05Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "314eb4c2318ce101f3196f7884011e84f8bdc9f4",
+                "additions": 1864,
+                "deletions": 630,
+                "committedDate": "2023-10-24T08:09:46Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "918bfc6a2d0e7d22cd8bade747d7f949f7809b32",
+                "additions": 47,
+                "deletions": 53,
+                "committedDate": "2023-10-24T08:47:21Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2ae038575b05673696ddefd12ca6647c14a3b065",
+                "additions": 28,
+                "deletions": 0,
+                "committedDate": "2023-10-24T12:58:53Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4cddcf760c6ecd049be33495c121d968e31d6fa3",
+                "additions": 40,
+                "deletions": 29,
+                "committedDate": "2023-10-24T22:27:17Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "96bf66f7008d8d809ac5c98ce4c9e5ce83f7d044",
+                "additions": 28,
+                "deletions": 16,
+                "committedDate": "2023-10-24T22:44:09Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f0ebf35f5db25220f7ddc0c6065071c21b4fd8a8",
+                "additions": 52,
+                "deletions": 29,
+                "committedDate": "2023-10-25T08:08:13Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "93800642ce91687f9c2d64c5b76b214a7e6246a7",
+                "additions": 52,
+                "deletions": 6,
+                "committedDate": "2023-10-25T09:22:49Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "abe5bdce5289b1de673fa825de1976b515a8b185",
+                "additions": 26,
+                "deletions": 4,
+                "committedDate": "2023-10-25T11:57:57Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9af9b782a6258482d24380e0f304dacab1e0cac5",
+                "additions": 3459,
+                "deletions": 1888,
+                "committedDate": "2023-10-25T21:09:40Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c3359987cea60cb0610bf084841a749952fb94f7",
+                "additions": 25,
+                "deletions": 168,
+                "committedDate": "2023-10-25T21:49:07Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "237574954b5d533ece47e5063125d407bab080f5",
+                "additions": 24,
+                "deletions": 9,
+                "committedDate": "2023-10-25T22:27:04Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "106e7f89a45b35730a6db8516725b5df5c7493d4",
+                "additions": 57,
+                "deletions": 43,
+                "committedDate": "2023-10-25T22:46:29Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "fc7ef5d5eed98be8bab1f527d3081095030ca8c3",
+                "additions": 42,
+                "deletions": 20,
+                "committedDate": "2023-10-26T09:22:09Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "391a8e05ddf4c0d35c4772765c02f6413ec5516d",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-10-26T09:33:42Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1eb5051959accadffdc0de5a88bebbbb4bc49e60",
+                "additions": 3,
+                "deletions": 5,
+                "committedDate": "2023-10-26T12:09:04Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "56fc7fc1f6463653d87d5823eb4cefd61f2c6ee6",
+                "additions": 0,
+                "deletions": 7,
+                "committedDate": "2023-10-29T21:48:11Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f482de8a3cd43f87040926b00a01a39b962feac7",
+                "additions": 15385,
+                "deletions": 7560,
+                "committedDate": "2023-10-31T08:57:36Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4dc5a4f3b0cd52c85534ddb5837554ffb9df71e3",
+                "additions": 21649,
+                "deletions": 8411,
+                "committedDate": "2023-11-01T21:05:42Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c8c0db6b5f1979509b9b2196559a291441983d8a",
+                "additions": 22743,
+                "deletions": 9037,
+                "committedDate": "2023-11-02T13:45:22Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "cd32ab64d786dbca01d5ac3395b5146702a64152",
+                "additions": 0,
+                "deletions": 0,
+                "committedDate": "2023-11-02T13:45:25Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d73cebd37f9c7bf59b5385b6a7739101b95522b9",
+                "additions": 1122,
+                "deletions": 654,
+                "committedDate": "2023-11-02T13:49:21Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e4ad6958e8725c957c915d772b62fe01b96485eb",
+                "additions": 12,
+                "deletions": 20,
+                "committedDate": "2023-11-02T14:56:02Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ecd60cb6998214b4a73116cb297b39d982952076",
+                "additions": 1398,
+                "deletions": 620,
+                "committedDate": "2023-11-03T11:49:34Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3d765745b8a4ddd06d7400f399a9aa7b93c7f5e3",
+                "additions": 44,
+                "deletions": 27,
+                "committedDate": "2023-11-04T16:45:32Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d0790cba1f9e812b7a49fecdf12ef94a48da2106",
+                "additions": 14,
+                "deletions": 10,
+                "committedDate": "2023-11-04T16:47:13Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e7a1a263c76a2c29e923aecc90ca29cde874547f",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-11-05T18:16:17Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "793a6cb5e9f9026321ea060aebe6df1f944ce634",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-11-05T18:16:30Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "64b84017b93aea04e3c5bc2547e0e25055065ba5",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-11-05T18:16:40Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b35bfd069bad0836d73d4281c5bad062c3b9b375",
+                "additions": 1,
+                "deletions": 3,
+                "committedDate": "2023-11-05T21:56:34Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d46ba7d46d64d4fb9f4a357541064fcdb927b1c1",
+                "additions": 3608,
+                "deletions": 623,
+                "committedDate": "2023-11-05T21:59:24Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4c67f13a8d3dda608f81f8311df2e00dde5cc338",
+                "additions": 175,
+                "deletions": 87,
+                "committedDate": "2023-11-06T21:55:22Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e99a7a791b0c6efed227559422b14e56947a3e7a",
+                "additions": 4995,
+                "deletions": 1230,
+                "committedDate": "2023-11-06T21:58:54Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9adebb1513f243413872bfdd7014fbf3d8c6413c",
+                "additions": 0,
+                "deletions": 1,
+                "committedDate": "2023-11-06T22:05:48Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4a84ade4464e8158014bb2e94a6c9872e5262488",
+                "additions": 4,
+                "deletions": 0,
+                "committedDate": "2023-11-07T07:54:45Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b4a490451f910ee7ec073516153cdf1658a887fe",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-11-07T07:56:16Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "48ba164ca87b5a10d6ef5d6e170dfd1d25ac044d",
+                "additions": 9,
+                "deletions": 20,
+                "committedDate": "2023-11-09T14:27:13Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d850acc9cf661ad09004c3d558666c4a5add0d1a",
+                "additions": 9,
+                "deletions": 7,
+                "committedDate": "2023-11-09T14:39:13Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "41f26ec94dd3ee34762e599828a80210d26018f5",
+                "additions": 130,
+                "deletions": 109,
+                "committedDate": "2023-11-09T15:53:58Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "110ca510615504d0a75ffbcd54ec2e269e50fa08",
+                "additions": 48,
+                "deletions": 52,
+                "committedDate": "2023-11-12T21:45:36Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "11b7e3937f5df9283d17be2d261a4f37f437f677",
+                "additions": 11151,
+                "deletions": 6024,
+                "committedDate": "2023-11-12T21:49:27Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0f705d55a2328d8f71e96be02d2aa926e373f8a5",
+                "additions": 34,
+                "deletions": 83,
+                "committedDate": "2023-11-12T22:28:48Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7154ba75b42d0ed19365bd54612c79ed5bcaaf11",
+                "additions": 0,
+                "deletions": 2,
+                "committedDate": "2023-11-13T21:16:08Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a264e7e3c11b861069081de2d9fa19b1af2b50d5",
+                "additions": 0,
+                "deletions": 12,
+                "committedDate": "2023-11-13T21:57:35Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-10-20T14:41:59Z",
+        "deletions": 0,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/CategoryTheory/Limits/Shapes/Products.lean",
+              "additions": 12,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/CategoryTheory/Sites/Preserves.lean",
+              "additions": 155,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "dagur_SheavesTerminal",
+        "headRefOid": "a264e7e3c11b861069081de2d9fa19b1af2b50d5",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5dY9g7",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABViJTYQ",
+              "color": "33dbec",
+              "name": "t-category-theory"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5k0nJS",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "b-mehta"
+              },
+              "submittedAt": "2023-10-22T23:25:27Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5kwBJG",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "erdOne"
+              },
+              "submittedAt": "2023-10-20T15:22:48Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nAovw",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "joelriou"
+              },
+              "submittedAt": "2023-11-13T20:27:51Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mre00",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "github-actions"
+              },
+              "submittedAt": "2023-11-09T14:27:39Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 7804,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": "CHANGES_REQUESTED",
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5kwBJG",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "erdOne"
+              },
+              "submittedAt": "2023-10-20T15:22:48Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5kwVek",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "dagurtomas"
+              },
+              "submittedAt": "2023-10-20T16:02:33Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5k0nJS",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "b-mehta"
+              },
+              "submittedAt": "2023-10-22T23:25:27Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5l3po-",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "github-actions"
+              },
+              "submittedAt": "2023-11-01T21:06:09Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mKV59",
+              "body": "",
+              "state": "CHANGES_REQUESTED",
+              "author": {
+                "login": "joelriou"
+              },
+              "submittedAt": "2023-11-05T13:51:13Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mKhAZ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "dagurtomas"
+              },
+              "submittedAt": "2023-11-05T18:16:59Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mKquY",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "dagurtomas"
+              },
+              "submittedAt": "2023-11-05T21:52:38Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mKrsC",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "joelriou"
+              },
+              "submittedAt": "2023-11-05T22:13:41Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mKsbU",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "joelriou"
+              },
+              "submittedAt": "2023-11-05T22:30:30Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mV9ia",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "github-actions"
+              },
+              "submittedAt": "2023-11-07T07:55:17Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mqKci",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "joelriou"
+              },
+              "submittedAt": "2023-11-09T11:31:43Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mqdlK",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "joelriou"
+              },
+              "submittedAt": "2023-11-09T12:19:04Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mqjAa",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "joelriou"
+              },
+              "submittedAt": "2023-11-09T12:32:05Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mre00",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "github-actions"
+              },
+              "submittedAt": "2023-11-09T14:27:39Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5msXQ4",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "dagurtomas"
+              },
+              "submittedAt": "2023-11-09T16:01:50Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nAmBl",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "joelriou"
+              },
+              "submittedAt": "2023-11-13T20:23:19Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nAovw",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "joelriou"
+              },
+              "submittedAt": "2023-11-13T20:27:51Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nA7hR",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "dagurtomas"
+              },
+              "submittedAt": "2023-11-13T21:14:10Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nBJcz",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "dagurtomas"
+              },
+              "submittedAt": "2023-11-13T21:57:24Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RfOUb",
+                    "body": "Might be related: `Sheaf.isTerminalOfBotCover`",
+                    "createdAt": "2023-10-20T15:22:48Z",
+                    "author": {
+                      "login": "erdOne"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5RfaGa",
+                    "body": "Thanks for pointing this out! It's not exactly what I need, but I could imitate that proof to get a shorter one here",
+                    "createdAt": "2023-10-20T16:02:32Z",
+                    "author": {
+                      "login": "dagurtomas"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Rid0s",
+                    "body": "This (and `hF`) should be stated in terms of the empty presieve on an initial object, and similar below",
+                    "createdAt": "2023-10-22T23:25:26Z",
+                    "author": {
+                      "login": "b-mehta"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SNvQy",
+                    "body": "**[lint-style]** <sub>reported by [reviewdog](https://github.com/reviewdog/reviewdog) :dog:</sub><br>\n```suggestion\n```\n",
+                    "createdAt": "2023-11-01T21:06:09Z",
+                    "author": {
+                      "login": "github-actions"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SaHUP",
+                    "body": "```suggestion\r\ntheorem firstMap_eq_secondMap : Equalizer.Presieve.Arrows.firstMap F X (Sigma.ι X) =\r\n```",
+                    "createdAt": "2023-11-05T13:35:41Z",
+                    "author": {
+                      "login": "joelriou"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SaHXB",
+                    "body": "```suggestion\r\n    piComparison F (fun x ↦ op (X x)) =\r\n      F.map ((opCoproductIsoProduct X).inv ≫ (inv (Sigma.desc π)).op) ≫\r\n        Equalizer.Presieve.Arrows.forkMap F X π := by\r\n```\r\nI am not sure we specifically have a code style rule for this, but I would prefer this. As you like!",
+                    "createdAt": "2023-11-05T13:37:13Z",
+                    "author": {
+                      "login": "joelriou"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SaHYP",
+                    "body": "```suggestion\r\n      Equalizer.Presieve.Arrows.forkMap F X (Sigma.ι X) := by\r\n```",
+                    "createdAt": "2023-11-05T13:37:36Z",
+                    "author": {
+                      "login": "joelriou"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SaIHs",
+                    "body": "I think that a more mathlib phrasing of the definitions and lemmas in this section would be to take as input `c : Cofan X` that is colimit. The `HasInitial` should be put out of the `hd` assumption. Then, `Sigma.ι` would be replaced by `c.inj`.",
+                    "createdAt": "2023-11-05T13:50:58Z",
+                    "author": {
+                      "login": "joelriou"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SaSNh",
+                    "body": "I'll make this change later tonight or tomorrow.",
+                    "createdAt": "2023-11-05T18:16:59Z",
+                    "author": {
+                      "login": "dagurtomas"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SaajG",
+                    "body": "I started doing this, and `firstMap_eq_secondMap` is fine with the general cocone, but in the rest of the file I'm relying heavily on the particular choice of product/coproduct by using `piComparison`. So introducing this general cocone would mean that the approach would have to change a lot for the rest of the file.",
+                    "createdAt": "2023-11-05T21:52:38Z",
+                    "author": {
+                      "login": "dagurtomas"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SabZ8",
+                    "body": "I am afraid this is the right approach here :-(",
+                    "createdAt": "2023-11-05T22:13:40Z",
+                    "author": {
+                      "login": "joelriou"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SacDH",
+                    "body": "I do not mind if the internals of the proof use the `piComparison`, but the main lemmas like `isSheafFor_of_preservesProduct` and ` isSheafFor_iff_preservesProduct` should be more general. `isSheafFor_of_preservesProduct` is already quite close to what I would like to get: the data `π : (i : α) → X i ⟶ Z` is mostly that of a `Cofan`, and the assumption `[IsIso (Sigma.desc π)]` is equivalent to saying that the cofan is colimit. Then, for this lemma, in the worst case scenario, if we change the assumptions as I suggest, the proof *could* start by the proof that `IsIso (Sigma.desc π)` holds, and the rest of the proof should not have to change much.",
+                    "createdAt": "2023-11-05T22:30:30Z",
+                    "author": {
+                      "login": "joelriou"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5She2u",
+                    "body": "**[lint-style]** <sub>reported by [reviewdog](https://github.com/reviewdog/reviewdog) :dog:</sub><br>\n```suggestion\nA version of `isSheafFor_of_preservesProduct` for \"the\" coproduct instead of a general coproduct\n```\n",
+                    "createdAt": "2023-11-07T07:55:17Z",
+                    "author": {
+                      "login": "github-actions"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SuUWz",
+                    "body": "The proof can be much shortened using the existing limits API:\r\n```suggestion\r\n@[simps!]\r\ndef Cofan.ext {f : β → C} {c₁ c₂ : Cofan f} (e : c₁.pt ≅ c₂.pt)\r\n    (w : ∀ (b : β), c₁.inj b ≫ e.hom = c₂.inj b := by aesop_cat) : c₁ ≅ c₂ :=\r\n  Cocones.ext e (fun ⟨j⟩ => w j)\r\n  \r\ndef Cofan.isColimitOfIsIsoSigmaDesc {f : β → C} [HasCoproduct f] (c : Cofan f)\r\n    [hc : IsIso (Sigma.desc c.inj)] : IsColimit c :=\r\n  IsColimit.ofIsoColimit (colimit.isColimit (Discrete.functor f))\r\n    (Cofan.ext (@asIso _ _ _ _ _ hc) (fun _ => colimit.ι_desc _ _))\r\n```\r\n\r\nIf you absolutely need the version with `Cofan.mk`, you may add one more definition \r\n```lean\r\ndef Cofan.isColimitMkOfIsIsoSigmaDesc {f : β → C} [HasCoproduct f] {P : C} (p : ∀ b, f b ⟶ P)\r\n    [hp : IsIso (Sigma.desc p)] : IsColimit (Cofan.mk P p) := sorry\r\n```\r\n",
+                    "createdAt": "2023-11-09T11:31:43Z",
+                    "author": {
+                      "login": "joelriou"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SugaL",
+                    "body": "This is a good effort! But I think we should push this one last step further by refactoring the definition of `opCoproductIsoProduct` as `opCoproductIsoProduct'` which would take as inputs a colimit cofan and a limit fan in the opposite category, like:\r\n```lean\r\n\r\nvariable {C : Type*} [Category C] {α : Type*} {Z : α → C}\r\n\r\n@[simp]\r\ndef Cofan.op {c : Cofan Z} : Fan (fun a ↦ op (Z a)) := Fan.mk _ (fun a => (c.inj a).op)\r\n\r\ndef Cofan.IsColimit.op {c : Cofan Z} (hc : IsColimit c) : IsLimit c.op := by\r\n  let e : Discrete.functor (fun a => Opposite.op (Z a)) ≅ (Discrete.opposite α).inverse ⋙ (Discrete.functor Z).op :=\r\n    Discrete.natIso (fun _ => Iso.refl _)\r\n  refine' IsLimit.ofIsoLimit ((IsLimit.postcomposeInvEquiv e _).2\r\n    (IsLimit.whiskerEquivalence hc.op (Discrete.opposite α).symm))\r\n    (Cones.ext (Iso.refl _) (fun ⟨a⟩ => _))\r\n  dsimp\r\n  erw [Category.id_comp, Category.comp_id]\r\n  rfl\r\n\r\ndef opCoproductIsoProduct' {c : Cofan Z} {f : Fan (fun a ↦ op (Z a))}\r\n    (hc : IsColimit c) (hf : IsLimit f) : op c.pt ≅ f.pt :=\r\n  IsLimit.conePointUniqueUpToIso (Cofan.IsColimit.op hc) hf\r\n\r\ndef opCoproductIsoProduct :\r\n    op (∐ Z) ≅ ∏ (fun z => op (Z z)) :=\r\n  opCoproductIsoProduct' (coproductIsCoproduct Z) (productIsProduct (fun z ↦ op (Z z)))\r\n```\r\nThis should also simplify the proofs of equational lemmas for `opCoproductIsoProduct` and `opCoproductIsoProduct'`.",
+                    "createdAt": "2023-11-09T12:19:04Z",
+                    "author": {
+                      "login": "joelriou"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Sujwa",
+                    "body": "Note that it is probably better to do this in a separate PR.",
+                    "createdAt": "2023-11-09T12:32:05Z",
+                    "author": {
+                      "login": "joelriou"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SvpF1",
+                    "body": "@joelriou #8302 (I did the dual as well)",
+                    "createdAt": "2023-11-09T16:01:50Z",
+                    "author": {
+                      "login": "dagurtomas"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SvH95",
+                    "body": "**[lint-style]** <sub>reported by [reviewdog](https://github.com/reviewdog/reviewdog) :dog:</sub><br>\n```suggestion\n```\n",
+                    "createdAt": "2023-11-09T14:27:39Z",
+                    "author": {
+                      "login": "github-actions"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5S8xGX",
+                    "body": "```suggestion\r\n```",
+                    "createdAt": "2023-11-13T20:23:18Z",
+                    "author": {
+                      "login": "joelriou"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5S8yZG",
+                    "body": "Do you plan to use this lemma in future PR? If not, we may remove it.\r\n```suggestion\r\n```",
+                    "createdAt": "2023-11-13T20:27:51Z",
+                    "author": {
+                      "login": "joelriou"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5S8925",
+                    "body": "I use it in #7949 ",
+                    "createdAt": "2023-11-13T21:14:09Z",
+                    "author": {
+                      "login": "dagurtomas"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5S9GkX",
+                    "body": "I'll probably need to refactor that PR a bit anyway once this is merged, and maybe I can just use the un-primed version of this theorem directly. Let's remove it for now and I'll add it if I really need it.",
+                    "createdAt": "2023-11-13T21:57:24Z",
+                    "author": {
+                      "login": "dagurtomas"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjI1NjIzODI5",
+              "login": "dagurtomas"
+            },
+            {
+              "id": "MDQ6VXNlcjM3NzcyOTQ5",
+              "login": "joelriou"
+            },
+            {
+              "id": "MDQ6VXNlcjg2ODU4OA==",
+              "login": "digama0"
+            },
+            {
+              "id": "U_kgDOB75MNQ",
+              "login": "leanprover-community-mathlib4-bot"
+            },
+            {
+              "id": "MDQ6VXNlcjI5OTU5MjI2",
+              "login": "b-mehta"
+            },
+            {
+              "id": "MDQ6VXNlcjM2NDE0Mjcw",
+              "login": "erdOne"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat(CategoryTheory): a presheaf preserves certain products iff it `IsSheafFor` certain presieves ",
+        "updatedAt": "2023-11-14T08:10:53Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/7804",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "be11ab8035f57a480d05fe505dca4e0f39a06591"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b4db673a173f517f004a409e12c2db4eb44b8a0b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "784cf02e72b6ab257acd14c8324406d960a804c5"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAJ_SJhv",
+              "createdAt": "2023-10-20T14:42:12Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5kwBJG",
+              "createdAt": "2023-10-20T15:22:48Z",
+              "body": "",
+              "author": {
+                "login": "erdOne"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "18406bb1eb331aaa0f9fe18204585104c4c432e5"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ad9a92fb2bfa3dd1c8a1add34d963bad6f266cb9"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "dfa7f7b1a5705075402f7f788750fe2184c902cd"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a4e8a96f23775fcd7331be4b492c66edd705a32a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d66e9e77adbf9d071f222c4dc25c03a00bb2020e"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e0ca0d245d3d884ef2cbc99359b340b77ce7c267"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAJ_gSjF",
+              "createdAt": "2023-10-20T22:00:01Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAJ_gSjJ",
+              "createdAt": "2023-10-20T22:00:01Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAJ_gSjM",
+              "createdAt": "2023-10-20T22:00:01Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAJ_gSjP",
+              "createdAt": "2023-10-20T22:00:01Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABViJTYQ",
+                "name": "t-category-theory"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "559a0d2ccffba1cb866569e393c11921521605b0"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAJ_hDsz",
+              "createdAt": "2023-10-20T22:46:44Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5ptcLN",
+              "createdAt": "2023-10-20T23:28:03Z",
+              "body": "I am a little bit worried by the need to remove initial objects. I think the right path is to define a specialized API for testing the sheaf condition for presieves obtained by `Presieve.ofArrows`. As far as I can remember, and this is confirmed by reading one of the sources https://stacks.math.columbia.edu/tag/00VM there is no condition that the map from the index set `I` to the category of arrows is injective. Then, I think that an alternate \"equalizer diagram\" using the original index type `I` should be defined for these presieves, and it should not be hard to get the equivalence with `IsSheafFor`. Using this approach would certainly clarify the proofs in this PR, and this would also provide a very practical API for other users of Grothendieck topologies.",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAJ_ht0W",
+              "createdAt": "2023-10-20T23:28:17Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAJ_ht0a",
+              "createdAt": "2023-10-20T23:28:17Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5puKDj",
+              "createdAt": "2023-10-21T07:40:00Z",
+              "body": "I see what you mean, I agree! I'll try to prove this sheaf condition for arrow presieves.",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0158dc2a49d4ff3b3e4a26d52c932ba89266c306"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d8e9ab1bb73d7420d60c2440035cdb07bde0cb18"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5pu_st",
+              "createdAt": "2023-10-21T21:31:40Z",
+              "body": "Note: I have pushed an update to the lean toolchain because this PR was on a [buggy version](https://leanprover.zulipchat.com/#narrow/stream/113488-general/topic/Potential.20data.20loss.20from.20.60lake.20clean.60.20with.204.2E2.2E0-rc2.2F3/near/397875701) of the toolchain. **WARNING**: checking out old commits of this PR using v4.2.0-rc2 or v4.2.0-rc3 can cause `lake clean` to delete your mathlib folder! If you need to do so, make sure to delete `lakefile.olean` manually before running any `lake` commands.",
+              "author": {
+                "login": "digama0"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5pwHL1",
+              "createdAt": "2023-10-22T22:45:18Z",
+              "body": "> ... one of the sources https://stacks.math.columbia.edu/tag/00VM there is no condition that the map from the index set `I` to the category of arrows is injective. Then, I think that an alternate \"equalizer diagram\" using the original index type `I` should be defined for these presieves, and it should not be hard to get the equivalence with `IsSheafFor`. \r\n\r\nLet's define `IsSheafFor'` as the sheaf condition stated in the Stacks project for a particular `Presieve.ofArrows` (or rather, it's a condition on a family of morphisms with fixed target, repetitions allowed). Then that condition is in fact strictly stronger than the `IsSheafFor` condition of Mathlib. Building on an example you gave me on Zulip: consider a category with one object and one morphism. Then take the `Presieve.ofArrows` corresponding to a family of two copies of that morphism, and any presheaf sending the object to any non-terminal object in `Type`. Then this presheaf satisfies the `IsSheafFor` condition for that presieve, but not the `IsSheafFor'` condition.\r\n\r\nThis example of course only arises as a consequence of a stupid way of specifying a presieve consisting of a single arrow. But I hadn't noticed this subtlety before.\r\n",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5k0nJS",
+              "createdAt": "2023-10-22T23:25:26Z",
+              "body": "",
+              "author": {
+                "login": "b-mehta"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5499441ab750e2f0b9c8ee9a3e2306cf699f3c73"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4cd8a43ae9e069aded092c4dd21677d300177c47"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0ded8c6ce452788ba9399d36b421228e06d0eb8e"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "395a69ef8bdaf0eb8d81e306270a7b56cba9a638"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "075eeabccc7d9976aca5e8834982e0ee049970f8"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0369ebb098ddc9d4af52a47b7040f42abf145a76"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5p2yRt",
+              "createdAt": "2023-10-23T20:28:59Z",
+              "body": "> Let's define `IsSheafFor'` as the sheaf condition stated in the Stacks project for a particular `Presieve.ofArrows` (or rather, it's a condition on a family of morphisms with fixed target, repetitions allowed). Then that condition is in fact strictly stronger than the `IsSheafFor` condition of Mathlib. Building on an example you gave me on Zulip: consider a category with one object and one morphism. Then take the `Presieve.ofArrows` corresponding to a family of two copies of that morphism, and any presheaf sending the object to any non-terminal object in `Type`. Then this presheaf satisfies the `IsSheafFor` condition for that presieve, but not the `IsSheafFor'` condition.\r\n\r\nAre you 100% sure it is a counterexample? It seems to me it is not. (The question is whether this non-terminal object `X`\r\nin `Type` is the equalizer of two particular maps `X^2 ⟶ X^4`, and I believe it is.)\r\n\r\n> This example of course only arises as a consequence of a stupid way of specifying a presieve consisting of a single arrow. But I hadn't noticed this subtlety before.\r\n\r\nFamilies with duplicates are not pathological. Just consider a topological space `X`, and two open subsets `U` and `V`, then if `W` is the union of `U` and `V`, we may certainly consider the family `(U ⟶ W, V ⟶ W)`. Then, if `F` is a presheaf, whatever it is, the sheaf condition should say that `F(W)` is the pullback of `F(U)` and `F(V)` over `F(U intersection V)`. I hope this remains true even if by accident `U = V`!\r\n\r\n(It seems to me that the notion of presieve is only an implementation detail which may have been necessary for the definition of pretopologies. Otherwise, the API should be more developed for sieves generated by a family of arrows.)",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5p3Fi0",
+              "createdAt": "2023-10-23T21:26:29Z",
+              "body": "Hmm I agree, this isn't a counterexample. \r\n\r\nPresieves are different from families with fixed target, because the former don't see duplicates. But you're right for the sheaf condition it shouldn't matter. ",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d88e5b809db71274fd0de977385d84872e232e44"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5p3b2I",
+              "createdAt": "2023-10-23T22:45:45Z",
+              "body": "Ok I have both directions now at #7855. I'll clean it up tomorrow, add the pullback case and some more API.",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "314eb4c2318ce101f3196f7884011e84f8bdc9f4"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "918bfc6a2d0e7d22cd8bade747d7f949f7809b32"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5p561E",
+              "createdAt": "2023-10-24T08:51:01Z",
+              "body": "The first part of this new API (#7855) is awaiting CI and then ready for review. It's the sheaf condition phrased in terms of unique amalgamations. I plan to add the \"categorical one\" in a new PR.",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2ae038575b05673696ddefd12ca6647c14a3b065"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4cddcf760c6ecd049be33495c121d968e31d6fa3"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "96bf66f7008d8d809ac5c98ce4c9e5ce83f7d044"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f0ebf35f5db25220f7ddc0c6065071c21b4fd8a8"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "93800642ce91687f9c2d64c5b76b214a7e6246a7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "abe5bdce5289b1de673fa825de1976b515a8b185"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9af9b782a6258482d24380e0f304dacab1e0cac5"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c3359987cea60cb0610bf084841a749952fb94f7"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKCGhmz",
+              "createdAt": "2023-10-25T21:50:16Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKCGhm2",
+              "createdAt": "2023-10-25T21:50:16Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKCGhm7",
+              "createdAt": "2023-10-25T21:50:16Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKCG2C5",
+              "createdAt": "2023-10-25T22:02:36Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjg4OTQyMDg2",
+                "name": "blocked-by-other-PR"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKCHHp8",
+              "createdAt": "2023-10-25T22:13:39Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "237574954b5d533ece47e5063125d407bab080f5"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKCHdsl",
+              "createdAt": "2023-10-25T22:27:38Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKCHdsq",
+              "createdAt": "2023-10-25T22:27:38Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "106e7f89a45b35730a6db8516725b5df5c7493d4"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "fc7ef5d5eed98be8bab1f527d3081095030ca8c3"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5PDsOV",
+              "createdAt": "2023-10-26T09:32:35Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5d1-hk",
+                "title": "[Merged by Bors] - feat(CategoryTheory): finite-product preserving presheaves are sheaves for extensive presieves",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/7949"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "391a8e05ddf4c0d35c4772765c02f6413ec5516d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1eb5051959accadffdc0de5a88bebbbb4bc49e60"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5PD2x_",
+              "createdAt": "2023-10-26T12:11:50Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5YgfBM",
+                "title": "[Merged by Bors] - feat(Condensed): Explicit descriptions of condensed sets",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/6731"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKCm1bg",
+              "createdAt": "2023-10-26T14:54:05Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKCm1bw",
+              "createdAt": "2023-10-26T14:54:05Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "56fc7fc1f6463653d87d5823eb4cefd61f2c6ee6"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5PIJpO",
+              "createdAt": "2023-10-31T08:00:16Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5duqVX",
+                "title": "[Merged by Bors] - feat: categorical sheaf condition for presieves of arrows",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/7918"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKExj7z",
+              "createdAt": "2023-10-31T08:53:16Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f482de8a3cd43f87040926b00a01a39b962feac7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4dc5a4f3b0cd52c85534ddb5837554ffb9df71e3"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5l3po-",
+              "createdAt": "2023-11-01T21:06:09Z",
+              "body": "",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKF8cig",
+              "createdAt": "2023-11-01T21:27:55Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c8c0db6b5f1979509b9b2196559a291441983d8a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "cd32ab64d786dbca01d5ac3395b5146702a64152"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d73cebd37f9c7bf59b5385b6a7739101b95522b9"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e4ad6958e8725c957c915d772b62fe01b96485eb"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKG9fWD",
+              "createdAt": "2023-11-03T10:46:56Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjg4OTQyMDg2",
+                "name": "blocked-by-other-PR"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKG-9TR",
+              "createdAt": "2023-11-03T11:21:40Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ecd60cb6998214b4a73116cb297b39d982952076"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKHBTPY",
+              "createdAt": "2023-11-03T12:21:31Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5q5YF7",
+              "createdAt": "2023-11-04T12:07:36Z",
+              "body": "I have left some comments on the dependent PR https://github.com/leanprover-community/mathlib4/pull/7949 which actually apply to this PR.",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKHdjMU",
+              "createdAt": "2023-11-04T12:07:59Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKHdjMX",
+              "createdAt": "2023-11-04T12:07:59Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3d765745b8a4ddd06d7400f399a9aa7b93c7f5e3"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d0790cba1f9e812b7a49fecdf12ef94a48da2106"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5q5oq-",
+              "createdAt": "2023-11-04T16:49:53Z",
+              "body": "I've updated both PRs",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKHf2LY",
+              "createdAt": "2023-11-04T16:50:02Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKHf2La",
+              "createdAt": "2023-11-04T16:50:02Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5mKV59",
+              "createdAt": "2023-11-05T13:35:41Z",
+              "body": "",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e7a1a263c76a2c29e923aecc90ca29cde874547f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "793a6cb5e9f9026321ea060aebe6df1f944ce634"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "64b84017b93aea04e3c5bc2547e0e25055065ba5"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b35bfd069bad0836d73d4281c5bad062c3b9b375"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d46ba7d46d64d4fb9f4a357541064fcdb927b1c1"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKHrAGF",
+              "createdAt": "2023-11-05T23:17:15Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKHrAGH",
+              "createdAt": "2023-11-05T23:17:15Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4c67f13a8d3dda608f81f8311df2e00dde5cc338"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e99a7a791b0c6efed227559422b14e56947a3e7a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9adebb1513f243413872bfdd7014fbf3d8c6413c"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKIchAL",
+              "createdAt": "2023-11-06T22:06:04Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKIchAR",
+              "createdAt": "2023-11-06T22:06:04Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKIchAZ",
+              "createdAt": "2023-11-06T22:06:04Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKIeF9R",
+              "createdAt": "2023-11-06T22:44:20Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4a84ade4464e8158014bb2e94a6c9872e5262488"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5mV9ia",
+              "createdAt": "2023-11-07T07:55:17Z",
+              "body": "",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b4a490451f910ee7ec073516153cdf1658a887fe"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5mqKci",
+              "createdAt": "2023-11-09T11:31:43Z",
+              "body": "",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5mqdlK",
+              "createdAt": "2023-11-09T12:19:04Z",
+              "body": "",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKKcB65",
+              "createdAt": "2023-11-09T12:22:13Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKKcB7D",
+              "createdAt": "2023-11-09T12:22:13Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "48ba164ca87b5a10d6ef5d6e170dfd1d25ac044d"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5mre00",
+              "createdAt": "2023-11-09T14:27:39Z",
+              "body": "",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d850acc9cf661ad09004c3d558666c4a5add0d1a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "41f26ec94dd3ee34762e599828a80210d26018f5"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKKmJRe",
+              "createdAt": "2023-11-09T16:06:36Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKKmJRm",
+              "createdAt": "2023-11-09T16:06:36Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKKm0lm",
+              "createdAt": "2023-11-09T16:22:01Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjg4OTQyMDg2",
+                "name": "blocked-by-other-PR"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKLwaz4",
+              "createdAt": "2023-11-12T14:36:16Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjg4OTQyMDg2",
+                "name": "blocked-by-other-PR"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5rtt2I",
+              "createdAt": "2023-11-12T14:36:18Z",
+              "body": "This PR/issue depends on:\n* ~~leanprover-community/mathlib4#8302~~\n* ~~leanprover-community/mathlib4#7918~~\nBy **[Dependent Issues](https://github.com/z0al/dependent-issues)** (🤖). Happy coding!\n<!-- By Dependent Issues (Action) - DO NOT REMOVE -->",
+              "author": {
+                "login": "leanprover-community-mathlib4-bot"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKLwdw_",
+              "createdAt": "2023-11-12T14:42:57Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "110ca510615504d0a75ffbcd54ec2e269e50fa08"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "11b7e3937f5df9283d17be2d261a4f37f437f677"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKLzdOT",
+              "createdAt": "2023-11-12T22:05:22Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0f705d55a2328d8f71e96be02d2aa926e373f8a5"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5nAmBl",
+              "createdAt": "2023-11-13T20:23:18Z",
+              "body": "",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5nAovw",
+              "createdAt": "2023-11-13T20:27:50Z",
+              "body": "",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKMeb1s",
+              "createdAt": "2023-11-13T20:28:11Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKMeb1y",
+              "createdAt": "2023-11-13T20:28:11Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7154ba75b42d0ed19365bd54612c79ed5bcaaf11"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKMgMDn",
+              "createdAt": "2023-11-13T21:16:49Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKMgMDt",
+              "createdAt": "2023-11-13T21:16:49Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a264e7e3c11b861069081de2d9fa19b1af2b50d5"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5r3WQX",
+              "createdAt": "2023-11-14T07:28:25Z",
+              "body": "Thanks!\r\n\r\nbors merge",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c50fk1VzwAAAAKMtdxV",
+              "createdAt": "2023-11-14T07:28:35Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c50fk1VzwAAAAKMtdyr",
+              "createdAt": "2023-11-14T07:28:36Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5r3h74",
+              "createdAt": "2023-11-14T08:10:49Z",
+              "body": "Pull request successfully merged into master.\n\nBuild succeeded:\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6860485776/job/18654401484)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6860485776/job/18654401349)\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6860485776/job/18654401610)",
+              "author": {
+                "login": "mathlib-bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c50fk1VzwAAAAKMu0eJ",
+              "createdAt": "2023-11-14T08:10:50Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c50fk1VzwAAAAKMu0lM",
+              "createdAt": "2023-11-14T08:10:53Z"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

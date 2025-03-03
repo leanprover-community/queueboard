@@ -1,0 +1,1060 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 88,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "acmepjz"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "- `IsSepClosed.lift` is a map from a separable extension `L` of `K`, into any separably closed extension `M` of `K`.\r\n\r\n- `IsSepClosure.equiv` is a proof that any two separable closures of the\r\n  same field are isomorphic.\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 3,
+        "closed": true,
+        "closedAt": "2023-11-10T10:07:36Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5mmp2F",
+              "body": "Do we have maximal separable subextension work in progress?",
+              "createdAt": "2023-09-15T14:50:53Z",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5q6w8o",
+              "body": "I managed to modify the proofs of `IsSepClosed.lift` and `IsAlgClosed.lift`, get rid of `SubfieldWithHom`.\r\n\r\nI think maybe the next step is port the following things for `SubfieldWithHom` to `IntermediateField.Lifts` if they are useful and not already exist for `IntermediateField.Lifts`:\r\n- instance `LE`, `Inhabited`, `Preorder`\r\n- definition `maximalSubfieldWithHom`\r\n- theorem `le_def`, `compat`, `maximal_subfieldWithHom_chain_bounded`, `exists_maximal_subfieldWithHom`, `maximalSubfieldWithHom_is_maximal`\r\n- and `mem_maximalSubfieldWithHom_of_splits`\r\n\r\n(Note that `maximalSubfieldWithHom_eq_top` is specified for `IsAlgClosed` so it's not ported.) Then maybe we can remove `SubfieldWithHom` completely?",
+              "createdAt": "2023-11-05T16:54:23Z",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5q60iC",
+              "body": "That's nice! I've started a new file with minimal imports, made a new definition, and I'm adapting all lemmas about `IntermediateField.Lifts` and `SubfieldWithHom` to the new definition, with the aim to remove both eventually. The refactor shouldn't break the API so your modified proofs should work with minimal changes. Hopefully I'll submit a PR soon, but the normal closure PR will probably be delayed.\r\n",
+              "createdAt": "2023-11-05T17:59:06Z",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5q7NfN",
+              "body": "So I've experimented a bit and came to the conclusion that indeed we should stick to the IntermediateField.Lifts API and deprecate SubfieldWithHom. Working with IntermediateFields that automatically carry Field instances is definitely more convenient. Some constructions for Lifts could be more elegant if more APIs are available, e.g. [Subalgebra.iSupLift](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Algebra/Subalgebra/Basic.html#Subalgebra.iSupLift) and [Subalgebra.coe_iSup_of_directed](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Algebra/Subalgebra/Basic.html#Subalgebra.coe_iSup_of_directed), and defining the LE relation using `inclusion` could be better, but otherwise there isn't much to learn from the SubfieldWithHom counterpart. Since the proof of `maximalSubfieldWithHom_eq_top` is slow, it's desirable to remove it.\r\n\r\nAmong the declarations you listed:\r\n> - instance `LE`, `Inhabited`, `Preorder`\r\n> - definition `maximalSubfieldWithHom`\r\n> - theorem `le_def`, `compat`, `maximal_subfieldWithHom_chain_bounded`, `exists_maximal_subfieldWithHom`, `maximalSubfieldWithHom_is_maximal`\r\n> - and `mem_maximalSubfieldWithHom_of_splits`\r\n\r\n+ `LE` and `Preorder` are subsumed by `PartialOrder`, and `Inhabited` subsumed by `OrderBot`.\r\n\r\n+ `le_def` and `compat` are not important; `maximal_subfieldWithHom_chain_bounded` is basically `Lifts.exists_upper_bound` (which combines the three declarations above it)\r\n\r\n+ definition `maximalSubfieldWithHom` also doesn't need to exist as a definition; the existence of a maximal lift is just applying Zorn's lemma to `Lifts.exists_upper_bound`, and `Lifts.exists_lift_of_splits` basically shows that every maximal lift must contain every integral element whose minimal polynomial splits in the target field and is the counterpart of `mem_maximalSubfieldWithHom_of_splits`.\r\n\r\nTherefore, I think we could just remove `SubfieldWithHom` in another PR once this one is merged. To reduce diff, maybe you could revert the addition of `mem_maximalSubfieldWithHom_of_splits`?",
+              "createdAt": "2023-11-06T00:36:01Z",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5q7Wnl",
+              "body": "> To reduce diff, maybe you could revert the addition of `mem_maximalSubfieldWithHom_of_splits`?\r\n\r\nSure. I've committed one.\r\n\r\n> Since the proof of `maximalSubfieldWithHom_eq_top` is slow, it's desirable to remove it.\r\n\r\nMy attempt is to use `mem_maximalSubfieldWithHom_of_splits` to prove `maximalSubfieldWithHom_eq_top`, so that the latter is fast, but the former is slow. But since you said that:\r\n\r\n> `Lifts.exists_lift_of_splits` basically shows that every maximal lift must contain every integral element whose minimal polynomial splits in the target field and is the counterpart of `mem_maximalSubfieldWithHom_of_splits`.\r\n\r\n... so we can completely remove slow codes in favor of existing codes.\r\n\r\n> * definition `maximalSubfieldWithHom` also doesn't need to exist as a definition; the existence of a maximal lift is just applying Zorn's lemma to `Lifts.exists_upper_bound`\r\n\r\nAt the expense of typing `zorn_partialOrder Lifts.exists_upper_bound`. IMHO if there is a \"maximal something\" in the API, it makes people easier to find them.",
+              "createdAt": "2023-11-06T01:31:32Z",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5q9C79",
+              "body": "🚀 Pull request has been placed on the maintainer queue by alreadydone.",
+              "createdAt": "2023-11-06T09:20:05Z",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5rnNe7",
+              "body": "Pull request successfully merged into master.\n\nBuild succeeded:\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6822911201/job/18555813802)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6822911201/job/18555813434)\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6822911201/job/18555814179)",
+              "createdAt": "2023-11-10T10:07:34Z",
+              "author": {
+                "login": "mathlib-bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "b22b11ddee411a614c4ed093a34a16926410f7db",
+                "additions": 104,
+                "deletions": 13,
+                "committedDate": "2023-08-18T17:26:09Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "86abdcb0bcb6edc525376bd1fa49807dfc69f5d2",
+                "additions": 11,
+                "deletions": 11,
+                "committedDate": "2023-08-19T07:57:45Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "652b527ddb7583734efa819dc8e854053f23ce18",
+                "additions": 37006,
+                "deletions": 16037,
+                "committedDate": "2023-09-15T12:50:47Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "134242d034b2cb93f737bd6690d95f0e8a49dfc2",
+                "additions": 14,
+                "deletions": 5,
+                "committedDate": "2023-09-15T14:50:05Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e590d28a5308aad4184d3139d2aaf49c9c1e3957",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-20T17:16:37Z",
+                "author": {
+                  "name": "Jz Pan",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a6561aa3a615a3a49d9cf01ec1853f29bac04264",
+                "additions": 3,
+                "deletions": 1,
+                "committedDate": "2023-10-03T00:06:40Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9658d1a7f9de02277f38a2ccb1b11d18216ed5f6",
+                "additions": 67089,
+                "deletions": 28482,
+                "committedDate": "2023-11-03T23:24:25Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "29a0af748d1ab8fa5e7d7fc645732c8feb571c9c",
+                "additions": 4,
+                "deletions": 10,
+                "committedDate": "2023-11-04T00:12:13Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "596d624e7c18926752884bafe54b5e2d0481c834",
+                "additions": 22,
+                "deletions": 42,
+                "committedDate": "2023-11-04T02:21:11Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f767c071f6c844bf7475aba4a5cc07337f711bd4",
+                "additions": 3,
+                "deletions": 12,
+                "committedDate": "2023-11-04T18:56:11Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "bf429d6642b7eb559a9468125ac9edcd5eef9a66",
+                "additions": 18,
+                "deletions": 7,
+                "committedDate": "2023-11-04T21:47:11Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "396f2c7ec322d55ab9455f3ee23cd7f23651a2c1",
+                "additions": 4,
+                "deletions": 12,
+                "committedDate": "2023-11-04T22:05:23Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "16a11b8334e39844c5b7922b0a69a2ffd0c7ada7",
+                "additions": 3,
+                "deletions": 13,
+                "committedDate": "2023-11-05T16:26:42Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "dc69f9d4edcf3a702f716cb4c7360bcca51a1acd",
+                "additions": 3,
+                "deletions": 4,
+                "committedDate": "2023-11-05T16:38:54Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4f39cf088e61954a9842354e2094d3a16ecbc99f",
+                "additions": 7,
+                "deletions": 19,
+                "committedDate": "2023-11-06T01:20:40Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3a7649bada80197eb54bfe1f91f778291d9fd23f",
+                "additions": 4,
+                "deletions": 5,
+                "committedDate": "2023-11-06T09:17:49Z",
+                "author": {
+                  "name": "Junyan Xu",
+                  "email": "junyanxu.math@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a815f4cc3be78f57b00b6b4854e2ed7db89ee944",
+                "additions": 1428,
+                "deletions": 247,
+                "committedDate": "2023-11-06T09:46:32Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-08-18T17:27:46Z",
+        "deletions": 42,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib/FieldTheory/IsAlgClosed/Basic.lean",
+              "additions": 7,
+              "deletions": 16
+            },
+            {
+              "path": "Mathlib/FieldTheory/IsSepClosed.lean",
+              "additions": 63,
+              "deletions": 19
+            },
+            {
+              "path": "Mathlib/RingTheory/Algebraic.lean",
+              "additions": 18,
+              "deletions": 7
+            }
+          ]
+        },
+        "headRefName": "acmepjz_sep_closed_2",
+        "headRefOid": "a815f4cc3be78f57b00b6b4854e2ed7db89ee944",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5YRFbu",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABViJjTQ",
+              "color": "33DBEC",
+              "name": "t-algebra"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5igYSH",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "riccardobrasca"
+              },
+              "submittedAt": "2023-10-02T12:37:14Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mMszx",
+              "body": "Thanks, LGTM!\r\n\r\nmaintainer merge",
+              "state": "APPROVED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-11-06T09:19:53Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mxmmZ",
+              "body": "Thanks :tada:\r\n\r\nbors merge",
+              "state": "APPROVED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-11-10T08:37:59Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 6670,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": "APPROVED",
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5hTpXI",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-09-19T06:56:57Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hhb-9",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "acmepjz"
+              },
+              "submittedAt": "2023-09-20T17:17:41Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hzmSg",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "acmepjz"
+              },
+              "submittedAt": "2023-09-23T15:30:20Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5igYSH",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "riccardobrasca"
+              },
+              "submittedAt": "2023-10-02T12:37:14Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mJOS8",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-11-04T02:54:08Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mJabK",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "acmepjz"
+              },
+              "submittedAt": "2023-11-04T10:52:26Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mJkR9",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-11-04T14:08:55Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mJxWl",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "acmepjz"
+              },
+              "submittedAt": "2023-11-04T18:52:14Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mKF1O",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-11-05T06:35:00Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mKUO1",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "acmepjz"
+              },
+              "submittedAt": "2023-11-05T12:55:23Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mKawB",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-11-05T15:27:23Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mMszx",
+              "body": "Thanks, LGTM!\r\n\r\nmaintainer merge",
+              "state": "APPROVED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-11-06T09:19:53Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5mxmmZ",
+              "body": "Thanks :tada:\r\n\r\nbors merge",
+              "state": "APPROVED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-11-10T08:37:59Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PQOqR",
+                    "body": "```suggestion\r\n- In particular, a separable closure exists.\r\n```",
+                    "createdAt": "2023-09-19T06:54:40Z",
+                    "author": {
+                      "login": "jcommelin"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PQPMj",
+                    "body": "This could be a global instance, right?",
+                    "createdAt": "2023-09-19T06:56:48Z",
+                    "author": {
+                      "login": "jcommelin"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PZA8A",
+                    "body": "Yes, what name do you suggest? `isAlgebraic_of_isSepClosure`?",
+                    "createdAt": "2023-09-20T17:17:41Z",
+                    "author": {
+                      "login": "acmepjz"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PkvIW",
+                    "body": "But there are also a lot of instances in mathlib4 declared in their own namespaces...",
+                    "createdAt": "2023-09-23T15:30:19Z",
+                    "author": {
+                      "login": "acmepjz"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5QBvGE",
+                    "body": "I think Johan is proposing to make `IsSepClosure.separable` an instance, so you don't need the have line.",
+                    "createdAt": "2023-10-02T12:37:14Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SZJC4",
+                    "body": "This is like an infinitary version of [Polynomial.lift_of_splits](https://leanprover-community.github.io/mathlib4_docs/Mathlib/RingTheory/Adjoin/Field.html#Polynomial.lift_of_splits) and I think `hL : Algebra.IsAlgebraic K L` can be replaced by `IsIntegral K x` (or IsAlgebraic). ",
+                    "createdAt": "2023-11-04T02:50:19Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SZVKS",
+                    "body": "> I think `hL : Algebra.IsAlgebraic K L` can be replace by `IsIntegral K x` (or IsAlgebraic).\r\n\r\nI think so, but then we should use `IntermediateField` instead of `Subalgebra` in the structure `SubfieldWithHom`, to exclude the non-field subalgebra such as `K[X]` between `K` and `K(X)`. I think `IntermediateField` is better since we're always talking about fields here, but I'm not sure if that change will work, I'm not tried yet.\r\n",
+                    "createdAt": "2023-11-04T10:52:26Z",
+                    "author": {
+                      "login": "acmepjz"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SZcf9",
+                    "body": "If it's just a subalgebra, I think you can still extend the AlgHom to its field of fractions, and then you can go on to adjoin the integral/algebraic element `x`. Will indeed make the proof (which is currently super slow to work with) more complicated though; I'll look into it later.",
+                    "createdAt": "2023-11-04T14:08:55Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SZ4Sf",
+                    "body": "Actually, we can also use [IntermediateField.algHom_mk_adjoin_splits](https://leanprover-community.github.io/mathlib4_docs/Mathlib/FieldTheory/Adjoin.html#IntermediateField.algHom_mk_adjoin_splits), which is exactly the infinitary version of [Polynomial.lift_of_splits](https://leanprover-community.github.io/mathlib4_docs/Mathlib/RingTheory/Adjoin/Field.html#Polynomial.lift_of_splits), imported by this file, used in the construction of [AlgHom.liftNormal](https://leanprover-community.github.io/mathlib4_docs/Mathlib/FieldTheory/Normal.html#AlgHom.liftNormal), and has a more versatile API than `maximalSubfieldWithHom`. Maybe we should aim to remove `maximalSubfieldWithHom` in favor of the `IntermediateField.Lifts` API.\r\n\r\n(Maybe not, it seems proofs for `maximalSubfieldWithHom` are more succinct. Maybe we should combine the best of both developments.)",
+                    "createdAt": "2023-11-05T06:35:00Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SaFrn",
+                    "body": "> Actually, we can also use [IntermediateField.algHom_mk_adjoin_splits](https://leanprover-community.github.io/mathlib4_docs/Mathlib/FieldTheory/Adjoin.html#IntermediateField.algHom_mk_adjoin_splits), which is exactly the infinitary version of [Polynomial.lift_of_splits](https://leanprover-community.github.io/mathlib4_docs/Mathlib/RingTheory/Adjoin/Field.html#Polynomial.lift_of_splits), imported by this file, used in the construction of [AlgHom.liftNormal](https://leanprover-community.github.io/mathlib4_docs/Mathlib/FieldTheory/Normal.html#AlgHom.liftNormal), and has a more versatile API than `maximalSubfieldWithHom`. \r\n\r\nYes, I think it can be used to prove `IsAlgClosed.lift` and `IsSepClosed.lift` without introducing `maximalSubfieldWithHom`.\r\n\r\n> Maybe we should aim to remove `maximalSubfieldWithHom` in favor of the `IntermediateField.Lifts` API.\r\n> \r\n> (Maybe not, it seems proofs for `maximalSubfieldWithHom` are more succinct. Maybe we should combine the best of both developments.)\r\n\r\nLooks like that the type `IntermediateField.Lifts` is exactly the same as the type `SubfieldWithHom` but with `Subalgebra` replaced by `IntermediateField`. As I said before, I think `IntermediateField` is a better choice compared to `Subalgebra`. So I think it's fine to remove `SubfieldWithHom` completely. We can port the properties of `SubfieldWithHom` which are not mentioned for `IntermediateField.Lifts`.\r\n\r\nAs for `maximalSubfieldWithHom` and `IntermediateField.algHom_mk_adjoin_splits`, the latter merely says that there exists a map from `F(S)` to `K`, but the former says that `F(S)` is contained in `maximalSubfieldWithHom`, therefore the latter is a corollary of the former.\r\n\r\nIn fact the first line of the proof of `IntermediateField.algHom_mk_adjoin_splits`\r\n```lean\r\n  obtain ⟨x, hx⟩ : ∃ m : Lifts F E K, ∀ a, m ≤ a → a = m :=\r\n    zorn_partialOrder Lifts.exists_upper_bound\r\n```\r\nThe `x` is in fact the `maximalSubfieldWithHom`. So I think maybe we can define `maximalLift F E K` to be that element?",
+                    "createdAt": "2023-11-05T12:55:23Z",
+                    "author": {
+                      "login": "acmepjz"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SaL6M",
+                    "body": "Let me ping the original authors @tb65536 for the IntermediateField version [#5860](https://github.com/leanprover-community/mathlib/pull/5860), and @ChrisHughes24 / @jcommelin for the Subalgebra version [#9110](https://github.com/leanprover-community/mathlib/pull/9110) (the latter comes ~8 months after the former in 2021). It would be possible to keep the generality of Subalgebra, and prove the maximal lift satisfies `inv_mem` to construct an IntermediateField when the source and the target are both fields, but I'm not sure how useful it would be, as both constructions currently assume the source, target and base ring are all fields. It may be straightforward to generalize to an arbitrary base ring with NoZeroSmulDivisors condition, but it seems proving [IsAlgClosed.lift](https://leanprover-community.github.io/mathlib4_docs/Mathlib/FieldTheory/IsAlgClosed/Basic.html#IsAlgClosed.lift) (where a non-field source is allowed) still requires reducing to the field case.",
+                    "createdAt": "2023-11-05T15:27:23Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SZJIP",
+                    "body": "I just golfed the [splitting field version of this](https://github.com/leanprover-community/mathlib4/blob/874ff0574c19582d3d275d1c803846549cd53dce//Mathlib/FieldTheory/SplittingField/Construction.lean#L362-L365); you can probably golf this the same way, as well as the [algebraic closure version](https://github.com/leanprover-community/mathlib4/blob/874ff0574c19582d3d275d1c803846549cd53dce//Mathlib/FieldTheory/IsAlgClosed/Basic.lean#L426-L440). (Of course, I'll do the normal closure one the same way. The proof is basically: any RingHom between Fields are injective, but the composition of L->M and M->L is an AlgHom from an algebraic extension to itself, which must be bijective, so both L->M and M->L are actually bijective.)",
+                    "createdAt": "2023-11-04T02:54:04Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5SZmn6",
+                    "body": "Great! I golfed the separable closure version. But I failed to do it for algebraic closure version because it is `L ≃ₐ[R] M` where `R` is only a commutative ring 😅 and I can't apply `algHom_bijective₂`.\r\n\r\nPerhaps we can change the condition of `algHom_bijective₂` to `[CommRing K] [NoZeroSMulDivisors K L] [NoZeroSMulDivisors K R]`?\r\n\r\n[EDIT] I actually changed them. Hopefully this won't break mathlib. 😋",
+                    "createdAt": "2023-11-04T18:52:14Z",
+                    "author": {
+                      "login": "acmepjz"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjMzOTc3Nzk=",
+              "login": "acmepjz"
+            },
+            {
+              "id": "MDQ6VXNlcjMwNjQxNDU=",
+              "login": "alreadydone"
+            },
+            {
+              "id": "MDQ6VXNlcjU2MzY3MDU=",
+              "login": "jcommelin"
+            },
+            {
+              "id": "MDQ6VXNlcjMyNDkwNTMy",
+              "login": "riccardobrasca"
+            },
+            {
+              "id": "U_kgDOB75MNQ",
+              "login": "leanprover-community-mathlib4-bot"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat(FieldTheory/IsSepClosed): add `IsSepClosed.lift` and `IsSepClosure.equiv`",
+        "updatedAt": "2023-11-10T10:07:42Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/6670",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b22b11ddee411a614c4ed093a34a16926410f7db"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c5usFy_zwAAAAJb69Af",
+              "createdAt": "2023-08-18T17:28:37Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjMxODY3ODI3",
+                "login": "kbuzzard"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "86abdcb0bcb6edc525376bd1fa49807dfc69f5d2"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5usFy_zwAAAAJcImJ9",
+              "createdAt": "2023-08-19T08:41:59Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "652b527ddb7583734efa819dc8e854053f23ce18"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "134242d034b2cb93f737bd6690d95f0e8a49dfc2"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5mmp2F",
+              "createdAt": "2023-09-15T14:50:53Z",
+              "body": "Do we have maximal separable subextension work in progress?",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "__typename": "BaseRefChangedEvent"
+            },
+            {
+              "__typename": "BaseRefChangedEvent"
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5hTpXI",
+              "createdAt": "2023-09-19T06:54:40Z",
+              "body": "",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e590d28a5308aad4184d3139d2aaf49c9c1e3957"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a6561aa3a615a3a49d9cf01ec1853f29bac04264"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9658d1a7f9de02277f38a2ccb1b11d18216ed5f6"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "29a0af748d1ab8fa5e7d7fc645732c8feb571c9c"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "596d624e7c18926752884bafe54b5e2d0481c834"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5PM9WW",
+              "createdAt": "2023-11-04T02:23:00Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5ebycY",
+                "title": "[Merged by Bors] - feat(FieldTheory/SeparableDegree): basic definition of separable degree of field extension",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/8117"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5mJOS8",
+              "createdAt": "2023-11-04T02:50:19Z",
+              "body": "",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f767c071f6c844bf7475aba4a5cc07337f711bd4"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "bf429d6642b7eb559a9468125ac9edcd5eef9a66"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "396f2c7ec322d55ab9455f3ee23cd7f23651a2c1"
+              }
+            },
+            {
+              "__typename": "ReviewRequestRemovedEvent",
+              "id": "RRRE_lADOFcwZ1c5usFy_zwAAAAKHij6w",
+              "createdAt": "2023-11-05T00:29:39Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjMxODY3ODI3",
+                "login": "kbuzzard"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "16a11b8334e39844c5b7922b0a69a2ffd0c7ada7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "dc69f9d4edcf3a702f716cb4c7360bcca51a1acd"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5q6w8o",
+              "createdAt": "2023-11-05T16:54:23Z",
+              "body": "I managed to modify the proofs of `IsSepClosed.lift` and `IsAlgClosed.lift`, get rid of `SubfieldWithHom`.\r\n\r\nI think maybe the next step is port the following things for `SubfieldWithHom` to `IntermediateField.Lifts` if they are useful and not already exist for `IntermediateField.Lifts`:\r\n- instance `LE`, `Inhabited`, `Preorder`\r\n- definition `maximalSubfieldWithHom`\r\n- theorem `le_def`, `compat`, `maximal_subfieldWithHom_chain_bounded`, `exists_maximal_subfieldWithHom`, `maximalSubfieldWithHom_is_maximal`\r\n- and `mem_maximalSubfieldWithHom_of_splits`\r\n\r\n(Note that `maximalSubfieldWithHom_eq_top` is specified for `IsAlgClosed` so it's not ported.) Then maybe we can remove `SubfieldWithHom` completely?",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5q60iC",
+              "createdAt": "2023-11-05T17:59:06Z",
+              "body": "That's nice! I've started a new file with minimal imports, made a new definition, and I'm adapting all lemmas about `IntermediateField.Lifts` and `SubfieldWithHom` to the new definition, with the aim to remove both eventually. The refactor shouldn't break the API so your modified proofs should work with minimal changes. Hopefully I'll submit a PR soon, but the normal closure PR will probably be delayed.\r\n",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5q7NfN",
+              "createdAt": "2023-11-06T00:36:01Z",
+              "body": "So I've experimented a bit and came to the conclusion that indeed we should stick to the IntermediateField.Lifts API and deprecate SubfieldWithHom. Working with IntermediateFields that automatically carry Field instances is definitely more convenient. Some constructions for Lifts could be more elegant if more APIs are available, e.g. [Subalgebra.iSupLift](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Algebra/Subalgebra/Basic.html#Subalgebra.iSupLift) and [Subalgebra.coe_iSup_of_directed](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Algebra/Subalgebra/Basic.html#Subalgebra.coe_iSup_of_directed), and defining the LE relation using `inclusion` could be better, but otherwise there isn't much to learn from the SubfieldWithHom counterpart. Since the proof of `maximalSubfieldWithHom_eq_top` is slow, it's desirable to remove it.\r\n\r\nAmong the declarations you listed:\r\n> - instance `LE`, `Inhabited`, `Preorder`\r\n> - definition `maximalSubfieldWithHom`\r\n> - theorem `le_def`, `compat`, `maximal_subfieldWithHom_chain_bounded`, `exists_maximal_subfieldWithHom`, `maximalSubfieldWithHom_is_maximal`\r\n> - and `mem_maximalSubfieldWithHom_of_splits`\r\n\r\n+ `LE` and `Preorder` are subsumed by `PartialOrder`, and `Inhabited` subsumed by `OrderBot`.\r\n\r\n+ `le_def` and `compat` are not important; `maximal_subfieldWithHom_chain_bounded` is basically `Lifts.exists_upper_bound` (which combines the three declarations above it)\r\n\r\n+ definition `maximalSubfieldWithHom` also doesn't need to exist as a definition; the existence of a maximal lift is just applying Zorn's lemma to `Lifts.exists_upper_bound`, and `Lifts.exists_lift_of_splits` basically shows that every maximal lift must contain every integral element whose minimal polynomial splits in the target field and is the counterpart of `mem_maximalSubfieldWithHom_of_splits`.\r\n\r\nTherefore, I think we could just remove `SubfieldWithHom` in another PR once this one is merged. To reduce diff, maybe you could revert the addition of `mem_maximalSubfieldWithHom_of_splits`?",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4f39cf088e61954a9842354e2094d3a16ecbc99f"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5q7Wnl",
+              "createdAt": "2023-11-06T01:31:32Z",
+              "body": "> To reduce diff, maybe you could revert the addition of `mem_maximalSubfieldWithHom_of_splits`?\r\n\r\nSure. I've committed one.\r\n\r\n> Since the proof of `maximalSubfieldWithHom_eq_top` is slow, it's desirable to remove it.\r\n\r\nMy attempt is to use `mem_maximalSubfieldWithHom_of_splits` to prove `maximalSubfieldWithHom_eq_top`, so that the latter is fast, but the former is slow. But since you said that:\r\n\r\n> `Lifts.exists_lift_of_splits` basically shows that every maximal lift must contain every integral element whose minimal polynomial splits in the target field and is the counterpart of `mem_maximalSubfieldWithHom_of_splits`.\r\n\r\n... so we can completely remove slow codes in favor of existing codes.\r\n\r\n> * definition `maximalSubfieldWithHom` also doesn't need to exist as a definition; the existence of a maximal lift is just applying Zorn's lemma to `Lifts.exists_upper_bound`\r\n\r\nAt the expense of typing `zorn_partialOrder Lifts.exists_upper_bound`. IMHO if there is a \"maximal something\" in the API, it makes people easier to find them.",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3a7649bada80197eb54bfe1f91f778291d9fd23f"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5mMszx",
+              "createdAt": "2023-11-06T09:19:53Z",
+              "body": "Thanks, LGTM!\r\n\r\nmaintainer merge",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5q9C79",
+              "createdAt": "2023-11-06T09:20:05Z",
+              "body": "🚀 Pull request has been placed on the maintainer queue by alreadydone.",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a815f4cc3be78f57b00b6b4854e2ed7db89ee944"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5POhVS",
+              "createdAt": "2023-11-06T15:26:01Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5eprK6",
+                "title": "[Merged by Bors] - refactor: golf IntermediateField.Lifts",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/8221"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5usFy_zwAAAAKK-hm3",
+              "createdAt": "2023-11-10T06:51:34Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABViJjTQ",
+                "name": "t-algebra"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5mxmmZ",
+              "createdAt": "2023-11-10T08:37:59Z",
+              "body": "Thanks :tada:\r\n\r\nbors merge",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5usFy_zwAAAAKLBpk3",
+              "createdAt": "2023-11-10T08:38:11Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5usFy_zwAAAAKLBpmo",
+              "createdAt": "2023-11-10T08:38:12Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5rnNe7",
+              "createdAt": "2023-11-10T10:07:34Z",
+              "body": "Pull request successfully merged into master.\n\nBuild succeeded:\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6822911201/job/18555813802)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6822911201/job/18555813434)\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6822911201/job/18555814179)",
+              "author": {
+                "login": "mathlib-bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5usFy_zwAAAAKLFBDx",
+              "createdAt": "2023-11-10T10:07:36Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5usFy_zwAAAAKLFBQ2",
+              "createdAt": "2023-11-10T10:07:42Z"
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5PUUI5",
+              "createdAt": "2023-11-10T23:38:38Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5fMSBB",
+                "title": "[Merged by Bors] - chore: remove SubfieldWithHom",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/8333"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

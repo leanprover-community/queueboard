@@ -1,0 +1,3981 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 588,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "MohanadAhmed"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "This file provides proves the SVD theorem which decomposes a real/complex matrix into left eigenvectors, singular values block diagonal matrix and right eigenvectors.\r\n\r\nAny matrix A (M × N) with rank r = A.rank and  with elements in ℝ or ℂ fields can be decompsed into the product of three matrices:\r\n$$A = USV$$\r\n* The three matrices are defined as\r\n  - $U$: an M × M matrix containing the left eigenvectors of the matrix\r\n  - $S$: an M × N matrix with an r × r block in the upper left corner with nonzero singular values\r\n  - $V$: an N × N matrix containing the right eigenvectors of the matrix\r\nNote that\r\n* $S$ is a block matrix $S = [S₁₁, S₁₂; S₂₁, S₂₂]$ with\r\n  - $S₁₁$: a diagonal r × r matrix and\r\n  - $S₁₂$ : r × (N - r) zero matrix, S₂₁ : (M - r) × r zero matrix and\r\n  - $S₂₂$: (M - r) × (N - r) zero matrix\r\n* $U$ is a block column matrix U = [U₁ U₂] with\r\n  - $U₁$ : a M × r containing left eigenvectors with nonzero singular values.\r\n  - $U₂$ : a M × (M - r) containing left eigenvectors with zero singular values.\r\n* $V$ is a block column matrix V = [V₁ V₂] with\r\n  - $V₁$ : a N × r containing right eigenvectors with nonzero singular values.\r\n  - $V₂$ : a M × (M - r) containing right eigenvectors with zero singular values.\r\n\r\nSince in mathlib the eigenvalues of hermitian matrices are defined in an \"arbitrary\" undetermined order, we begin by partition the singular values into zero and non-zero values. We partition the corresponding eigenvectors from AᴴA and AAᴴ using similar rearrangements. These are included in `SVD.svdReindex`. The basic API for Column and Row partitioned matrices is from `ColumnRowPartitioned`.\r\n\r\nWe then proceed to transfer some of the lemmas we need about eigenvector matrices (for example that they are unitary: i.e. inverse is conjugate transpose.). Note that since invertibility in mathlib is defined for square matrices while our matrices are partitioned i.e. N × (N₁ ⊕ N₂) and N ≃ (N ⊕ N₂), Lean cannot apply the Invertible definition. We workaround this were necessary.\r\n\r\nLemma `reduced_spectral_theorem` (`reduced_spectral_theorem'`) shows that AᴴA and AAᴴ, can be reduced to products containing only the non-zero singular eigenvectors. This is later used in proving the main SVD theroem. A few lemmas are provided about the invertibility of the non-zero singular values matrix: `svdσ_inv`, `σ_inv_μ_σ_inv_eq_one`, `IsUnit_det_svdσ`, `IsUnit_det_svdσ_mapK` and `svdσ_inv_mapK`.\r\n\r\nTo make relating left eigenvectors to right eigenvectors easier we define U₁ = AV₁σ⁻¹ while U₂ is obtained from the eigenvectors of (AAᴴ). This avoid a lengthy reindexing operation with many proofs. The vectors in U₂ have no such issue since they are multiplied by zero singular values anyway.\r\n\r\nCo-authored-by: Mohanad Ahmed <m.a.m.elhassan@gmail.com>\r\n\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 3,
+        "closed": false,
+        "closedAt": null,
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5nce54",
+              "body": "Sorry for the weeks of barely any contact. I finally have some real time to invest in reviewing. I hope I addressed all the open questions you still had.\r\n\r\nWe've been discussing this PR with the mathlib reviewer team, and I'm afraid that we concluded that this result still needs quite some work. Namely, we find it important to get the decomposition also for homomorphisms (specifically, elements of `Module.End`), and it seems better to first prove SVD for homomorphisms, and then derive the matrix result from that. Basically, the same approach as we already have for eigenvalues in mathlib.",
+              "createdAt": "2023-09-26T13:13:59Z",
+              "author": {
+                "login": "Vierkantor"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5ncv_o",
+              "body": "> Sorry for the weeks of barely any contact. I finally have some real time to invest in reviewing. I hope I addressed all the open questions you still had.\r\n> \r\n> We've been discussing this PR with the mathlib reviewer team, and I'm afraid that we concluded that this result still needs quite some work. Namely, we find it important to get the decomposition also for homomorphisms (specifically, elements of `Module.End`), and it seems better to first prove SVD for homomorphisms, and then derive the matrix result from that. Basically, the same approach as we already have for eigenvalues in mathlib.\r\n\r\n@Vierkantor \r\nCan you spell out what this means for this PR?\r\n\r\n",
+              "createdAt": "2023-09-26T13:53:22Z",
+              "author": {
+                "login": "MohanadAhmed"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5zw4c7",
+              "body": "@MohanadAhmed if you're interested in reviving this PR, let's discuss the plan on the [Zulip thread](https://leanprover.zulipchat.com/#narrow/stream/144837-PR-reviews/topic/PR.20.236042.20Singular.20Value.20Decomposition/near/407430848). \r\n\r\nIn the meantime I'm marking this as WIP since we'll plan to refactor a bit.",
+              "createdAt": "2024-02-13T18:58:16Z",
+              "author": {
+                "login": "j-loreaux"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "1565c01769830aa90e89b7b0fe0363df2b942acf",
+                "additions": 136,
+                "deletions": 0,
+                "committedDate": "2023-07-19T07:19:44Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3fb06d37b0a209e3e6cb8adc5f1414ebbc4924f4",
+                "additions": 11247,
+                "deletions": 3387,
+                "committedDate": "2023-07-19T07:21:19Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d032a14d0b6d02905536854fae548963c2fdfa75",
+                "additions": 10,
+                "deletions": 5,
+                "committedDate": "2023-07-19T07:29:45Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "512ae3ab5f28391bc4062646470248eb79c92807",
+                "additions": 20,
+                "deletions": 2,
+                "committedDate": "2023-07-19T14:00:01Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c4fed531931471fec88dd87f274ebbbd753a2a7c",
+                "additions": 1,
+                "deletions": 0,
+                "committedDate": "2023-07-19T14:02:01Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "fe5bcbf1d0b3c7c5377de77fd5333a24126041ba",
+                "additions": 121,
+                "deletions": 0,
+                "committedDate": "2023-07-19T19:25:29Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2be5943b7875a1036dd40591a285bb14c7c44109",
+                "additions": 45,
+                "deletions": 6,
+                "committedDate": "2023-07-19T19:33:03Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8c0514aed5b867467de128dd61af0c0893bfb571",
+                "additions": 595,
+                "deletions": 0,
+                "committedDate": "2023-07-20T01:34:30Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a3baa4cef3cecdab0ee3404332ed18060e791d92",
+                "additions": 65,
+                "deletions": 30,
+                "committedDate": "2023-07-20T03:12:41Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f79af7528a42ef69f5bc0044faf98a7af07552ec",
+                "additions": 60,
+                "deletions": 31,
+                "committedDate": "2023-07-20T08:00:27Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "08f6478ef3ea5c5ca1a71829039830eb44b41c4d",
+                "additions": 0,
+                "deletions": 28,
+                "committedDate": "2023-07-20T08:01:11Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7c14e7e582fd37a41f3b955c89c935f722f51870",
+                "additions": 124,
+                "deletions": 10,
+                "committedDate": "2023-07-21T14:05:52Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3e02177073b9b6c6672d1069fd4a710a397718aa",
+                "additions": 78,
+                "deletions": 16,
+                "committedDate": "2023-07-21T14:47:00Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8d32a2a5527915ab0cb4c78f54be7f727bebb995",
+                "additions": 7,
+                "deletions": 1,
+                "committedDate": "2023-07-21T14:52:47Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4d35b5bd9993347a9e0202d7e4dbde920835ab92",
+                "additions": 1,
+                "deletions": 2,
+                "committedDate": "2023-07-21T14:54:52Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d5ecd846c22ad8a022dbd904c904f467b96ea0aa",
+                "additions": 2,
+                "deletions": 24,
+                "committedDate": "2023-07-21T15:10:44Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "bd63ad371c7239f9dc550ea7dd09baef5422c411",
+                "additions": 39,
+                "deletions": 19,
+                "committedDate": "2023-07-21T15:21:06Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f61ebe698e18461cffd9779fd975796ca7227d61",
+                "additions": 6,
+                "deletions": 4,
+                "committedDate": "2023-07-21T15:28:54Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "35173a4e0f28f527913c7f10142f97ec8d6e7998",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-07-21T15:32:13Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f73fba8a50979dda72529048fb0763942fe496c7",
+                "additions": 7,
+                "deletions": 0,
+                "committedDate": "2023-07-21T16:45:29Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3275f5e2125df6591f93de66e6963cf365ab18d1",
+                "additions": 2,
+                "deletions": 1,
+                "committedDate": "2023-07-21T17:02:05Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "53569dd856f29eaeb04f8c7409ed1d38327bd78a",
+                "additions": 6,
+                "deletions": 14,
+                "committedDate": "2023-07-21T20:42:57Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "438fae588b5926fd7897a92521ac4f9c4853e295",
+                "additions": 10,
+                "deletions": 10,
+                "committedDate": "2023-07-21T20:51:21Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5ed356b3b3208fea55748e9223acc79dae3cd264",
+                "additions": 0,
+                "deletions": 13,
+                "committedDate": "2023-07-21T20:52:32Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7681902bf37568c5c8b5657b9dd34af16c38098c",
+                "additions": 5,
+                "deletions": 5,
+                "committedDate": "2023-07-21T21:01:07Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b05969a40e78c238e016fc4d96e773188d928e03",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-07-21T21:26:25Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c8efec7dc0aa536a31067b45c7360cc3ba64c4b2",
+                "additions": 2,
+                "deletions": 1,
+                "committedDate": "2023-07-21T21:39:39Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f5accd999f712fcc80e2d5711e28760c8a64d208",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-07-21T21:43:07Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d6d08e7ad1ace2cf2ac206d5e4c6f022b15b2b41",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-07-21T23:19:45Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "83780c11b0334b5a33ec8341ad75cd562d5715f3",
+                "additions": 1,
+                "deletions": 2,
+                "committedDate": "2023-07-21T23:23:04Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c543419b0a3995d00e14c10704bfe91e9486e3c9",
+                "additions": 31452,
+                "deletions": 25130,
+                "committedDate": "2023-08-09T22:28:15Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "cce35b960bc54e8446692f8ad18f3b87b889a2c9",
+                "additions": 3,
+                "deletions": 413,
+                "committedDate": "2023-08-09T22:37:27Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f5cd6bf229732df0c539cb997958588df367e44c",
+                "additions": 1,
+                "deletions": 6,
+                "committedDate": "2023-08-09T22:43:52Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ade7df42c4e97ad06c615fb25a0400dadc411b1b",
+                "additions": 22,
+                "deletions": 7,
+                "committedDate": "2023-08-09T23:06:52Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4588a15bdd1e627849ed8f685abc40aebdb59ca1",
+                "additions": 20,
+                "deletions": 4,
+                "committedDate": "2023-08-09T23:29:59Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "53be744e5fd75e8e8e66270875c4493f48ab7b9d",
+                "additions": 75,
+                "deletions": 83,
+                "committedDate": "2023-08-09T23:57:07Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "92cd8e376541dfd3909422c1c207082295272493",
+                "additions": 38,
+                "deletions": 77,
+                "committedDate": "2023-08-10T09:31:02Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "25bfaad2d1d720f82b1ee0ec84a0f0375783b2e5",
+                "additions": 9,
+                "deletions": 6,
+                "committedDate": "2023-08-10T09:37:01Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e26532300bef97e7dbceb8a03176c82475be4e01",
+                "additions": 2,
+                "deletions": 1,
+                "committedDate": "2023-08-10T09:39:10Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9abd787f1110b830e017e72562387f06c39dd859",
+                "additions": 32,
+                "deletions": 0,
+                "committedDate": "2023-08-10T11:04:54Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c679b9d674774690bd2fb0ae31634317616e0504",
+                "additions": 3412,
+                "deletions": 93,
+                "committedDate": "2023-08-10T11:47:10Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7ee46083624c259112d3c8d6652e00b4f30dc4a7",
+                "additions": 701,
+                "deletions": 526,
+                "committedDate": "2023-08-10T11:50:49Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8244c982b4a362127d9c1d2646e2f2480183b3ec",
+                "additions": 0,
+                "deletions": 3411,
+                "committedDate": "2023-08-10T11:57:12Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "25fbf12c180a4d5e31abc3c827ee126c1185d2a4",
+                "additions": 66,
+                "deletions": 110,
+                "committedDate": "2023-08-10T17:59:55Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d42e5ac1da31aa3d6d4b9d25486cd688376fb415",
+                "additions": 120,
+                "deletions": 51,
+                "committedDate": "2023-08-14T17:09:54Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d6ebb1ee515f295d99648e026263a3f0c741d718",
+                "additions": 21869,
+                "deletions": 14232,
+                "committedDate": "2023-08-16T23:39:40Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "67a019fe4487001f5cc22dddfb71caeeec610af5",
+                "additions": 36,
+                "deletions": 36,
+                "committedDate": "2023-08-16T23:53:21Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "defba7dc1daef9d9a80ff98e79ce64dc2d23800f",
+                "additions": 61,
+                "deletions": 18,
+                "committedDate": "2023-08-16T23:54:26Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9f1cf57148304a8de6435add03445a3580e24912",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-08-16T23:57:03Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0a34447b9495cb393d3f20eaebdbb8686c7a21e9",
+                "additions": 0,
+                "deletions": 49,
+                "committedDate": "2023-08-17T07:01:30Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8b7bafbeb269dd08b59d0d2a30ef6f5c4386cdcb",
+                "additions": 28699,
+                "deletions": 12420,
+                "committedDate": "2023-09-10T11:18:55Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a6dbaf0881c5c062279970ddc1f56f4c7b9c7c6c",
+                "additions": 3,
+                "deletions": 3,
+                "committedDate": "2023-09-10T11:31:33Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "fa4d8abfb11dbed70f53fd70b45c0bfda4b0f9f3",
+                "additions": 4,
+                "deletions": 6,
+                "committedDate": "2023-09-10T11:47:46Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d804fa5eb28742062037ce36d92e93e12b01e345",
+                "additions": 41,
+                "deletions": 45,
+                "committedDate": "2023-09-11T13:56:50Z",
+                "author": {
+                  "name": "MohanadAhmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7e930bc1cdd49d5fd9338c21ca30ccc11c228b28",
+                "additions": 51,
+                "deletions": 55,
+                "committedDate": "2023-09-11T14:37:55Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0e58e6c590779bf232e2116e41af1e4b9c460ffc",
+                "additions": 11,
+                "deletions": 23,
+                "committedDate": "2023-09-11T14:47:20Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8d76838843f2c7f49aa940a66714339d6928539f",
+                "additions": 0,
+                "deletions": 0,
+                "committedDate": "2023-09-11T14:56:17Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "bceb09db77415a8c5a2ec361eec23fb0c6d1aa16",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-11T14:56:27Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d070a08bfc80be7c077da68c8c9837083f66ad33",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-09-11T14:58:49Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "76ac35e94a131d45b9d1647962940ddd471b9ffe",
+                "additions": 11,
+                "deletions": 10,
+                "committedDate": "2023-09-18T20:37:15Z",
+                "author": {
+                  "name": "MohanadAhmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f1c0330596164fbd6d79ca7282cfce4833a5c34a",
+                "additions": 49,
+                "deletions": 47,
+                "committedDate": "2023-09-18T22:24:08Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "539bba8ad2cd499331c7820e02b5f7c7949a4e24",
+                "additions": 17,
+                "deletions": 16,
+                "committedDate": "2023-09-18T22:43:22Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8b11821b0785473a7c882f335999432664b25ad2",
+                "additions": 38,
+                "deletions": 39,
+                "committedDate": "2023-09-18T23:14:47Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8d7545d07edf3a0f7734498a0506c82c74f615a2",
+                "additions": 23,
+                "deletions": 35,
+                "committedDate": "2023-09-18T23:40:56Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b282b4f62cc46b32c0c248b867982f954fcdc65e",
+                "additions": 15,
+                "deletions": 15,
+                "committedDate": "2023-09-19T00:11:31Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2464b50ef7649bbe2fab3f640adbd5f59241d576",
+                "additions": 14820,
+                "deletions": 7183,
+                "committedDate": "2023-09-19T00:12:30Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8faf004a5b5abe30500c3a197c7a5552c6613905",
+                "additions": 966,
+                "deletions": 1150,
+                "committedDate": "2023-09-19T09:13:31Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "bfe97d77cb2bf4caa528ba798fec392b9830104a",
+                "additions": 16,
+                "deletions": 31,
+                "committedDate": "2023-09-19T09:26:38Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6e0e7a2dbb0964641e8df66c24d29d07a2654417",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-09-19T09:28:40Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3ab69866beceaf76cad2bd00f8b55b304f93d524",
+                "additions": 4,
+                "deletions": 4,
+                "committedDate": "2023-09-19T11:00:51Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f3e3fcc7f928ea70318e3898b8e4da4ade2f4da6",
+                "additions": 5,
+                "deletions": 4,
+                "committedDate": "2023-09-19T12:47:54Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d5ea17fb61e320cb5007e9183e9a01b076539678",
+                "additions": 12,
+                "deletions": 10,
+                "committedDate": "2023-09-19T13:39:40Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3add8a511418de3c23b6e9611d350a3b014f1bdf",
+                "additions": 8,
+                "deletions": 3,
+                "committedDate": "2023-09-19T23:32:38Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "75ac720839d5ff7a7e1af2100bdf466dff818279",
+                "additions": 24,
+                "deletions": 7,
+                "committedDate": "2023-09-20T00:01:55Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "aeddcbd4c7bf305baaacc43e9608839fa6ca881b",
+                "additions": 5,
+                "deletions": 7,
+                "committedDate": "2023-09-20T10:04:26Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7597925dbb3d562c13cca59cb61e644c7158b45d",
+                "additions": 5,
+                "deletions": 5,
+                "committedDate": "2023-09-20T12:35:54Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "001b09910b83adfcf649ba833334c49ea9ac9bda",
+                "additions": 1,
+                "deletions": 5,
+                "committedDate": "2023-09-20T12:37:43Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7b694a07d132e8a3ba156a7d1718ea3a275aef53",
+                "additions": 1591,
+                "deletions": 310,
+                "committedDate": "2023-09-20T16:41:52Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d2c2a76951f41ddfd4cbabceb1822941243d092f",
+                "additions": 0,
+                "deletions": 19,
+                "committedDate": "2023-09-20T17:05:30Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "77da59818aee5a7aa6d044641226e3b80e11b770",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-20T17:16:24Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8c2d63dc7e577479be9cc2901b931e4660407147",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-20T17:16:42Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b21f4171b0ca88191cd39669fdd2738fd7b0370b",
+                "additions": 84,
+                "deletions": 89,
+                "committedDate": "2023-09-20T22:49:05Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "34a136f4438a3a82bc42ea3059661a91eb787c54",
+                "additions": 9,
+                "deletions": 9,
+                "committedDate": "2023-09-20T22:52:51Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6312b8c47e0d0b85cafa815fd9c3bc39bffd8982",
+                "additions": 1309,
+                "deletions": 605,
+                "committedDate": "2023-09-21T21:21:15Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "52b9199a1be8302d4e743fef71c4f700e352d110",
+                "additions": 19,
+                "deletions": 13,
+                "committedDate": "2023-09-21T21:37:13Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2b4109f94f3944386267f0e9552ef52af78f781d",
+                "additions": 6,
+                "deletions": 6,
+                "committedDate": "2023-09-22T18:11:05Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "07b5beb4abfa2128544c72dad3246aabbfd21490",
+                "additions": 33,
+                "deletions": 8,
+                "committedDate": "2023-09-22T23:41:23Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b125ddc0f6380f168c4dbaf03bb2b03888372970",
+                "additions": 3616,
+                "deletions": 2617,
+                "committedDate": "2023-09-26T11:22:43Z",
+                "author": {
+                  "name": "Mohanad Ahmed",
+                  "email": "m.a.m.elhassan@gmail.com"
+                },
+                "statusCheckRollup": {
+                  "contexts": {
+                    "nodes": [
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAErF8VLw",
+                        "name": "Summary",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=6042&login=leanprover-community&repository=mathlib4"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-07-21T15:08:44Z",
+        "deletions": 0,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib.lean",
+              "additions": 2,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/LinearAlgebra/Matrix/SVD/Defs.lean",
+              "additions": 479,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/LinearAlgebra/Matrix/SVD/Reindex.lean",
+              "additions": 107,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "MohanadAhmed/svd",
+        "headRefOid": "b125ddc0f6380f168c4dbaf03bb2b03888372970",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5WG2sg",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+              "color": "e899cd",
+              "name": "WIP"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABFGXRbg",
+              "color": "c5c5c5",
+              "name": "please-adopt"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABViJjTQ",
+              "color": "33DBEC",
+              "name": "t-algebra"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5hpMBu",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "sgouezel"
+              },
+              "submittedAt": "2023-09-21T15:46:30Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hTYMu",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-09-19T05:58:05Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iAFmW",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Vierkantor"
+              },
+              "submittedAt": "2023-09-26T12:52:20Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hwVdu",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-22T14:17:31Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hrty3",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-09-21T23:21:24Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 6042,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5b4U0y",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-07-21T16:42:12Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5b4VIx",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-07-21T16:43:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5b4aDM",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-07-21T16:59:06Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5b54pC",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-07-21T22:20:18Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5dvRUp",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-08-10T20:24:09Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5d_Gmx",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-08-14T13:14:33Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5eEsqe",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-08-15T10:03:33Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5eEs5D",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-08-15T10:04:27Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5eTSwJ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-08-17T08:55:04Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e2vCC",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-08-23T11:47:36Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5gjc_L",
+              "body": "Here is my first round of feedback. I hope that soon I have time for the `Defs` file!",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Vierkantor"
+              },
+              "submittedAt": "2023-09-11T13:24:07Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5gkFKC",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-11T13:52:20Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5gkhpk",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-11T14:44:31Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5glkVN",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-11T17:08:03Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hHbdE",
+              "body": "Sorry for the intimidating amount of comments! You proved an important result, so I'd like to take the time to get this in the right shape.",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Vierkantor"
+              },
+              "submittedAt": "2023-09-15T17:35:25Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hH4BE",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-09-15T17:47:58Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hH4nh",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-09-15T17:49:55Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hH52F",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-09-15T17:52:57Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hRqzh",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-18T21:39:03Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hRsZe",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-18T21:45:08Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hRs8y",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-18T21:47:32Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hRuaX",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-18T21:53:35Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hRvvO",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-18T21:59:19Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hRyoF",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-18T22:12:30Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hTWV9",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-09-19T05:50:03Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hTYMu",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-09-19T05:58:05Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hVhY-",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-19T11:31:30Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hWETy",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-19T12:41:51Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hWLEf",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-19T12:55:36Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hjEp1",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-20T22:16:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hjFYR",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-20T22:19:47Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hjHcY",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-20T22:30:24Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hjJ9r",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-20T22:43:59Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hjMJO",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-20T22:56:26Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hmSSo",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-21T09:58:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hmwen",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-21T11:04:34Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hm0qF",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-21T11:13:53Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hpLjZ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "sgouezel"
+              },
+              "submittedAt": "2023-09-21T15:41:56Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hpMBu",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "sgouezel"
+              },
+              "submittedAt": "2023-09-21T15:46:30Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hpV4E",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-09-21T16:02:40Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hq6vy",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-21T20:19:30Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hrDtv",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-21T20:46:51Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hrVQr",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-21T21:42:17Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hrty3",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-09-21T23:21:24Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hwVdu",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-22T14:17:31Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hx1XK",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-22T18:22:57Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hy7eG",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "MohanadAhmed"
+              },
+              "submittedAt": "2023-09-22T23:43:00Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5h_7sa",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Vierkantor"
+              },
+              "submittedAt": "2023-09-26T12:32:07Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5h_-gs",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Vierkantor"
+              },
+              "submittedAt": "2023-09-26T12:37:54Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iAFmW",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Vierkantor"
+              },
+              "submittedAt": "2023-09-26T12:52:20Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LwBfw",
+                    "body": "This should mention `Matrix.mul_eq_one_comm`",
+                    "createdAt": "2023-07-21T16:42:12Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LwBsi",
+                    "body": "I think these results should go in the existing matrix rank file; and they might already exist there!",
+                    "createdAt": "2023-07-21T16:43:15Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LwE38",
+                    "body": "I presume you mean [this one](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Matrix/Rank.html). according to my looking they are not there (I did this search earlier when the proof was in lean 3 and again when I moved my proof to lean 4)",
+                    "createdAt": "2023-07-21T16:59:05Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LxCUH",
+                    "body": "What I mean is that you should add your results below the existing results in that file!",
+                    "createdAt": "2023-07-21T22:20:18Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5M7aOa",
+                    "body": "Does this generalize to `StarOrderedRing`?",
+                    "createdAt": "2023-08-10T20:24:09Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NJy1j",
+                    "body": "Yes. See #6587",
+                    "createdAt": "2023-08-15T10:03:33Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NGGCE",
+                    "body": "I don't understand the name of this def'n nor the names of the def'ns that follow it. Could you please expand the names?\r\nAlso, please add docstrings to all definitions.",
+                    "createdAt": "2023-08-14T13:14:32Z",
+                    "author": {
+                      "login": "jcommelin"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NJy_P",
+                    "body": "OK added some docstrings to the definitions",
+                    "createdAt": "2023-08-15T10:04:26Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NTQo2",
+                    "body": "This looks like a special case of [`finSumFinEquiv`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Logic/Equiv/Fin.html#finSumFinEquiv) to me, using `Fin.cast` to first turn `Fin M` into `Fin (A.rank + (M - A.rank))`",
+                    "createdAt": "2023-08-17T08:55:03Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NqKIy",
+                    "body": "Just for other people who pass by.!\r\nContrary to what eric says here, this is not a special case o `finSumFinEquiv`.  The permutation splitting `Fin (M)` is not any permutation. It must split the zero eigenvalues and and non-zero  eigenvalues alone. Instead of doing all the work in `{ i // eig \\neq 0 }` and `{ i // eig = 0 }` we recast back to `Fin (A.rank)` and `Fin (M - A.rank)` which are a nicer interface for the API of the SVD and it matches more closely what people do on paper when proving SVD or using it in another proof.",
+                    "createdAt": "2023-08-23T11:47:36Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxNN9",
+                    "body": "I agree with Mohanad, the type might be the same but the value is different. `finSumFinEquiv` would send the first `r` values to the left part of the sum and the rest to the right. This is a more specific operation.",
+                    "createdAt": "2023-09-11T13:06:17Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxGrb",
+                    "body": "I like to sort imports :)\r\n```suggestion\r\n\r\nimport Mathlib.Data.Matrix.ColumnRowPartitioned\r\nimport Mathlib.Data.Matrix.Rank\r\nimport Mathlib.LinearAlgebra.Matrix.SVD.svdReindex\r\n\r\n```",
+                    "createdAt": "2023-09-11T12:46:03Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxGxo",
+                    "body": "```suggestion\r\nimport Mathlib.Data.Matrix.Rank\r\nimport Mathlib.LinearAlgebra.Matrix.PosDef\r\n```",
+                    "createdAt": "2023-09-11T12:46:24Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxHMc",
+                    "body": "I don't mind how you spell your name, but I'd suggest keeping it consistent, in case any program tries to parse the author list. I went with capitalizing everything:\r\n```suggestion\r\nCopyright (c) 2023 Mohanad Ahmed. All rights reserved.\r\nReleased under Apache 2.0 license as described in the file LICENSE.\r\nAuthors: Mohanad Ahmed\r\n```",
+                    "createdAt": "2023-09-11T12:47:51Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxHQh",
+                    "body": "```suggestion\r\nCopyright (c) 2023 Mohanad Ahmed. All rights reserved.\r\n```",
+                    "createdAt": "2023-09-11T12:48:03Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxHg-",
+                    "body": "Since the path already contains `svd`, I'd suggest renaming the files as:\r\n```suggestion\r\nimport Mathlib.LinearAlgebra.Matrix.SVD.Defs\r\nimport Mathlib.LinearAlgebra.Matrix.SVD.Reindex\r\n```",
+                    "createdAt": "2023-09-11T12:48:53Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxJNV",
+                    "body": "Fixing a few typos:\r\n```suggestion\r\nThis file provides the SVD theorem which decomposes a real/complex matrix into left\r\neigenvectors, singular values block diagonal matrix and right eigenvectors.\r\n\r\nAny matrix A (M × N) with rank r = A.rank and with elements in the field ℝ or ℂ can be decomposed\r\ninto three matrices:\r\n  U: an M × M matrix containing the left eigenvectors of the matrix\r\n  S: an M × N matrix with an r × r block in the upper left corner with nonzero singular values\r\n  V: an N × N matrix containing the right eigenvectors of the matrix\r\nNote that\r\n  S is a block matrix S = [S₁₁, S₁₂; S₂₁, S₂₂] with\r\n  - S₁₁: a diagonal r × r matrix and\r\n  - S₁₂: r × (N - r) zero matrix, S₂₁ : (M - r) × r zero matrix and\r\n  - S₂₂: (M - r) × (N - r) zero matrix\r\n  U is a block column matrix U = [U₁ U₂] with\r\n  - U₁ : a M × r containing left eigenvectors with nonzero singular values.\r\n  - U₂ : a M × (M - r) containing left eigenvectors with zero singular values.\r\n  V is a block column matrix V = [V₁ V₂] with\r\n  - V₁ : a N × r containing right eigenvectors with nonzero singular values.\r\n  - V₂ : a M × (M - r) containing right eigenvectors with zero singular values.\r\n\r\nSince in mathlib the eigenvalues of hermitian matrices are defined in an \"arbitrary\" undetermined\r\norder, we begin by partitioning the singular values into zero and non-zero values. We partition the\r\ncorresponding eigenvectors from AᴴA and AAᴴ using similar rearrangements. These are included in\r\n`SVD.svdReindex`. The basic API for Column and Row partitioned matrices is from\r\n`ColumnRowPartitioned`.\r\n\r\nWe then proceed to transfer some of the lemmas we need about eigenvector matrices (for example that\r\nthey are unitary: i.e. inverse is conjugate transpose.). Note that since invertibility in mathlib is\r\ndefined for square matrices while our matrices are partitioned i.e. N × (N₁ ⊕ N₂) and N ≃ (N ⊕ N₂)\r\nLean cannot apply the Invertible definition. We work around this where necessary.\r\n\r\nLemma `reduced_spectral_theorem` (`reduced_spectral_theorem'`) shows that AᴴA and AAᴴ can be\r\nreduced to products containing only the non-zero singular eigenvectors. This is later used in\r\nproving the main SVD theorem. A few lemmas are provided about the invertibility of the non-zero\r\nsingular values matrix: `svdσ_inv`, `σ_inv_μ_σ_inv_eq_one`, `IsUnit_det_svdσ`,\r\n`IsUnit_det_svdσ_mapK` and `svdσ_inv_mapK`.\r\n\r\nTo make relating left eigenvectors to right eigenvectors easier we define U₁ = AV₁σ⁻¹ while U₂ is\r\nobtained from the eigenvectors of (AAᴴ). This avoid a lengthy reindexing operation with many proofs.\r\nThe vectors in U₂ have no such issue since they are multiplied by zero singular values anyway.\r\n```",
+                    "createdAt": "2023-09-11T12:53:18Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxJj9",
+                    "body": "We can generalize `𝕂 : Type` to any universe for free:\r\n```suggestion\r\nvariable {𝕂 : Type*} [IsROrC 𝕂] [DecidableEq 𝕂]\r\nvariable {M N : ℕ}\r\n```\r\n(also some whitespace fixes).",
+                    "createdAt": "2023-09-11T12:54:31Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxJ-O",
+                    "body": "```suggestion\r\nvariable {𝕂: Type*} [IsROrC 𝕂] [DecidableEq 𝕂]\r\nvariable {M N : ℕ}\r\n```",
+                    "createdAt": "2023-09-11T12:55:48Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxKPs",
+                    "body": "Some stylistic suggestions:\r\n```suggestion\r\nGiven a Fin M × Fin N we wish to define equivalences that allow us to move between the following\r\nrepresentations smoothly. Let R be the rank. Then:\r\n  Fin N ≃ (Fin R ⊕ Fin (N - R)) which can be achieved through\r\n  Fin N ≃ {Non-zero Eigs} ⊕ (Zero Eigs) ≃ Fin R ⊕ Fin (N - R)\r\n\r\n  Fin M ≃ (Fin R ⊕ Fin (M - R)) which can be achieved through\r\n  Fin M ≃ {Non-zero Eigs} ⊕ (Zero Eigs) ≃ Fin R ⊕ Fin (M - R)\r\n\r\n  Note that we know R ≤ MIN(M, N) -/\r\n```",
+                    "createdAt": "2023-09-11T12:56:39Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxK4O",
+                    "body": "You can have eigenvalues less than `0`, right? So `pos` should be `non_zero` here, like in `rank_eq_card_non_zero_eigs`.\r\n```suggestion\r\nlemma rank_eq_card_non_zero_eigs_conj_transpose_mul_self (A : Matrix (Fin M) (Fin N) 𝕂) :\r\n```",
+                    "createdAt": "2023-09-11T12:58:45Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Oxema",
+                    "body": "For the matrices of the form $A^HA$ and $AA^H$ we cannot have negative eigenvalues. These matrices are positive semidefinite. See [Matrix.posSemidef_self_mul_conjTranspose](https://leanprover-community.github.io/mathlib4_docs/Mathlib/LinearAlgebra/Matrix/PosDef.html#Matrix.posSemidef_self_mul_conjTranspose) and [Matrix.PosSemidef.eigenvalues_nonneg](https://leanprover-community.github.io/mathlib4_docs/Mathlib/LinearAlgebra/Matrix/PosDef.html#Matrix.PosSemidef.eigenvalues_nonneg). ",
+                    "createdAt": "2023-09-11T13:52:20Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxK7a",
+                    "body": "```suggestion\r\nlemma rank_eq_card_nonzero_eigs_self_mul_conj_transpose (A : Matrix (Fin M) (Fin N) 𝕂) :\r\n```",
+                    "createdAt": "2023-09-11T12:58:56Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxLF7",
+                    "body": "```suggestion\r\n  rw [← rank_conjTranspose_mul_self, IsHermitian.rank_eq_card_non_zero_eigs]\r\n```",
+                    "createdAt": "2023-09-11T12:59:26Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxLI5",
+                    "body": "```suggestion\r\n  rw [← rank_self_mul_conjTranspose, IsHermitian.rank_eq_card_non_zero_eigs]\r\n```",
+                    "createdAt": "2023-09-11T12:59:34Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxNXT",
+                    "body": "```suggestion\r\n  simp only [ne_eq, EmbeddingLike.apply_eq_iff_eq, Sum.inr.injEq, h]\r\n\r\nend Matrix\r\n```",
+                    "createdAt": "2023-09-11T13:06:47Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxOMl",
+                    "body": "Definitions should be in `camelCase`:\r\n```suggestion\r\nnoncomputable def finRankEquivEigsConjTransposeMulSelf (A : Matrix (Fin M) (Fin N) 𝕂) :\r\n```\r\n(also for the other `def`s in this file)",
+                    "createdAt": "2023-09-11T13:09:29Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxOlt",
+                    "body": "To match the name and the other definitions above and below, I'd put it in this direction: \r\n```suggestion\r\n    Fin (A.rank) ≃ {i // (isHermitian_transpose_mul_self A).eigenvalues i ≠ 0} :=\r\n  Fintype.equivFinOfCardEq (rank_eq_card_pos_eigs_conj_transpose_mul_self A)\r\n```",
+                    "createdAt": "2023-09-11T13:10:24Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OybSg",
+                    "body": "Okay\nThe downside of this is in the defs file were we will have `.symm` in a few places more",
+                    "createdAt": "2023-09-11T17:08:03Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxPOc",
+                    "body": "It's not an equivalence relation, but a type-theoretic object called an equivalence:\r\n```suggestion\r\n/-- For matrix A of size m × n and rank A.rank : we have an equivalence between elements of\r\n```\r\nOr you can use normal mathematical terminology:\r\n```suggestion\r\n/-- For matrix A of size m × n and rank A.rank : we have a bijection between elements of\r\n```",
+                    "createdAt": "2023-09-11T13:11:52Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxPYS",
+                    "body": "Please imagine I wrote the same suggestions as for the previous definition :)",
+                    "createdAt": "2023-09-11T13:12:23Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxQF3",
+                    "body": "```suggestion\r\n/-- For matrix of size m × n and rank A.rank : we have an equivalence between the elements\r\nof Fin n and the eigenvalues of the matrix Aᴴ⬝A, partitioned into\r\n- non-zero eigenvalues: (exactly A.rank) of them, see `fin_rank_equiv_eigs_conjTranspose_mul_self`\r\n- zero eigenvalues: (exactly n - A.rank) of them -/\r\n```",
+                    "createdAt": "2023-09-11T13:14:30Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxQx0",
+                    "body": "It's probably fine to use `apply` here, but usually it's better to avoid constructing data in tactic mode:\r\n```suggestion\r\n  let eₙᵣ : {i // ¬(isHermitian_transpose_mul_self A).eigenvalues i ≠ 0} ≃ Fin (N - A.rank) :=\r\n    Fintype.equivFinOfCardEq\r\n      by rw [Fintype.card_subtype_compl, Fintype.card_fin, rank_eq_card_pos_eigs_conj_transpose_mul_self]\r\n```",
+                    "createdAt": "2023-09-11T13:16:46Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxRAB",
+                    "body": "```suggestion\r\n  let eᵣ' : {i // (isHermitian_mul_conjTranspose_self A).eigenvalues i ≠ 0} ≃ Fin A.rank :=\r\n    Fintype.equivFinOfCardEq\r\n      by rw [rank_eq_card_pos_eigs_self_mul_conj_transpose]\r\n  let eₘᵣ : {i // ¬(isHermitian_mul_conjTranspose_self A).eigenvalues i ≠ 0} ≃\r\n      Fin (M - A.rank) :=\r\n    Fintype.equivFinOfCardEq\r\n      by rw [Fintype.card_subtype_compl, Fintype.card_fin, rank_eq_card_pos_eigs_self_mul_conj_transpose]\r\n```",
+                    "createdAt": "2023-09-11T13:17:23Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxRod",
+                    "body": "Since we want to say many things about this definition, how about a shorter name, like:\r\n```suggestion\r\nnoncomputable def eigenColumnEquiv (A: Matrix (Fin M) (Fin N) 𝕂) :\r\n```",
+                    "createdAt": "2023-09-11T13:19:27Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxRrU",
+                    "body": "```suggestion\r\nnoncomputable def eigenRowEquiv (A: Matrix (Fin M) (Fin N) 𝕂) :\r\n```",
+                    "createdAt": "2023-09-11T13:19:37Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxR23",
+                    "body": "```suggestion\r\nlemma eigen_eigenColumnEquiv_inr (A: Matrix (Fin M) (Fin N) 𝕂) (i: Fin (N - A.rank)):\r\n```",
+                    "createdAt": "2023-09-11T13:20:12Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxR_z",
+                    "body": "```suggestion\r\nlemma eigen_eigenRowEquiv_inr (A: Matrix (Fin M) (Fin N) 𝕂) (i: Fin (M - A.rank)) :\r\n```",
+                    "createdAt": "2023-09-11T13:20:39Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxSKL",
+                    "body": "How about making this a `simp` lemma?\r\n```suggestion\r\nfrom the second partition is obivuosly zero! -/\r\n@[simp]\r\n```",
+                    "createdAt": "2023-09-11T13:21:11Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxSME",
+                    "body": "```suggestion\r\nthe second partition is obivuosly zero! -/\r\n@[simp]\r\n```",
+                    "createdAt": "2023-09-11T13:21:17Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxTDB",
+                    "body": "I must say I don't see why we need `enz_inj` and `emz_inj`: injectivity of equivs and of `Sum.inr` is already known, so I'd prefer to use known injectivity results twice over this very specific application.",
+                    "createdAt": "2023-09-11T13:23:41Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OxwdZ",
+                    "body": "OK removed",
+                    "createdAt": "2023-09-11T14:44:31Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIJcr",
+                    "body": "The file name changed:\r\n```suggestion\r\n`Mathlib.LinearAlgebra.Matrix.SVD.Reindex`. The basic API for Column and Row partitioned matrices is from\r\n```",
+                    "createdAt": "2023-09-15T16:30:33Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIKVH",
+                    "body": "Could you explain in the module documentation how `μ` relates to `S`, `U` and `V`?",
+                    "createdAt": "2023-09-15T16:33:59Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PaEm6",
+                    "body": "## Question: @Vierkantor @eric-wieser \r\nIs there a way for me to see how the doc strings and module docs will appear after they are rendered. That will help me in writing better docs!\r\n\r\n## Comment\r\nI assume module documentation means the \"big comment at the top of the file\". I added the following:\r\n\r\nRecall that `AᴴA` and `AAᴴ` are Hermitian matrices `docs#Matrix.isHermitian_transpose_mul_self` and `docs#Matrix.isHermitian_mul_conjTranspose_self`. Hence, they are diagonalizable/decomposable as `AᴴA = V E Vᴴ` with `E` a matrix of eigenvalues of `AᴴA`. We can apply the reordering/partitioning from the last paragraph `eigenColumnEquiv` to the columns of `V`, rows and columns of `E` and rows of `Vᴴ`with out changing the value of the product `VEVᴴ`. With this in mind we have:\r\n    $$AᴴA = V × E × Vᴴ = [V₁ V₂] [μ 0; 0 0] [V₁ᴴ; V₂ᴴ] = V₁μV₁ᴴ$$\r\nwhere the matrix `μ` is a diagonal matrix containing the non-zero eigenvalues of the matrix AᴴA ordered so as to correspond to the eigenvectors of AᴴA. This is given the name `V₁_mul_μ_mul_V₁_conjTranspose` **reduced spectral theorem, right eigenvectors** below.\r\n\r\nWe can repeat a similar procedure with `AAᴴ = UEUᴴ` and obtain:\r\n    $$AAᴴ = U × E × Uᴴ = [U₁ U₂] [μ' 0; 0 0] [U₁ᴴ; U₂ᴴ] = U₁μ'U₁ᴴ$$\r\nwhere the matrix `μ'` is a diagonal matrix containing the non-zero eigenvalues of the matrix AAᴴ ordered so as to correspond to the eigenvectors of AAᴴ. This is given the name\r\n`U₁'_mul_μ'_mul_U₁'_conjTranspose` **reduced spectral theroem, left eigenvectors**\r\n\r\nNote that `μ` and `μ'` contain the same values in different orders.\r\n",
+                    "createdAt": "2023-09-20T22:16:15Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PaFGz",
+                    "body": "Note I also removed S and S` and used $\\xi$ since it looks more like $\\Sigma$",
+                    "createdAt": "2023-09-20T22:19:46Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Psw6t",
+                    "body": "> Is there a way for me to see how the doc strings and module docs will appear after they are rendered. That will help me in writing better docs!\r\n\r\nI don't know of an official, easy way to do this. But docstrings are \"just\" markdown, so if you would like a preview, you can write it in a `.md` file. I think VS Code can preview markdown by default, or at least it should be easy to find an extension for this. (I use Emacs for this purpose.)\r\n\r\n> I assume module documentation means the \"big comment at the top of the file\".\r\n\r\nPrecisely!",
+                    "createdAt": "2023-09-26T12:32:07Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PILuW",
+                    "body": "Let's instead put `svd` as a namespace for all these definitions. Especially because below you use the names `V₁` without adding `svd`. (We already follow the same approach for the LDL decomposition.)\r\n\r\n```suggestion\r\nnamespace SVD\r\n\r\n/-- The right eigenvectors of a matrix A corresponding to its non-zero eigenvaules -/\r\nnoncomputable def V₁ (A : Matrix (Fin M) (Fin N) 𝕂) : Matrix (Fin N) (Fin (A.rank)) 𝕂 :=\r\n```",
+                    "createdAt": "2023-09-15T16:38:16Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PO611",
+                    "body": "I prefer that the decomposed matrices be usable through the matrix. For example I want `A.svdV₁` to work. When I tried your suggestion of using a namespace I was not able to get this working. I had to use (Matrix.SVD.V₁ A). \r\n\r\nFor example if you try this you will get an error \r\n\r\n```lean\r\n\r\nvariable {𝕂 : Type*} [IsROrC 𝕂] [DecidableEq 𝕂]\r\nvariable {M N : ℕ}\r\n\r\nopen Matrix BigOperators\r\n\r\nnamespace Matrix\r\nnamespace SVD\r\nvariable (A : Matrix (Fin M) (Fin N) 𝕂)\r\n\r\nnoncomputable def V₁ :  Matrix (Fin N) (Fin (A.rank)) 𝕂 :=\r\n  ((reindex (Equiv.refl (Fin N)) (eigenColumnEquiv A))\r\n    (isHermitian_transpose_mul_self A).eigenvectorMatrix).toColumns₁\r\n\r\nnoncomputable def U₁ := A.SVD.V₁\r\n\r\nend SVD\r\nend Matrix\r\n\r\n```\r\n\r\nThe error says \r\n```\r\ninvalid field 'SVD', the environment does not contain 'Matrix.SVD'\r\n  A\r\nhas type\r\n  Matrix (Fin M) (Fin N) 𝕂\r\n```",
+                    "createdAt": "2023-09-18T21:39:03Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Psymi",
+                    "body": "That's indeed slightly annoying. However, you can still `open Matrix` and then `SVD.V₁ A` and `A.SVD.V₁` don't really make any difference. Here I would really advocate the consistency with `LDL` and the neater organisation over the notational advantages (especially since we're already quite far away from standard maths notation). So I'm going to insist on the `SVD` namespace.",
+                    "createdAt": "2023-09-26T12:37:53Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIMMu",
+                    "body": "Could you explain in the module documentation how σ relates to S, U and V?",
+                    "createdAt": "2023-09-15T16:39:56Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PaJ2e",
+                    "body": "I added the following:\r\n\r\nNote that we chose (arbitrarily) to favor the right-eigenvector order. Hence, the matrix `svdσ` is also the diagonal matrix whose entries are the square roots of the diagonals of `svdμ`. That is we define `svdξ = [svdσ, 0; 0 0]` with appropriate dimensions for the zero matrices. Further the following equation holds: `svdξᵀ * svdξ = [μ, 0; 0 0]`",
+                    "createdAt": "2023-09-20T22:56:25Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIOHp",
+                    "body": "What is the reason to define `U₁'` if `U₁` is indexed in a more useful way (as explained by the module documentation)? Do I understand correctly this is because `eigenColumnEquiv` and `eigenRowEquiv` result in different permutations?\r\n\r\nWhat do you think about defining a permutation `eigenRowToColumn` (or something similar) that we can reindex every statement with, and then we can delete the duplicate `U'` and `S'` etc?",
+                    "createdAt": "2023-09-15T16:47:04Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PRcGQ",
+                    "body": "U1' (with dash) is kind of a duplicate but it makes proving the `reduced_spectral_theroem'` (with dash) much easier. \r\nThere are two differences between U1 and U1':\r\n\r\n1. They do not share the same order because of how mathlib defines eigenvalues (some arbitrary order). Your proposed reordering can cure this difference.\r\n2. With repeated/duplicate eigenvalues each eigenvalue has an associated eigenspace with Dim > 1 and the eigenvectors can be any basis of that associated eigenspace. Hence the contents of the eigenvector matrices need not be the same, even after disregarding permutations. Thus, no reordering will clean this second issue.\r\n \r\nHence why I chose to have two definitions.",
+                    "createdAt": "2023-09-19T11:31:30Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIOK4",
+                    "body": "```suggestion\r\n/-- The left eigenvectors of a matrix A corresponding to its zero eigenvalues, obtained directly\r\n```",
+                    "createdAt": "2023-09-15T16:47:19Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIOMY",
+                    "body": "```suggestion\r\n/-- The left eigenvectors of a matrix A corresponding to its non-zero eigenvalues, obtained directly\r\n```",
+                    "createdAt": "2023-09-15T16:47:26Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIOOH",
+                    "body": "```suggestion\r\n/-- The left eigenvectors of a matrix A corresponding to its non-zero eigenvalues, obtained as the\r\n```",
+                    "createdAt": "2023-09-15T16:47:31Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIO6I",
+                    "body": "```suggestion\r\nfrom the eigendecomposition of the AAᴴ matrix. The order of these eigenvectors is not relevant as\r\n```",
+                    "createdAt": "2023-09-15T16:49:36Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIPFk",
+                    "body": "I don't understand the remark that \"Hence we do not have `svdU₂`\": that's exactly this definition, no?",
+                    "createdAt": "2023-09-15T16:50:18Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PO72d",
+                    "body": "It should have been \"Hence we do not need to have `svdU₂'`\" (with a dash/prime) on the U₂. In the definitions, I guess you noticed the asymmetry there is V1 V2 S S' U1 U1' U2.\r\nBut there is no `U2'` (with a dash/prime). If we attempt to obtain U2' (with dash) from their counterparts V2 by taking their image under the matrix A we get zero vectors. This is because they fall in the null space of the A matrix",
+                    "createdAt": "2023-09-18T21:45:08Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIP9l",
+                    "body": "Is the fact that `U` and `V` are unitary formalized? I don't see the word `unitary` used below.",
+                    "createdAt": "2023-09-15T16:53:42Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PO8QP",
+                    "body": "Yes but indirectly. They are unitary as in human maths but not Unitary by Mathlib's definition which requires a \"square\" matrix with the same indices used for the rows and columns",
+                    "createdAt": "2023-09-18T21:47:32Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PR3gW",
+                    "body": "I have added to the doc string saying the Mathlib's definiton of unitaryGroup cannot be applied here because it requires the row and column indices to be the same. Note this is the same as the problem with matrix inverse which requires a square matrix. This is why I added  `Matrix.fromColumns_mul_fromRows_eq_one_comm` to the API in `ColumnRowPartitions.lean` to work around this issue.",
+                    "createdAt": "2023-09-19T12:55:35Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIQes",
+                    "body": "The name `U_columns` suggests something like `∀ j, (fun i => U i j) = x`. How about:\r\n```suggestion\r\nlemma reindex_eigenRowEquiv_eigenvectorMatrix (A : Matrix (Fin M) (Fin N) 𝕂) :\r\n  ((reindex (Equiv.refl (Fin M)) (eigenRowEquiv A))\r\n    (isHermitian_mul_conjTranspose_self A).eigenvectorMatrix) = fromColumns A.svdU₁' A.svdU₂ := by\r\n```",
+                    "createdAt": "2023-09-15T16:56:01Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PRzGU",
+                    "body": "My experience with mathlib names so far is that they are difficult to remember (sometimes even for the people who wrote the lemma themselves unless they are in the same \"frame\" of mind they where in at time of writing). One possible reason for this is because I do not understand how it works.\r\n\r\nI made this particular change. but how do I arrive at it, to save future reviewers some time?\r\nThe naming convention document here https://leanprover-community.github.io/contribute/naming.html\r\nHow do I reach from the theorem to the name you came up with by following that documnet (or others if there are any)?",
+                    "createdAt": "2023-09-19T12:41:50Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Ps3Ar",
+                    "body": "The important part for this question is the section on [Identifiers and theorem names](https://leanprover-community.github.io/contribute/naming.html#identifiers-and-theorem-names), especially the part that starts\r\n\r\n> Often the name of theorem simply describes the conclusion:\r\n\r\nThe algorithm described there for coming up with a name works essentially as follows.\r\n\r\nFirst write down the names in the conclusion, joined by underscores.\r\n> `reindex_refl_Fin_eigenRowEquiv_isHermitian_mul_conjTranspose_self_eigenvectorMatrix_eq_fromColumns_svdU₁'_svdU₂`\r\nIf this name is clear and short enough, you're done! Otherwise, you can:\r\n * shorten by eliminating parts that wouldn't be confusing to leave out. For example `eigenRowEquiv` is about the eigenvalues of `A⬝Aᴴ` so we can leave out the `isHermitian_mul_conjTranspose_self` part below. Similarly if we don't do anything with the columns we might as well leave out `refl_Fin`:\r\n> `reindex_eigenRowEquiv_eigenvectorMatrix_eq_fromColumns_svdU₁'_svdU₂`\r\n * shorten by eliminating the right hand side of the equality (as a rule of thumb the right hand side is easy to guess: generally you want one way to write things, so `B` should be obvious from `A = B`)\r\n> `reindex_eigenRowEquiv_eigenvectorMatrix`\r\n * expand by adding hypotheses, separated by `_of_`. Imagine if this result required `A` to be nonzero, then we'd write `reindex_eigenRowEquiv_eigenvectorMatrix_of_ne_zero`.\r\n\r\nFollowing the naming convention really is important because experienced Mathlib users can find results in a different part of the library by just writing what they think this result should be called. It cost much less to guess a name than to switch to your browser and type a query into a search engine like Loogle.\r\n\r\nIn the end it's going to be a matter of taste which parts to emphasize and which to leave out; there is no one right answer. But following the naming convention is very helpful.",
+                    "createdAt": "2023-09-26T12:52:20Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIRXN",
+                    "body": "It's a neat trick to prove similar results by stating them as a conjunction and then applying tactics to each of them. But here I'd accept the duplication, so delete this theorem and prove each `Vᵢ_conjTranspose_mul_Vᵢ` separately. Especially since the only shared part consists of some parts of the `simp_rw` call.",
+                    "createdAt": "2023-09-15T16:59:38Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PO9NH",
+                    "body": "The recent change in the behaviours of `simp_rw` and simp to \"fail if no progress\" made this proof less compact. You will notice from the changes I have made based on this suggestion that the 4 `simp_rw` now are almost identical, and if simp could just skip some of the lemmas it cannot apply these 4 proofs could be squashed together.",
+                    "createdAt": "2023-09-18T21:53:35Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIRpA",
+                    "body": "I suppose this is the statement that `V` is unitary. Could you add a similar result for `V * Vᴴ`?",
+                    "createdAt": "2023-09-15T17:00:54Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PO-Fj",
+                    "body": "OK I added one",
+                    "createdAt": "2023-09-18T21:59:19Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIR5q",
+                    "body": "Deleting `V_conjTranspose_mul_V` above will also allow us to use its name here:\r\n```suggestion\r\nlemma V_conjTranspose_mul_V (A : Matrix (Fin M) (Fin N) 𝕂) :\r\n```",
+                    "createdAt": "2023-09-15T17:02:02Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PISBh",
+                    "body": "Why not simply:\r\n```suggestion\r\n    A.svdVᴴ  *  A.sdvV = 1 := by\r\n```",
+                    "createdAt": "2023-09-15T17:02:31Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PO_82",
+                    "body": "It will require a bit more unfolding/rewriting.\r\nAlso I defined V much later than V1 and V2.\r\nAnyway I made this change.",
+                    "createdAt": "2023-09-18T22:12:30Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PISKq",
+                    "body": "Again here I'd split the conjunction into three theorems.",
+                    "createdAt": "2023-09-15T17:03:15Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PISYk",
+                    "body": "I don't know what `σpos` means in the name, why not copy the statement closely?\r\n```suggestion\r\nlemma S_toBlocks₁₁ (A : Matrix (Fin M) (Fin N) 𝕂) :\r\n    A.svdS.toBlocks₁₁ = A.svdμ := by\r\n```",
+                    "createdAt": "2023-09-15T17:04:14Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PITVp",
+                    "body": "Isn't the left hand side exactly `A.svdS`? Then I would restate this (and the same for `S'`) as:\r\n```suggestion\r\nlemma fromBlocks_μ_zero_zero_zero (A : Matrix (Fin M) (Fin N) 𝕂) :\r\n  fromBlocks A.svdμ 0 0 0 = A.svdS := by\r\n```",
+                    "createdAt": "2023-09-15T17:07:12Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PaGk4",
+                    "body": "I got rid of S and now have `μ_block` and `μ'_block`",
+                    "createdAt": "2023-09-20T22:30:24Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIT4U",
+                    "body": "```suggestion\r\nlemma reindex_eigenColumnEquiv_eigenvectorMatrix (A : Matrix (Fin M) (Fin N) 𝕂) :\r\n```",
+                    "createdAt": "2023-09-15T17:09:32Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIUVc",
+                    "body": "For decompositions we still follow the rule that the \"more complicated expression\" goes to the left. So:\r\n```suggestion\r\n    A.svdV₁  *  (A.svdμ.map (algebraMap ℝ 𝕂))  *  A.svdV₁ᴴ = Aᴴ  *  A := by\r\n```",
+                    "createdAt": "2023-09-15T17:11:35Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIUko",
+                    "body": "We indicate theorems with a popularly known name by writing their name in bold above. So something like:\r\n```suggestion\r\n/-- **Reduced spectral theorem**, right eigenvector version. -/\r\nlemma V₁_mul_μ_mul_V₁_conjTranspose (A : Matrix (Fin M) (Fin N) 𝕂) :\r\n```",
+                    "createdAt": "2023-09-15T17:12:39Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIVD1",
+                    "body": "As above:\r\n```suggestion\r\n/-- **Reduced spectral theorem**, left eigenvector version. -/\r\nlemma U₁'_mul_μ'_mul_U₁'_conjTranspose (A : Matrix (Fin M) (Fin N) 𝕂) :\r\n    A.svdU₁'  *  (A.svdμ'.map (algebraMap ℝ 𝕂))  *  A.svdU₁'ᴴ = A  *  Aᴴ := by\r\n```",
+                    "createdAt": "2023-09-15T17:14:58Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIVJ-",
+                    "body": "If you want to keep `U₁'` around (see the comment on `U₁'`), could you also add the `U₁` (with no `'`) version?",
+                    "createdAt": "2023-09-15T17:15:27Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PkLZ4",
+                    "body": "OK I added a version for U1 (without the dash/prime). It is called `U₁_mul_μ_mul_U₁_conjTranspose`",
+                    "createdAt": "2023-09-22T23:43:00Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIVlp",
+                    "body": "It looks like you're using this result in two forms: 3 times showing the eigenvalue is not zero (but that's true by definition of `z`!) and 1 time showing that the eigenvalue is nonnegative. So I'd simply show that all eigenvalues of `A^H * A` are nonnegative, and rename to `eigenvalues_transpose_mul_self_nonneg`.\r\n\r\nWith those modifications, this belongs in an earlier file, probably soon after `Matrix.PosSemidef.eigenvalues_nonneg`.",
+                    "createdAt": "2023-09-15T17:17:36Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PcPWZ",
+                    "body": "That would be the direct combination of  [Matrix.PosSemidef.eigenvalues_nonneg](https://leanprover-community.github.io/mathlib4_docs/Mathlib/LinearAlgebra/Matrix/PosDef.html#Matrix.PosSemidef.eigenvalues_nonneg) and [Matrix.posSemidef_conjTranspose_mul_self](https://leanprover-community.github.io/mathlib4_docs/Mathlib/LinearAlgebra/Matrix/PosDef.html#Matrix.posSemidef_conjTranspose_mul_self). Does that need to be a separate lemma?",
+                    "createdAt": "2023-09-21T09:58:21Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pcind",
+                    "body": "I mean what you are saying is exactly the following:\r\n\r\n```lean\r\nlemma xeigs_nonneg' (A : Matrix (Fin M) (Fin N) 𝕂) : \r\n    ∀ i, 0 ≤ ((isHermitian_transpose_mul_self A).eigenvalues i) := \r\n  Matrix.PosSemidef.eigenvalues_nonneg (Matrix.posSemidef_conjTranspose_mul_self _)\r\n```",
+                    "createdAt": "2023-09-21T11:04:33Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIW-3",
+                    "body": "For example based on my remark on `eig_vals_ne_zero_pos`, this should simplify to something like (untested):\r\n```suggestion\r\n  apply Real.sqrt_ne_zero.mpr i.prop\r\n```",
+                    "createdAt": "2023-09-15T17:23:03Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PaITo",
+                    "body": "If I understand what you are suggesting I don't think this will work directly as you describe it. The indirect effect of the double reindexing I did is to hide the inner prop (which says the eigenvalue ne zero). Recall that we reindex first from `Fin N` to `{i // eig ~= 0} \\oplus {i // eig = 0}` then we reindex again to Fin r \\oplus Fin (N - r)\r\nI think the cost of getting it back from under these definitions will be longer than what I am doing now. ",
+                    "createdAt": "2023-09-20T22:43:59Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PclGR",
+                    "body": "On trying a bit harder it seems I can access the underlying proof which appears in InfoView as proof_2\r\n\r\n```lean\r\napply (Real.sqrt_ne_zero _).mpr\r\napply ((finRankEquivEigsConjTransposeMulSelf A).1 i).prop\r\n```",
+                    "createdAt": "2023-09-21T11:13:53Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PfZcx",
+                    "body": "So I guess I was able to implement your suggestion. The difference is now I have this term three times:\r\n\r\n```lean\r\n  (Real.sqrt_ne_zero (eigenvalues_conjTranspose_mul_self_nonneg _)).2\r\n      ((finRankEquivEigsConjTransposeMulSelf A).1 i).prop)\r\n```\r\nIn terms of your suggestion it is fewer by 2 lines discounting the lemmas that will be moved into PR #7312 \r\nSo I will go with it",
+                    "createdAt": "2023-09-21T21:42:16Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIX12",
+                    "body": "As for `V`:\r\n* I suppose this is the statement that U is unitary. Could you add a similar result for `U * Uᴴ`?\r\n```suggestion\r\nlemma U_conjTranspose_mul_U (A : Matrix (Fin M) (Fin N) 𝕂) :\r\n  A.svdUᴴ * A.svdU = 1 := by\r\n```",
+                    "createdAt": "2023-09-15T17:27:12Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIX72",
+                    "body": "Why not simply:\r\n```suggestion\r\n    Function.Injective (fun x : Matrix m (Fin N) 𝕂 => x  * A.svdV) := by\r\n```",
+                    "createdAt": "2023-09-15T17:27:41Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIYuo",
+                    "body": "This is true for much more general reasons: if the matrix is square we could directly use [`IsUnit.mul_right_injective`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Group/Units.html#IsUnit.mul_right_injective). So: could you prove the general statement `Matrix.mul_right_injective_of_inv` saying that `A * B = 1` implies the map `fun M => M * A` is injective, and the same on the left?",
+                    "createdAt": "2023-09-15T17:31:29Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIY0K",
+                    "body": "I don't see a `conjTranspose` in the theorem?\r\n```suggestion\r\nlemma mul_V_injective (A : Matrix (Fin M) (Fin N) 𝕂) {m : Type} :\r\n```",
+                    "createdAt": "2023-09-15T17:31:53Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIY6W",
+                    "body": "To make this easier to find:\r\n```suggestion\r\n/-- **Singular Value Decomposition Theorem**\r\n```",
+                    "createdAt": "2023-09-15T17:32:20Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIZGZ",
+                    "body": "As for `reduced_spectral_theorem`:\r\n```suggestion\r\ntheorem U_mul_S_mul_V_conjTranspose (A : Matrix (Fin M) (Fin N) 𝕂) :\r\n    A.svdU  *  A.svdS  *  A.svdVᴴ = A := by\r\n```",
+                    "createdAt": "2023-09-15T17:33:13Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIchE",
+                    "body": "This will be formatted as markdown, so should be at least\r\n```suggestion\r\n  * U: an M × M matrix containing the left eigenvectors of the matrix\r\n  * S: an M × N matrix with an r × r block in the upper left corner with nonzero singular values\r\n  * V: an N × N matrix containing the right eigenvectors of the matrix\r\n```\r\nto prevent it all going on one line!\r\n\r\nI'd also recommend you either write `M × N matrix` as lean code (`` `Matrix M N 𝕂` ``) or as LaTeX (`$M × N$ matrix`). Same for all the mathematical expressions in the comments.",
+                    "createdAt": "2023-09-15T17:47:58Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIc7V",
+                    "body": "```suggestion\r\n- non-zero eigenvalues: (exactly A.rank) of them see `fin_rank_equiv_eigs_mul_conjTranspose`\r\n```\r\n(this typo is in many places)",
+                    "createdAt": "2023-09-15T17:49:55Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PIdkm",
+                    "body": "```suggestion\r\nlemma rank_eq_card_pos_eigs_conjTranspose_mul_self (A: Matrix (Fin M) (Fin N) 𝕂) :\r\n```\r\nand similarly throughout",
+                    "createdAt": "2023-09-15T17:52:57Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PQCeB",
+                    "body": "```suggestion\r\nfrom the second partition is obviously zero! -/\r\n```",
+                    "createdAt": "2023-09-19T05:49:44Z",
+                    "author": {
+                      "login": "jcommelin"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PQCgt",
+                    "body": "```suggestion\r\nthe second partition is obviously zero! -/\r\n```",
+                    "createdAt": "2023-09-19T05:49:58Z",
+                    "author": {
+                      "login": "jcommelin"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PQDwY",
+                    "body": "I see that a lot of these multiplications are double-spaced.\r\n```suggestion\r\nlemma U₁_conjTranspose_mul_U₁ (A : Matrix (Fin M) (Fin N) 𝕂) : A.svdU₁ᴴ * A.svdU₁ = 1 := by\r\n```\r\nI think that with a regex you can search for double spaces that are preceded by a non-space. Please make them single spaced.",
+                    "createdAt": "2023-09-19T05:57:30Z",
+                    "author": {
+                      "login": "jcommelin"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PeCdM",
+                    "body": "I am completely confused by this docstring. To me, singular values of a matrix `A` have to do with the successive maximum expansion rates of the matrix, so I don't see how left or right eigenvectors of the matrix `A` would appear in a singular value decomposition.\r\n\r\nAlso, you should probably recall the definition of the singular values, as there are various definitions (notably do you have `r` singular values, or `min M N` of them, or infinitely many of them but all zero after step `r`).",
+                    "createdAt": "2023-09-21T15:41:56Z",
+                    "author": {
+                      "login": "sgouezel"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PfOH4",
+                    "body": "1. The singular values for me are square roots of eigenvalues of AHA and AAH. They are also what remains of the matrix transformation if we rotate the source and target vector spaces until the transformation is diagonal.\r\n\r\n2. The Singular Value Decomposition is a generalization of the Eigendecompositon. We sometimes abuse terminology and call the left singular vectors left eigenvectors and similarly for the right singular vectors.\r\n\r\nIf we write left singular vector in place of left eigenvectors and right singular vector in place of right eigenvectors, does that work for you?\r\n\r\n```\r\n* U: an `M × M` matrix containing the left singular vector of the matrix\r\n* ξ: an `M × N` matrix with an `r × r` block in the upper left corner with nonzero singular values\r\n* V: an `N × N` matrix containing the right singular vectorof the matrix\r\n ```\r\n\r\n3. I did not define a function for singular values. I only defined the matrix of singular values which has the same dimensions as the original matrix A. It is also partitioned such that it is upper left block of size $r \\times r$ contains the $r$ non-zero singular values.\r\n\r\nI have no Idea what the maximum expansion rate of a matrix is.",
+                    "createdAt": "2023-09-21T20:46:51Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PeCwU",
+                    "body": "Why did you put a `[DecidableEq 𝕂]` assumption?",
+                    "createdAt": "2023-09-21T15:42:52Z",
+                    "author": {
+                      "login": "sgouezel"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PeJCL",
+                    "body": "Probably `IsROrC` should `extend DecidableEq`, since we already have `DecidableEq Real` and `DecidableEq Complex` instances.",
+                    "createdAt": "2023-09-21T16:02:40Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PfIeG",
+                    "body": "Throughout the PR you will find comparisons against zero for example:\r\n\r\n```lean\r\nlemma rank_eq_card_pos_eigs_conjTranspose_mul_self (A: Matrix (Fin M) (Fin N) 𝕂) :\r\n    A.rank = Fintype.card {i // (isHermitian_transpose_mul_self A).eigenvalues i ≠ 0} := by\r\n  rw [← rank_conjTranspose_mul_self, IsHermitian.rank_eq_card_non_zero_eigs]\r\n```\r\n\r\nMy understanding is this requires decidable equality to work.",
+                    "createdAt": "2023-09-21T20:19:30Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PfoKq",
+                    "body": "#7315 looks to be a good solution here, as it seems we had this pattern elsewhere too.",
+                    "createdAt": "2023-09-21T23:21:24Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PeDDs",
+                    "body": "the names in mathlib have to convey a meaning. In general, they are longer and more expressive than the names we would use in papers (which are just notations), because they have to be compatible with the whole library.",
+                    "createdAt": "2023-09-21T15:43:43Z",
+                    "author": {
+                      "login": "sgouezel"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PigY4",
+                    "body": "```suggestion\r\nlemma eigen_eigenRowEquiv_inr (A : Matrix (Fin M) (Fin N) 𝕂) (i : Fin (M - A.rank)) :\r\n```\r\nand in all the lemmas / variables lines in this file",
+                    "createdAt": "2023-09-22T14:17:31Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PjePa",
+                    "body": "Done!",
+                    "createdAt": "2023-09-22T18:22:56Z",
+                    "author": {
+                      "login": "MohanadAhmed"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjYwNjAxMzY=",
+              "login": "MohanadAhmed"
+            },
+            {
+              "id": "MDQ6VXNlcjIxMTY1NzA=",
+              "login": "Vierkantor"
+            },
+            {
+              "id": "MDQ6VXNlcjg5MjA1OTg=",
+              "login": "j-loreaux"
+            },
+            {
+              "id": "MDQ6VXNlcjQyNTI2MA==",
+              "login": "eric-wieser"
+            },
+            {
+              "id": "MDQ6VXNlcjE2ODg1MzM=",
+              "login": "alexjbest"
+            },
+            {
+              "id": "MDQ6VXNlcjU2MzY3MDU=",
+              "login": "jcommelin"
+            },
+            {
+              "id": "MDQ6VXNlcjEwODE4NDM0",
+              "login": "sgouezel"
+            },
+            {
+              "id": "MDQ6VXNlcjQ3Nzk1Ng==",
+              "login": "kim-em"
+            }
+          ]
+        },
+        "state": "OPEN",
+        "statusCheckRollup": {
+          "contexts": {
+            "nodes": [
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAErF8VLw",
+                "name": "Summary",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=6042&login=leanprover-community&repository=mathlib4"
+              }
+            ]
+          }
+        },
+        "title": "feat(LinearAlgebra/Matrix/SVD): Singular Value Decomposition of R or C Matrices",
+        "updatedAt": "2024-11-18T18:22:34Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/6042",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5b4U0y",
+              "createdAt": "2023-07-21T16:42:12Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5b4VIx",
+              "createdAt": "2023-07-21T16:43:15Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sPYXxzwAAAAJVBSQR",
+              "createdAt": "2023-08-06T00:52:14Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sPYXxzwAAAAJVBSQT",
+              "createdAt": "2023-08-06T00:52:14Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sPYXxzwAAAAJVBXUp",
+              "createdAt": "2023-08-06T01:15:26Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABViJjTQ",
+                "name": "t-algebra"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5sPYXxzwAAAAJXjAJ2",
+              "createdAt": "2023-08-10T12:18:46Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5sPYXxzwAAAAJXjUr-",
+              "createdAt": "2023-08-10T12:27:12Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sPYXxzwAAAAJXjUsK",
+              "createdAt": "2023-08-10T12:27:12Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "UnsubscribedEvent"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sPYXxzwAAAAJXxFpl",
+              "createdAt": "2023-08-10T18:04:21Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5sPYXxzwAAAAJXxu2b",
+              "createdAt": "2023-08-10T18:23:13Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5dvRUp",
+              "createdAt": "2023-08-10T20:24:09Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5d_Gmx",
+              "createdAt": "2023-08-14T13:14:32Z",
+              "body": "",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5sPYXxzwAAAAJZNH1S",
+              "createdAt": "2023-08-14T13:14:46Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sPYXxzwAAAAJZNH1d",
+              "createdAt": "2023-08-14T13:14:46Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5sPYXxzwAAAAJZXhRn",
+              "createdAt": "2023-08-14T17:10:29Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sPYXxzwAAAAJZXhRw",
+              "createdAt": "2023-08-14T17:10:29Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sPYXxzwAAAAJZXhRy",
+              "createdAt": "2023-08-14T17:10:29Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5sPYXxzwAAAAJZYTT6",
+              "createdAt": "2023-08-14T17:33:03Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5N95ff",
+              "createdAt": "2023-08-15T10:02:20Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5X9QWq",
+                "title": "[Merged by Bors] - feat: star self dot product eq zero and kernel lemmas apply to matrices not just vectors",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/6587"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5eTSwJ",
+              "createdAt": "2023-08-17T08:55:03Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c5sPYXxzwAAAAJfcubX",
+              "createdAt": "2023-08-25T10:01:27Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjIxMTY1NzA=",
+                "login": "Vierkantor"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "AssignedEvent",
+              "id": "AE_lADOFcwZ1c5sPYXxzwAAAAJn8QMn",
+              "createdAt": "2023-09-11T12:50:17Z",
+              "assignee": {
+                "id": "MDQ6VXNlcjIxMTY1NzA=",
+                "login": "Vierkantor"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5gjc_L",
+              "createdAt": "2023-09-11T12:46:03Z",
+              "body": "Here is my first round of feedback. I hope that soon I have time for the `Defs` file!",
+              "author": {
+                "login": "Vierkantor"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5hHbdE",
+              "createdAt": "2023-09-15T16:30:33Z",
+              "body": "Sorry for the intimidating amount of comments! You proved an important result, so I'd like to take the time to get this in the right shape.",
+              "author": {
+                "login": "Vierkantor"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5sPYXxzwAAAAJrDPxc",
+              "createdAt": "2023-09-15T17:35:40Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sPYXxzwAAAAJrDPxh",
+              "createdAt": "2023-09-15T17:35:40Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5hH4BE",
+              "createdAt": "2023-09-15T17:47:58Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5hH4nh",
+              "createdAt": "2023-09-15T17:49:54Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5hH52F",
+              "createdAt": "2023-09-15T17:52:57Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "BaseRefChangedEvent"
+            },
+            {
+              "__typename": "BaseRefChangedEvent"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5OeU8J",
+              "createdAt": "2023-09-19T00:07:12Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5an5Fh",
+                "title": "[Merged by Bors] - feat (Data/Matrix/Blocks): simp lemmas for toBlocks of diagonal matrices",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/7249"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5hTWV9",
+              "createdAt": "2023-09-19T05:49:16Z",
+              "body": "",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5hTYMu",
+              "createdAt": "2023-09-19T05:57:30Z",
+              "body": "",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5OfiyJ",
+              "createdAt": "2023-09-20T00:17:39Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5aucmj",
+                "title": "[Merged by Bors] - feat: injectivity of multiplication with matrices whose product is 1",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/7266"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5sPYXxzwAAAAJtlNFn",
+              "createdAt": "2023-09-20T22:58:27Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sPYXxzwAAAAJtlNFz",
+              "createdAt": "2023-09-20T22:58:27Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sPYXxzwAAAAJtlNF2",
+              "createdAt": "2023-09-20T22:58:27Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5sPYXxzwAAAAJtlgyp",
+              "createdAt": "2023-09-20T23:15:05Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5hpLjZ",
+              "createdAt": "2023-09-21T15:41:55Z",
+              "body": "",
+              "author": {
+                "login": "sgouezel"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5hpMBu",
+              "createdAt": "2023-09-21T15:42:52Z",
+              "body": "",
+              "author": {
+                "login": "sgouezel"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5Oh7i2",
+              "createdAt": "2023-09-21T21:06:49Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5a7nxM",
+                "title": "[Merged by Bors] - feat: eigenvalues of AᴴA and AAᴴ are non-negative",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/7312"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5hwVdu",
+              "createdAt": "2023-09-22T14:17:31Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nce54",
+              "createdAt": "2023-09-26T13:13:59Z",
+              "body": "Sorry for the weeks of barely any contact. I finally have some real time to invest in reviewing. I hope I addressed all the open questions you still had.\r\n\r\nWe've been discussing this PR with the mathlib reviewer team, and I'm afraid that we concluded that this result still needs quite some work. Namely, we find it important to get the decomposition also for homomorphisms (specifically, elements of `Module.End`), and it seems better to first prove SVD for homomorphisms, and then derive the matrix result from that. Basically, the same approach as we already have for eigenvalues in mathlib.",
+              "author": {
+                "login": "Vierkantor"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5ncv_o",
+              "createdAt": "2023-09-26T13:53:22Z",
+              "body": "> Sorry for the weeks of barely any contact. I finally have some real time to invest in reviewing. I hope I addressed all the open questions you still had.\r\n> \r\n> We've been discussing this PR with the mathlib reviewer team, and I'm afraid that we concluded that this result still needs quite some work. Namely, we find it important to get the decomposition also for homomorphisms (specifically, elements of `Module.End`), and it seems better to first prove SVD for homomorphisms, and then derive the matrix result from that. Basically, the same approach as we already have for eigenvalues in mathlib.\r\n\r\n@Vierkantor \r\nCan you spell out what this means for this PR?\r\n\r\n",
+              "author": {
+                "login": "MohanadAhmed"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "UnassignedEvent"
+            },
+            {
+              "__typename": "AssignedEvent",
+              "id": "AE_lADOFcwZ1c5sPYXxzwAAAAK-6Ii6",
+              "createdAt": "2024-02-13T18:55:22Z",
+              "assignee": {
+                "id": "MDQ6VXNlcjg5MjA1OTg=",
+                "login": "j-loreaux"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5zw4c7",
+              "createdAt": "2024-02-13T18:58:16Z",
+              "body": "@MohanadAhmed if you're interested in reviving this PR, let's discuss the plan on the [Zulip thread](https://leanprover.zulipchat.com/#narrow/stream/144837-PR-reviews/topic/PR.20.236042.20Singular.20Value.20Decomposition/near/407430848). \r\n\r\nIn the meantime I'm marking this as WIP since we'll plan to refactor a bit.",
+              "author": {
+                "login": "j-loreaux"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5sPYXxzwAAAAK-6QQU",
+              "createdAt": "2024-02-13T18:59:03Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sPYXxzwAAAAK-6QQX",
+              "createdAt": "2024-02-13T18:59:03Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sPYXxzwAAAAOSPjSo",
+              "createdAt": "2024-11-18T18:22:24Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABFGXRbg",
+                "name": "please-adopt"
+              }
+            },
+            {
+              "__typename": "UnassignedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

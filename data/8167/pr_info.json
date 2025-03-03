@@ -1,0 +1,1848 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 521,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "sebzim4500"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "feat: Add new `grw` tactic for rewriting using inequalities.\r\n\r\nCo-authored-by: @hrmacbeth, @digama0  \r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n- [x] depends on: #8796\r\n```lean\r\nexample (x y z w : ℝ) (h₁ : x < z) (h₂ : w ≤ y + 4) (h₃ : Real.exp z < 5 * w) :\r\n    Real.exp x < 5 * (y + 4) := by\r\n  grw [h₁, ← h₂]\r\n  exact h₃\r\n```\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 8,
+        "closed": false,
+        "closedAt": null,
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5tI2eY",
+              "body": "The PR description here says it is still a work in progress. Do you want to update that?",
+              "createdAt": "2023-11-29T01:14:08Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5tLhiB",
+              "body": "> The PR description here says it is still a work in progress. Do you want to update that?\r\n\r\nYes. There are still features I want to add in the future but this PR is mergeable in my opinion.",
+              "createdAt": "2023-11-29T11:43:22Z",
+              "author": {
+                "login": "sebzim4500"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5thHC6",
+              "body": "Hi @sebzim4500 , today @hrmacbeth and I sat down and reviewed this code, resulting in some modifications and improvements in 329cbf51 that I have taken the liberty of pushing directly to the branch. Don't hesitate to speak up if you disagree or want clarification on the changes here. Summary of changes: \r\n\r\n* Use `IO.Ref` for persisting state through `withRwRulesSeq` instead of adding a `StateT` variant of the function\r\n* Make `grw` transparently call `rw` when the hypothesis is an equality\r\n  * thus `withRwRulesSeqState` becomes redundant and can be removed\r\n* Inline/remove `grwHyp` into `grwAtLocal` and `grw` into `grwAtTarget`, rename `runGrw` to `grw`\r\n* To avoid making too many assumptions about the inputs, `grw` core does not change any mvars, instead it returns a proof whose type is an implication in the specified direction.\r\n* Interchange `withRwRulesSeq` and `withLocation`; this means `grw [a, b] at h1 h2` is equivalent to `grw [a] at h1 h2; grw [b] at h1 h2` instead of `grw [a, b] at h1; grw [a, b] at h2`, which matches how `rw` works and also makes the intermediate states between commas more sensible. (Previously using `grw [a, b] at *` would generate a large number of goals in the intermediate states because the same syntax is being tagged many times.)\r\n* Use tactic state for persisting information rather than an `IO.Ref` or `StateT`. Besides being simpler to implement, this is also consistent with the `rw` tactic.\r\n  * Downside: we do not track the fvar of the hypothesis being rewritten, so in theory a different hypothesis with the same name can jump in halfway through a rewrite chain (although examples that do this are extremely contrived)\r\n  * Downside: Side goals come out in reverse order, i.e. we have `main goal, side goals for b, side goals for a` when doing `grw [a, b]`\r\n  * Both of these are consistent with the `rw` tactic though, which we considered more important.\r\n* Pass a template to `gcongr`, to improve the speed (and also catch some bugs).\r\n* `dischargeSideGoal` is the same discharger used in `gcongr` itself, this is made the default in #8796\r\n* `dischargeMainGoal` is replaced by `gcongrForward` with the specified `rule`\r\n  * `gcongrForward` overlaps significantly with the `grw_weaken` attribute; the two have been merged and `grw_weaken` removed.\r\n* The `progress` return value of `gcongr` is ignored - we don't really care if `gcongr` does nothing because it is being used on subgoals\r\n* remove unnecessary partial and private from definitions\r\n* add more docs\r\n* Added some more tests\r\n* reduced imports of test file\r\n\r\n@hrmacbeth will push some more test files shortly but otherwise we support merging it. There are still some TODOs remaining, but they can be addressed in a follow-up PR:\r\n\r\n* The `grw` lemmas are stored in a big bag and all applied to the goal. This should be replaced with some discrimination tree indexing or a lookup on the head symbol like in `gcongr`, this implementation does not scale and will likely become a problem if this tactic starts getting used widely (which we expect to happen, it's a very useful tactic).\r\n* The attribute is not checked at application time, it is just a `LabelAttr`. We would like it to enforce some structure, both to make it easier for the user to apply the tag correctly, and also to improve the performance and precision of the tactic itself; currently it has some hacks to guess the structure of the lemma but these can be easily fooled.",
+              "createdAt": "2023-12-03T07:30:15Z",
+              "author": {
+                "login": "digama0"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5tqUWi",
+              "body": "This PR/issue depends on:\n* ~~leanprover-community/mathlib4#8796~~\nBy **[Dependent Issues](https://github.com/z0al/dependent-issues)** (🤖). Happy coding!\n<!-- By Dependent Issues (Action) - DO NOT REMOVE -->",
+              "createdAt": "2023-12-05T00:47:08Z",
+              "author": {
+                "login": "leanprover-community-mathlib4-bot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6fPf1N",
+              "body": "I would love to have this tactic in Mathlib! Is anyone planning to work on this?",
+              "createdAt": "2025-02-20T14:18:59Z",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "fb88bd8b5dabdfd415c62dc6e1683f5db6668ae3",
+                "additions": 339,
+                "deletions": 0,
+                "committedDate": "2023-11-11T23:06:31Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "23b34e2cfa00b07e55f8fdad65f4fc5af64c38a6",
+                "additions": 23,
+                "deletions": 0,
+                "committedDate": "2023-11-12T00:41:49Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6df96c6a1968e63b4f0eff81b387631d382a115c",
+                "additions": 55,
+                "deletions": 18,
+                "committedDate": "2023-11-12T01:00:26Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b79b26338a8e05877c0e43f5b023d9f6fb0d956a",
+                "additions": 3,
+                "deletions": 0,
+                "committedDate": "2023-11-12T01:06:15Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "77482ba8f9f548e3a51dd7af45c46ed11378b95a",
+                "additions": 9,
+                "deletions": 13,
+                "committedDate": "2023-11-12T01:07:45Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "cde0fd05ae4e72b1357c390f4607c1b1b4b77dc8",
+                "additions": 44,
+                "deletions": 1,
+                "committedDate": "2023-11-12T12:07:02Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "891419717c4e965de1606cef4255032b833c7297",
+                "additions": 6,
+                "deletions": 5,
+                "committedDate": "2023-11-12T18:35:48Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "674879e719e6a06f66b099ed823d8856deffbf5d",
+                "additions": 39,
+                "deletions": 35,
+                "committedDate": "2023-11-13T11:27:07Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2886e842e3d4f1784e840756be70906072025239",
+                "additions": 23,
+                "deletions": 13,
+                "committedDate": "2023-11-13T13:24:57Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c921493f19bb9f3441f62d4e8de7134f7c8ee798",
+                "additions": 52,
+                "deletions": 25,
+                "committedDate": "2023-11-13T15:16:08Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "baac643e333a90568b3fca451193a41bcf233305",
+                "additions": 27,
+                "deletions": 24,
+                "committedDate": "2023-11-14T22:30:06Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5e9eb9c386a18db2a344fd12bc5a04d50c04454b",
+                "additions": 5,
+                "deletions": 7,
+                "committedDate": "2023-11-14T22:45:29Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7423c05254eecddc94b9eded7657591f9c25b1ac",
+                "additions": 5,
+                "deletions": 17,
+                "committedDate": "2023-11-14T23:24:48Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e08b0fb3feecced90f3397dd22da7068e72f243b",
+                "additions": 31,
+                "deletions": 12,
+                "committedDate": "2023-11-15T10:51:51Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3571af6acc82b7aea933af3ba262f39592b87654",
+                "additions": 49,
+                "deletions": 42,
+                "committedDate": "2023-11-15T18:27:00Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d46c6b493916acc724b774ddbc59242fcdd3d85b",
+                "additions": 37,
+                "deletions": 34,
+                "committedDate": "2023-11-16T10:58:33Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ad348b10d98e081923c19d6baac4131ee0ceafe5",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-11-16T11:14:33Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "666cfbf1afa838d5be771d29b0b258fe323df343",
+                "additions": 78,
+                "deletions": 72,
+                "committedDate": "2023-12-03T04:54:06Z",
+                "author": {
+                  "name": "Mario Carneiro",
+                  "email": "di.gama@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ee6fb820d88c9db4bacde264bff6107e7a6cddcb",
+                "additions": 38003,
+                "deletions": 21676,
+                "committedDate": "2023-12-03T05:17:19Z",
+                "author": {
+                  "name": "Mario Carneiro",
+                  "email": "di.gama@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "329cbf5142dda778b16fe7fbf7455a066ffe00a2",
+                "additions": 174,
+                "deletions": 253,
+                "committedDate": "2023-12-03T07:17:08Z",
+                "author": {
+                  "name": "Mario Carneiro",
+                  "email": "di.gama@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "73219df0477a6f9b1acfaeac4af55ccf2b24838b",
+                "additions": 9,
+                "deletions": 5,
+                "committedDate": "2023-12-03T15:03:32Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9f3db4acda1953584297ede7d177c2297f071e8a",
+                "additions": 11,
+                "deletions": 4,
+                "committedDate": "2023-12-03T15:59:03Z",
+                "author": {
+                  "name": "Mario Carneiro",
+                  "email": "di.gama@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "924ce8c6804402fbdc6418148214159c22ca1108",
+                "additions": 83,
+                "deletions": 15,
+                "committedDate": "2023-12-03T18:16:44Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "70ffd7ac9d5ab5c58237b4073444126570c49b78",
+                "additions": 6,
+                "deletions": 1,
+                "committedDate": "2023-12-04T04:16:46Z",
+                "author": {
+                  "name": "Mario Carneiro",
+                  "email": "di.gama@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "850ac367b9287f1610efcf2b2c2674cb5500e87b",
+                "additions": 0,
+                "deletions": 7,
+                "committedDate": "2023-12-04T10:23:17Z",
+                "author": {
+                  "name": "Sebastian Zimmer",
+                  "email": "sebastian.zim@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b30d0473362c0640a7f6b582597a38125cbe80f6",
+                "additions": 5358,
+                "deletions": 3086,
+                "committedDate": "2023-12-05T01:14:47Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9d4041979c77bae43d22a86ac907892469afc4ad",
+                "additions": 7,
+                "deletions": 1,
+                "committedDate": "2023-12-06T01:17:17Z",
+                "author": {
+                  "name": "Mario Carneiro",
+                  "email": "di.gama@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "94457cd2719f6c3378a25a504225abfa891a07cf",
+                "additions": 46,
+                "deletions": 32,
+                "committedDate": "2023-12-06T10:48:03Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a53bfac086fb052e4acb06e762d42101c96b74f0",
+                "additions": 1,
+                "deletions": 2,
+                "committedDate": "2023-12-06T22:55:50Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0c2f8ea613b827eb15322e8a8d4e60967a88a382",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-12-07T19:56:02Z",
+                "author": {
+                  "name": "Heather Macbeth",
+                  "email": "25316162+hrmacbeth@users.noreply.github.com"
+                },
+                "statusCheckRollup": {
+                  "contexts": {
+                    "nodes": [
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAE-CAnmw",
+                        "name": "Add ready-to-merge label",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/7822849922/job/21342726043"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAE-CAm7g",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/7822849921/job/21342725870"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAE-CAmtA",
+                        "name": "Add delegated label",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/7822849922/job/21342725812"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAErGAgZA",
+                        "name": "Summary",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=8167&login=leanprover-community&repository=mathlib4"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-11-03T21:27:33Z",
+        "deletions": 3,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib.lean",
+              "additions": 3,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Data/Int/ModEq.lean",
+              "additions": 4,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Tactic.lean",
+              "additions": 3,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic/GCongr/Core.lean",
+              "additions": 7,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Tactic/GRW.lean",
+              "additions": 67,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic/GRW/Core.lean",
+              "additions": 179,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic/GRW/Lemmas.lean",
+              "additions": 40,
+              "deletions": 0
+            },
+            {
+              "path": "test/GRW.lean",
+              "additions": 218,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "sebzim4500/rewrite-inequality",
+        "headRefOid": "0c2f8ea613b827eb15322e8a8d4e60967a88a382",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5ek6VD",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c7P265b",
+              "color": "f9d0c4",
+              "name": "awaiting-author"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c7mTAET",
+              "color": "DA6D43",
+              "name": "modifies-tactic-syntax"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+              "color": "f99094",
+              "name": "merge-conflict"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+              "color": "33DBEC",
+              "name": "t-meta"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5pf-Jj",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-12-07T11:50:06Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nLSQV",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-11-14T23:51:03Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5py1DQ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "digama0"
+              },
+              "submittedAt": "2023-12-11T11:34:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5pyVdy",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Vierkantor"
+              },
+              "submittedAt": "2023-12-11T11:10:22Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5vZ2z5",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "fpvandoorn"
+              },
+              "submittedAt": "2024-02-08T00:10:08Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5pjjxN",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2023-12-07T19:50:47Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5m4wcb",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "github-actions"
+              },
+              "submittedAt": "2023-11-12T00:42:15Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 8167,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": [
+                {
+                  "login": "lambda-fairy"
+                }
+              ]
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5m4wcb",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "github-actions"
+              },
+              "submittedAt": "2023-11-12T00:42:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nLOs_",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-11-14T23:32:53Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nLQM2",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-11-14T23:40:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nLQTn",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-11-14T23:40:54Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nLQ9G",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-11-14T23:44:16Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nLRhA",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-11-14T23:47:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nLRt-",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-11-14T23:48:14Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nLSQV",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-11-14T23:51:03Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5o-4Ju",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2023-12-03T17:19:39Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5pbfK_",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-12-06T23:05:32Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5pbfeE",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-12-06T23:06:56Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5pbfw8",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-12-06T23:08:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5pe85u",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "sebzim4500"
+              },
+              "submittedAt": "2023-12-07T10:11:44Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5pfZWG",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-12-07T10:49:01Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5pfczE",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "digama0"
+              },
+              "submittedAt": "2023-12-07T10:53:44Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5pfgMQ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "digama0"
+              },
+              "submittedAt": "2023-12-07T10:58:34Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5pf-Jj",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-12-07T11:50:06Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5pjjxN",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "hrmacbeth"
+              },
+              "submittedAt": "2023-12-07T19:50:47Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5pyVdy",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Vierkantor"
+              },
+              "submittedAt": "2023-12-11T11:10:22Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5py0ig",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "digama0"
+              },
+              "submittedAt": "2023-12-11T11:32:59Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5py1DQ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "digama0"
+              },
+              "submittedAt": "2023-12-11T11:34:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5vZ2z5",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "fpvandoorn"
+              },
+              "submittedAt": "2024-02-08T00:10:08Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5S3nJJ",
+                    "body": "**[imports]** <sub>reported by [reviewdog](https://github.com/reviewdog/reviewdog) :dog:</sub><br>\n```suggestion\n```\n",
+                    "createdAt": "2023-11-12T00:42:15Z",
+                    "author": {
+                      "login": "github-actions"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5S3nJK",
+                    "body": "**[imports]** <sub>reported by [reviewdog](https://github.com/reviewdog/reviewdog) :dog:</sub><br>\n```suggestion\nimport Mathlib.Tactic.GeneralizeProofs\nimport Mathlib.Tactic.Group\n```\n",
+                    "createdAt": "2023-11-12T00:42:15Z",
+                    "author": {
+                      "login": "github-actions"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5TDjdQ",
+                    "body": "```suggestion\r\n        -- let processId (id : Syntax) : TacticM Unit := do\r\n```\r\nremove?",
+                    "createdAt": "2023-11-14T23:32:53Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5TDky7",
+                    "body": "```suggestion\r\nlemma rewrite_sub {α : Type} {X Y Z W : Set α} (h₁ : X ⊆ Y) (h₂ : Z ⊆ X) (h₃ : Y ⊆ W) :\r\n```\r\netc",
+                    "createdAt": "2023-11-14T23:40:15Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5TDk6J",
+                    "body": "These are only for internal use.\r\n```suggestion\r\nnamespace Mathlib.Tactic.GRW\r\n```",
+                    "createdAt": "2023-11-14T23:40:54Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5TDld-",
+                    "body": "Does `commitIfNoEx` do what you want here?",
+                    "createdAt": "2023-11-14T23:44:16Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5TDl9-",
+                    "body": "Could you add some explanation of the `isTarget` parameter? ",
+                    "createdAt": "2023-11-14T23:47:15Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5TDmJm",
+                    "body": "```suggestion\r\n      -- We can't use replaceMainGoal, since withTacticInfoContext prunes the solved goals so there\r\n```",
+                    "createdAt": "2023-11-14T23:48:14Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5TDmpl",
+                    "body": "I would recommend splitting out the `atLocal` and `atTarget` code into separate declarations (possibly at `MetaM` rather than `TacticM`). It will be more comprehensible, and down the track someone will probably want the MetaM plumbing available for use inside another tactic.",
+                    "createdAt": "2023-11-14T23:51:02Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5UOxTA",
+                    "body": "```suggestion\r\n```",
+                    "createdAt": "2023-12-03T17:19:39Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5UhjsH",
+                    "body": "Should this be counting only *explicit* arguments? I'm considering a relation which has some trailing typeclass arguments (as an extreme case, `MonoidHom`!)",
+                    "createdAt": "2023-12-06T23:05:32Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5UnGDu",
+                    "body": "It's consistent with the behaviour of `gcongr`.  (Maybe we should eventually enforce that, by moving this function to the `gcongr` file and using it there, e.g. [here](https://github.com/leanprover-community/mathlib4/blob/9a694d3f79f81f812c7ff3d1e39934df8a64bda6/Mathlib/Tactic/GCongr/Core.lean#L162), [here](https://github.com/leanprover-community/mathlib4/blob/9a694d3f79f81f812c7ff3d1e39934df8a64bda6/Mathlib/Tactic/GCongr/Core.lean#L190). [here](https://github.com/leanprover-community/mathlib4/blob/9a694d3f79f81f812c7ff3d1e39934df8a64bda6/Mathlib/Tactic/GCongr/Core.lean#303).)",
+                    "createdAt": "2023-12-07T19:50:46Z",
+                    "author": {
+                      "login": "hrmacbeth"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5UhkBj",
+                    "body": "This is going to catch all sorts of unwanted things like timeouts, isn't it?",
+                    "createdAt": "2023-12-06T23:06:56Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Uj9Tj",
+                    "body": "I'm not sure, I can see the same pattern being used in other tactics though (e.g. `gcongr`)\r\n\r\nWhat would you recommend instead?\r\n",
+                    "createdAt": "2023-12-07T10:11:43Z",
+                    "author": {
+                      "login": "sebzim4500"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5UkJUB",
+                    "body": "It looks like there's no good answer here (though maybe @digama0 knows of one).",
+                    "createdAt": "2023-12-07T10:49:00Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5UkKqe",
+                    "body": "this is not really something that should be solved here, it's endemic to the whole tactic infrastructure. Maybe we could change the `tryCatch` implementation for `TacticM` to not catch timeouts and other abort-level commands?",
+                    "createdAt": "2023-12-07T10:53:44Z",
+                    "author": {
+                      "login": "digama0"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5UkL-q",
+                    "body": "In fact, this is the current behavior:\r\n```lean\r\n  /--\r\n  If `catchRuntimeEx = false`, then given `try x catch ex => h ex`,\r\n  an runtime exception occurring in `x` is not handled by `h`.\r\n  Recall that runtime exceptions are `maxRecDepth` or `maxHeartbeats`.\r\n  -/\r\n  catchRuntimeEx : Bool := false\r\n```",
+                    "createdAt": "2023-12-07T10:58:34Z",
+                    "author": {
+                      "login": "digama0"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Ukdu0",
+                    "body": "I think that must be a recent change: thanks for digging!",
+                    "createdAt": "2023-12-07T11:50:06Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5UhkYD",
+                    "body": "I would assume this can be proven with `BddAbove.mono`? Or is that not imported?",
+                    "createdAt": "2023-12-06T23:08:21Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Uxhgk",
+                    "body": "```suggestion\r\nlemma rewrite_mem {α : Type} {a : α} {X Y : Set α} (h₁ : a ∈ X) (h₂ : X ⊆ Y) : a ∈ Y := h₂ h₁\r\n```",
+                    "createdAt": "2023-12-11T10:31:33Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Uxhku",
+                    "body": "```suggestion\r\n  let descr := \"A lemma describing how to convert the first explicit argument into the target type, possibly\r\nintroducing side goals. These side goals will be solved with `gcongr`\"\r\n```",
+                    "createdAt": "2023-12-11T10:31:47Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5UxiEV",
+                    "body": "Does \"the other arguments\" refer only to the explicit arguments, or even implicit arguments (that are not found by unification or instance synthesis?)",
+                    "createdAt": "2023-12-11T10:33:26Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5UxkMV",
+                    "body": "It wasn't clear to me what `rule` is supposed to be here.\r\n```suggestion\r\nWhen `rule` is an expression of type `x ~ y`, constructs the new expression after rewriting\r\noccurrences of `x` with `y` in `oldExpr` (or vice versa when `rev` is true). Returns\r\n`(template, newExpr)` where `newExpr` is the replaced expression and `template` is the rewrite\r\nmotive with the bound variable replaced with a fresh mvar (used as input to gcongr).\r\n```",
+                    "createdAt": "2023-12-11T10:40:41Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Uxnbx",
+                    "body": "This sounds like something to be implemented with discrimination trees. I don't think there is any ready-to-use mechanism for making a `@[grw]` attribute that adds stuff into a discrimination tree, right? As long as that is the case, I think we can postpone this TODO.",
+                    "createdAt": "2023-12-11T10:51:32Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5UxyeL",
+                    "body": "@hrmacbeth already has a fixed version of the TODO at https://github.com/leanprover-community/mathlib4/commit/ef82c2de29ac2f582687c38f809f199ed3373698 , although it has not been merged with this PR yet.",
+                    "createdAt": "2023-12-11T11:32:59Z",
+                    "author": {
+                      "login": "digama0"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Uxn2h",
+                    "body": "Should this be imported in `Mathlib.Tactic.Common`?",
+                    "createdAt": "2023-12-11T10:53:00Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5YWXmY",
+                    "body": "I believe `Data.Set.Basic` is \"too heavy\" to import in `Mathlib.Tactic.Common`?",
+                    "createdAt": "2024-02-08T00:10:08Z",
+                    "author": {
+                      "login": "fpvandoorn"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5UxpE8",
+                    "body": "What is the relevance of this default argument? I don't see it mentioned otherwise.",
+                    "createdAt": "2023-12-11T10:57:19Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5UxrhS",
+                    "body": "I'm not completely sure what you mean by \"as they appear in the function\" here. What are the effects of violating this assumption? Can it be checked when tagging a lemma as `@[grw]`?",
+                    "createdAt": "2023-12-11T11:06:13Z",
+                    "author": {
+                      "login": "Vierkantor"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5UxyzY",
+                    "body": "Yes, this was planned to be checked in the attribute. The [HM-grw-attribute](https://github.com/leanprover-community/mathlib4/commit/ef82c2de29ac2f582687c38f809f199ed3373698) branch implements that.",
+                    "createdAt": "2023-12-11T11:34:21Z",
+                    "author": {
+                      "login": "digama0"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjExMTcwMjg=",
+              "login": "sebzim4500"
+            },
+            {
+              "id": "MDQ6VXNlcjQ3Nzk1Ng==",
+              "login": "kim-em"
+            },
+            {
+              "id": "MDQ6VXNlcjg2ODU4OA==",
+              "login": "digama0"
+            },
+            {
+              "id": "U_kgDOB75MNQ",
+              "login": "leanprover-community-mathlib4-bot"
+            },
+            {
+              "id": "MDQ6VXNlcjczNzYwMTI=",
+              "login": "fpvandoorn"
+            },
+            {
+              "id": "MDQ6VXNlcjQyNTI2MA==",
+              "login": "eric-wieser"
+            },
+            {
+              "id": "MDQ6VXNlcjIxMTY1NzA=",
+              "login": "Vierkantor"
+            },
+            {
+              "id": "MDQ6VXNlcjI1MzE2MTYy",
+              "login": "hrmacbeth"
+            }
+          ]
+        },
+        "state": "OPEN",
+        "statusCheckRollup": {
+          "contexts": {
+            "nodes": [
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAE-CAnmw",
+                "name": "Add ready-to-merge label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/7822849922/job/21342726043"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAE-CAm7g",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/7822849921/job/21342725870"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAE-CAmtA",
+                "name": "Add delegated label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/7822849922/job/21342725812"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAErGAgZA",
+                "name": "Summary",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=8167&login=leanprover-community&repository=mathlib4"
+              }
+            ]
+          }
+        },
+        "title": "feat: Add new `grw` tactic for rewriting using inequalities.",
+        "updatedAt": "2025-02-20T14:59:32Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/8167",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "fb88bd8b5dabdfd415c62dc6e1683f5db6668ae3"
+              }
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c511ekjzwAAAAKLrVKM",
+              "createdAt": "2023-11-11T23:07:21Z"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "23b34e2cfa00b07e55f8fdad65f4fc5af64c38a6"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5m4wcb",
+              "createdAt": "2023-11-12T00:42:15Z",
+              "body": "",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "6df96c6a1968e63b4f0eff81b387631d382a115c"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b79b26338a8e05877c0e43f5b023d9f6fb0d956a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "77482ba8f9f548e3a51dd7af45c46ed11378b95a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "cde0fd05ae4e72b1357c390f4607c1b1b4b77dc8"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c511ekjzwAAAAKLvdVj",
+              "createdAt": "2023-11-12T12:22:48Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c511ekjzwAAAAKLvdVl",
+              "createdAt": "2023-11-12T12:22:48Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7mTAET",
+                "name": "modifies-tactic-syntax"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c511ekjzwAAAAKLvdVm",
+              "createdAt": "2023-11-12T12:22:48Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+                "name": "t-meta"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "891419717c4e965de1606cef4255032b833c7297"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "674879e719e6a06f66b099ed823d8856deffbf5d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2886e842e3d4f1784e840756be70906072025239"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c921493f19bb9f3441f62d4e8de7134f7c8ee798"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "baac643e333a90568b3fca451193a41bcf233305"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5e9eb9c386a18db2a344fd12bc5a04d50c04454b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7423c05254eecddc94b9eded7657591f9c25b1ac"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5nLOs_",
+              "createdAt": "2023-11-14T23:32:52Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5nLQM2",
+              "createdAt": "2023-11-14T23:40:14Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5nLQTn",
+              "createdAt": "2023-11-14T23:40:53Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5nLQ9G",
+              "createdAt": "2023-11-14T23:44:16Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5nLRhA",
+              "createdAt": "2023-11-14T23:47:15Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5nLRt-",
+              "createdAt": "2023-11-14T23:48:13Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5nLSQV",
+              "createdAt": "2023-11-14T23:51:02Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e08b0fb3feecced90f3397dd22da7068e72f243b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3571af6acc82b7aea933af3ba262f39592b87654"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d46c6b493916acc724b774ddbc59242fcdd3d85b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ad348b10d98e081923c19d6baac4131ee0ceafe5"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5tI2eY",
+              "createdAt": "2023-11-29T01:14:08Z",
+              "body": "The PR description here says it is still a work in progress. Do you want to update that?",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5tLhiB",
+              "createdAt": "2023-11-29T11:43:22Z",
+              "body": "> The PR description here says it is still a work in progress. Do you want to update that?\r\n\r\nYes. There are still features I want to add in the future but this PR is mergeable in my opinion.",
+              "author": {
+                "login": "sebzim4500"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "666cfbf1afa838d5be771d29b0b258fe323df343"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ee6fb820d88c9db4bacde264bff6107e7a6cddcb"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "329cbf5142dda778b16fe7fbf7455a066ffe00a2"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5thHC6",
+              "createdAt": "2023-12-03T07:30:15Z",
+              "body": "Hi @sebzim4500 , today @hrmacbeth and I sat down and reviewed this code, resulting in some modifications and improvements in 329cbf51 that I have taken the liberty of pushing directly to the branch. Don't hesitate to speak up if you disagree or want clarification on the changes here. Summary of changes: \r\n\r\n* Use `IO.Ref` for persisting state through `withRwRulesSeq` instead of adding a `StateT` variant of the function\r\n* Make `grw` transparently call `rw` when the hypothesis is an equality\r\n  * thus `withRwRulesSeqState` becomes redundant and can be removed\r\n* Inline/remove `grwHyp` into `grwAtLocal` and `grw` into `grwAtTarget`, rename `runGrw` to `grw`\r\n* To avoid making too many assumptions about the inputs, `grw` core does not change any mvars, instead it returns a proof whose type is an implication in the specified direction.\r\n* Interchange `withRwRulesSeq` and `withLocation`; this means `grw [a, b] at h1 h2` is equivalent to `grw [a] at h1 h2; grw [b] at h1 h2` instead of `grw [a, b] at h1; grw [a, b] at h2`, which matches how `rw` works and also makes the intermediate states between commas more sensible. (Previously using `grw [a, b] at *` would generate a large number of goals in the intermediate states because the same syntax is being tagged many times.)\r\n* Use tactic state for persisting information rather than an `IO.Ref` or `StateT`. Besides being simpler to implement, this is also consistent with the `rw` tactic.\r\n  * Downside: we do not track the fvar of the hypothesis being rewritten, so in theory a different hypothesis with the same name can jump in halfway through a rewrite chain (although examples that do this are extremely contrived)\r\n  * Downside: Side goals come out in reverse order, i.e. we have `main goal, side goals for b, side goals for a` when doing `grw [a, b]`\r\n  * Both of these are consistent with the `rw` tactic though, which we considered more important.\r\n* Pass a template to `gcongr`, to improve the speed (and also catch some bugs).\r\n* `dischargeSideGoal` is the same discharger used in `gcongr` itself, this is made the default in #8796\r\n* `dischargeMainGoal` is replaced by `gcongrForward` with the specified `rule`\r\n  * `gcongrForward` overlaps significantly with the `grw_weaken` attribute; the two have been merged and `grw_weaken` removed.\r\n* The `progress` return value of `gcongr` is ignored - we don't really care if `gcongr` does nothing because it is being used on subgoals\r\n* remove unnecessary partial and private from definitions\r\n* add more docs\r\n* Added some more tests\r\n* reduced imports of test file\r\n\r\n@hrmacbeth will push some more test files shortly but otherwise we support merging it. There are still some TODOs remaining, but they can be addressed in a follow-up PR:\r\n\r\n* The `grw` lemmas are stored in a big bag and all applied to the goal. This should be replaced with some discrimination tree indexing or a lookup on the head symbol like in `gcongr`, this implementation does not scale and will likely become a problem if this tactic starts getting used widely (which we expect to happen, it's a very useful tactic).\r\n* The attribute is not checked at application time, it is just a `LabelAttr`. We would like it to enforce some structure, both to make it easier for the user to apply the tag correctly, and also to improve the performance and precision of the tactic itself; currently it has some hacks to guess the structure of the lemma but these can be easily fooled.",
+              "author": {
+                "login": "digama0"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c511ekjzwAAAAKXc9R4",
+              "createdAt": "2023-12-03T07:32:23Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjg4OTQyMDg2",
+                "name": "blocked-by-other-PR"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "73219df0477a6f9b1acfaeac4af55ccf2b24838b"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9f3db4acda1953584297ede7d177c2297f071e8a"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5o-4Ju",
+              "createdAt": "2023-12-03T17:19:39Z",
+              "body": "",
+              "author": {
+                "login": "hrmacbeth"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "924ce8c6804402fbdc6418148214159c22ca1108"
+              }
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c511ekjzwAAAAKXhkt9",
+              "createdAt": "2023-12-03T18:17:02Z"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "70ffd7ac9d5ab5c58237b4073444126570c49b78"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "850ac367b9287f1610efcf2b2c2674cb5500e87b"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c511ekjzwAAAAKYYZVE",
+              "createdAt": "2023-12-05T00:47:06Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjg4OTQyMDg2",
+                "name": "blocked-by-other-PR"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5tqUWi",
+              "createdAt": "2023-12-05T00:47:08Z",
+              "body": "This PR/issue depends on:\n* ~~leanprover-community/mathlib4#8796~~\nBy **[Dependent Issues](https://github.com/z0al/dependent-issues)** (🤖). Happy coding!\n<!-- By Dependent Issues (Action) - DO NOT REMOVE -->",
+              "author": {
+                "login": "leanprover-community-mathlib4-bot"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b30d0473362c0640a7f6b582597a38125cbe80f6"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9d4041979c77bae43d22a86ac907892469afc4ad"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "94457cd2719f6c3378a25a504225abfa891a07cf"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a53bfac086fb052e4acb06e762d42101c96b74f0"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5pbfK_",
+              "createdAt": "2023-12-06T23:05:32Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5pbfeE",
+              "createdAt": "2023-12-06T23:06:56Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5pbfw8",
+              "createdAt": "2023-12-06T23:08:20Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0c2f8ea613b827eb15322e8a8d4e60967a88a382"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5PzMv0",
+              "createdAt": "2023-12-10T13:18:04Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5hnO4w",
+                "title": "Add `by_approx` tactic for proving real inequalities using rational approximation",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/8949"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5pyVdy",
+              "createdAt": "2023-12-11T10:31:33Z",
+              "body": "",
+              "author": {
+                "login": "Vierkantor"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c511ekjzwAAAAKcGv0p",
+              "createdAt": "2023-12-11T11:10:35Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c511ekjzwAAAAKcGv05",
+              "createdAt": "2023-12-11T11:10:35Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5QTPUI",
+              "createdAt": "2024-01-15T19:56:37Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5jY0E1",
+                "title": "[Merged by Bors] - feat(Analysis/NormedSpace/TrivSqZeroExt): The L1 norm ",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/9492"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c511ekjzwAAAALLwoMo",
+              "createdAt": "2024-03-05T05:21:35Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6fPf1N",
+              "createdAt": "2025-02-20T14:18:59Z",
+              "body": "I would love to have this tactic in Mathlib! Is anyone planning to work on this?",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

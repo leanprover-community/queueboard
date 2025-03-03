@@ -1,0 +1,1284 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 275,
+        "assignees": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjkxNDE1NjQ=",
+              "login": "joneugster"
+            }
+          ]
+        },
+        "author": {
+          "login": "Vierkantor"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "This PR extends the `ring` tactic with a new config argument `char` which will try to reduce all constant terms modulo the given characteristic. This allows `ring` to prove e.g. `(x + y)^3 = x^3 + y^3` in characteristic 3. This is a simpler and faster way to do so than what we had before: `repeat { ring; reduce_mod_char }` becomes `ring (config := { char := 3 })`.\r\n\r\nThe first step is to split off the required `CharP` definitions, since `Mathlib.Algebra.CharP.Basic` already requires the `ring` tactic.\r\n\r\nTo perform the reduction modulo the given characteristic, I implemented `reduceCast` which reduces a raw integer, and wrapped it in `reduceResult` that takes a `NormNum.Result` for easy use. We need to pass through quite a few parameters into `reduceResult` so maybe it's worth defining a structure, or reusing `Cache` for this.\r\n\r\nThen it's basically a case of replacing every place where `ring` constructs a numeral with a call to `reduceResult`.\r\n\r\nLimitations:\r\n * `ring` doesn't attempt to detect the characteristic by itself, you need to pass it in explicitly. Trying to infer a `CharP` instance at each point sounds quite expensive.\r\n * Since the support for `%` in `NormNum` only exists for integers, I implemented the reduction only when a `Ring` instance is available. It is still sound in the semiring case, just not complete.\r\n * We could optimize exponentiation in the specific case where the characteristic `p` is a prime that divides the exponent `n`: `(x + y)^n = x^n + y^n`. I'll leave that to future work.\r\n\r\n---\r\n\r\n- [x] depends on: #12907\r\n\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 5,
+        "closed": false,
+        "closedAt": null,
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c59qiUf",
+              "body": "Stupid question: Can we hardcode a few common rings of known characteristic to avoid the user having to provide the characteristic in most cases?",
+              "createdAt": "2024-05-13T17:17:22Z",
+              "author": {
+                "login": "YaelDillies"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c59zQuU",
+              "body": "> Stupid question: Can we hardcode a few common rings of known characteristic to avoid the user having to provide the characteristic in most cases?\r\n\r\nThat was indeed the original plan (see also `reduce_mod_char`). It turns out the application of this tactic in the current project is over a generic, free variable, ring. Therefore, for this initial version the characteristic will need to be supplied. The addition of autodetection of characteristic may be done in a follow-up pull request.",
+              "createdAt": "2024-05-14T15:55:45Z",
+              "author": {
+                "login": "Vierkantor"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c591-nI",
+              "body": "This PR/issue depends on:\n* ~~leanprover-community/mathlib4#12907~~\nBy **[Dependent Issues](https://github.com/z0al/dependent-issues)** (🤖). Happy coding!\n<!-- By Dependent Issues (Action) - DO NOT REMOVE -->",
+              "createdAt": "2024-05-14T23:03:08Z",
+              "author": {
+                "login": "leanprover-community-mathlib4-bot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6CyVwg",
+              "body": "### PR summary [c97f1a6bda](https://github.com/leanprover-community/mathlib4/pull/10765/commits/c97f1a6bdae351acdbf52807fcf48b506e92e4cb)\n\n#### Import changes\n\nDependency changes\n\n| File | Base Count | Head Count | Change |\n| --- | --- | --- | --- |\n| Mathlib.Tactic.Ring.Basic | 489 | 519 | +30 (+6.13%) |\n| Mathlib.Tactic.Ring.RingNF | 491 | 520 | +29 (+5.91%) |\n| Mathlib.Tactic.Polyrith | 497 | 526 | +29 (+5.84%) |\n\n---\n\n#### Declarations diff\n\n`+ CharP.isInt_of_mod`\n`+ RingConfig`\n`+ evalCastReduced`\n<details>\n  <summary>You can run this locally as follows</summary>\n\n\n```bash\n## summary with just the declaration names:\n./scripts/no_lost_declarations.sh short <optional_commit>\n\n## more verbose report:\n./scripts/no_lost_declarations.sh <optional_commit>\n```\n</details>",
+              "createdAt": "2024-06-27T09:39:26Z",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6LsSNc",
+              "body": "@Vierkantor do you think you have time update this PR again, so we can get it merged?\r\n\r\nI'll add **\"help-wanted\"** if anybody is inclined:\r\n\r\n- merge master\r\n- fix conflicts\r\n- address 2 comments above\r\n- have a final look over the PR",
+              "createdAt": "2024-09-11T13:14:31Z",
+              "author": {
+                "login": "joneugster"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "c12eb735a5516d47bd7adf52746198386a1f1230",
+                "additions": 210,
+                "deletions": 100,
+                "committedDate": "2024-05-22T12:30:18Z",
+                "author": {
+                  "name": "Vierkantor",
+                  "email": "vierkantor@vierkantor.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "44b3f716353744cee2fd6139c1c01773d263bdc4",
+                "additions": 7,
+                "deletions": 3,
+                "committedDate": "2024-05-22T12:30:18Z",
+                "author": {
+                  "name": "Vierkantor",
+                  "email": "vierkantor@vierkantor.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "956c7293084f05a36d18065783c5900e6bcddc28",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2024-05-22T12:30:18Z",
+                "author": {
+                  "name": "Vierkantor",
+                  "email": "vierkantor@vierkantor.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "78810bab623bfb8021812f7f46753a69eef4d821",
+                "additions": 6,
+                "deletions": 13,
+                "committedDate": "2024-05-22T12:30:18Z",
+                "author": {
+                  "name": "Vierkantor",
+                  "email": "vierkantor@vierkantor.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3204a328badaa4dce7d19cd60cac861ee3c8ce71",
+                "additions": 55,
+                "deletions": 0,
+                "committedDate": "2024-05-22T12:30:18Z",
+                "author": {
+                  "name": "Vierkantor",
+                  "email": "vierkantor@vierkantor.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "52b20cc97601249770ebea4fa0d76b26f64600f1",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2024-05-22T12:30:18Z",
+                "author": {
+                  "name": "Vierkantor",
+                  "email": "vierkantor@vierkantor.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e83452fe0c5d6607c0bf210851e18d08ef618a29",
+                "additions": 0,
+                "deletions": 1,
+                "committedDate": "2024-05-22T12:30:18Z",
+                "author": {
+                  "name": "Vierkantor",
+                  "email": "vierkantor@vierkantor.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1d6756cb2c110f3ec7a6fba307aad6246b03ad86",
+                "additions": 1,
+                "deletions": 0,
+                "committedDate": "2024-05-22T12:30:18Z",
+                "author": {
+                  "name": "Vierkantor",
+                  "email": "vierkantor@vierkantor.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4bf01c38f45fc48d7ed7182c31061437037ca965",
+                "additions": 9,
+                "deletions": 4,
+                "committedDate": "2024-05-22T12:30:18Z",
+                "author": {
+                  "name": "Vierkantor",
+                  "email": "vierkantor@vierkantor.com"
+                },
+                "statusCheckRollup": {
+                  "contexts": {
+                    "nodes": [
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qc4Bw",
+                        "name": "label-and-report-new-contributor",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191311534/job/25277446151"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qcv3g",
+                        "name": "Cancel Previous Runs (CI)",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191310837/job/25277444062"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qcwaQ",
+                        "name": "Cancel Previous Runs (CI)",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191310835/job/25277444201"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qc4og",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191311542/job/25277446306"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qcxjA",
+                        "name": "Lint style (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191310837/job/25277444492"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qcx3Q",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191310835/job/25277444573"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qc51A",
+                        "name": "Check all files imported",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191311542/job/25277446612"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qcyzQ",
+                        "name": "Check all files imported (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191310837/job/25277444813"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qc0Fg",
+                        "name": "Check all files imported",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191310835/job/25277445142"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qc1uQ",
+                        "name": "check workflows (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191310837/job/25277445561"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qc1Lw",
+                        "name": "check workflows",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191310835/job/25277445423"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qc3dQ",
+                        "name": "summarize_declarations",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191310837/job/25277446005"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qc2ag",
+                        "name": "summarize_declarations",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191310835/job/25277445738"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qc0KQ",
+                        "name": "Build (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191310837/job/25277445161"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qcy-w",
+                        "name": "Build",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191310835/job/25277444859"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qc5AA",
+                        "name": "Post-CI job (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191310837/job/25277446400"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4sno9g",
+                        "name": "Post-CI job",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9191310835/job/25279719670"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qdU1w",
+                        "name": "New Contributor Check",
+                        "conclusion": "NEUTRAL",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/runs/25277453527"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAF4qeiCg",
+                        "name": "Summary",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://dashboard.mergify.com/github/leanprover-community/repo/mathlib4/event-logs?pullRequestNumber=10765"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "commit": {
+                "oid": "c97f1a6bdae351acdbf52807fcf48b506e92e4cb",
+                "additions": 85518,
+                "deletions": 46725,
+                "committedDate": "2024-06-27T09:35:56Z",
+                "author": {
+                  "name": "Jon Eugster",
+                  "email": "eugster.jon@gmail.com"
+                },
+                "statusCheckRollup": {
+                  "contexts": {
+                    "nodes": [
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOouzmA",
+                        "name": "Add ready-to-merge label",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694438308/job/26752037784"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOouzdg",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694438311/job/26752037750"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOou0gg",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694438312/job/26752038018"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOo1wEA",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694472993/job/26752151568"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOo33ww",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694483416/job/26752186307"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOoPdyA",
+                        "name": "label-and-report-new-contributor",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694282456/job/26751524296"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOoPdqA",
+                        "name": "build",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694282457/job/26751524264"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOoPtFw",
+                        "name": "Cancel Previous Runs (CI)",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283811/job/26751528215"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOoPtQw",
+                        "name": "Cancel Previous Runs (CI)",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283815/job/26751528259"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOoPeyw",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694282447/job/26751524555"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOou1rg",
+                        "name": "Add delegated label",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694438308/job/26752038318"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOoPwMQ",
+                        "name": "Lint style (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283811/job/26751529009"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOoPvDg",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283815/job/26751528718"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOoPdww",
+                        "name": "Check all files imported",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694282447/job/26751524291"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOoPvAw",
+                        "name": "check workflows (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283811/job/26751528707"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOoPxnA",
+                        "name": "check workflows",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283815/job/26751529372"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOoPxdw",
+                        "name": "Build (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283811/job/26751529335"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOoPwWQ",
+                        "name": "Build",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283815/job/26751529049"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOoPy0Q",
+                        "name": "Post-CI job (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283811/job/26751529681"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOqGAWQ",
+                        "name": "Post-CI job",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283815/job/26753466457"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOoP1yg",
+                        "name": "New Contributor Check",
+                        "conclusion": "NEUTRAL",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/runs/26751530442"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAGOoQyRA",
+                        "name": "Summary",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=10765&login=leanprover-community&repository=mathlib4"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "createdAt": "2024-02-20T15:05:46Z",
+        "deletions": 108,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib/RingTheory/MvPolynomial/Basic.lean",
+              "additions": 0,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Tactic/Polyrith.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Tactic/Ring/Basic.lean",
+              "additions": 206,
+              "deletions": 94
+            },
+            {
+              "path": "Mathlib/Tactic/Ring/RingNF.lean",
+              "additions": 13,
+              "deletions": 12
+            },
+            {
+              "path": "test/ring_mod_char.lean",
+              "additions": 55,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "ring_mod_char",
+        "headRefOid": "c97f1a6bdae351acdbf52807fcf48b506e92e4cb",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5naCOx",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "MDU6TGFiZWwyOTg0NTM0NDU0",
+              "name": "help-wanted"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c7P265b",
+              "name": "awaiting-author"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+              "name": "merge-conflict"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+              "name": "t-meta"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5_15jS",
+              "body": "Generally this looks good to me.\r\n\r\nCould you update the module docstring in `Tactic.Ring.Basic` including this new config option and possibly the \"Potential future work\" comments (i.e. about exponent optimisation and auto-detection of characteristic) you made here on this PR? A `## Future work` section at the bottom seems to be common in other files.",
+              "state": "COMMENTED",
+              "author": {
+                "login": "joneugster"
+              },
+              "submittedAt": "2024-06-27T09:50:41Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "DIRTY",
+        "mergeable": "CONFLICTING",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 10765,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5_15jS",
+              "body": "Generally this looks good to me.\r\n\r\nCould you update the module docstring in `Tactic.Ring.Basic` including this new config option and possibly the \"Potential future work\" comments (i.e. about exponent optimisation and auto-detection of characteristic) you made here on this PR? A `## Future work` section at the bottom seems to be common in other files.",
+              "state": "COMMENTED",
+              "author": {
+                "login": "joneugster"
+              },
+              "submittedAt": "2024-06-27T09:50:41Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5iwQsN",
+                    "body": "@Vierkantor can you quickly confirm this has been resolved correctly now when I merged `master`?",
+                    "createdAt": "2024-06-27T09:40:31Z",
+                    "author": {
+                      "login": "joneugster"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5iwSeM",
+                    "body": "This sounds actionable",
+                    "createdAt": "2024-06-27T09:45:35Z",
+                    "author": {
+                      "login": "joneugster"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjIxMTY1NzA=",
+              "login": "Vierkantor"
+            },
+            {
+              "id": "MDQ6VXNlcjE0MDkwNTkz",
+              "login": "YaelDillies"
+            },
+            {
+              "id": "U_kgDOB75MNQ",
+              "login": "leanprover-community-mathlib4-bot"
+            },
+            {
+              "id": "MDQ6VXNlcjkxNDE1NjQ=",
+              "login": "joneugster"
+            }
+          ]
+        },
+        "state": "OPEN",
+        "statusCheckRollup": {
+          "contexts": {
+            "nodes": [
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOouzmA",
+                "name": "Add ready-to-merge label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694438308/job/26752037784"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOouzdg",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694438311/job/26752037750"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOou0gg",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694438312/job/26752038018"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOo1wEA",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694472993/job/26752151568"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOo33ww",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694483416/job/26752186307"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOoPdyA",
+                "name": "label-and-report-new-contributor",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694282456/job/26751524296"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOoPdqA",
+                "name": "build",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694282457/job/26751524264"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOoPtFw",
+                "name": "Cancel Previous Runs (CI)",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283811/job/26751528215"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOoPtQw",
+                "name": "Cancel Previous Runs (CI)",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283815/job/26751528259"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOoPeyw",
+                "name": "Lint style",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694282447/job/26751524555"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOou1rg",
+                "name": "Add delegated label",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694438308/job/26752038318"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOoPwMQ",
+                "name": "Lint style (fork)",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283811/job/26751529009"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOoPvDg",
+                "name": "Lint style",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283815/job/26751528718"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOoPdww",
+                "name": "Check all files imported",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694282447/job/26751524291"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOoPvAw",
+                "name": "check workflows (fork)",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283811/job/26751528707"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOoPxnA",
+                "name": "check workflows",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283815/job/26751529372"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOoPxdw",
+                "name": "Build (fork)",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283811/job/26751529335"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOoPwWQ",
+                "name": "Build",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283815/job/26751529049"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOoPy0Q",
+                "name": "Post-CI job (fork)",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283811/job/26751529681"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOqGAWQ",
+                "name": "Post-CI job",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/9694283815/job/26753466457"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOoP1yg",
+                "name": "New Contributor Check",
+                "conclusion": "NEUTRAL",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/runs/26751530442"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAGOoQyRA",
+                "name": "Summary",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=10765&login=leanprover-community&repository=mathlib4"
+              }
+            ]
+          }
+        },
+        "title": "feat(Tactic): `ring` modulo a given characteristic",
+        "updatedAt": "2024-09-11T13:16:26Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/10765",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5_0-tMzwAAAALDGS7F",
+              "createdAt": "2024-02-20T15:05:46Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5_0-tMzwAAAALDGS7J",
+              "createdAt": "2024-02-20T15:05:46Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+                "name": "t-meta"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5_0-tMzwAAAALDGS7R",
+              "createdAt": "2024-02-20T15:05:46Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5_0-tMzwAAAALD1aA1",
+              "createdAt": "2024-02-21T12:15:26Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5_0-tMzwAAAALGLG_I",
+              "createdAt": "2024-02-26T01:59:11Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c5_0-tMzwAAAALhkcKo",
+              "createdAt": "2024-04-05T13:39:35Z"
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5_0-tMzwAAAALhmG-q",
+              "createdAt": "2024-04-05T14:06:47Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5_0-tMzwAAAALiFxW5",
+              "createdAt": "2024-04-07T04:23:37Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c5_0-tMzwAAAAL2n20X",
+              "createdAt": "2024-05-07T10:55:35Z"
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5_0-tMzwAAAAL2obkV",
+              "createdAt": "2024-05-07T11:05:53Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5_0-tMzwAAAAL3fA2E",
+              "createdAt": "2024-05-08T10:49:00Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5SrIs5",
+              "createdAt": "2024-05-13T15:25:34Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5upjyj",
+                "title": "[Merged by Bors] - chore(Algebra/CharP/Basic): Split",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/12710"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5SrKaQ",
+              "createdAt": "2024-05-13T15:40:22Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5vRyGX",
+                "title": "chore(Algebra/CharP): ensure `CharP.Defs` doesn't depend on `ring`",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/12871"
+              }
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c5_0-tMzwAAAAL6UQi6",
+              "createdAt": "2024-05-13T15:46:18Z"
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5_0-tMzwAAAAL6UYha",
+              "createdAt": "2024-05-13T15:48:54Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c5_0-tMzwAAAAL6VLMe",
+              "createdAt": "2024-05-13T16:05:15Z"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c59qiUf",
+              "createdAt": "2024-05-13T17:17:22Z",
+              "body": "Stupid question: Can we hardcode a few common rings of known characteristic to avoid the user having to provide the characteristic in most cases?",
+              "author": {
+                "login": "YaelDillies"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5SrV_I",
+              "createdAt": "2024-05-13T17:33:11Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5vSmU1",
+                "title": "[Merged by Bors] - chore: Don't use `ring` in `Data.Int.ModEq`",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/12872"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c5_0-tMzwAAAAL63cMj",
+              "createdAt": "2024-05-14T09:11:49Z"
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c5_0-tMzwAAAAL7F9c2",
+              "createdAt": "2024-05-14T13:38:21Z"
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5_0-tMzwAAAAL7GgWS",
+              "createdAt": "2024-05-14T13:47:57Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjg4OTQyMDg2",
+                "name": "blocked-by-other-PR"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c59zQuU",
+              "createdAt": "2024-05-14T15:55:45Z",
+              "body": "> Stupid question: Can we hardcode a few common rings of known characteristic to avoid the user having to provide the characteristic in most cases?\r\n\r\nThat was indeed the original plan (see also `reduce_mod_char`). It turns out the application of this tactic in the current project is over a generic, free variable, ring. Therefore, for this initial version the characteristic will need to be supplied. The addition of autodetection of characteristic may be done in a follow-up pull request.",
+              "author": {
+                "login": "Vierkantor"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5_0-tMzwAAAAL7e1TO",
+              "createdAt": "2024-05-14T23:03:06Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjg4OTQyMDg2",
+                "name": "blocked-by-other-PR"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c591-nI",
+              "createdAt": "2024-05-14T23:03:08Z",
+              "body": "This PR/issue depends on:\n* ~~leanprover-community/mathlib4#12907~~\nBy **[Dependent Issues](https://github.com/z0al/dependent-issues)** (🤖). Happy coding!\n<!-- By Dependent Issues (Action) - DO NOT REMOVE -->",
+              "author": {
+                "login": "leanprover-community-mathlib4-bot"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c5_0-tMzwAAAAMAYVzV",
+              "createdAt": "2024-05-22T09:15:40Z"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c5_0-tMzwAAAAMAhthP",
+              "createdAt": "2024-05-22T12:30:25Z"
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5_0-tMzwAAAAMIqOx4",
+              "createdAt": "2024-06-04T05:15:03Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6CyVwg",
+              "createdAt": "2024-06-27T09:39:26Z",
+              "body": "### PR summary [c97f1a6bda](https://github.com/leanprover-community/mathlib4/pull/10765/commits/c97f1a6bdae351acdbf52807fcf48b506e92e4cb)\n\n#### Import changes\n\nDependency changes\n\n| File | Base Count | Head Count | Change |\n| --- | --- | --- | --- |\n| Mathlib.Tactic.Ring.Basic | 489 | 519 | +30 (+6.13%) |\n| Mathlib.Tactic.Ring.RingNF | 491 | 520 | +29 (+5.91%) |\n| Mathlib.Tactic.Polyrith | 497 | 526 | +29 (+5.84%) |\n\n---\n\n#### Declarations diff\n\n`+ CharP.isInt_of_mod`\n`+ RingConfig`\n`+ evalCastReduced`\n<details>\n  <summary>You can run this locally as follows</summary>\n\n\n```bash\n## summary with just the declaration names:\n./scripts/no_lost_declarations.sh short <optional_commit>\n\n## more verbose report:\n./scripts/no_lost_declarations.sh <optional_commit>\n```\n</details>",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5_0-tMzwAAAAMZmxys",
+              "createdAt": "2024-06-27T09:48:59Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5_15jS",
+              "createdAt": "2024-06-27T09:40:31Z",
+              "body": "Generally this looks good to me.\r\n\r\nCould you update the module docstring in `Tactic.Ring.Basic` including this new config option and possibly the \"Potential future work\" comments (i.e. about exponent optimisation and auto-detection of characteristic) you made here on this PR? A `## Future work` section at the bottom seems to be common in other files.",
+              "author": {
+                "login": "joneugster"
+              }
+            },
+            {
+              "__typename": "AssignedEvent",
+              "id": "AE_lADOFcwZ1c5_0-tMzwAAAAMZm4l4",
+              "createdAt": "2024-06-27T09:51:06Z",
+              "assignee": {
+                "id": "MDQ6VXNlcjkxNDE1NjQ=",
+                "login": "joneugster"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5_0-tMzwAAAAMZm4yY",
+              "createdAt": "2024-06-27T09:51:10Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5_0-tMzwAAAAMZm4yl",
+              "createdAt": "2024-06-27T09:51:10Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5_0-tMzwAAAAMib8jk",
+              "createdAt": "2024-07-10T21:13:55Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6LsSNc",
+              "createdAt": "2024-09-11T13:14:31Z",
+              "body": "@Vierkantor do you think you have time update this PR again, so we can get it merged?\r\n\r\nI'll add **\"help-wanted\"** if anybody is inclined:\r\n\r\n- merge master\r\n- fix conflicts\r\n- address 2 comments above\r\n- have a final look over the PR",
+              "author": {
+                "login": "joneugster"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5_0-tMzwAAAANPWLFQ",
+              "createdAt": "2024-09-11T13:16:26Z",
+              "label": {
+                "id": "MDU6TGFiZWwyOTg0NTM0NDU0",
+                "name": "help-wanted"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

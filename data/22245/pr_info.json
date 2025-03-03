@@ -1,0 +1,2306 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 5219,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "Champitoad"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "This introduces a file `Classifier.lean` defining the notion `Classifier C` of subobject classifier in any category `C` with a terminal object, following Section I.3 of \"Sheaves in Geometry and Logic\" [MM92]. This is related to but independent from #21281, because our definition associates a characteristic map to every _subobject_ rather than every _monomorphism_. Adopting this \"extensional\" rather than \"intensional\" definition allows us to formalize the proof of Proposition 1 in [MM92, Section I.3] (`hasClassifier_isRepresentable_iff`), that `C` has a subobject classifier if and only if the subobjects presheaf `sub C` is representable.\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nFor details on the \"pull request lifecycle\" in mathlib, please see:\r\nhttps://leanprover-community.github.io/contribute/index.html\r\n\r\nIn particular, note that most reviewers will only notice your PR\r\nif it passes the continuous integration checks.\r\nPlease ask for help on https://leanprover.zulipchat.com if needed.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nIf you are moving or deleting declarations, please include these lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nMoves:\r\n- Vector.* -> List.Vector.*\r\n- ...\r\n\r\nDeletions:\r\n- Nat.bit1_add_bit1\r\n- ...\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 205,
+        "closed": false,
+        "closedAt": null,
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c6fqBDD",
+              "body": "### PR summary [5d6f875ecb](https://github.com/leanprover-community/mathlib4/pull/22245/commits/5d6f875ecbcf8d57f37e586ba8911206090bcacc)\n\n#### Import changes for modified files\n\nNo significant changes to the import graph\n\n\n<details><summary>Import changes for all files</summary>\n\n|Files|Import difference|\n|-|-|\n| `Mathlib.CategoryTheory.Subobject.Classifier` (new file)|613|\n\n</details>\n\n---\n\n<details><summary>\n\n#### Declarations diff\n\n</summary>\n\n`+ Classifier`\n`+ HasClassifier`\n`+ IsClassifier`\n`+ cmap`\n`+ cmap_compr`\n`+ compr`\n`+ compr_cmap`\n`+ compr_isPullback`\n`+ isPullback_eq`\n`+ isPullback_eq_mk`\n`+ isPullback_mk`\n`+ isRepresentable_hasClassifier_iff`\n`+ mk_arrow_mk`\n`+ of_iso1`\n`+ of_iso3`\n`+ pullback_obj`\n`+ pullback_obj_representative`\n`+ sub`\n`+ truth`\n`+ unique_eq`\n`+ χ_`\n<details>\n  <summary>You can run this locally as follows</summary>\n\n\n```bash\n## summary with just the declaration names:\n./scripts/declarations_diff.sh <optional_commit>\n\n## more verbose report:\n./scripts/declarations_diff.sh long <optional_commit>\n```\n</details>\n\nThe doc-module for `script/declarations_diff.sh` contains some details about this script.\n\n</details>\n\n---\n\n<details><summary>No changes to technical debt.</summary>\n\nYou can run this locally as\n```\n./scripts/technical-debt-metrics.sh pr_summary\n```\n* The `relative` value is the weighted *sum* of the differences with weight given by the *inverse* of the current value of the statistic.\n* The `absolute` value is the `relative` value divided by the total sum of the inverses of the current values (i.e. the weighted *average* of the differences).\n</details>\n",
+              "createdAt": "2025-02-24T14:26:35Z",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6fudFK",
+              "body": "A significant part of this PR duplicates #21281 (which shall soon be merged). You may contribute with the relation between the data/existence of a classifier in the sense of #21281, and the representability of the \"subobject\" functor, but you should certainly introduce a few auxiliary definitions/lemmas in order to provide a suitable API.",
+              "createdAt": "2025-02-24T22:01:44Z",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6fvfaR",
+              "body": "> A significant part of this PR duplicates #21281 (which shall soon be merged). You may contribute with the relation between the data/existence of a classifier in the sense of #21281, and the representability of the \"subobject\" functor, but you should certainly introduce a few auxiliary definitions/lemmas in order to provide a suitable API.\r\n\r\nCan you be more specific as to what parts are duplicated? I think most of this formalization exploits some definitions in `CategoryTheory.Subobject`, which is not the case in #21281.\r\n\r\nConcerning the relationship with the \"intensional\" classifier in the sense of #21281, I think going from intensional to extensional (my definition) should be quite easy, but not the other way around. I see two possible ways:\r\n\r\n1. To avoid confusion, I just remove my definitions of `IsClassifier`, `Classifier` and `HasClassifier`, and build the other definitions based on them directly from those of #21281;\r\n2. I keep both variants in separate namespaces (`CategoryTheory` for the intensional version, and `CategoryTheory.Subobject` for the extensional one), and add an API to build a `CategoryTheory.Subobject.Classifier` from a `CategoryTheory.Classifier`.\r\n\r\n(1) would ensure \"automatically\" that we use the same naming conventions, avoiding potential duplication and making for a shorter contribution. (2) could be useful in situations where one wants only the weaker notion of extensional subobject classifier. For instance, the bijection between monos and their characteristic map trivially gives a bijection between subobjects and their characteristic map, but this is not true in the other direction.\r\n\r\nI would argue in favor of (2) because it can be used to produce more general results requiring fewer assumptions. Unfortunately there does not seem to be anyway to directly share code with #21281 (e.g. with structure inheritance).\r\n",
+              "createdAt": "2025-02-25T00:30:43Z",
+              "author": {
+                "login": "Champitoad"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6fvx5D",
+              "body": "It does not seem reasonable to me to have two separate API for the same mathematical notion. `Subobject X` and `MonoOver X` are equivalent categories: I do not see any serious difference between quantifying on `x : Subobject X` (as you do) or on monomorphisms `U ⟶ X` (as in #21281).\r\nMy understanding is that one can use the `Classifier` structure in #21281 and introduce a definition `Classifier.representableBy` saying that the functor of subobjects is representable.",
+              "createdAt": "2025-02-25T01:10:39Z",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6f1Al2",
+              "body": "I am a bit surprised that you would say they are the same mathematical notion just because there is an equivalence of categories, but maybe that's because I am a constructivist. Or is it the case that in Lean, every essentially surjective functor is split essentially surjective (see [the nLab](https://ncatlab.org/nlab/show/equivalence+of+categories#idea))?\r\n\r\nAnyway I am fine trying to follow route (1), but I am not sure about what statement you have in mind for `Classifier.representableBy`. If it is `HasClassifier C -> sub.representableBy Ω`, then this is just a direct corollary of my `hasClassifier_isRepresentable_iff` theorem. Should I still add it?",
+              "createdAt": "2025-02-25T10:22:05Z",
+              "author": {
+                "login": "Champitoad"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6f1Ndq",
+              "body": "What I am suggesting is given the data and properties `c : Classifier C`, define a term `c.representableBy` saying that `c.Ω` (equipped with `c.truth`) represents the subobject functor.\r\n",
+              "createdAt": "2025-02-25T10:40:00Z",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6f1T7Z",
+              "body": "So a term `representableBy : forall (c : Classifier C), sub.RepresentableBy c.Ω`?",
+              "createdAt": "2025-02-25T10:50:34Z",
+              "author": {
+                "login": "Champitoad"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6f7KcJ",
+              "body": "I have now implemented the required changes, by merging the results originally written in `CategoryTheory/Subobject/Classifier.lean` into `CategoryTheory/Topos/Classifier.lean` (as well as a few other files so that more general lemmas are put in the appropriate places).",
+              "createdAt": "2025-02-25T19:35:23Z",
+              "author": {
+                "login": "Champitoad"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6f7pkX",
+              "body": "> I have now implemented the required changes, by merging the results originally written in `CategoryTheory/Subobject/Classifier.lean` into `CategoryTheory/Topos/Classifier.lean` (as well as a few other files so that more general lemmas are put in the appropriate places).\r\n\r\nI do not know what happened with your branch regarding the use of git? but something messy happened.\r\n\r\nI would suggest creating a separate PR which only adds the definition of the \"subobject functor\". This should go in a separate file in the folder `CategoryTheory.Subobject`.",
+              "createdAt": "2025-02-25T20:29:26Z",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6f70co",
+              "body": "I think this is because I used the \"Sync\" button in VS Code, instead of doing a simple push. I will try to create a new PR with just the `sub` functor.",
+              "createdAt": "2025-02-25T20:50:45Z",
+              "author": {
+                "login": "Champitoad"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "97393dbc12ea74b653961efba243ae8c9511cee3",
+                "additions": 428,
+                "deletions": 0,
+                "committedDate": "2025-02-23T18:53:50Z",
+                "author": {
+                  "name": "Pablo Donato",
+                  "email": "pablo.donato@tuta.io"
+                },
+                "statusCheckRollup": {
+                  "contexts": {
+                    "nodes": [
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIxbsClg",
+                        "name": "Lint style (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13485953881/job/37677105814"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIxbsCeg",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13485953882/job/37677105786"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIxbsCRQ",
+                        "name": "Build",
+                        "conclusion": "FAILURE",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13485953882/job/37677105733"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIxbsCVQ",
+                        "name": "Build (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13485953881/job/37677105749"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIxbsC4Q",
+                        "name": "Post-CI job (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13485953881/job/37677105889"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIxbzvcQ",
+                        "name": "Post-CI job",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13485953882/job/37677231985"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "commit": {
+                "oid": "4d6cb7bb5d08e5dc014181800dceff0a247baa9b",
+                "additions": 22,
+                "deletions": 25,
+                "committedDate": "2025-02-23T20:55:48Z",
+                "author": {
+                  "name": "Pablo Donato",
+                  "email": "pablo.donato@tuta.io"
+                },
+                "statusCheckRollup": {
+                  "contexts": {
+                    "nodes": [
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIxdhuXw",
+                        "name": "Lint style (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13486821986/job/37679033951"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIxdhupg",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13486821990/job/37679034022"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIxdhu2A",
+                        "name": "Build (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13486821986/job/37679034072"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIxdhuSg",
+                        "name": "Build",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13486821990/job/37679033930"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIxdhvQw",
+                        "name": "Post-CI job (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13486821986/job/37679034179"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIxdt6ig",
+                        "name": "Post-CI job",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13486821990/job/37679233674"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "commit": {
+                "oid": "855b014e4806604fc02b44193dfea5535ec0e63f",
+                "additions": 62,
+                "deletions": 24,
+                "committedDate": "2025-02-24T12:26:16Z",
+                "author": {
+                  "name": "Pablo Donato",
+                  "email": "pablo.donato@tuta.io"
+                },
+                "statusCheckRollup": {
+                  "contexts": {
+                    "nodes": [
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIx6kKZw",
+                        "name": "Lint style (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13497988234/job/37709482599"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIx6kLCg",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13497988233/job/37709482762"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIx6kMcw",
+                        "name": "Build",
+                        "conclusion": "FAILURE",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13497988233/job/37709483123"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIx6kMOw",
+                        "name": "Build (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13497988234/job/37709483067"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIx6kN-w",
+                        "name": "Post-CI job (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13497988234/job/37709483515"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIx7AutQ",
+                        "name": "Post-CI job",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13497988233/job/37709950645"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "commit": {
+                "oid": "5d6f875ecbcf8d57f37e586ba8911206090bcacc",
+                "additions": 3,
+                "deletions": 9,
+                "committedDate": "2025-02-24T13:46:03Z",
+                "author": {
+                  "name": "Pablo Donato",
+                  "email": "pablo.donato@tuta.io"
+                },
+                "statusCheckRollup": {
+                  "contexts": {
+                    "nodes": [
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIx_Hxjg",
+                        "name": "Lint style (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13499520256/job/37714260366"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIydGGUQ",
+                        "name": "set_pr_emoji",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13509202586/job/37745690193"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIyh3dCw",
+                        "name": "set_pr_emoji",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13510867800/job/37750693131"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIyjNrUA",
+                        "name": "set_pr_emoji",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13511368157/job/37752105808"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIyBmYkw",
+                        "name": "Add topic label",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13500311943/job/37716859027"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIyBmYKg",
+                        "name": "label-and-report-new-contributor",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13500311938/job/37716858922"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIyBmXtw",
+                        "name": "post-or-update-summary-comment",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13500311947/job/37716858807"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIx_HwjQ",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13499520266/job/37714260109"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIyBmZvg",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13500311940/job/37716859326"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIx_HvqA",
+                        "name": "Build (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13499520256/job/37714259880"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIx_HvCQ",
+                        "name": "Build",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13499520266/job/37714259721"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIyBmXKw",
+                        "name": "Check all files imported",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13500311940/job/37716858667"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIx_Hzlw",
+                        "name": "Post-CI job (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13499520256/job/37714260887"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIx_ot9Q",
+                        "name": "Post-CI job",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13499520266/job/37714800117"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIyBm7ow",
+                        "name": "New Contributor Check",
+                        "conclusion": "NEUTRAL",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/runs/37716868003"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIyBoyMg",
+                        "name": "Summary",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=22245&login=leanprover-community&repository=mathlib4"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "commit": {
+                "oid": "bd5e2fc9a8168f9af2d38f74fc8901e51969422b",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Robin Carlier",
+                  "email": "57142648+robin-carlier@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5da53b7e154a584e4ff39910b32180e007d9c9ea",
+                "additions": 108,
+                "deletions": 4,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Robin Carlier",
+                  "email": "57142648+robin-carlier@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "417df6478f2057ea468dfb64111611ff8b605f04",
+                "additions": 102,
+                "deletions": 7,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Markus Himmel",
+                  "email": "markus@himmel-villmar.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4677af121c4b9b2e466500cb91a6f2671f85dc41",
+                "additions": 12,
+                "deletions": 14,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Robin Carlier",
+                  "email": "57142648+robin-carlier@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5a47e73478d9ab89f3849d57918a83c47145b1fd",
+                "additions": 173,
+                "deletions": 9,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Markus Himmel",
+                  "email": "markus@himmel-villmar.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "fb2a4d1812d6dcf6f5a004a6b4b91ad375175b80",
+                "additions": 83,
+                "deletions": 7,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Patrick Massot",
+                  "email": "patrickmassot@free.fr"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "67c095d1707b59a5b7eea9bfcae9bd1d8a39f917",
+                "additions": 27,
+                "deletions": 0,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Markus Himmel",
+                  "email": "markus@himmel-villmar.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d6c62cb06f39b226f6f1452cd0eeeafb103f6c2b",
+                "additions": 24,
+                "deletions": 28,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Anne Baanen",
+                  "email": "vierkantor@vierkantor.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c4226e16654db00ed2f491b62a0df03762cf18bf",
+                "additions": 14,
+                "deletions": 13,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Kim Morrison",
+                  "email": "kim@tqft.net"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "58e40fd3f8d487719e9c7e3ba5d54ca374d604c1",
+                "additions": 26,
+                "deletions": 26,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Michał Staromiejski",
+                  "email": "michal.staromiejski@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9ddca0831dc6542895a278b42ea5a499536e2a6d",
+                "additions": 204,
+                "deletions": 0,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Vasilii Nesterov",
+                  "email": "vas.nesterov63@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c59583edb55b1710bf71762ff3c30acbdd7f5595",
+                "additions": 140,
+                "deletions": 15,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Pim Otte",
+                  "email": "otte.pim@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9d5ff8ab4d1d146b0c9db3dd2f0cda3fa97a4e62",
+                "additions": 3,
+                "deletions": 2,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "plp127",
+                  "email": "aaronliu2008@outlook.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4cde0a3e29758932d925ca0e7167779e005d3db2",
+                "additions": 224,
+                "deletions": 0,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Peter Nelson",
+                  "email": "junyanxu.math@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "58856565c4023c424c9cd56c2a34052fe1616dac",
+                "additions": 18,
+                "deletions": 6,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "67c326d6b68b872bce572a3188efa8ba8306da2f",
+                "additions": 129,
+                "deletions": 2,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Violeta Hernández",
+                  "email": "vi.hdz.p@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "90af39306ee4585d263844e95ea7479e8822ec1e",
+                "additions": 223,
+                "deletions": 16,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Peter Nelson",
+                  "email": "71660771+apnelson1@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9ef53f65a5200ba856bcee3432cca590ef0f7166",
+                "additions": 44,
+                "deletions": 1,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "grunweg",
+                  "email": "rothgang@math.uni-bonn.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5aabe4d9f0478cb323acf940029ab69438fb53de",
+                "additions": 15,
+                "deletions": 2,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Peter Nelson",
+                  "email": "71660771+apnelson1@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8fa2b187106bff8a4e756499b0abb0c42209ee68",
+                "additions": 25,
+                "deletions": 1,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Violeta Hernández",
+                  "email": "vi.hdz.p@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "244925ab02b48640aa1dd4ac49908e563e1dc10e",
+                "additions": 1226,
+                "deletions": 1189,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Xavier Roblot",
+                  "email": "roblot@math.univ-lyon1.fr"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e39abd483e49d5bf03fd39cd1d10e58c1bc3c475",
+                "additions": 196,
+                "deletions": 10,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Joël Riou",
+                  "email": "joel.riou@universite-paris-saclay.fr"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6b11260e83c9c4321717763b1c899fc108c78421",
+                "additions": 64,
+                "deletions": 8,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Jon Eugster",
+                  "email": "eugster.jon@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "934cead9bc62b1793851fd04f8d065f3fef3fafc",
+                "additions": 20,
+                "deletions": 0,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Yakov Pechersky",
+                  "email": "ffxen158@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "13db5695228d795ddc3f6bbc23df65899656d2d7",
+                "additions": 62,
+                "deletions": 0,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Amelia Livingston",
+                  "email": "101damnations@github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5cd134f74b76a2aaa6979ac2e8e710907515e2b7",
+                "additions": 200,
+                "deletions": 0,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Julian Berman",
+                  "email": "Julian@GrayVines.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e20891c872f9870fa7fdf3fb245cef273a55f465",
+                "additions": 23,
+                "deletions": 2,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Hannah Scholz",
+                  "email": "hannah@scholzbande.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4a3fa56e6535157d1c8d501900157978192faf17",
+                "additions": 70,
+                "deletions": 128,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Anne Baanen",
+                  "email": "vierkantor@vierkantor.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a9255a24a5cbba00343e4357660a38dea79b470c",
+                "additions": 1,
+                "deletions": 0,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Eric Wieser",
+                  "email": "efw@google.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "22710adda6fec82674b9613f969d918b1ba9f651",
+                "additions": 17,
+                "deletions": 0,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Michał Staromiejski",
+                  "email": "michal.staromiejski@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "58a30d0e572a67ec45677352cab4465a9f64398e",
+                "additions": 107,
+                "deletions": 0,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Markus Himmel",
+                  "email": "markus@himmel-villmar.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1c96dcb377c53f4c72b562b7780468e4d10d3cc5",
+                "additions": 12,
+                "deletions": 0,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Michał Staromiejski",
+                  "email": "michal.staromiejski@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "247a65cd73de72b565bfdd9c39fa31246fd75ddd",
+                "additions": 185,
+                "deletions": 1,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Charlie Conneen",
+                  "email": "gcc2hq@virginia.edu"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3a110ba58b46ea3a8ed77c086f5772c67abdfaf7",
+                "additions": 18,
+                "deletions": 0,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0d8bb575a2cf1c530dd812ea0ba731ae5be60784",
+                "additions": 1032,
+                "deletions": 1043,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Kim Morrison",
+                  "email": "kim@tqft.net"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8f2bc834a42ecc5c3ea3a9399e03dc34be547bbb",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Michał Staromiejski",
+                  "email": "michal.staromiejski@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "57086384736f9510d3179f4a5b1277c6e0096aad",
+                "additions": 382,
+                "deletions": 447,
+                "committedDate": "2025-02-25T18:15:36Z",
+                "author": {
+                  "name": "Pablo Donato",
+                  "email": "pablo.donato@tuta.io"
+                },
+                "statusCheckRollup": {
+                  "contexts": {
+                    "nodes": [
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIzURvng",
+                        "name": "Lint style (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13528079799/job/37803552670"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIzURw8A",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13528079794/job/37803553008"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIzURvVw",
+                        "name": "Build",
+                        "conclusion": "FAILURE",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13528079794/job/37803552599"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIzURxYA",
+                        "name": "Build (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13528079799/job/37803553120"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIzURzzw",
+                        "name": "Post-CI job (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13528079799/job/37803553743"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIzXERFA",
+                        "name": "Post-CI job",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13528079794/job/37806477588"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIzUTqDw",
+                        "name": "Summary",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=22245&login=leanprover-community&repository=mathlib4"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "commit": {
+                "oid": "120136827497a26045b6ae7fbb7aa1ee0f4af4c5",
+                "additions": 0,
+                "deletions": 2,
+                "committedDate": "2025-02-25T19:24:17Z",
+                "author": {
+                  "name": "Pablo Donato",
+                  "email": "pablo.donato@tuta.io"
+                },
+                "statusCheckRollup": {
+                  "contexts": {
+                    "nodes": [
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIzX8HRg",
+                        "name": "Lint style (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13529296371/job/37807392582"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIzX8Mkg",
+                        "name": "Lint style",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13529296367/job/37807393938"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIzX8JZQ",
+                        "name": "Build (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13529296371/job/37807393125"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIzX8Leg",
+                        "name": "Build",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13529296367/job/37807393658"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIzX8KpQ",
+                        "name": "Post-CI job (fork)",
+                        "conclusion": "SKIPPED",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13529296371/job/37807393445"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIzYZCWQ",
+                        "name": "Post-CI job",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13529296367/job/37807866457"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAIzX-CZg",
+                        "name": "Summary",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=22245&login=leanprover-community&repository=mathlib4"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "createdAt": "2025-02-24T14:25:35Z",
+        "deletions": 2536,
+        "files": {
+          "nodes": [
+            {
+              "path": "Cache/Hashing.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Cache/IO.lean",
+              "additions": 35,
+              "deletions": 7
+            },
+            {
+              "path": "Cache/Lean.lean",
+              "additions": 28,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib.lean",
+              "additions": 14,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Algebra/Defs.lean",
+              "additions": 5,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Algebra/Category/AlgebraCat/Limits.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Algebra/Category/BoolRing.lean",
+              "additions": 2,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Category/FGModuleCat/Basic.lean",
+              "additions": 1,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Algebra/Category/Grp/AB.lean",
+              "additions": 2,
+              "deletions": 7
+            },
+            {
+              "path": "Mathlib/Algebra/Category/Grp/EpiMono.lean",
+              "additions": 0,
+              "deletions": 12
+            },
+            {
+              "path": "Mathlib/Algebra/Category/HopfAlgebraCat/Monoidal.lean",
+              "additions": 61,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Algebra/Category/ModuleCat/Abelian.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Category/ModuleCat/Adjunctions.lean",
+              "additions": 0,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Category/ModuleCat/Basic.lean",
+              "additions": 0,
+              "deletions": 5
+            },
+            {
+              "path": "Mathlib/Algebra/Category/ModuleCat/Biproducts.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Category/ModuleCat/ChangeOfRings.lean",
+              "additions": 3,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Algebra/Category/ModuleCat/Differentials/Basic.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Category/ModuleCat/EpiMono.lean",
+              "additions": 4,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Algebra/Category/ModuleCat/FilteredColimits.lean",
+              "additions": 2,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Algebra/Category/ModuleCat/Kernels.lean",
+              "additions": 3,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Algebra/Category/ModuleCat/Monoidal/Basic.lean",
+              "additions": 1,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Algebra/Category/ModuleCat/Presheaf/Colimits.lean",
+              "additions": 4,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Algebra/Category/ModuleCat/Presheaf/Limits.lean",
+              "additions": 4,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Algebra/Category/ModuleCat/Subobject.lean",
+              "additions": 1,
+              "deletions": 20
+            },
+            {
+              "path": "Mathlib/Algebra/Category/MonCat/FilteredColimits.lean",
+              "additions": 2,
+              "deletions": 5
+            },
+            {
+              "path": "Mathlib/Algebra/Category/Ring/Colimits.lean",
+              "additions": 10,
+              "deletions": 20
+            },
+            {
+              "path": "Mathlib/Algebra/Category/Ring/Limits.lean",
+              "additions": 24,
+              "deletions": 30
+            },
+            {
+              "path": "Mathlib/Algebra/Group/Commute/Units.lean",
+              "additions": 5,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Algebra/Group/Pointwise/Set/Card.lean",
+              "additions": 3,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Algebra/Homology/ComplexShape.lean",
+              "additions": 6,
+              "deletions": 6
+            },
+            {
+              "path": "Mathlib/Algebra/Homology/Double.lean",
+              "additions": 31,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Algebra/Homology/HasNoLoop.lean",
+              "additions": 84,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Algebra/Homology/Homotopy.lean",
+              "additions": 4,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Algebra/Polynomial/Basic.lean",
+              "additions": 26,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Algebra/Polynomial/Degree/Operations.lean",
+              "additions": 6,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Algebra/Polynomial/Lifts.lean",
+              "additions": 12,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Algebra/Polynomial/Sequence.lean",
+              "additions": 193,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/AlgebraicTopology/SimplexCategory/GeneratorsRelations/EpiMono.lean",
+              "additions": 108,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Analysis/CStarAlgebra/Spectrum.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/AbelLimit.lean",
+              "additions": 5,
+              "deletions": 5
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/AbsMax.lean",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/Angle.lean",
+              "additions": 3,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/Arg.lean",
+              "additions": 9,
+              "deletions": 5
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/Basic.lean",
+              "additions": 25,
+              "deletions": 48
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/CauchyIntegral.lean",
+              "additions": 3,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/Circle.lean",
+              "additions": 8,
+              "deletions": 5
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/Hadamard.lean",
+              "additions": 26,
+              "deletions": 25
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/Isometry.lean",
+              "additions": 9,
+              "deletions": 8
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/Liouville.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/LocallyUniformLimit.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/OpenMapping.lean",
+              "additions": 1,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/Periodic.lean",
+              "additions": 12,
+              "deletions": 8
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/PhragmenLindelof.lean",
+              "additions": 56,
+              "deletions": 56
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/Positivity.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/Schwarz.lean",
+              "additions": 19,
+              "deletions": 17
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/UnitDisc/Basic.lean",
+              "additions": 16,
+              "deletions": 15
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/UpperHalfPlane/Exp.lean",
+              "additions": 18,
+              "deletions": 9
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/UpperHalfPlane/Metric.lean",
+              "additions": 10,
+              "deletions": 12
+            },
+            {
+              "path": "Mathlib/Analysis/Fourier/AddCircle.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/Fourier/AddCircleMulti.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Fourier/FourierTransformDeriv.lean",
+              "additions": 4,
+              "deletions": 5
+            },
+            {
+              "path": "Mathlib/Analysis/Fourier/Inversion.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Fourier/PoissonSummation.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/InnerProductSpace/TwoDim.lean",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Analysis/MellinTransform.lean",
+              "additions": 7,
+              "deletions": 8
+            },
+            {
+              "path": "Mathlib/Analysis/Normed/Group/Continuity.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/Normed/Lp/WithLp.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Analysis/PSeries.lean",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Analysis/PSeriesComplex.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/CompareExp.lean",
+              "additions": 18,
+              "deletions": 13
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Complex/Arctan.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Complex/Arg.lean",
+              "additions": 85,
+              "deletions": 76
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Complex/Circle.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Complex/Log.lean",
+              "additions": 20,
+              "deletions": 20
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Complex/LogBounds.lean",
+              "additions": 5,
+              "deletions": 6
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Exp.lean",
+              "additions": 9,
+              "deletions": 8
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Exponential.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Gamma/Basic.lean",
+              "additions": 6,
+              "deletions": 6
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Gamma/Beta.lean",
+              "additions": 2,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Gamma/Deriv.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Gaussian/FourierTransform.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Gaussian/GaussianIntegral.lean",
+              "additions": 2,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Gaussian/PoissonSummation.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/ImproperIntegrals.lean",
+              "additions": 3,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Integrals.lean",
+              "additions": 4,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Log/Summable.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/PolarCoord.lean",
+              "additions": 9,
+              "deletions": 7
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Pow/Asymptotics.lean",
+              "additions": 11,
+              "deletions": 11
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Pow/Continuity.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Pow/Deriv.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Pow/Real.lean",
+              "additions": 56,
+              "deletions": 45
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Trigonometric/ArctanDeriv.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Trigonometric/Basic.lean",
+              "additions": 7,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Trigonometric/ComplexDeriv.lean",
+              "additions": 11,
+              "deletions": 7
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Trigonometric/Cotangent.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Trigonometric/Series.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/CategoryTheory/Abelian/FreydMitchell.lean",
+              "additions": 162,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/CategoryTheory/Abelian/GrothendieckAxioms/Connected.lean",
+              "additions": 106,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/CategoryTheory/Abelian/GrothendieckAxioms/Indization.lean",
+              "additions": 18,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/CategoryTheory/Abelian/GrothendieckCategory/Coseparator.lean",
+              "additions": 26,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "Champitoad_subobject_classifier",
+        "headRefOid": "120136827497a26045b6ae7fbb7aa1ee0f4af4c5",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c6MTJAS",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c7P265b",
+              "color": "f9d0c4",
+              "name": "awaiting-author"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+              "color": "f99094",
+              "name": "merge-conflict"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABViJTYQ",
+              "color": "33dbec",
+              "name": "t-category-theory"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABb5aSCQ",
+              "color": "8BBA68",
+              "name": "new-contributor"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": []
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "DIRTY",
+        "mergeable": "CONFLICTING",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 22245,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": [
+            {
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjM3NzcyOTQ5",
+                "login": "joelriou"
+              }
+            },
+            {
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjI5OTU5MjI2",
+                "login": "b-mehta"
+              }
+            }
+          ]
+        },
+        "reviews": {
+          "nodes": []
+        },
+        "reviewThreads": {
+          "nodes": []
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjkxMDk3Ng==",
+              "login": "Champitoad"
+            },
+            {
+              "id": "MDQ6VXNlcjM3NzcyOTQ5",
+              "login": "joelriou"
+            },
+            {
+              "id": "U_kgDOBcsTTQ",
+              "login": "leanprover-community-bot-assistant"
+            },
+            {
+              "id": "MDQ6VXNlcjU3MTQyNjQ4",
+              "login": "robin-carlier"
+            },
+            {
+              "id": "MDQ6VXNlcjIwNjUzNTI=",
+              "login": "TwoFX"
+            },
+            {
+              "id": "MDQ6VXNlcjE0MDYwODgz",
+              "login": "PatrickMassot"
+            },
+            {
+              "id": "MDQ6VXNlcjIxMTY1NzA=",
+              "login": "Vierkantor"
+            },
+            {
+              "id": "MDQ6VXNlcjQ3Nzk1Ng==",
+              "login": "kim-em"
+            },
+            {
+              "id": "MDQ6VXNlcjc3MDA1MDI=",
+              "login": "mistarro"
+            },
+            {
+              "id": "U_kgDOBwlQyQ",
+              "login": "vasnesterov"
+            },
+            {
+              "id": "MDQ6VXNlcjU5MTc0NTg=",
+              "login": "pimotte"
+            },
+            {
+              "id": "U_kgDOC9SlgQ",
+              "login": "plp127"
+            },
+            {
+              "id": "MDQ6VXNlcjMwNjQxNDU=",
+              "login": "alreadydone"
+            },
+            {
+              "id": "MDQ6VXNlcjE4ODgxMw==",
+              "login": "urkud"
+            },
+            {
+              "id": "MDQ6VXNlcjY1NDY1Njcw",
+              "login": "vihdzp"
+            },
+            {
+              "id": "MDQ6VXNlcjcxNjYwNzcx",
+              "login": "apnelson1"
+            },
+            {
+              "id": "MDQ6VXNlcjEwMTA1MDE2",
+              "login": "grunweg"
+            },
+            {
+              "id": "MDQ6VXNlcjQ2MjAwMDcy",
+              "login": "xroblot"
+            },
+            {
+              "id": "MDQ6VXNlcjkxNDE1NjQ=",
+              "login": "joneugster"
+            },
+            {
+              "id": "MDQ6VXNlcjUzNDIwODY=",
+              "login": "pechersky"
+            },
+            {
+              "id": "MDQ6VXNlcjMyOTgyMg==",
+              "login": "Julian"
+            },
+            {
+              "id": "MDQ6VXNlcjcwMDcxMzQ1",
+              "login": "scholzhannah"
+            },
+            {
+              "id": "MDQ6VXNlcjQyNTI2MA==",
+              "login": "eric-wieser"
+            },
+            {
+              "id": "MDQ6VXNlcjMxNzAxMTM2",
+              "login": "CharredLee"
+            }
+          ]
+        },
+        "state": "OPEN",
+        "statusCheckRollup": {
+          "contexts": {
+            "nodes": [
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIzX8HRg",
+                "name": "Lint style (fork)",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13529296371/job/37807392582"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIzX8Mkg",
+                "name": "Lint style",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13529296367/job/37807393938"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIzX8JZQ",
+                "name": "Build (fork)",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13529296371/job/37807393125"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIzX8Leg",
+                "name": "Build",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13529296367/job/37807393658"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIzX8KpQ",
+                "name": "Post-CI job (fork)",
+                "conclusion": "SKIPPED",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13529296371/job/37807393445"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIzYZCWQ",
+                "name": "Post-CI job",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13529296367/job/37807866457"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAIzX-CZg",
+                "name": "Summary",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://dashboard.mergify.com/event-logs?pullRequestNumber=22245&login=leanprover-community&repository=mathlib4"
+              }
+            ]
+          }
+        },
+        "title": "feat(CategoryTheory/Subobject): add formalization of subobject classifier",
+        "updatedAt": "2025-02-25T20:50:46Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/22245",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "97393dbc12ea74b653961efba243ae8c9511cee3"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4d6cb7bb5d08e5dc014181800dceff0a247baa9b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "855b014e4806604fc02b44193dfea5535ec0e63f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5d6f875ecbcf8d57f37e586ba8911206090bcacc"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c6rXzvXzwAAAAPTa86J",
+              "createdAt": "2025-02-24T14:25:50Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABb5aSCQ",
+                "name": "new-contributor"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6fqBDD",
+              "createdAt": "2025-02-24T14:26:35Z",
+              "body": "### PR summary [5d6f875ecb](https://github.com/leanprover-community/mathlib4/pull/22245/commits/5d6f875ecbcf8d57f37e586ba8911206090bcacc)\n\n#### Import changes for modified files\n\nNo significant changes to the import graph\n\n\n<details><summary>Import changes for all files</summary>\n\n|Files|Import difference|\n|-|-|\n| `Mathlib.CategoryTheory.Subobject.Classifier` (new file)|613|\n\n</details>\n\n---\n\n<details><summary>\n\n#### Declarations diff\n\n</summary>\n\n`+ Classifier`\n`+ HasClassifier`\n`+ IsClassifier`\n`+ cmap`\n`+ cmap_compr`\n`+ compr`\n`+ compr_cmap`\n`+ compr_isPullback`\n`+ isPullback_eq`\n`+ isPullback_eq_mk`\n`+ isPullback_mk`\n`+ isRepresentable_hasClassifier_iff`\n`+ mk_arrow_mk`\n`+ of_iso1`\n`+ of_iso3`\n`+ pullback_obj`\n`+ pullback_obj_representative`\n`+ sub`\n`+ truth`\n`+ unique_eq`\n`+ χ_`\n<details>\n  <summary>You can run this locally as follows</summary>\n\n\n```bash\n## summary with just the declaration names:\n./scripts/declarations_diff.sh <optional_commit>\n\n## more verbose report:\n./scripts/declarations_diff.sh long <optional_commit>\n```\n</details>\n\nThe doc-module for `script/declarations_diff.sh` contains some details about this script.\n\n</details>\n\n---\n\n<details><summary>No changes to technical debt.</summary>\n\nYou can run this locally as\n```\n./scripts/technical-debt-metrics.sh pr_summary\n```\n* The `relative` value is the weighted *sum* of the differences with weight given by the *inverse* of the current value of the statistic.\n* The `absolute` value is the `relative` value divided by the total sum of the inverses of the current values (i.e. the weighted *average* of the differences).\n</details>\n",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c6rXzvXzwAAAAPTbAlX",
+              "createdAt": "2025-02-24T14:26:38Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjM3NzcyOTQ5",
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c6rXzvXzwAAAAPTbBAF",
+              "createdAt": "2025-02-24T14:26:45Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABViJTYQ",
+                "name": "t-category-theory"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c6rXzvXzwAAAAPTdU7u",
+              "createdAt": "2025-02-24T14:56:26Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjI5OTU5MjI2",
+                "login": "b-mehta"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6fudFK",
+              "createdAt": "2025-02-24T22:01:44Z",
+              "body": "A significant part of this PR duplicates #21281 (which shall soon be merged). You may contribute with the relation between the data/existence of a classifier in the sense of #21281, and the representability of the \"subobject\" functor, but you should certainly introduce a few auxiliary definitions/lemmas in order to provide a suitable API.",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c6rXzvXzwAAAAPT1J9r",
+              "createdAt": "2025-02-24T22:31:12Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6fvfaR",
+              "createdAt": "2025-02-25T00:30:43Z",
+              "body": "> A significant part of this PR duplicates #21281 (which shall soon be merged). You may contribute with the relation between the data/existence of a classifier in the sense of #21281, and the representability of the \"subobject\" functor, but you should certainly introduce a few auxiliary definitions/lemmas in order to provide a suitable API.\r\n\r\nCan you be more specific as to what parts are duplicated? I think most of this formalization exploits some definitions in `CategoryTheory.Subobject`, which is not the case in #21281.\r\n\r\nConcerning the relationship with the \"intensional\" classifier in the sense of #21281, I think going from intensional to extensional (my definition) should be quite easy, but not the other way around. I see two possible ways:\r\n\r\n1. To avoid confusion, I just remove my definitions of `IsClassifier`, `Classifier` and `HasClassifier`, and build the other definitions based on them directly from those of #21281;\r\n2. I keep both variants in separate namespaces (`CategoryTheory` for the intensional version, and `CategoryTheory.Subobject` for the extensional one), and add an API to build a `CategoryTheory.Subobject.Classifier` from a `CategoryTheory.Classifier`.\r\n\r\n(1) would ensure \"automatically\" that we use the same naming conventions, avoiding potential duplication and making for a shorter contribution. (2) could be useful in situations where one wants only the weaker notion of extensional subobject classifier. For instance, the bijection between monos and their characteristic map trivially gives a bijection between subobjects and their characteristic map, but this is not true in the other direction.\r\n\r\nI would argue in favor of (2) because it can be used to produce more general results requiring fewer assumptions. Unfortunately there does not seem to be anyway to directly share code with #21281 (e.g. with structure inheritance).\r\n",
+              "author": {
+                "login": "Champitoad"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c6rXzvXzwAAAAPUAVUY",
+              "createdAt": "2025-02-25T00:32:47Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6fvx5D",
+              "createdAt": "2025-02-25T01:10:39Z",
+              "body": "It does not seem reasonable to me to have two separate API for the same mathematical notion. `Subobject X` and `MonoOver X` are equivalent categories: I do not see any serious difference between quantifying on `x : Subobject X` (as you do) or on monomorphisms `U ⟶ X` (as in #21281).\r\nMy understanding is that one can use the `Classifier` structure in #21281 and introduce a definition `Classifier.representableBy` saying that the functor of subobjects is representable.",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c6rXzvXzwAAAAPUCpDQ",
+              "createdAt": "2025-02-25T01:10:51Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6f1Al2",
+              "createdAt": "2025-02-25T10:22:05Z",
+              "body": "I am a bit surprised that you would say they are the same mathematical notion just because there is an equivalence of categories, but maybe that's because I am a constructivist. Or is it the case that in Lean, every essentially surjective functor is split essentially surjective (see [the nLab](https://ncatlab.org/nlab/show/equivalence+of+categories#idea))?\r\n\r\nAnyway I am fine trying to follow route (1), but I am not sure about what statement you have in mind for `Classifier.representableBy`. If it is `HasClassifier C -> sub.representableBy Ω`, then this is just a direct corollary of my `hasClassifier_isRepresentable_iff` theorem. Should I still add it?",
+              "author": {
+                "login": "Champitoad"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6f1Ndq",
+              "createdAt": "2025-02-25T10:40:00Z",
+              "body": "What I am suggesting is given the data and properties `c : Classifier C`, define a term `c.representableBy` saying that `c.Ω` (equipped with `c.truth`) represents the subobject functor.\r\n",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6f1T7Z",
+              "createdAt": "2025-02-25T10:50:34Z",
+              "body": "So a term `representableBy : forall (c : Classifier C), sub.RepresentableBy c.Ω`?",
+              "author": {
+                "login": "Champitoad"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "bd5e2fc9a8168f9af2d38f74fc8901e51969422b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5da53b7e154a584e4ff39910b32180e007d9c9ea"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "417df6478f2057ea468dfb64111611ff8b605f04"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4677af121c4b9b2e466500cb91a6f2671f85dc41"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5a47e73478d9ab89f3849d57918a83c47145b1fd"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "fb2a4d1812d6dcf6f5a004a6b4b91ad375175b80"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "67c095d1707b59a5b7eea9bfcae9bd1d8a39f917"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d6c62cb06f39b226f6f1452cd0eeeafb103f6c2b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c4226e16654db00ed2f491b62a0df03762cf18bf"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "58e40fd3f8d487719e9c7e3ba5d54ca374d604c1"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9ddca0831dc6542895a278b42ea5a499536e2a6d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c59583edb55b1710bf71762ff3c30acbdd7f5595"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9d5ff8ab4d1d146b0c9db3dd2f0cda3fa97a4e62"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4cde0a3e29758932d925ca0e7167779e005d3db2"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "58856565c4023c424c9cd56c2a34052fe1616dac"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "67c326d6b68b872bce572a3188efa8ba8306da2f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "90af39306ee4585d263844e95ea7479e8822ec1e"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9ef53f65a5200ba856bcee3432cca590ef0f7166"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5aabe4d9f0478cb323acf940029ab69438fb53de"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8fa2b187106bff8a4e756499b0abb0c42209ee68"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "244925ab02b48640aa1dd4ac49908e563e1dc10e"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e39abd483e49d5bf03fd39cd1d10e58c1bc3c475"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "6b11260e83c9c4321717763b1c899fc108c78421"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "934cead9bc62b1793851fd04f8d065f3fef3fafc"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "13db5695228d795ddc3f6bbc23df65899656d2d7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5cd134f74b76a2aaa6979ac2e8e710907515e2b7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e20891c872f9870fa7fdf3fb245cef273a55f465"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4a3fa56e6535157d1c8d501900157978192faf17"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a9255a24a5cbba00343e4357660a38dea79b470c"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "22710adda6fec82674b9613f969d918b1ba9f651"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "58a30d0e572a67ec45677352cab4465a9f64398e"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1c96dcb377c53f4c72b562b7780468e4d10d3cc5"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "247a65cd73de72b565bfdd9c39fa31246fd75ddd"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3a110ba58b46ea3a8ed77c086f5772c67abdfaf7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0d8bb575a2cf1c530dd812ea0ba731ae5be60784"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8f2bc834a42ecc5c3ea3a9399e03dc34be547bbb"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "57086384736f9510d3179f4a5b1277c6e0096aad"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c6rXzvXzwAAAAPVdUjS",
+              "createdAt": "2025-02-25T18:22:32Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "120136827497a26045b6ae7fbb7aa1ee0f4af4c5"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6f7KcJ",
+              "createdAt": "2025-02-25T19:35:23Z",
+              "body": "I have now implemented the required changes, by merging the results originally written in `CategoryTheory/Subobject/Classifier.lean` into `CategoryTheory/Topos/Classifier.lean` (as well as a few other files so that more general lemmas are put in the appropriate places).",
+              "author": {
+                "login": "Champitoad"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c6rXzvXzwAAAAPVkOKt",
+              "createdAt": "2025-02-25T20:13:10Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6f7pkX",
+              "createdAt": "2025-02-25T20:29:26Z",
+              "body": "> I have now implemented the required changes, by merging the results originally written in `CategoryTheory/Subobject/Classifier.lean` into `CategoryTheory/Topos/Classifier.lean` (as well as a few other files so that more general lemmas are put in the appropriate places).\r\n\r\nI do not know what happened with your branch regarding the use of git? but something messy happened.\r\n\r\nI would suggest creating a separate PR which only adds the definition of the \"subobject functor\". This should go in a separate file in the folder `CategoryTheory.Subobject`.",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c6rXzvXzwAAAAPVlXnm",
+              "createdAt": "2025-02-25T20:29:33Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6f70co",
+              "createdAt": "2025-02-25T20:50:45Z",
+              "body": "I think this is because I used the \"Sync\" button in VS Code, instead of doing a simple push. I will try to create a new PR with just the `sub` functor.",
+              "author": {
+                "login": "Champitoad"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
