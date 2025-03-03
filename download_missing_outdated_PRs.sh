@@ -57,12 +57,13 @@ function download_pr {
 # Re-download data if missing. Take care to not ask for too much at once!
 # FIXME: this is only somewhat robust --- improve this to ensure to avoid
 # re-re-downloading in a loop!
-for pr in $(cat "redownload.txt"); do
-  echo "About to re-download PR $pr"
-  download_pr $pr
-done
-echo "" > redownload.txt
-echo "Successfully re-downloaded all planned PRs (if any)"
+# for pr in $(cat "redownload.txt"); do
+#   echo "About to re-download PR $pr"
+#   download_pr $pr
+# done
+# echo "" > redownload.txt
+# echo "Successfully re-downloaded all planned PRs (if any)"
+echo "TEMPORARILY skipping re-downloading of non-stubborn PRs"
 
 # In case there are PRs which got "missed" somehow, backfill data for up to two of them.
 i=0
@@ -100,8 +101,8 @@ if [ $i -eq 0 ]; then
 fi
 echo "Backfilled at most one PR successfully"
 
-# Do the same for at most 2 stubborn PRs.
-# (Using `head --lines 2` is *not* equivalent, as we want to count *non-skipped* PRs.)
+# Do the same for at most 10 stubborn PRs.
+# (Using `head --lines 10` is *not* equivalent, as we want to count *non-skipped* PRs.)
 i=0
 for pr in $stubborn_prs; do
   # Check if the directory exists.
@@ -112,8 +113,8 @@ for pr in $stubborn_prs; do
   echo "Attempting to backfill data for 'stubborn' PR $pr"
   download_stubborn $pr
   i=$((i+1))
-  if [ $i -eq 2 ]; then
+  if [ $i -eq 10 ]; then
     break;
   fi
 done
-echo "Backfilled up to two 'stubborn' PRs successfully"
+echo "Backfilled up to 10 'stubborn' PRs successfully"
