@@ -42,7 +42,7 @@
   </details>
   <p>For the <strong>old main page</strong> with all tables at one glance, <a href="index-old.html">look here</a>.</p>
   <p>Feedback (including bug reports and ideas for improvements) on this dashboard is very welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.</p>
-  <p><small>This dashboard was last updated on: March 03, 2025 at 17:10 UTC</small></p>
+  <p><small>This dashboard was last updated on: March 03, 2025 at 18:09 UTC</small></p>
 
 <script>
   let diff_stat = DataTable.type('diff_stat', {
@@ -69,13 +69,40 @@
     }
   })
 $(document).ready( function () {
-  $('table').DataTable({
-    stateSave: true,
+  // Parse the URL for any initial configuration settings.
+  // Future: use this for deciding which table to apply the options to.
+  let fragment = window.location.hash;
+  const params = new URLSearchParams(document.location.search);
+  const search_params = params.get("search");
+  const pageLength = params.get("length") || 10;
+  const sort_params = params.getAll("sort");
+  // The configuration for initial sorting of tables.
+  let sort_config = [];
+  for (const config of sort_params) {
+    if (!config.includes('-')) {
+      console.log(`invalid value ${config} passed as sort parameter`);
+      continue;
+    }
+    const [col, dir, ...rest] = config.split('-');
+    if (dir != "asc" && dir != "desc") {
+      console.log(`invalid sorting direction ${dir} passed as sorting configuration`);
+      continue;
+    }
+    sort_config.push([col, dir]);
+   }
+  const options = {
     stateDuration: 0,
-    pageLength: 10,
+    pageLength: pageLength,
     "searching": true,
     columnDefs: [{ type: 'diff_stat', targets: 4}],
-  });
+  };
+  if (params.has("search")) {
+    options.search = {
+        search: search_params
+    };
+  }
+  options.order = sort_config;
+  $('table').DataTable(options);
 });
 </script>
 </body>
