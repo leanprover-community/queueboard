@@ -260,7 +260,7 @@ class RESTData(NamedTuple):
 
 # If the aggregate data is less than this amount behind the REST data,
 # we don't warn yet (but allow for `gather_stats.sh` to download this normally).
-ALLOWED_DELAY_MINS = 12
+ALLOWED_DELAY_MINS = 15
 
 
 # Return a list of PR numbers whose aggregate data differs from the REST data,
