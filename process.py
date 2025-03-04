@@ -173,7 +173,7 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
         "last_updated": last_updated,
         "author": author,
         "title": title,
-        "description": body,
+        "description": description,
         "label_names": labels,
         "num_files": number_modified_files,
         "files": modified_files,
