@@ -215,7 +215,7 @@ $(document).ready( function () {
       case "changedFiles":
         idx = 5;
         break;
-      case "numberComments:
+      case "numberComments":
         idx = 6;
         break;
       // Future: add further aliasses, once it's clearer which column indices may vary or not.
