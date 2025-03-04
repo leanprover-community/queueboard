@@ -211,8 +211,15 @@ $(document).ready( function () {
         break;
       case "diff":
         idx = 4;
+        break;
+      case "changedFiles":
+        idx = 5;
+        break;
+      case "numberComments:
+        idx = 6;
+        break;
       // Future: add further aliasses, once it's clearer which column indices may vary or not.
-      // 7 assignee, 8 last_update, 9 last status change, 10 total time in review
+      // current default indices: 7 assignee, 8 last_update, 9 last status change, 10 total time in review
     }
     sort_config.push([idx, dir]);
    }
