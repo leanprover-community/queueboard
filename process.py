@@ -137,6 +137,7 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
     # We assume the author URL is determined by the github handle: in practice, it is.
     author = inner["author"]["login"]
     title = inner["title"]
+    description = inner["body"]
     additions = inner["additions"]
     deletions = inner["deletions"]
     # Number of files modified by this PR.
@@ -172,6 +173,7 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
         "last_updated": last_updated,
         "author": author,
         "title": title,
+        "description": body,
         "label_names": labels,
         "num_files": number_modified_files,
         "files": modified_files,
