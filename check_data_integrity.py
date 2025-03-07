@@ -81,7 +81,8 @@ def _check_directory(dir: str, pr_number: int, files: List[str]) -> bool:
 # - each directory only contains the expected files, and these parse successfully.
 # Return a tuple (normal, stubborn) of all PR numbers whose data was mal-formed (if any):
 # first all normal PRs, then all "stubborn" PRs.
-def check_data_directory_contents() -> Tuple[List[int], List[int]]:
+# For each normal PRs, we return the PR number as well as "true" iff the directory was temporary.
+def check_data_directory_contents() -> Tuple[List[Tuple[int, bool]], List[int]]:
     data_dirs: List[str] = sorted(os.listdir("data"))
     normal_prs_with_errors = []
     stubborn_prs_with_errors = []
@@ -90,7 +91,7 @@ def check_data_directory_contents() -> Tuple[List[int], List[int]]:
             number = dir.removesuffix("-basic")
             if number in data_dirs:
                 eprint(f"error: there is both a normal and a 'basic' data directory for PR {number}")
-                normal_prs_with_errors.append(int(number))
+                normal_prs_with_errors.append((int(number), False))
             expected = ["basic_pr_info.json", "timestamp.txt"]
             files = sorted(os.listdir(os.path.join("data", dir)))
             if files != expected:
@@ -99,15 +100,19 @@ def check_data_directory_contents() -> Tuple[List[int], List[int]]:
                 continue
             if not _check_directory(os.path.join("data", dir), int(number), files):
                 stubborn_prs_with_errors.append(int(number))
+        elif dir.endswith("-temp"):
+            number = dir.removesuffix("-temp")
+            eprint(f"error: found a temporary directory for PR {number}")
+            normal_prs_with_errors.append((int(number), True))
         elif dir.isnumeric():
             expected = ["pr_info.json", "pr_reactions.json", "timestamp.txt"]
             files = sorted(os.listdir(os.path.join("data", dir)))
             if files != expected:
                 eprint(f"files for PR {dir} (in directory {dir}) did not match what I wanted: expected {expected}, got {files}")
-                normal_prs_with_errors.append(int(dir))
+                normal_prs_with_errors.append((int(dir), False))
                 continue
             if not _check_directory(os.path.join("data", dir), int(dir), files):
-                normal_prs_with_errors.append(int(dir))
+                normal_prs_with_errors.append((int(dir), False))
         else:
             eprint(f"error: found directory {dir}, which was unexpected")
     # Deduplicate the output: the logic above might add a PR twice.
@@ -212,9 +217,9 @@ def prune_missing_prs_files() -> List[int]:
 #   about this being the second (or third) time this PR is downloaded,
 # - if there was a comment about the third attempt, i.e. a download failed thrice in a row, mark this PR as stubborn.
 # 'prune_missing_prs_files()' ensures that no stale "third attempt" comments are left behind.
-def remove_broken_data(number: int) -> None:
-    dir = os.path.join("data", str(number))
-    shutil.rmtree(dir)
+def remove_broken_data(number: int, is_temporary: bool) -> None:
+    dirname = f"{number}-temp" if is_temporary else str(number)
+    shutil.rmtree(os.path.join("data", dirname))
     def _inner(number: int, filename: str) -> None:
         with open(filename, "r") as fi:
             content = fi.read().splitlines()
@@ -351,8 +356,8 @@ def main() -> None:
     # "Last updated" information as found in the aggregate data file.
     (normal_prs_with_errors, stubborn_prs_with_errors) = check_data_directory_contents()
     # Prune broken data for all PRs, and remove superfluous entries from 'missing_prs.txt'.
-    for pr_number in normal_prs_with_errors:
-        remove_broken_data(pr_number)
+    for (pr_number, is_temporary) in normal_prs_with_errors:
+        remove_broken_data(pr_number, is_temporary)
     for pr_number in stubborn_prs_with_errors:
         shutil.rmtree(os.path.join("data", f"{pr_number}-basic"))
     current_missing_entries = prune_missing_prs_files()
