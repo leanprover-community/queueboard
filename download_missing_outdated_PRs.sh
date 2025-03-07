@@ -57,7 +57,8 @@ function download_pr {
 # re-re-downloading in a loop!
 for pr in $(cat "redownload.txt"); do
   echo "About to re-download PR $pr"
-  download_pr $pr
+  # We try re-downloading every PR, so "redownload.txt" gets emptied for sure.
+  download_pr $pr || true
 done
 echo "" > redownload.txt
 echo "Successfully re-downloaded all planned PRs (if any)"
