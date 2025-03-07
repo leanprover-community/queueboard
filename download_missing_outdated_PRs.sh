@@ -32,8 +32,6 @@ function download_normal {
     { ./pr_reactions.sh "$1" | jq '.' > "$tmpdir/pr_reactions.json"; } || { rm -r -f $tmpdir && return 1; }
     rm -r -f $dir
     mv -f $tmpdir/ $dir/
-    echo "at the end, $dir contains the following files"
-    ls $dir
 }
 
 # |download_stubborn $pr| downloads "stubborn" info for the PR '$pr' into the appropriate directory.
