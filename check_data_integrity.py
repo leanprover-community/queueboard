@@ -221,6 +221,9 @@ def remove_broken_data(number: int, is_temporary: bool) -> None:
     dirname = f"{number}-temp" if is_temporary else str(number)
     shutil.rmtree(os.path.join("data", dirname))
     def _inner(number: int, filename: str) -> None:
+        # NB. We write a comment "second time" to both missing_prs.txt and closed_prs_to_backfill.txt
+        # (as we don't know where the original one came from). This causes duplicate messages and entries,
+        # but is otherwise harmless.
         with open(filename, "r") as fi:
             content = fi.read().splitlines()
         previous_comments = list(filter(lambda s: s.startswith("-- ") and s.rstrip().endswith(str(number)), content))
