@@ -291,7 +291,8 @@ def _compute_pr_entries(
             print(f"warning: PR {pr.number} has url differing from the inferred one:\n  actual:   {pr.url}\n  inferred: {infer_pr_url(pr.number)}", file=sys.stderr)
         labels = _write_labels(pr.labels, page_name, id)
         branch_name = aggregate_information[pr.number].branch_name if pr.number in aggregate_information else "missing"
-        entries = [pr_link(pr.number, pr.url, branch_name), user_filter_link(name, page_name, id), title_link(pr.title, pr.url), labels]
+        description = aggregate_information[pr.number].description
+        entries = [pr_link(pr.number, pr.url, branch_name), user_filter_link(name, page_name, id), title_link(pr.title, pr.url), description, labels]
         # Detailed information about the current PR.
         pr_info = None
         if pr.number in aggregate_information:
@@ -403,7 +404,7 @@ def write_dashboard(
         else:
             title = ""
         headings = [
-            "Number", "Author", "Title", "Labels",
+            "Number", "Author", "Title", "Description", "Labels",
             '<a title="number of added/deleted lines">+/-</a>',
             '<a title="number of files modified">&#128221;</a>',
             '<a title="number of standard or review comments on this PR">&#128172;</a>',
