@@ -232,7 +232,7 @@ $(document).ready( function () {
     stateDuration: 0,
     pageLength: pageLength,
     "searching": true,
-    columnDefs: [{ type: 'diff_stat', targets: 5 }],
+    columnDefs: [{ type: 'diff_stat', targets: 5 }, { visible: false, targets: 3 }],
   };
   if (params.has("search")) {
     options.search = {
