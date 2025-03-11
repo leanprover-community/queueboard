@@ -686,6 +686,14 @@
                       },
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAI_IrOIA",
+                        "name": "Add ready-to-merge or delegated label",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13798811802/job/38596693536"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAI-aZYJg",
                         "name": "label-and-report-new-contributor",
                         "conclusion": "SUCCESS",
@@ -702,6 +710,14 @@
                       },
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAI_IrOTA",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13798811796/job/38596693580"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAI-aZYHA",
                         "name": "post-or-update-summary-comment",
                         "conclusion": "SUCCESS",
@@ -715,6 +731,14 @@
                         "conclusion": "SUCCESS",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13784157313/job/38548205877"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAI_IrOGQ",
+                        "name": "Fix style issues from lint",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13798811801/job/38596693529"
                       },
                       {
                         "__typename": "CheckRun",
@@ -852,25 +876,27 @@
         "latestReviews": {
           "nodes": [
             {
-              "id": "PRR_kwDOFcwZ1c6fR-DT",
-              "body": "Thanks for doing this: I'll have more time to do a thorough review tomorrow.",
+              "id": "PRR_kwDOFcwZ1c6fgzRW",
+              "body": "I've commented on the design issue; I'll review the proof of `exp_nilpotent_derivation` tomorrow.",
               "state": "COMMENTED",
               "author": {
                 "login": "ocfnash"
               },
-              "submittedAt": "2025-03-10T22:21:13Z"
+              "submittedAt": "2025-03-11T21:43:42Z"
             }
           ]
         },
         "maintainerCanModify": false,
         "mergeCommit": null,
-        "mergeStateStatus": "UNKNOWN",
-        "mergeable": "UNKNOWN",
+        "mergeStateStatus": "BLOCKED",
+        "mergeable": "MERGEABLE",
         "mergedAt": null,
         "mergedBy": null,
         "milestone": null,
         "number": 22607,
-        "potentialMergeCommit": null,
+        "potentialMergeCommit": {
+          "oid": "a23653b25d2aa6960bc30d990bd0ead378a7f780"
+        },
         "projectCards": {
           "nodes": []
         },
@@ -956,6 +982,15 @@
                 "login": "jano-wol"
               },
               "submittedAt": "2025-03-11T09:04:09Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6fgzRW",
+              "body": "I've commented on the design issue; I'll review the proof of `exp_nilpotent_derivation` tomorrow.",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ocfnash"
+              },
+              "submittedAt": "2025-03-11T21:43:42Z"
             }
           ]
         },
@@ -1001,6 +1036,14 @@
                     "author": {
                       "login": "jano-wol"
                     }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c52n3VV",
+                    "body": "I was concerned about the potential for two non-defeq `[LieAlgebra ℚ L]` structures coexisting. Here is an example of how this could happen:\r\n```lean\r\nexample (R L : Type*) [Field R] [CharZero R]\r\n    [LieRing L] [LieAlgebra R L] [LieAlgebra ℚ L] [IsScalarTower ℚ R L]\r\n    (D : LieDerivation R L L) (hD : IsNilpotent D.toLinearMap) :\r\n    exp_nilpotent_derivation D hD = IsNilpotent.exp D.toLinearMap := by\r\n  ext x\r\n  dsimp [exp_nilpotent_derivation]\r\n  -- Inspect the goal here; it looks like it should be true by definition and yet:\r\n  rfl -- Fails! This can be proved but it is not true by definition\r\n```\r\nThe point is that this `example` makes a statement about any `[LieAlgebra ℚ L]` structure. Moreover, the RHS of the goal picks up this typeclass variable. However the LHS is using `LieAlgebra.RestrictScalars.lieAlgebra ℚ R L` because this is hard-coded into `exp_nilpotent_derivation`. These will be mathematically equal but they are not definitionally equal: indeed we know nothing about the _definition_ of `[LieAlgebra ℚ L]` since it's an input. For the record, here is how you could close that goal:\r\n```lean\r\nexample (R L : Type*) [Field R] [CharZero R]\r\n    [LieRing L] [LieAlgebra R L] [LieAlgebra ℚ L] [IsScalarTower ℚ R L]\r\n    (D : LieDerivation R L L) (hD : IsNilpotent D.toLinearMap) :\r\n    exp_nilpotent_derivation D hD = IsNilpotent.exp D.toLinearMap := by\r\n  ext x\r\n  dsimp [exp_nilpotent_derivation]\r\n  convert rfl\r\n  -- Now we can see the issue: `convert` highlights the two instances.\r\n  -- The proof from here should be a one-liner but we have missing API. We should add a\r\n  -- `Subsingleton` instance for `LieAlgebra ℚ L` analogous to `subsingleton_rat_module`.\r\n  ext q y -- I had to add missing `@[ext]` to the definition of `LieAlgebra` for this to work\r\n  exact map_rat_smul (_instM₂ := (LieAlgebra.RestrictScalars.lieAlgebra ℚ R L).toModule)\r\n    (AddMonoidHom.id L) q y\r\n```\r\n\r\nHaving said all that, this is a somewhat contrived situation and it is not a fatal design flaw to have a hard-coded instance as you have proposed: it will just make certain situations a bit awkward. One could argue that the only plausible way that `[LieAlgebra ℚ L]` will show up is in the case `R = ℚ` but in this case all is well since:\r\n```lean\r\nexample [LieAlgebra ℚ L] :\r\n    LieAlgebra.RestrictScalars.lieAlgebra ℚ ℚ L = inferInstanceAs (LieAlgebra ℚ L) :=\r\n  rfl\r\n```\r\nSo if you wish, I think we can keep the design as you have it.",
+                    "createdAt": "2025-03-11T21:38:31Z",
+                    "author": {
+                      "login": "ocfnash"
+                    }
                   }
                 ]
               }
@@ -1044,6 +1087,14 @@
               },
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAI_IrOIA",
+                "name": "Add ready-to-merge or delegated label",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13798811802/job/38596693536"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAI-aZYJg",
                 "name": "label-and-report-new-contributor",
                 "conclusion": "SUCCESS",
@@ -1060,6 +1111,14 @@
               },
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAI_IrOTA",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13798811796/job/38596693580"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAI-aZYHA",
                 "name": "post-or-update-summary-comment",
                 "conclusion": "SUCCESS",
@@ -1073,6 +1132,14 @@
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13784157313/job/38548205877"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAI_IrOGQ",
+                "name": "Fix style issues from lint",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13798811801/job/38596693529"
               },
               {
                 "__typename": "CheckRun",
@@ -1150,7 +1217,7 @@
           }
         },
         "title": "feat(Algebra/Algebra/Lie): Exp of nilpotent derivative is LieEquiv",
-        "updatedAt": "2025-03-11T09:04:27Z",
+        "updatedAt": "2025-03-11T21:43:42Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/22607",
         "timelineItems": {
           "nodes": [
@@ -1238,6 +1305,15 @@
               "__typename": "PullRequestCommit",
               "commit": {
                 "oid": "abf2e4efaf787d07ea047d1602869d7671029466"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6fgzRW",
+              "createdAt": "2025-03-11T21:38:31Z",
+              "body": "I've commented on the design issue; I'll review the proof of `exp_nilpotent_derivation` tomorrow.",
+              "author": {
+                "login": "ocfnash"
               }
             }
           ]
