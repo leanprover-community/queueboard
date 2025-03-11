@@ -206,24 +206,25 @@ $(document).ready( function () {
       case "title":
         idx = 2;
         break;
+      // idx = 3 means the PR description, which is a hidden field
       case "labels":
-        idx = 3;
-        break;
-      case "diff":
         idx = 4;
         break;
-      case "changedFiles":
+      case "diff":
         idx = 5;
         break;
-      case "numberComments":
+      case "changedFiles":
         idx = 6;
+        break;
+      case "numberComments":
+        idx = 7;
         break;
       // The following column indices depend on a dashboard's configuration;
       // we cannot use a uniform translation for all tables.
       // TODO: change this configuration depending on the table ID and
       // vary the table options accordingly.
-      // Currently, most dashboards have the following indices: this can change in the future:
-      // 7 assignee(s), 8 last update (from Github), 9 last status change, 10 total time in review
+      // Currently, most dashboards have the following indices; this can change in the future
+      // 8 assignee(s), 9 last update (from Github), 10 last status change, 11 total time in review
     }
     sort_config.push([idx, dir]);
    }
@@ -231,7 +232,7 @@ $(document).ready( function () {
     stateDuration: 0,
     pageLength: pageLength,
     "searching": true,
-    columnDefs: [{ type: 'diff_stat', targets: 4}],
+    columnDefs: [{ type: 'diff_stat', targets: 5 }],
   };
   if (params.has("search")) {
     options.search = {
