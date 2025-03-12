@@ -113,6 +113,14 @@
                       },
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAJADJvvw",
+                        "name": "Add ready-to-merge or delegated label",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13818555652/job/38658011071"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAI-SpgeA",
                         "name": "Add topic label",
                         "conclusion": "SUCCESS",
@@ -153,6 +161,14 @@
                       },
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAJADJxFw",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13818555587/job/38658011415"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAI-SpgHQ",
                         "name": "post-or-update-summary-comment",
                         "conclusion": "SUCCESS",
@@ -182,6 +198,14 @@
                         "conclusion": "SUCCESS",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13784633937/job/38549685587"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAJADJxlA",
+                        "name": "Fix style issues from lint",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13818555595/job/38658011540"
                       },
                       {
                         "__typename": "CheckRun",
@@ -324,13 +348,13 @@
         "latestReviews": {
           "nodes": [
             {
-              "id": "PRR_kwDOFcwZ1c6fW7CB",
+              "id": "PRR_kwDOFcwZ1c6ftSJF",
               "body": "",
               "state": "COMMENTED",
               "author": {
                 "login": "joelriou"
               },
-              "submittedAt": "2025-03-11T09:28:41Z"
+              "submittedAt": "2025-03-12T18:12:54Z"
             }
           ]
         },
@@ -343,7 +367,7 @@
         "milestone": null,
         "number": 22816,
         "potentialMergeCommit": {
-          "oid": "d9a0a89c6e4e34c5f7e2f5aa0f40519d4850e87b"
+          "oid": "748348d6dfe686413ecc72570181cfc7439958f4"
         },
         "projectCards": {
           "nodes": []
@@ -430,6 +454,15 @@
                 "login": "joelriou"
               },
               "submittedAt": "2025-03-11T09:28:41Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6ftSJF",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "joelriou"
+              },
+              "submittedAt": "2025-03-12T18:12:54Z"
             }
           ]
         },
@@ -470,6 +503,20 @@
                     "id": "PRRC_kwDOFcwZ1c52ioyF",
                     "body": "Unfortunately, I doubt that the interesting cases in algebraic geometry where there is a global section functor but no terminal object are covered by these assumptions. Sites in algebraic geometry tend to be large, and we may have a small family of objects which cover the terminal object even though we may not have limits indexed by `Cᵒᵖ`. It means that we would probably have to refactor this definition in the future. This is part of the reason why I had suggested another design where we define the global sections by taking a right adjoint of the constant sheaf functor. I have just drafted the following (which also takes advantage of the already known results about the constant sheaf functor, see the file `Sites.ConstantSheaf`), and it does not seem to be difficult to obtain the same results which you obtained with the other definition:\r\n\r\n```lean\r\nvariable [HasWeakSheafify J A]\r\n\r\nabbrev HasGlobalSectionsFunctor := (constantSheaf J A).IsLeftAdjoint\r\n\r\ninstance hasGlobalSectionsFunctor_of_hasTerminal [HasTerminal C] :\r\n    HasGlobalSectionsFunctor J A :=\r\n  ⟨_, ⟨constantSheafAdj J A terminalIsTerminal⟩⟩\r\n\r\nsection\r\n\r\nvariable [HasGlobalSectionsFunctor J A]\r\n\r\nnoncomputable def Sheaf.Γ : Sheaf J A ⥤ A :=\r\n  (constantSheaf J A).rightAdjoint\r\n\r\n/-- The constant sheaf functor is left-adjoint to the global sections functor when both exist. -/\r\nnoncomputable def constantSheafΓAdj :\r\n    constantSheaf J A ⊣ Γ J A :=\r\n  Adjunction.ofIsLeftAdjoint (constantSheaf J A)\r\n\r\ninstance : (constantSheaf J A).IsLeftAdjoint :=\r\n  ⟨Γ J A, ⟨constantSheafΓAdj J A⟩⟩\r\n\r\ninstance : (Γ J A).IsRightAdjoint :=\r\n  ⟨constantSheaf J A, ⟨constantSheafΓAdj J A⟩⟩\r\n\r\nvariable {J A}\r\n\r\nnoncomputable def Sheaf.ΓHomEquiv {X : A} {F : Sheaf J A} :\r\n    ((Functor.const _).obj X ⟶ F.val) ≃ (X ⟶ (Γ J A).obj F) :=\r\n  ((sheafificationAdjunction J A).homEquiv _ _).symm.trans\r\n    ((constantSheafΓAdj J A).homEquiv _ _)\r\n\r\n@[simps pt]\r\nnoncomputable def Sheaf.coneΓ (F : Sheaf J A) : Cone F.val where\r\n  pt := (Γ J A).obj F\r\n  π := ΓHomEquiv.symm (𝟙 _)\r\n\r\ndef Sheaf.isLimitConeΓ (F : Sheaf J A) : IsLimit F.coneΓ := by\r\n  -- should be easy from `ΓHomEquiv` and a few naturality lemmas\r\n  sorry\r\n\r\nnoncomputable def Sheaf.Γres (F : Sheaf J A) (U : Cᵒᵖ) :\r\n  (Γ J A).obj F ⟶ F.val.obj U := F.coneΓ.π.app U\r\n\r\n@[reassoc (attr := simp)]\r\nlemma Sheaf.Γres_map (F : Sheaf J A) {V U : Cᵒᵖ} (f : U ⟶ V) :\r\n    F.Γres U ≫ F.val.map f = F.Γres V :=\r\n  F.coneΓ.w f\r\n\r\n@[simp]\r\nlemma Sheaf.coneΓ_π_app (F : Sheaf J A) (U : Cᵒᵖ) : F.coneΓ.π.app U = F.Γres U := rfl\r\n\r\nnoncomputable def Sheaf.ΓNatIsoSheafSections {T : C}\r\n    (hT : IsTerminal T) : Γ J A ≅ (sheafSections J A).obj (op T) :=\r\n  Adjunction.rightAdjointUniq (constantSheafΓAdj J A) (constantSheafAdj J A hT)\r\n\r\nend\r\n```",
                     "createdAt": "2025-03-11T09:28:40Z",
+                    "author": {
+                      "login": "joelriou"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c52vEgj",
+                    "body": "```suggestion\r\n@[simps!]\r\ndef sheafSectionsNatIsoEvaluation {X : C} :\r\n    (sheafSections J A).obj (op X) ≅ sheafToPresheaf J A ⋙ (evaluation _ _).obj (op X) :=\r\n  NatIso.ofComponents (fun _ ↦ Iso.refl _)\r\n```",
+                    "createdAt": "2025-03-12T18:12:54Z",
                     "author": {
                       "login": "joelriou"
                     }
@@ -548,6 +595,14 @@
               },
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAJADJvvw",
+                "name": "Add ready-to-merge or delegated label",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13818555652/job/38658011071"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAI-SpgeA",
                 "name": "Add topic label",
                 "conclusion": "SUCCESS",
@@ -588,6 +643,14 @@
               },
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAJADJxFw",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13818555587/job/38658011415"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAI-SpgHQ",
                 "name": "post-or-update-summary-comment",
                 "conclusion": "SUCCESS",
@@ -617,6 +680,14 @@
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13784633937/job/38549685587"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAJADJxlA",
+                "name": "Fix style issues from lint",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13818555595/job/38658011540"
               },
               {
                 "__typename": "CheckRun",
@@ -694,7 +765,7 @@
           }
         },
         "title": "feat(CategoryTheory/Sites): global sections functor on sheaves",
-        "updatedAt": "2025-03-11T09:31:21Z",
+        "updatedAt": "2025-03-12T18:12:54Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/22816",
         "timelineItems": {
           "nodes": [
@@ -781,6 +852,15 @@
               "label": {
                 "id": "LA_kwDOFcwZ1c7P265b",
                 "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6ftSJF",
+              "createdAt": "2025-03-12T18:12:54Z",
+              "body": "",
+              "author": {
+                "login": "joelriou"
               }
             }
           ]
