@@ -32,6 +32,14 @@
               "author": {
                 "login": "github-actions"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6ikj7y",
+              "body": "Taking a closer look at the proof here, I realise you can streamline and strengthen it a bit, take a look at this:\r\n\r\n```\r\nlemma exists_mem_support_forall_absent {u v} [DecidableEq V] {p : G.Walk u v}\r\n    (s : Finset V) (h : {x ∈ s | x ∈ p.support}.Nonempty) :\r\n    ∃ x ∈ s, ∃ hx : x ∈ p.support, {t ∈ s.erase x | t ∈ (p.takeUntil x hx).support} = ∅ := by\r\n  simp only [← subset_empty]\r\n  induction' hp : p.length + #s using Nat.strong_induction_on with n ih generalizing s v\r\n  simp only [Finset.Nonempty, mem_filter] at h\r\n  obtain ⟨x, hxs, hx⟩ := h\r\n  obtain h | h := Finset.eq_empty_or_nonempty {t ∈ s.erase x | t ∈ (p.takeUntil x hx).support}\r\n  · use x, hxs, hx, h.le\r\n  have : (p.takeUntil x hx).length + #(s.erase x) < n := by\r\n    rw [← card_erase_add_one hxs] at hp\r\n    have := p.length_takeUntil_le hx\r\n    omega\r\n  obtain ⟨y, hys, hyp, h⟩ := ih _ this (s.erase x) h rfl\r\n  use y, mem_of_mem_erase hys, support_takeUntil_subset p hx hyp\r\n  rwa [takeUntil_takeUntil, erase_right_comm, filter_erase, erase_eq_of_not_mem] at h\r\n  simp only [mem_filter, mem_erase, ne_eq, not_and, and_imp]\r\n  rintro hxy -\r\n  exact not_mem_support_takeUntil_takeUntil' (Ne.symm hxy) hx hyp\r\n\r\nlemma exists_mem_support_forall_absent' {u v} [DecidableEq V] {p : G.Walk u v}\r\n    (s : Finset V) (h : {x ∈ s | x ∈ p.support}.Nonempty) :\r\n    ∃ x ∈ s, ∃ (hx : x ∈ p.support),\r\n      ∀ t ∈ s, t ∈ (p.takeUntil x hx).support → t = x := by\r\n  obtain ⟨x, hxs, hx, h⟩ := p.exists_mem_support_forall_absent s h\r\n  use x, hxs, hx\r\n  suffices {t ∈ s | t ∈ (p.takeUntil x hx).support} ⊆ {x} by simpa [subset_iff] using this\r\n  rwa [filter_erase, ← subset_empty, ← subset_insert_iff, insert_emptyc_eq] at h\r\n\r\nlemma exists_mem_support_forall_not_adj_toSubgraph_takeUntil' {u v} [DecidableEq V] {p : G.Walk u v}\r\n    (s : Finset V) (h : {x ∈ s | x ∈ p.support}.Nonempty) :\r\n    ∃ x ∈ s, ∃ (hx : x ∈ p.support),\r\n      ∀ t ∈ s, ∀ w ∈ s, ¬(p.takeUntil x hx).toSubgraph.Adj t w := by\r\n  obtain ⟨x, hxs, hx, h⟩ := p.exists_mem_support_forall_absent' s h\r\n  use x, hxs, hx\r\n  intro t ht w hw h'\r\n  apply h'.ne\r\n  simp only [← mem_verts_toSubgraph] at h\r\n  rw [h t ht (Subgraph.edge_vert _ h'), h w hw (Subgraph.edge_vert _ h'.symm)]\r\n\r\nlemma exists_mem_support_forall_not_adj_toSubgraph_takeUntil {u v} [DecidableEq V] {p : G.Walk u v}\r\n    {s : Set V} (hs : s.Finite) (h : (s ∩ p.support.toFinset).Nonempty) :\r\n    ∃ x ∈ s, ∃ (hx : x ∈ p.support),\r\n      ∀ t ∈ s, ∀ w ∈ s, ¬(p.takeUntil x hx).toSubgraph.Adj t w := by\r\n  have : (filter (fun x ↦ x ∈ p.support) hs.toFinset).Nonempty := by\r\n    obtain ⟨x, hxs, hxp⟩ := h\r\n    use x, by simpa [hxs] using hxp\r\n  simpa using p.exists_mem_support_forall_not_adj_toSubgraph_takeUntil' hs.toFinset this\r\n```\r\n(the names aren't ideal, but hopefully you get the idea).\r\nThe last one is your original statement, and the penultimate is similar but in terms of Finset, since that usually makes this kind of proof nicer. Then instead of asserting that any two elements of s are not related in the restriction of p, we can instead say that anything in s and the restriction of p must be equal to x, or equivalently that `{t ∈ s.erase x | t ∈ (p.takeUntil x hx).support}` is empty. And now the induction can be done much more cleanly.\r\n\r\nThis does depend on a lemma (again I haven't given it the correct name):\r\n```\r\nlemma not_mem_support_takeUntil_takeUntil' [DecidableEq V] {p : G.Walk u v} {w x : V} (h : x ≠ w)\r\n    (hw : w ∈ p.support) (hx : x ∈ (p.takeUntil w hw).support) :\r\n    w ∉ (p.takeUntil x (p.support_takeUntil_subset hw hx)).support := by\r\n  rw [← takeUntil_takeUntil]\r\n  exact not_mem_support_takeUntil_takeUntil h _ hx\r\n```\r\nwhich is a better formulation of the existing `not_mem_support_takeUntil_takeUntil`, because of the lemma `takeUntil_takeUntil`",
+              "createdAt": "2025-03-16T15:14:17Z",
+              "author": {
+                "login": "b-mehta"
+              }
             }
           ]
         },
@@ -1052,6 +1060,14 @@
                       },
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAJC4KNxw",
+                        "name": "Add ready-to-merge or delegated label",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13884681907/job/38847811015"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAJB5iqjg",
                         "name": "label-and-report-new-contributor",
                         "conclusion": "SUCCESS",
@@ -1060,11 +1076,27 @@
                       },
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAJC4KO-g",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13884681915/job/38847811322"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAJB5iqaA",
                         "name": "post-or-update-summary-comment",
                         "conclusion": "SUCCESS",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13858908391/job/38782151272"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAJC4KNkQ",
+                        "name": "Fix style issues from lint",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13884681903/job/38847810961"
                       },
                       {
                         "__typename": "CheckRun",
@@ -1202,6 +1234,15 @@
         "latestReviews": {
           "nodes": [
             {
+              "id": "PRR_kwDOFcwZ1c6gQlh4",
+              "body": "Here are some local improvements you can make",
+              "state": "COMMENTED",
+              "author": {
+                "login": "b-mehta"
+              },
+              "submittedAt": "2025-03-16T15:10:40Z"
+            },
+            {
               "id": "PRR_kwDOFcwZ1c6dn6sp",
               "body": "Thanks!\r\n\r\nmaintainer delegate",
               "state": "APPROVED",
@@ -1221,7 +1262,7 @@
         "milestone": null,
         "number": 22242,
         "potentialMergeCommit": {
-          "oid": "cce889f9531f554c7e7b05ae56623deb7cac351e"
+          "oid": "37e0bb812f1e07d406043dc31caa833a02215e9a"
         },
         "projectCards": {
           "nodes": []
@@ -1278,14 +1319,7 @@
         ],
         "reviewDecision": "APPROVED",
         "reviewRequests": {
-          "nodes": [
-            {
-              "requestedReviewer": {
-                "id": "MDQ6VXNlcjI5OTU5MjI2",
-                "login": "b-mehta"
-              }
-            }
-          ]
+          "nodes": []
         },
         "reviews": {
           "nodes": [
@@ -1351,6 +1385,15 @@
                 "login": "pimotte"
               },
               "submittedAt": "2025-03-14T14:35:29Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6gQlh4",
+              "body": "Here are some local improvements you can make",
+              "state": "COMMENTED",
+              "author": {
+                "login": "b-mehta"
+              },
+              "submittedAt": "2025-03-16T15:10:40Z"
             }
           ]
         },
@@ -1483,6 +1526,62 @@
                   }
                 ]
               }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c53EUp5",
+                    "body": "I'm not quite sure what you mean here, how does it make sense for at least one element of a set of vertices to be a walk?",
+                    "createdAt": "2025-03-16T13:45:46Z",
+                    "author": {
+                      "login": "b-mehta"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c53EUq3",
+                    "body": "This line break seems unintentional",
+                    "createdAt": "2025-03-16T13:46:02Z",
+                    "author": {
+                      "login": "b-mehta"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c53EVaV",
+                    "body": "```suggestion\r\n  simp only [Set.ncard_diff (by simp [hx.1] : {x} ⊆ s), Set.ncard_singleton]\r\n```",
+                    "createdAt": "2025-03-16T14:00:15Z",
+                    "author": {
+                      "login": "b-mehta"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c53EVpD",
+                    "body": "```suggestion\r\n    use x', hx'.1, p.support_takeUntil_subset _ hx'p\r\n```",
+                    "createdAt": "2025-03-16T14:04:33Z",
+                    "author": {
+                      "login": "b-mehta"
+                    }
+                  }
+                ]
+              }
             }
           ]
         },
@@ -1496,12 +1595,12 @@
               "login": "pimotte"
             },
             {
-              "id": "MDQ6VXNlcjE0MDkwNTkz",
-              "login": "YaelDillies"
-            },
-            {
               "id": "MDQ6VXNlcjI5OTU5MjI2",
               "login": "b-mehta"
+            },
+            {
+              "id": "MDQ6VXNlcjE0MDkwNTkz",
+              "login": "YaelDillies"
             }
           ]
         },
@@ -1519,6 +1618,14 @@
               },
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAJC4KNxw",
+                "name": "Add ready-to-merge or delegated label",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13884681907/job/38847811015"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAJB5iqjg",
                 "name": "label-and-report-new-contributor",
                 "conclusion": "SUCCESS",
@@ -1527,11 +1634,27 @@
               },
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAJC4KO-g",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13884681915/job/38847811322"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAJB5iqaA",
                 "name": "post-or-update-summary-comment",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13858908391/job/38782151272"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAJC4KNkQ",
+                "name": "Fix style issues from lint",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13884681903/job/38847810961"
               },
               {
                 "__typename": "CheckRun",
@@ -1609,7 +1732,7 @@
           }
         },
         "title": "feat(Combinatorics/SimpleGraph): miscellaneous walk lemmas",
-        "updatedAt": "2025-03-16T07:03:15Z",
+        "updatedAt": "2025-03-16T15:14:18Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/22242",
         "timelineItems": {
           "nodes": [
@@ -1794,6 +1917,24 @@
               "createdAt": "2025-03-16T07:03:15Z",
               "requestedReviewer": {
                 "id": "MDQ6VXNlcjI5OTU5MjI2",
+                "login": "b-mehta"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6gQlh4",
+              "createdAt": "2025-03-16T13:45:46Z",
+              "body": "Here are some local improvements you can make",
+              "author": {
+                "login": "b-mehta"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6ikj7y",
+              "createdAt": "2025-03-16T15:14:17Z",
+              "body": "Taking a closer look at the proof here, I realise you can streamline and strengthen it a bit, take a look at this:\r\n\r\n```\r\nlemma exists_mem_support_forall_absent {u v} [DecidableEq V] {p : G.Walk u v}\r\n    (s : Finset V) (h : {x ∈ s | x ∈ p.support}.Nonempty) :\r\n    ∃ x ∈ s, ∃ hx : x ∈ p.support, {t ∈ s.erase x | t ∈ (p.takeUntil x hx).support} = ∅ := by\r\n  simp only [← subset_empty]\r\n  induction' hp : p.length + #s using Nat.strong_induction_on with n ih generalizing s v\r\n  simp only [Finset.Nonempty, mem_filter] at h\r\n  obtain ⟨x, hxs, hx⟩ := h\r\n  obtain h | h := Finset.eq_empty_or_nonempty {t ∈ s.erase x | t ∈ (p.takeUntil x hx).support}\r\n  · use x, hxs, hx, h.le\r\n  have : (p.takeUntil x hx).length + #(s.erase x) < n := by\r\n    rw [← card_erase_add_one hxs] at hp\r\n    have := p.length_takeUntil_le hx\r\n    omega\r\n  obtain ⟨y, hys, hyp, h⟩ := ih _ this (s.erase x) h rfl\r\n  use y, mem_of_mem_erase hys, support_takeUntil_subset p hx hyp\r\n  rwa [takeUntil_takeUntil, erase_right_comm, filter_erase, erase_eq_of_not_mem] at h\r\n  simp only [mem_filter, mem_erase, ne_eq, not_and, and_imp]\r\n  rintro hxy -\r\n  exact not_mem_support_takeUntil_takeUntil' (Ne.symm hxy) hx hyp\r\n\r\nlemma exists_mem_support_forall_absent' {u v} [DecidableEq V] {p : G.Walk u v}\r\n    (s : Finset V) (h : {x ∈ s | x ∈ p.support}.Nonempty) :\r\n    ∃ x ∈ s, ∃ (hx : x ∈ p.support),\r\n      ∀ t ∈ s, t ∈ (p.takeUntil x hx).support → t = x := by\r\n  obtain ⟨x, hxs, hx, h⟩ := p.exists_mem_support_forall_absent s h\r\n  use x, hxs, hx\r\n  suffices {t ∈ s | t ∈ (p.takeUntil x hx).support} ⊆ {x} by simpa [subset_iff] using this\r\n  rwa [filter_erase, ← subset_empty, ← subset_insert_iff, insert_emptyc_eq] at h\r\n\r\nlemma exists_mem_support_forall_not_adj_toSubgraph_takeUntil' {u v} [DecidableEq V] {p : G.Walk u v}\r\n    (s : Finset V) (h : {x ∈ s | x ∈ p.support}.Nonempty) :\r\n    ∃ x ∈ s, ∃ (hx : x ∈ p.support),\r\n      ∀ t ∈ s, ∀ w ∈ s, ¬(p.takeUntil x hx).toSubgraph.Adj t w := by\r\n  obtain ⟨x, hxs, hx, h⟩ := p.exists_mem_support_forall_absent' s h\r\n  use x, hxs, hx\r\n  intro t ht w hw h'\r\n  apply h'.ne\r\n  simp only [← mem_verts_toSubgraph] at h\r\n  rw [h t ht (Subgraph.edge_vert _ h'), h w hw (Subgraph.edge_vert _ h'.symm)]\r\n\r\nlemma exists_mem_support_forall_not_adj_toSubgraph_takeUntil {u v} [DecidableEq V] {p : G.Walk u v}\r\n    {s : Set V} (hs : s.Finite) (h : (s ∩ p.support.toFinset).Nonempty) :\r\n    ∃ x ∈ s, ∃ (hx : x ∈ p.support),\r\n      ∀ t ∈ s, ∀ w ∈ s, ¬(p.takeUntil x hx).toSubgraph.Adj t w := by\r\n  have : (filter (fun x ↦ x ∈ p.support) hs.toFinset).Nonempty := by\r\n    obtain ⟨x, hxs, hxp⟩ := h\r\n    use x, by simpa [hxs] using hxp\r\n  simpa using p.exists_mem_support_forall_not_adj_toSubgraph_takeUntil' hs.toFinset this\r\n```\r\n(the names aren't ideal, but hopefully you get the idea).\r\nThe last one is your original statement, and the penultimate is similar but in terms of Finset, since that usually makes this kind of proof nicer. Then instead of asserting that any two elements of s are not related in the restriction of p, we can instead say that anything in s and the restriction of p must be equal to x, or equivalently that `{t ∈ s.erase x | t ∈ (p.takeUntil x hx).support}` is empty. And now the induction can be done much more cleanly.\r\n\r\nThis does depend on a lemma (again I haven't given it the correct name):\r\n```\r\nlemma not_mem_support_takeUntil_takeUntil' [DecidableEq V] {p : G.Walk u v} {w x : V} (h : x ≠ w)\r\n    (hw : w ∈ p.support) (hx : x ∈ (p.takeUntil w hw).support) :\r\n    w ∉ (p.takeUntil x (p.support_takeUntil_subset hw hx)).support := by\r\n  rw [← takeUntil_takeUntil]\r\n  exact not_mem_support_takeUntil_takeUntil h _ hx\r\n```\r\nwhich is a better formulation of the existing `not_mem_support_takeUntil_takeUntil`, because of the lemma `takeUntil_takeUntil`",
+              "author": {
                 "login": "b-mehta"
               }
             }
