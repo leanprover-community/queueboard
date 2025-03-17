@@ -24,22 +24,6 @@ jobs:
       run: |
           ./backfill.sh ${{ github.event.client_payload.pr_number }} 2>&1 | tee backfill.log
 
-    - name: "Update aggregate data file"
-      id: "aggregate-file"
-      if: ${{ !cancelled() }}
-      run: |
-        # Write a file with aggregate PR data, to "processed_data/all_pr_data.json".
-        python3 process.py
-
-    - name: "Check data integrity"
-      if: ${{ !cancelled() }}
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        bash ./dashboard.sh
-        python check_data_integrity.py
-        rm *.json
-
     - name: Commit changes
       id: "commit"
       if: ${{ !cancelled() }} && steps.aggregate-file.outcome == 'success'
@@ -47,10 +31,6 @@ jobs:
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         git add data
-        git add redownload.txt
-        git add missing_prs.txt
-        git add processed_data/all_pr_data.json
-        git add processed_data/open_pr_data.json
         git commit -m 'Update data/'
 
     - name: Push changes
