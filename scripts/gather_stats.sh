@@ -47,14 +47,14 @@ for pr in $prs; do
   if [[ $stubborn_prs == *$pr* ]]; then
     dir="data/$pr-basic"
     mkdir -p "$dir"
-    ./basic_pr_info.sh "$pr" | jq '.' > "$dir/basic_pr_info.json"
+    scripts/basic_pr_info.sh "$pr" | jq '.' > "$dir/basic_pr_info.json"
     echo "$CURRENT_TIME" > "$dir/timestamp.txt"
   else
     dir="data/$pr"
     mkdir -p "$dir"
     # Run pr_info.sh and pr_reactions.sh and save the output.
-    ./pr_info.sh "$pr" | jq '.' > "$dir/pr_info.json"
-    ./pr_reactions.sh "$pr" | jq '.' > "$dir/pr_reactions.json"
+    scripts/pr_info.sh "$pr" | jq '.' > "$dir/pr_info.json"
+    scripts/pr_reactions.sh "$pr" | jq '.' > "$dir/pr_reactions.json"
     # Save the current timestamp.
     echo "$CURRENT_TIME" > "$dir/timestamp.txt"
   fi
