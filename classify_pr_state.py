@@ -142,16 +142,16 @@ class PRStatus(Enum):
         return {
             "FromFork": PRStatus.FromFork,
             "NotReady": PRStatus.NotReady,
-            "Blocked":PRStatus.Blocked,
-            "AwaitingReview":PRStatus.AwaitingReview,
-            "HelpWanted":PRStatus.HelpWanted,
-            "AwaitingAuthor":PRStatus.AwaitingAuthor,
-            "AwaitingDecision":PRStatus.AwaitingDecision,
-            "MergeConflict":PRStatus.MergeConflict,
-            "Delegated":PRStatus.Delegated,
-            "AwaitingBors":PRStatus.AwaitingBors,
-            "Closed":PRStatus.Closed,
-            "Contradictory":PRStatus.Contradictory
+            "Blocked": PRStatus.Blocked,
+            "AwaitingReview": PRStatus.AwaitingReview,
+            "HelpWanted": PRStatus.HelpWanted,
+            "AwaitingAuthor": PRStatus.AwaitingAuthor,
+            "AwaitingDecision": PRStatus.AwaitingDecision,
+            "MergeConflict": PRStatus.MergeConflict,
+            "Delegated": PRStatus.Delegated,
+            "AwaitingBors": PRStatus.AwaitingBors,
+            "Closed": PRStatus.Closed,
+            "Contradictory": PRStatus.Contradictory
         }.get(value)
 
 
