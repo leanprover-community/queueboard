@@ -216,19 +216,20 @@ $(document).ready( function () {
       case "diff":
         idx = 5;
         break;
-      case "changedFiles":
-        idx = 6;
-        break;
-      case "numberComments":
+      // idx = 6 is the list of modified files
+      case "numberChangedFiles":
         idx = 7;
         break;
-      // idx = 8 means the handles of users who commented or reviewed this PR
+      case "numberComments":
+        idx = 8;
+        break;
+      // idx = 9 means the handles of users who commented or reviewed this PR
       // The following column indices depend on a dashboard's configuration;
       // we cannot use a uniform translation for all tables.
       // TODO: change this configuration depending on the table ID and
       // vary the table options accordingly.
       // Currently, most dashboards have the following indices; this can change in the future
-      // 9 assignee(s), 10 last update (from Github), 11 last status change, 12 total time in review
+      // 10 assignee(s), 11 last update (from Github), 12 last status change, 13 total time in review
     }
     sort_config.push([idx, dir]);
    }
@@ -236,7 +237,7 @@ $(document).ready( function () {
     stateDuration: 0,
     pageLength: pageLength,
     "searching": true,
-    columnDefs: [{ type: 'diff_stat', targets: 5 }, { visible: false, targets: [3, 8] }, { searchable: false, targets: 8} ],
+    columnDefs: [{ type: 'diff_stat', targets: 5 }, { visible: false, targets: [3, 6, 9] }, { searchable: false, targets: 9} ],
   };
   if (params.has("search")) {
     options.search = {
@@ -304,7 +305,7 @@ def _compute_pr_entries(
             pr_info = aggregate_information[pr.number]
         if pr_info is None:
             print(f"main dashboard: found no aggregate information for PR {pr.number}", file=sys.stderr)
-            entries.extend(["-1/-1", "-1", "-1", '<a title="no data available">n/a</a>'])
+            entries.extend(["-1/-1", "no data available", "-1", "-1", '<a title="no data available">n/a</a>'])
             if extra_settings.show_assignee:
                 entries.append("???")
             if extra_settings.show_approvals:
@@ -314,14 +315,20 @@ def _compute_pr_entries(
         else:
             na = '<a title="no data available">n/a</a>'
             total_comments = na if pr_info.number_total_comments is None else str(pr_info.number_total_comments)
+            (status, users) = pr_info.users_commented or (None, None)
             entries.extend([
                 # NB: keep the styling of the diff column in sync with the custom sorting
                 # function by diff size below.
                 '<span style="color:green">{}</span>/<span style="color:red">{}</span>'.format(pr_info.additions, pr_info.deletions),
+                ",".join(pr_info.modified_files),
                 str(pr_info.number_modified_files),
-                total_comments, pr_info.users_commented[1],
+                total_comments, users,
             ])
-            if pr_info.users_commented[0] == DataStatus.Incomplete:
+            if len(pr_info.modified_files) < pr_info.number_modified_files:
+                print(f"warning: PR {pr.number} has {pr_info.number_modified_files} modified files, "
+                    f"but the list of filenames only contains {len(pr_info.modified_files)}, "
+                    "data is incomplete", file=sys.stderr)
+            if status == DataStatus.Incomplete:
                 print("warning: PR {pr.number} supposedly has exactly 100 comments; data is likely incomplete", file=sys.stderr)
             if extra_settings.show_assignee:
                 match sorted(pr_info.assignees):
@@ -415,6 +422,7 @@ def write_dashboard(
         headings = [
             "Number", "Author", "Title", "Description", "Labels",
             '<a title="number of added/deleted lines">+/-</a>',
+            'Modified files (first 100)',
             '<a title="number of files modified">&#128221;</a>',
             '<a title="number of standard or review comments on this PR">&#128172;</a>',
             'All users who commented or reviewed',
