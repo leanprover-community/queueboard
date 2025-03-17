@@ -116,6 +116,8 @@ class AggregatePRInfo(NamedTuple):
     labels: List[Label]
     additions: int
     deletions: int
+    # The first 100 modified files.
+    modified_files: List[str]
     number_modified_files: int
     # Github handles of all users (if any) approving this
     approvals: List[str]
@@ -138,7 +140,7 @@ class AggregatePRInfo(NamedTuple):
 PLACEHOLDER_AGGREGATE_INFO = AggregatePRInfo(
     False, CIStatus.Missing, "master", "leanprover-community", "default-branch-name",
     "open", datetime.now(timezone.utc),
-    "unknown", "unknown title", "unknown description", [], -1, -1, -1, [], [], None, None, None, None, None,
+    "unknown", "unknown title", "unknown description", [], -1, -1, [], -1, [], [], None, None, None, None, None,
 )
 
 
@@ -207,7 +209,7 @@ def parse_aggregate_file(data: dict) -> dict[int, AggregatePRInfo]:
         info = AggregatePRInfo(
             pr["is_draft"], CIStatus.from_string(pr["CI_status"]), pr["base_branch"], pr["branch_name"], pr["head_repo"]["login"],
             pr["state"], date, pr["author"], pr["title"], pr["description"], [toLabel(name) for name in label_names],
-            pr["additions"], pr["deletions"], pr["num_files"], pr["review_approvals"], pr["assignees"],
+            pr["additions"], pr["deletions"], pr["files"], pr["num_files"], pr["review_approvals"], pr["assignees"],
             number_all_comments, users_commented, last_status_change, first_on_queue, total_queue_time,
         )
         aggregate_info[pr["number"]] = info
