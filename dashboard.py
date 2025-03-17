@@ -634,7 +634,6 @@ def write_overview_page(updated: str) -> None:
   </ul>
 </details>"""
     welcome = "\n  ".join(welcome.splitlines())
-    welcome += '\n  <p>For the <strong>old main page</strong> with all tables at one glance, <a href="index-old.html">look here</a>.</p>'
     feedback = '<p>Feedback (including bug reports and ideas for improvements) on this dashboard is very welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.</p>'
     body = f"{title}\n  {welcome}\n  {feedback}\n  <p><small>This dashboard was last updated on: {updated}</small></p>\n"
     write_webpage(body, "index.html")
@@ -912,40 +911,6 @@ def write_triage_page(
     write_webpage(body, output_file)
 
 
-# Write the main page for the dashboard to the file index-old.html.
-def write_main_page(
-    aggregate_info: dict[int, AggregatePRInfo],
-    all_pr_statusses: dict[int, PRStatus],
-    prs_to_list: dict[Dashboard, List[BasicPRInformation]],
-    nondraft_PRs: list[BasicPRInformation],
-    draft_PRs: list[BasicPRInformation],
-    updated: str,
-) -> None:
-    title = "  <h1>Mathlib review and triage dashboard</h1>"
-    welcome = '<p>Welcome to the mathlib review and triage dashboard. This is a prototype for better exposing the currently open PRs to mathlib. Feedback (including bug reports and ideas for improvements) on this dashboard is very welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.<br>'
-    "You can hover over any section header (and some table headings) to find out what they show. The same works for the table of contents below.</p>"
-    body = f"{title}\n  {welcome}  <small>This dashboard was last updated on: {updated}</small>\n"
-
-    # Print a quick table of contents.
-    links = []
-    for kind in Dashboard._member_map_.values():
-        if kind in [Dashboard.QueueTechDebt, Dashboard.AllMaintainerMerge]:
-            continue
-        (id, _title) = getIdTitle(kind)
-        links.append(f'<a href="#{id}" title="{short_description(kind)}" target="_self">{id}</a>')
-    body += f"<br><p>\n<b>Quick links:</b> <a href=\"#statistics\" target=\"_self\">PR statistics</a> | {str.join(' | ', links)}</p>\n"
-
-    body += pr_statistics(all_pr_statusses, aggregate_info, prs_to_list, nondraft_PRs, draft_PRs, True)
-    for kind in Dashboard._member_map_.values():
-        if kind in [Dashboard.QueueTechDebt, Dashboard.AllMaintainerMerge]:
-            continue
-        if kind not in prs_to_list:
-            print(f"error: forgot to include data for dashboard kind {kind}", file=sys.stderr)
-        else:
-            body += f"{write_dashboard('index-old.html', prs_to_list, kind, aggregate_info)}\n"
-    write_webpage(body, "index-old.html")
-
-
 def main() -> None:
     input_data = read_json_files()
     # Populate basic information from the input data: splitting into draft and non-draft PRs
@@ -989,7 +954,6 @@ def main() -> None:
     write_maintainers_quick_page(updated, prs_to_list, aggregate_info)
     write_help_out_page(updated, prs_to_list, aggregate_info)
     write_triage_page(updated, prs_to_list, all_pr_status, aggregate_info, nondraft_PRs, draft_PRs)
-    write_main_page(aggregate_info, all_pr_status, prs_to_list, nondraft_PRs, draft_PRs, updated)
 
 
 if __name__ == "__main__":
