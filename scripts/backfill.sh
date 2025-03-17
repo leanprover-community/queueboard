@@ -20,7 +20,7 @@ CURRENT_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # This script does not perform any rate limiting: make sure to do so yourself!
 
-stubborn_prs=$(cat "stubborn_prs.txt" | grep --invert-match "^--" | sort | uniq)
+stubborn_prs=$(cat "../stubborn_prs.txt" | grep --invert-match "^--" | sort | uniq)
 
 # NB: keep this function in sync with download_missing_outdated_PRs.sh
 # |download_normal $pr| downloads 'normal' info for the PR '$pr' into the appropriate directory.
