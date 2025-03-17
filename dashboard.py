@@ -219,12 +219,13 @@ $(document).ready( function () {
       case "numberComments":
         idx = 7;
         break;
+      // idx = 8 means the handles of users who commented or reviewed this PR
       // The following column indices depend on a dashboard's configuration;
       // we cannot use a uniform translation for all tables.
       // TODO: change this configuration depending on the table ID and
       // vary the table options accordingly.
       // Currently, most dashboards have the following indices; this can change in the future
-      // 8 assignee(s), 9 last update (from Github), 10 last status change, 11 total time in review
+      // 9 assignee(s), 10 last update (from Github), 11 last status change, 12 total time in review
     }
     sort_config.push([idx, dir]);
    }
@@ -232,7 +233,7 @@ $(document).ready( function () {
     stateDuration: 0,
     pageLength: pageLength,
     "searching": true,
-    columnDefs: [{ type: 'diff_stat', targets: 5 }, { visible: false, targets: 3 }],
+    columnDefs: [{ type: 'diff_stat', targets: 5 }, { visible: false, targets: [3, 8] }],
   };
   if (params.has("search")) {
     options.search = {
@@ -300,7 +301,7 @@ def _compute_pr_entries(
             pr_info = aggregate_information[pr.number]
         if pr_info is None:
             print(f"main dashboard: found no aggregate information for PR {pr.number}", file=sys.stderr)
-            entries.extend(["-1/-1", "-1", "-1"])
+            entries.extend(["-1/-1", "-1", "-1", '<a title="no data available">n/a</a>'])
             if extra_settings.show_assignee:
                 entries.append("???")
             if extra_settings.show_approvals:
@@ -313,7 +314,7 @@ def _compute_pr_entries(
             entries.extend([
                 '<span style="color:green">{}</span>/<span style="color:red">{}</span>'.format(pr_info.additions, pr_info.deletions),
                 str(pr_info.number_modified_files),
-                total_comments,
+                total_comments, pr_info.users_commented,
             ])
             if extra_settings.show_assignee:
                 match sorted(pr_info.assignees):
@@ -409,6 +410,7 @@ def write_dashboard(
             '<a title="number of added/deleted lines">+/-</a>',
             '<a title="number of files modified">&#128221;</a>',
             '<a title="number of standard or review comments on this PR">&#128172;</a>',
+            'All users who commented or reviewed',
         ]
         if extra_settings.show_assignee:
             headings.append('<a title="github user(s) this PR is assigned to (if any)">Assignee(s)</a>')
