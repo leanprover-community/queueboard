@@ -18,7 +18,7 @@ open question: do this speed up pushing again, because this avoids a pull --reba
 TODO write more here!
 
 
-**Steps ordering in gather_stats.**
+**Steps ordering in scripts/gather_stats.sh**
 - gather statistics first: is the most important steps of all; also, this may download data that a redownloading step would download again. No need to duplicate work.
 - download .json files between the stats gathering and re-downloading: add some delay between these, to avoid hammering github's APIs as much
 
@@ -26,6 +26,6 @@ TODO write more here!
 I *could* run this again after re-downloading: there's no immediate need, though. (Before the next data re-downloading, the check is run again. One suffices.)
 
 - update aggregate data files is run *thrice*
-The first time after `gather_stats.sh`, so the next steps have up-to-date aggregate files (they need it).
+The first time after `scripts/gather_stats.sh`, so the next steps have up-to-date aggregate files (they need it).
 I *could* run this again right after checking the data integrity step. (The step updates the *.txt files, but also removes broken data files --- hence the aggregate data should be updated again.) However, it suffices to run it once in the end, as the re-downloading step doesn't use the aggregate file.
 A final run is performed after re-downloading all data. In the end, all aggregate files are up to date. In particular, the webpage workflow has updated information available.

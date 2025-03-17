@@ -56,9 +56,9 @@ This script depends on quite a bit of file state:
 It modifies these *.txt files, and deletes any directories in `data` with obsolete data.
 
 The actual downloading of new or updated metadata happens through two scripts.
-- `download_missing_outdated_PRs.sh` uses the information in the *.txt files to download metadata
+- `scripts/download_missing_outdated_PRs.sh` uses the information in the *.txt files to download metadata
 for missing PRs, and re-downloads data for PRs marked as such. If successful, it empties the file `redownload.txt`.
-- `gather_stats.sh` queries the github API for all PRs updated in the past N minutes and downloads the data for all of them (overwriting any previous data).
+- `scripts/gather_stats.sh` queries the github API for all PRs updated in the past N minutes and downloads the data for all of them (overwriting any previous data).
 - `gather_stats_single.yml` is currently unused; TODO document what it is meant to do!
 
 All of this is orchestrated in the `update_metadata.yml` workflow, which calls the above scripts.
