@@ -26,6 +26,7 @@ jobs:
         ref: master
 
     - name: "Run backfill.sh"
+      id: "backfill"
       shell: bash -euo pipefail {0}
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -33,16 +34,15 @@ jobs:
           ./backfill.sh ${{ github.event.client_payload.pr_number }} 2>&1 | tee backfill.log
 
     - name: Commit changes
-      id: "commit"
-      if: ${{ !cancelled() }} && steps.aggregate-file.outcome == 'success'
+      env:
+        NUMBER: ${{ github.event.client_payload.pr_number }}
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git add data
+        git add data/$NUMBER
         git commit -m 'Update data/'
 
     - name: Push changes
-      if: ${{ !cancelled() }} && steps.commit.outcome == 'success'
       uses: ad-m/github-push-action@v0.8.0
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
