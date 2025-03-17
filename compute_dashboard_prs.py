@@ -68,6 +68,15 @@ class DataStatus(Enum):
     # or a PR's data is contradictory (hence ignored).
     Missing = auto()
 
+    # Throws a ValueError on invalid input.
+    @staticmethod
+    def fromStr(val: str):
+        return {
+            "valid": DataStatus.Valid,
+            "incomplete": DataStatus.Incomplete,
+            "missing": DataStatus.Missing,
+        }[val]
+
 class LastStatusChange(NamedTuple):
     status: DataStatus
     time: datetime
@@ -155,34 +164,34 @@ def parse_aggregate_file(data: dict) -> dict[int, AggregatePRInfo]:
             if st["status"] == "missing":
                 last_status_change = None
             else:
-                (status, raw_time, raw_delta, raw_current_status) = st["status"], st["time"], st["delta"], st["current_status"]
+                (data_status, raw_time, raw_delta, raw_current_status) = st["status"], st["time"], st["delta"], st["current_status"]
                 delta = relativedelta_tryParse(raw_delta)
                 current_status = PRStatus.tryFrom_str(raw_current_status)
                 if delta is None:
                     print(f"error: invalid data, input {raw_delta} for 'delta' field of 'last_status_change' is invalid", file=sys.stderr)
                 elif current_status is None:
                     print(f"error: invalid data, input {raw_current_status} for 'current_status' field of 'last_status_change' is invalid", file=sys.stderr)
-                last_status_change = LastStatusChange(status, parser.isoparse(raw_time), delta, current_status)
+                last_status_change = LastStatusChange(DataStatus.fromStr(data_status), parser.isoparse(raw_time), delta, current_status)
 
             foq = pr["first_on_queue"]
             if foq["status"] == "missing":
                 first_on_queue = None
             else:
                 date2 = None if foq["date"] is None else parser.isoparse(foq["date"])
-                first_on_queue = (foq["status"], date2)
+                first_on_queue = (DataStatus.fromStr(foq["status"]), date2)
 
             tqt = pr["total_queue_time"]
             if tqt["status"] == "missing":
                 total_queue_time = None
             else:
-                (status, value_td, value_rd, explanation) = (tqt["status"], tqt["value_td"], tqt["value_rd"], tqt["explanation"])
+                (data_status, value_td, value_rd, explanation) = (tqt["status"], tqt["value_td"], tqt["value_rd"], tqt["explanation"])
                 td = timedelta_tryParse(value_td)
                 rd = relativedelta_tryParse(value_rd)
                 if rd is None:
                     print(f"error: invalid data, input {rd} for 'value_rd' field of 'total_queue_time' is invalid", file=sys.stderr)
                 elif td is None:
                     print(f"error: invalid data, input {td} for 'value_td' field of 'total_queue_time' is invalid", file=sys.stderr)
-                total_queue_time = TotalQueueTime(status, td, rd, explanation)
+                total_queue_time = TotalQueueTime(DataStatus.fromStr(data_status), td, rd, explanation)
         else:
             number_all_comments = None
             last_status_change = None
