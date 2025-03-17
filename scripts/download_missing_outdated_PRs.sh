@@ -26,10 +26,10 @@ function download_normal {
     # "parse error: Invalid numeric literal at line N, column M'" comes from jq complaining about e.g. an empty file.
 
     # Save the output to a temporary directory, which we delete in case anything goes wrong.
-    { ./pr_info.sh "$1" | jq '.' > "$tmpdir/pr_info.json"; } || { rm -r -f $tmpdir && return 1; }
+    { scripts/pr_info.sh "$1" | jq '.' > "$tmpdir/pr_info.json"; } || { rm -r -f $tmpdir && return 1; }
     # Save the current timestamp.
     echo "$CURRENT_TIME" > "$tmpdir/timestamp.txt"
-    { ./pr_reactions.sh "$1" | jq '.' > "$tmpdir/pr_reactions.json"; } || { rm -r -f $tmpdir && return 1; }
+    { scripts/pr_reactions.sh "$1" | jq '.' > "$tmpdir/pr_reactions.json"; } || { rm -r -f $tmpdir && return 1; }
     rm -r -f $dir
     mv -f $tmpdir/ $dir/
 }
@@ -38,7 +38,7 @@ function download_normal {
 function download_stubborn {
   local dir="data/$1-basic"
   mkdir -p "$dir"
-  ./basic_pr_info.sh "$1" | jq '.' > "$dir/basic_pr_info.json"
+  scripts/basic_pr_info.sh "$1" | jq '.' > "$dir/basic_pr_info.json"
   echo "$CURRENT_TIME" > "$dir/timestamp.txt"
 }
 
