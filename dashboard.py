@@ -319,8 +319,10 @@ def _compute_pr_entries(
                 # function by diff size below.
                 '<span style="color:green">{}</span>/<span style="color:red">{}</span>'.format(pr_info.additions, pr_info.deletions),
                 str(pr_info.number_modified_files),
-                total_comments, pr_info.users_commented,
+                total_comments, pr_info.users_commented[1],
             ])
+            if pr_info.users_commented[0] == DataStatus.Incomplete:
+                print("warning: PR {pr.number} supposedly has exactly 100 comments; data is likely incomplete", file=sys.stderr)
             if extra_settings.show_assignee:
                 match sorted(pr_info.assignees):
                     case []:
