@@ -1,10 +1,8 @@
 ## Mathlib4 review and triage dashboard
 
-This repository defines a [dashboard](https://jcommelin.github.io/queueboard/index.html) for reviewing and triaging pull requests to the [mathlib repository](github.com/leanprover-community/mathlib4/). `mathlib` receives a steady (and growing) stream of incoming pull requests. This is great, but keeping track of them all is not an easy task. mathlib's maintainers (and reviewers) observe growing pains trying to manage this using github's built-in functionality. Better tools are needed: this is one of them.
+This repository defines a [dashboard](https://leanprover-community.github.io/queueboard/index.html) for reviewing and triaging pull requests to the [mathlib repository](github.com/leanprover-community/mathlib4/). `mathlib` receives a steady (and growing) stream of incoming pull requests. This is great, but keeping track of them all is not an easy task. mathlib's maintainers (and reviewers) observe growing pains trying to manage this using github's built-in functionality. Better tools are needed: this is one of them.
 
-**Status.** The code on this page is a *prototype*. The internals or layout may still change quite a bit! That said:
-- the overall functionality of this page is useful, so is probably not going away
-- several people have reported finding this useful; feel free to try it out!
+**Status.** This project is around for a few months now, has been shown to be useful and will most likely stay. Feel free to try it out!
 
 There are still some rough edges: feedback on them, as well as on useful improvements, is very welcome! You may file an issue, propose a pull request (from a fork, as usual) or approach us on zulip.
 
