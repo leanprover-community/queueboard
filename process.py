@@ -125,6 +125,23 @@ def _compute_status_change_data(pr_data: dict, number: int, is_incomplete: bool)
     return (res_first_on_queue, res_last_status_change, res_total_queue_time)
 
 
+# Extract the github handle of every user who commented on (or reviewed) a given PR.
+# Return a tuple (is_incomplete, users), where
+# the former is true iff the list of comments or review comments is probably incomplete,
+# the second component is the list of user names.
+def _compute_commenter_data(pr_data: dict) -> Tuple[bool, List[str]]:
+    inner = pr_data["data"]["repository"]["pullRequest"]
+    users = set()
+    comments = inner["comments"]["nodes"]
+    for comment in comments:
+        users.add(comment["author"]["login"])
+    reviews = inner["reviews"]["nodes"]
+    for review in reviews:
+        users.add(review["author"]["login"])
+    is_incomplete = len(comments) == 100 or len(reviews) == 100
+    return (is_incomplete, sorted(list(users)))
+
+
 def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
     inner = pr_data["data"]["repository"]["pullRequest"]
     number = inner["number"]
@@ -182,6 +199,8 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
         "assignees": assignees,
         "review_approvals": approvals,
     }
+    # TODO: once all basic PRs also have their comment data included, include the commenters
+    # in their data as well.
     if not only_basic_info:
         number_comments = len(inner["comments"]["nodes"])
         number_review_comments = 0
@@ -224,6 +243,12 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
         aggregate_data["first_on_queue"] = res_first_on_queue
         aggregate_data["last_status_change"] = res_last_status_change
         aggregate_data["total_queue_time"] = res_total_queue_time
+
+        (is_incomplete, commenters) = _compute_commenter_data(pr_data)
+        aggregate_data["commenters"] = {
+            "status": "incomplete" if is_incomplete else "valid",
+            "users": commenters,
+        }
     return aggregate_data
 
 
