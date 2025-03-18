@@ -298,7 +298,10 @@ def _compute_pr_entries(
         labels = _write_labels(pr.labels, page_name, id)
         branch_name = aggregate_information[pr.number].branch_name if pr.number in aggregate_information else "missing"
         description = aggregate_information[pr.number].description
-        entries = [pr_link(pr.number, pr.url, branch_name), user_filter_link(name, page_name, id), title_link(pr.title, pr.url), description, labels]
+        # Mild HACK: append each PR's author as "author:name" to the end of the author column (hidden),
+        # to allow for searches "author:name".
+        author_hack = f'<div style="display:none">author:{name}</div>'
+        entries = [pr_link(pr.number, pr.url, branch_name), user_filter_link(name, page_name, id) + author_hack, title_link(pr.title, pr.url), description, labels]
         # Detailed information about the current PR.
         pr_info = None
         if pr.number in aggregate_information:
