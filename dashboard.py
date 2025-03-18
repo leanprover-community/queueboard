@@ -511,7 +511,12 @@ The table below contains all open PRs against the <em>master</em> branch which a
 You can filter that list by entering terms into the search box, such as the PR number or your github username.</p>""".lstrip()
 
 
-TIPS_AND_TRICKS = """  <h2 id="tips-and-tricks">Tips and tricks</h2>
+# Print a hyperlink to |s|, which displays |s| inside a <code> tag.
+def code_link(s: str) -> str:
+    return f'<a href="{s}"><code>{s}</code></a>'
+
+
+TIPS_AND_TRICKS = f"""  <h2 id="tips-and-tricks">Tips and tricks</h2>
   <details><summary>Click here to see some tips and tricks for using these webpages.</summary>
   This page has a couple of hidden features. Some examples are:
   <ul>
@@ -529,9 +534,9 @@ TIPS_AND_TRICKS = """  <h2 id="tips-and-tricks">Tips and tricks</h2>
   <li><strong>search PR description</strong>: searching also searches a PR description, and the list of all users who ever commented on this PR. To find all PRs from the sphere-eversion project, searching for "sphere eversion" (or "sphere eversion") should do the trick.</li>
   <li><strong>configuration via URL</strong>: you can configure the initial sorting, search terms and number of entries per page by changing the URL you're visiting. Three short examples:
     <ul>
-      <li><code>review_dashboard.html?sort=13-desc#queue</code> sorts the #queue table by total time in review (in descending order),</li>
-      <li><code>triage.html=?search=manifold&sort=author-asc&length=10#all</code> shows all PRs which contain the string "manifold" in their entry or PR description, sorted by author (in ascending order), with 10 items per page, and</li>
-      <li><code>on_the_queue.html?search=jcommelin&length=100</code> shows the status of all PRs by <code>jcommelin</code></li>
+      <li>{code_link("review_dashboard.html?sort=13-desc#queue")} sorts the #queue table by total time in review (in descending order),</li>
+      <li>{code_link("triage.html=?search=manifold&sort=author-asc&length=10#all")} shows all PRs which contain the string "manifold" in their entry or PR description, sorted by author (in ascending order), with 10 items per page, and</li>
+      <li>{code_link("on_the_queue.html?search=jcommelin&length=100")} shows the status of all PRs by <code>jcommelin</code></li>
     </ul>
   <details><summary>Reference-level explanation of search syntax</summary>
   The <code>search</code> parameter filters all tables on a page by default.
