@@ -150,6 +150,41 @@ assert parser.isoparse("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 
 
 ### Core logic: writing out a dashboard of PRs ###
 
+#
+STANDARD_ALIAS_MAPPING = """
+  // Return a table column index corresponding to a human-readable alias.
+  // |aliasOrIdx| is supposed to be an integer or a string; |table_id| is a string.
+  function getIdx (aliasOrIdx, table_id) {
+    switch (aliasOrIdx) {
+      case "number":
+        return 0;
+      case "author":
+        return 1;
+      case "title":
+        return 2;
+      // idx = 3 means the PR description, which is a hidden field
+      case "labels":
+        return 4;
+      case "diff":
+        return 5;
+      // idx = 6 is the list of modified files
+      case "numberChangedFiles":
+        return 7;
+      case "numberComments":
+        return 8;
+      // idx = 9 means the handles of users who commented or reviewed this PR
+      // The following column indices depend on a dashboard's configuration;
+      // we cannot use a uniform translation for all tables.
+      // TODO: change this configuration depending on the table ID and
+      // vary the table options accordingly.
+      // Currently, most dashboards have the following indices; this can change in the future
+      // 10 assignee(s), 11 last update (from Github), 12 last status change, 13 total time in review
+      default:
+        return aliasOrIdx;
+    }
+  }
+"""
+
 # This javascript code is placed at the bottom of each dashboard page.
 STANDARD_SCRIPT = """
   let diff_stat = DataTable.type('diff_stat', {
@@ -178,6 +213,7 @@ STANDARD_SCRIPT = """
       }
     }
   })
+{STANDARD_ALIAS_MAPPING}
 $(document).ready( function () {
   // Parse the URL for any initial configuration settings.
   // Future: use this for deciding which table to apply the options to.
@@ -198,40 +234,7 @@ $(document).ready( function () {
       console.log(`invalid sorting direction ${dir} passed as sorting configuration`);
       continue;
     }
-    let idx = col;
-    switch (col) {
-      case "number":
-        idx = 0;
-        break;
-      case "author":
-        idx = 1;
-        break;
-      case "title":
-        idx = 2;
-        break;
-      // idx = 3 means the PR description, which is a hidden field
-      case "labels":
-        idx = 4;
-        break;
-      case "diff":
-        idx = 5;
-        break;
-      // idx = 6 is the list of modified files
-      case "numberChangedFiles":
-        idx = 7;
-        break;
-      case "numberComments":
-        idx = 8;
-        break;
-      // idx = 9 means the handles of users who commented or reviewed this PR
-      // The following column indices depend on a dashboard's configuration;
-      // we cannot use a uniform translation for all tables.
-      // TODO: change this configuration depending on the table ID and
-      // vary the table options accordingly.
-      // Currently, most dashboards have the following indices; this can change in the future
-      // 10 assignee(s), 11 last update (from Github), 12 last status change, 13 total time in review
-    }
-    sort_config.push([idx, dir]);
+    sort_config.push([getIdx(col, ""), dir]);
    }
   const options = {
     stateDuration: 0,
@@ -247,7 +250,7 @@ $(document).ready( function () {
   options.order = sort_config;
   $('table').DataTable(options);
 });
-"""
+""".replace("{STANDARD_ALIAS_MAPPING}", STANDARD_ALIAS_MAPPING)
 
 
 # Settings for which 'extra columns' to display in a PR dashboard.
