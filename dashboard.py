@@ -986,7 +986,6 @@ def write_triage_page(
     Some other lists of PRs which could be useful:
     <ul>{'    '.join(list_items)}  </ul>
     """
-    # XXX: do I want to add a giant table with all PRs and their status!
 
     body = f"{title}\n  {welcome}\n  {toc}\n  {stats}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {further}\n  {remainder}\n"
     dashboards = [write_dashboard(output_file, prs_to_list, kind, aggregate_info) for (kind, _, _, _) in items2]

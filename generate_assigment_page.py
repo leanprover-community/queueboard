@@ -5,7 +5,6 @@ Generate a webpage
 - displaying statistics about how many reviewers have how many PR assigned to them,
 - suggesting potential reviewers for unassigned PRs, based on their self-indicated areas of competence/interest
 
-TODO: the aliasses for this webpage's dashboard are very wrong
 """
 
 import json
@@ -32,6 +31,7 @@ from dashboard import (
     user_link,
     write_dashboard,
     write_webpage,
+    STANDARD_ALIAS_MAPPING,
     STANDARD_SCRIPT,
 )
 
@@ -183,6 +183,122 @@ def collect_assignment_statistics() -> AssignmentStatistics:
         time, threshold, num_open_above_threshold, sorted(list(set(assigned_open_prs))), num_multiple_assignees, numbers
     )
 
+# Copy-pasted from STANDARD_ALIAS_MAPPING, but the indices are different.
+# Adjust this script, if there is a logic change we want to mirrow/a major column being added.
+# NB. Keep this in sync with the ExtraColumnSettings below.
+ALIAS_MAPPING = """
+  // Return a table column index corresponding to a human-readable alias.
+  // |aliasOrIdx| is supposed to be an integer or a string.
+  function getIdx (aliasOrIdx) {
+    switch (aliasOrIdx) {
+      case "number":
+        return 0;
+      case "author":
+        return 1;
+      case "title":
+        return 2;
+      // idx = 3 means the PR description, which is a hidden field
+      case "labels":
+        return 4;
+      case "diff":
+        return 5;
+      // idx = 6 is the list of modified files
+      case "numberChangedFiles":
+        return 7;
+      case "numberComments":
+        return 8;
+      // idx = 9 means the handles of users who commented or reviewed this PR
+
+      // the assignee field is skipped; approvals are always shown
+      case "approvals":
+        return 10;
+      // we hide the last update
+      case "potentialReviewers":
+        return 11;
+      case "contact": // amounts to sorting by the suggested reviewer, which might be useful
+        return 12;
+      case "lastStatusChange":
+        return 13;
+      case "totalTimeReview":
+        return 14;
+      default:
+        return aliasOrIdx;
+    }
+  }
+"""
+
+# Copy-pasted and simplified from STANDARD_SCRIPT.
+CUSTOM_SCRIPT = """
+  let diff_stat = DataTable.type('diff_stat', {
+    detect: function (data) { return false; },
+    order: {
+      pre: function (data) {
+        // Input has the form
+        // <span style="color:green">42</span>/<span style="color:red">13</span>,
+        // we extract the tuple (42, 13) and compute their sum 42+13.
+        let parts = data.split('</span>/<span', 2);
+        return Number(parts[0].slice(parts[0].search(">") + 1)) + Number(parts[1].slice(parts[1].search(">") + 1, -7));
+      }
+    },
+  });
+  let formatted_relativedelta = DataTable.type('formatted_relativedelta', {
+    detect: function (data) { return data.startsWith('<div style="display:none">'); },
+    order: {
+      pre: function (data) {
+        let main = (data.split('</div>', 2))[0].slice('<div style="display:none">'.length);
+        // If there is no input data, main is the empty string.
+        if (!main.includes('-')) {
+            return -1;
+        }
+        const [days, seconds, ...rest] = main.split('-');
+        return 100000 * Number(days) + Number(seconds);
+      }
+    }
+  })
+{ALIAS_MAPPING}
+$(document).ready( function () {
+  // Parse the URL for any initial configuration settings.
+  // Future: use this for deciding which table to apply the options to.
+  let fragment = window.location.hash;
+  const params = new URLSearchParams(document.location.search);
+  const search_params = params.get("search");
+  const pageLength = params.get("length") || 10;
+  const sort_params = params.getAll("sort");
+  // The configuration for initial sorting of tables.
+  let sort_config = [];
+  for (const config of sort_params) {
+    if (!config.includes('-')) {
+      console.log(`invalid value ${config} passed as sort parameter`);
+      continue;
+    }
+    const [col, dir, ...rest] = config.split('-');
+    if (dir != "asc" && dir != "desc") {
+      console.log(`invalid sorting direction ${dir} passed as sorting configuration`);
+      continue;
+    }
+    sort_config.push([getIdx(col), dir]);
+   }
+  const options = {
+    stateDuration: 0,
+    pageLength: pageLength,
+    "searching": true,
+    columnDefs: [{ type: 'diff_stat', targets: 5 }, { visible: false, targets: [3, 6, 9] } ],
+    order: sort_config,
+  };
+  if (params.has("search")) {
+    options.search = {
+        search: search_params
+    };
+  }
+  $('table').each(function () {
+    const tableId = $(this).attr('id') || "";
+    if (tableId.startsWith("t-")) {
+      $(this).DataTable(options);
+    }
+  })
+});
+""".replace("{ALIAS_MAPPING}", ALIAS_MAPPING)
+
 
 def main() -> None:
     stats = collect_assignment_statistics()
@@ -247,8 +363,7 @@ def main() -> None:
     header = _make_h2("propose-reviewers-all", "Finding reviewers for all unassigned PRs")
     table = write_dashboard("assign-reviewer.html", pr_lists, Dashboard.Queue, parsed, settings, False, suggestions, "propose-reviewers-all")
     propose_all = f"{header}\n{table}\n"
-
-    write_webpage(f"{title}\n{welcome}\n{update}\n{stats_section}\n{reviewers}\n{propose_all}\n{propose_stale}", "assign-reviewer.html", custom_script=STANDARD_SCRIPT + extra)
+    write_webpage(f"{title}\n{welcome}\n{update}\n{stats_section}\n{reviewers}\n{propose_all}\n{propose_stale}", "assign-reviewer.html", custom_script=CUSTOM_SCRIPT)
     print('Finished generating a PR assignment overview page. Open "assign-reviewer.html" in your browser to view it.')
 
 
