@@ -499,11 +499,11 @@ HTML_HEADER = """
 
 
 # Write a webpage with body out a file called 'outfile*.
-# 'extra_script' is expected to be newline-delimited and appropriately indented.
-def write_webpage(body: str, outfile: str, extra_script: str | None = None) -> None:
+# 'custom_script' (if present) is expected to be newline-delimited and appropriately indented.
+def write_webpage(body: str, outfile: str, use_tables: bool = True, custom_script: str | None = None) -> None:
     with open(outfile, "w") as fi:
-        script = (extra_script or "") + STANDARD_SCRIPT
-        footer = f"<script>{script}</script>\n</body>\n</html>"
+        script = f"<script>{custom_script or STANDARD_SCRIPT}</script>\n" if use_tables else ""
+        footer = f"{script}</body>\n</html>"
         print(f"{HTML_HEADER}\n{body}\n{footer}", file=fi)
 
 
@@ -719,7 +719,7 @@ def write_overview_page(updated: str) -> None:
     welcome = "\n  ".join(welcome.splitlines())
     feedback = '<p>Feedback (including bug reports and ideas for improvements) on this dashboard is very welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.</p>'
     body = f"{title}\n  {welcome}\n  {feedback}\n  <p><small>This dashboard was last updated on: {updated}</small></p>\n\n{TIPS_AND_TRICKS}\n"
-    write_webpage(body, "index.html")
+    write_webpage(body, "index.html", use_tables=False)
 
 
 def write_review_queue_page(

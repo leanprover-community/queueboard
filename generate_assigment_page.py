@@ -32,6 +32,7 @@ from dashboard import (
     user_link,
     write_dashboard,
     write_webpage,
+    STANDARD_SCRIPT,
 )
 
 
@@ -247,7 +248,7 @@ def main() -> None:
     table = write_dashboard("assign-reviewer.html", pr_lists, Dashboard.Queue, parsed, settings, False, suggestions, "propose-reviewers-all")
     propose_all = f"{header}\n{table}\n"
 
-    write_webpage(f"{title}\n{welcome}\n{update}\n{stats_section}\n{reviewers}\n{propose_all}\n{propose_stale}", "assign-reviewer.html", extra_script=extra)
+    write_webpage(f"{title}\n{welcome}\n{update}\n{stats_section}\n{reviewers}\n{propose_all}\n{propose_stale}", "assign-reviewer.html", custom_script=STANDARD_SCRIPT + extra)
     print('Finished generating a PR assignment overview page. Open "assign-reviewer.html" in your browser to view it.')
 
 
