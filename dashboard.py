@@ -932,7 +932,8 @@ def write_triage_page(
         Dashboard.All,
     ]
     for kind in others:
-        further += write_dashboard(output_file, prs_to_list, kind, aggregate_info)
+        setting = ExtraColumnSettings.with_approvals(kind == Dashboard.Approved)
+        further += write_dashboard(output_file, prs_to_list, kind, aggregate_info, setting)
 
     # xxx: audit links; which ones should open on the same page, which ones in a new tab?
 
@@ -966,8 +967,7 @@ def write_triage_page(
     # XXX: do I want to add a giant table with all PRs and their status!
 
     body = f"{title}\n  {welcome}\n  {toc}\n  {stats}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {further}\n  {remainder}\n"
-    setting = ExtraColumnSettings.with_approvals(kind == Dashboard.Approved)
-    dashboards = [write_dashboard(output_file, prs_to_list, kind, aggregate_info, setting) for (kind, _, _, _) in items2]
+    dashboards = [write_dashboard(output_file, prs_to_list, kind, aggregate_info) for (kind, _, _, _) in items2]
     body += "\n".join(dashboards) + "\n"
     write_webpage(body, output_file)
 
