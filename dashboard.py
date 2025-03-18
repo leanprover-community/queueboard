@@ -197,7 +197,7 @@ STANDARD_ALIAS_MAPPING = """
 
 # NB: keep this list in sync with any dashboard using ExtraColumnSettings.show_approvals(...).
 TABLES_WITH_APPROVALS = [Dashboard.QueueStaleUnassigned, Dashboard.QueueStaleAssigned, Dashboard.Approved]
-table_test = " || ".join([f'table_id == "{getTableId(kind)}"' for kind in TABLES_WITH_APPROVALS])
+table_test = " || ".join([f'tableId == "{getTableId(kind)}"' for kind in TABLES_WITH_APPROVALS])
 
 # This javascript code is placed at the bottom of each dashboard page.
 STANDARD_SCRIPT = """
@@ -263,10 +263,15 @@ $(document).ready( function () {
         search: search_params
     };
   }
-  options.order = sort_config;
-  $('table').DataTable(options);
+  $('table').each(function () {
+    const tableId = $(this).attr('id')
+    let tableOptions = { ...options }
+    const show_approval = {table_test};
+    tableOptions.order = show_approval ? sort_config_approvals : sort_config;
+    $(this).DataTable(tableOptions);
+  })
 });
-""".replace("{STANDARD_ALIAS_MAPPING}", STANDARD_ALIAS_MAPPING)
+""".replace("{STANDARD_ALIAS_MAPPING}", STANDARD_ALIAS_MAPPING).replace("{table_test}", table_test)
 
 
 # Settings for which 'extra columns' to display in a PR dashboard.
