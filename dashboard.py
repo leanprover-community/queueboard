@@ -296,12 +296,15 @@ def _compute_pr_entries(
         if pr.url != infer_pr_url(pr.number):
             print(f"warning: PR {pr.number} has url differing from the inferred one:\n  actual:   {pr.url}\n  inferred: {infer_pr_url(pr.number)}", file=sys.stderr)
         labels = _write_labels(pr.labels, page_name, id)
+        # Mild HACK: if a PR has label "t-algebra", we append the hidden string "label:t-algebra$" to make this searchable.
+        label_hack = f'<div style="display:none">label:t-algebra$</div>' if "t-algebra" in [l.name for l in pr.labels] else ""
         branch_name = aggregate_information[pr.number].branch_name if pr.number in aggregate_information else "missing"
         description = aggregate_information[pr.number].description
         # Mild HACK: append each PR's author as "author:name" to the end of the author column (hidden),
         # to allow for searches "author:name".
         author_hack = f'<div style="display:none">author:{name}</div>'
-        entries = [pr_link(pr.number, pr.url, branch_name), user_filter_link(name, page_name, id) + author_hack, title_link(pr.title, pr.url), description, labels]
+        entries = [pr_link(pr.number, pr.url, branch_name), user_filter_link(name, page_name, id) + author_hack,
+            title_link(pr.title, pr.url), description, labels + label_hack]
         # Detailed information about the current PR.
         pr_info = None
         if pr.number in aggregate_information:
