@@ -275,10 +275,6 @@ class ExtraColumnSettings(NamedTuple):
         self = ExtraColumnSettings.default()
         return ExtraColumnSettings(self.show_assignee, val, self.potential_reviewers, self.hide_update)
 
-    @classmethod
-    def with_assignee(self, val: bool):
-        return ExtraColumnSettings(val, self.show_approvals, self.potential_reviewers, self.hide_update)
-
 
 # Compute the table entries about a sequence of PRs.
 # |page| is the name of the current webpage (e.g. "review_dashboard.html"),
@@ -920,7 +916,7 @@ def write_triage_page(
     stale_unassigned = write_dashboard(output_file, prs_to_list, Dashboard.QueueStaleUnassigned, aggregate_info, config)
 
     # XXX: when updating the definition of "stale assigned" PRs, make sure to update all the dashboard descriptions
-    setting = ExtraColumnSettings.with_approvals(True).with_assignee(True)
+    setting = ExtraColumnSettings.with_approvals(True)
     further = write_dashboard(output_file, prs_to_list, Dashboard.QueueStaleAssigned, aggregate_info, setting)
 
     others = [
@@ -969,7 +965,7 @@ def write_triage_page(
     # XXX: do I want to add a giant table with all PRs and their status!
 
     body = f"{title}\n  {welcome}\n  {toc}\n  {stats}\n  {notlanded}\n  {review_heading}\n  {stale_unassigned}\n  {further}\n  {remainder}\n"
-    setting = ExtraColumnSettings.with_approvals(kind == Dashboard.Approved).with_assignee(True)
+    setting = ExtraColumnSettings.with_approvals(kind == Dashboard.Approved)
     dashboards = [write_dashboard(output_file, prs_to_list, kind, aggregate_info, setting) for (kind, _, _, _) in items2]
     body += "\n".join(dashboards) + "\n"
     write_webpage(body, output_file)
