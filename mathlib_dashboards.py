@@ -172,3 +172,7 @@ def getIdTitle(kind: Dashboard) -> Tuple[str, str]:
         Dashboard.Approved: ("approved", "PRs with an 'approved' review"),
         Dashboard.All: ("all", "All open PRs")
     }[kind]
+
+
+def getTableId(kind: Dashboard) -> str:
+    return f"t-{getIdTitle(kind)[0]}"

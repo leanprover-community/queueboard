@@ -17,7 +17,7 @@ from ci_status import CIStatus
 from classify_pr_state import PRState, PRStatus
 from compute_dashboard_prs import (AggregatePRInfo, BasicPRInformation, Label, DataStatus, LastStatusChange, TotalQueueTime,
     PLACEHOLDER_AGGREGATE_INFO, compute_pr_statusses, determine_pr_dashboards, infer_pr_url, link_to, parse_aggregate_file, gather_pr_statistics, _extract_prs)
-from mathlib_dashboards import Dashboard, short_description, long_description, getIdTitle
+from mathlib_dashboards import Dashboard, short_description, long_description, getIdTitle, getTableId
 from util import my_assert_eq, format_delta, timedelta_tryParse, relativedelta_tryParse
 
 
@@ -51,8 +51,8 @@ def read_json_files() -> JSONInputData:
 
 ### Helper methods: writing HTML code for various parts of the generated webpage ###
 
-# Determine HTML code for writing a table header with entries 'entries'.
-# base_indent is the indentation of the <table> tag; we add two additional space per additional level.
+# Determine HTML code for writing a table header with entries |entries|.
+# |base_indent| is the indentation of the <table> tag; we add two additional space per additional level.
 def _write_table_header(entries: List[str], base_indent: str) -> str:
     indent = base_indent + "  "
     body = f"\n{indent}".join([f"<th>{entry}</th>" for entry in entries])
@@ -392,7 +392,7 @@ def _compute_pr_entries(
 
 
 # Write the code for a dashboard of a given list of PRs.
-# "page_name" is the name of the page this dashboard lives in (e.g. triage.html).
+# "page_name" is the name of the page this dashboard lives in (e.g. triage.html),
 # 'aggregate_information' maps each PR number to the corresponding aggregate information
 # (and may contain information on PRs not to be printed).
 # TODO: remove 'prs' in favour of the aggregate information --- once I can ensure that the data
@@ -406,7 +406,7 @@ def write_dashboard(
     page_name: str,
     prs: dict[Dashboard, List[BasicPRInformation]], kind: Dashboard, aggregate_info: dict[int, AggregatePRInfo],
     extra_settings: ExtraColumnSettings | None=None, header=True,
-    potential_reviewers: dict[int, Tuple[str, List[str]]] | None=None, custom_subpage: str | None=None
+    potential_reviewers: dict[int, Tuple[str, List[str]]] | None=None, custom_subpage: str | None=None,
 ) -> str:
     def _inner(
         prs: List[BasicPRInformation], kind: Dashboard, aggregate_info: dict[int, AggregatePRInfo],
@@ -446,7 +446,8 @@ def write_dashboard(
         headings.append("total time in review")
         head = _write_table_header(headings, "    ")
         body = _compute_pr_entries(page_name, custom_subpage or getIdTitle(kind)[0], prs, aggregate_info, extra_settings, potential_reviewers)
-        return f"{title}\n  <table>\n{head}{body}  </table>"
+        id = getTableId(kind) if custom_subpage is None else f"t-{custom_subpage}"
+        return f"{title}\n  <table id={id}>\n{head}{body}  </table>"
 
     if extra_settings is None:
         extra_settings = ExtraColumnSettings.default()
