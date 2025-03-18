@@ -521,16 +521,13 @@ TIPS_AND_TRICKS = f"""  <h2 id="tips-and-tricks">Tips and tricks</h2>
   This page has a couple of hidden features. Some examples are:
   <ul>
   <li><strong>semantic sorting</strong>: clicking on a table column sorts by the column. This sorting is semantically correct: PR diffs are sorted by the total number of added or deleted lines, sorting by total time in review converts between months, days, hours and seconds</li>
-  <li><strong>multi-column sorting</strong>: use shift-click to sort by a second (or third, etc.) column</li>
-  <li><strong>exact match when searching</strong>: searching for <code>foo bar</code> will match all PRs whose entry contains the string foo and the string bar (but at potentially different places). Searching for <code>"foo bar"</code> only yields literal occurrences of the string <code>foo bar</code></li>
-  <li><strong>exact label matching</strong>: a few label names are prefixes of other labels, e.g. <code>t-algebra</code> is a prefix of <code>t-algebraic geometry</code>, so searching for <code>t-algebra</code> will also find <code>t-algebraic geometry</code> PRs.
-  There is special support for this combining: searching for <code>t-algebra$</code> will match only PRs with label <code>t-algebra</code>.</li>
-  <li><strong>author search</strong>: search for <code>author:name</code> to find all PRs by a particular author</li>
-  <li><strong>find PRs by modified file</strong>: search for a file name and find all PRs in a list which modify this file. Searching for several files finds all PRs which modify all these files. (Caveat: we only track the first 100 files each PR changes, so this may yield incomplete results for cross-cutting PRs. Such PRs are rare, however.)</li>
   <li><strong>hovers</strong>: many items contain further information when you hover over it.
   Hover over a section header to see which PRs are contained in it, hover over a column definition to see what it measures, hover over a PR number to see its git branch name, hover over a time column to see the detailed time, etc.</li>
-  <li><strong>filtering</strong>: click on a label or PR author to filter by this author</li>
-  <li><strong>hidden fields</strong>: searching for a user name returns all PRs a user ever commented on</li>
+  <li><strong>author search</strong>: search for <code>author:name</code> to find all PRs by a particular author</li>
+  <li><strong>exact label matching</strong>: a few label names are prefixes of other labels, e.g. <code>t-algebra</code> is a prefix of <code>t-algebraic geometry</code>, so searching for <code>t-algebra</code> will also find <code>t-algebraic geometry</code> PRs.
+  There is special support for this combining: searching for <code>t-algebra$</code> will match only PRs with label <code>t-algebra</code>.</li>
+  <li><strong>find PRs by modified file</strong>: search for a file name and find all PRs in a list which modify this file. Searching for several files finds all PRs which modify all these files. (Caveat: we only track the first 100 files each PR changes, so this may yield incomplete results for cross-cutting PRs. Such PRs are rare, however.)</li>
+  <li><strong>find your PRs</strong>: searching for your user name returns all PRs you reviewed or commented on</li>
   <li><strong>search PR description</strong>: searching also searches a PR description, and the list of all users who ever commented on this PR. To find all PRs from the sphere-eversion project, searching for "sphere eversion" (or "sphere eversion") should do the trick.</li>
   <li><strong>configuration via URL</strong>: you can configure the initial sorting, search terms and number of entries per page by changing the URL you're visiting. Three short examples:
     <ul>
@@ -544,10 +541,14 @@ TIPS_AND_TRICKS = f"""  <h2 id="tips-and-tricks">Tips and tricks</h2>
   Some columns have human-readable aliasses already (such as <code>number</code>, <code>author</code>, <code>title</code>, <code>labels</code> and <code>diff</code>); for the remaining ones, you <em>currently</em> need to use an index: <code>sort=13-desc</code> sorts the column with index 13 in descending order. These indices count hidden columns, so may change over time. Stable aliasses for the remaining columns will be added soon.
   </details>
   </li>
+  <li><strong>filtering</strong>: click on a label or PR author to filter by this author</li>
+  <li><strong>exact match when searching</strong>: searching for <code>foo bar</code> will match all PRs whose entry contains the string foo and the string bar (but at potentially different places). Searching for <code>"foo bar"</code> only yields literal occurrences of the string <code>foo bar</code></li>
+  <li><strong>multi-column sorting</strong>: use shift-click to sort by a second (or third, etc.) column</li>
   </ul>
 
-  Would you like to add a hidden feature? <a href="https://github.com/leanprover-community/queueboard/issues?q=is%3Aissue%20state%3Aopen%20label%3Ahas-mentoring-instructions">these features</a> have mentoring instructions; PRs are very welcome!
+  Would you like to add a hidden feature? <a href="https://github.com/leanprover-community/queueboard/issues?q=is%3Aissue%20state%3Aopen%20label%3Ahas-mentoring-instructions">These features</a> have mentoring instructions; PRs are very welcome!
   </details>"""
+
 
 # Print a webpage "why is my PR not on the queue" to the file "on_the_queue.html".
 # 'prs' is the list of PRs on which to print information;
