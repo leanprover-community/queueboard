@@ -263,22 +263,21 @@ class ExtraColumnSettings(NamedTuple):
     show_approvals: bool
     potential_reviewers: bool
     hide_update: bool
-    show_last_real_update: bool
     # Future possibilities:
     # - number of (transitive) dependencies (with PR numbers)
 
     @staticmethod
     def default():
-        return ExtraColumnSettings(True, False, False, False, show_last_real_update=True)
+        return ExtraColumnSettings(True, False, False, False)
 
     @staticmethod
     def with_approvals(val: bool):
         self = ExtraColumnSettings.default()
-        return ExtraColumnSettings(self.show_assignee, val, self.potential_reviewers, self.hide_update, self.show_last_real_update)
+        return ExtraColumnSettings(self.show_assignee, val, self.potential_reviewers, self.hide_update)
 
     @classmethod
     def with_assignee(self, val: bool):
-        return ExtraColumnSettings(val, self.show_approvals, self.potential_reviewers, self.hide_update, self.show_last_real_update)
+        return ExtraColumnSettings(val, self.show_approvals, self.potential_reviewers, self.hide_update)
 
 
 # Compute the table entries about a sequence of PRs.
@@ -374,24 +373,24 @@ def _compute_pr_entries(
             rd = relativedelta.relativedelta(now, update)
             prefix = f'<div style="display:none">{format_delta2(now - update)}</div> '
             entries.append(f'{prefix}<a title="{tooltip}">{format_delta(rd)} ago</a>')
-        if extra_settings.show_last_real_update:
-            # Always start this column with a <div> with display:none, this is important for auto-detecting the column type!
-            real_update = '<div style="display:none"></div><a title="the last actual update for this PR could not be determined">unknown</a>'
-            total_time = '<div style="display:none"></div><a title="this PR\'s total time in review could not be determined">unknown</a>'
-            if pr_info:
-                last_update = aggregate_information[pr.number].last_status_change
-                if last_update is not None and last_update.status != DataStatus.Missing:
-                    real_update = f'{last_update.time} ({format_delta(last_update.delta)} ago)'
-                    if last_update.status == DataStatus.Incomplete:
-                        real_update += '<a title="caution: this data is likely incomplete">*</a>'
-                tqt = aggregate_information[pr.number].total_queue_time
-                if tqt is not None and tqt.status != DataStatus.Missing:
-                    prefix = f'<div style="display:none">{format_delta2(tqt.value_td)}</div> '
-                    total_time = f'{prefix}<a title="{tqt.explanation}">{format_delta(tqt.value_rd)}</a>'
-                    if tqt.status == DataStatus.Incomplete:
-                        total_time += '<a title="caution: this data is likely incomplete">*</a>'
-            entries.append(real_update)
-            entries.append(total_time)
+
+        # Always start this column with a <div> with display:none, this is important for auto-detecting the column type!
+        real_update = '<div style="display:none"></div><a title="the last actual update for this PR could not be determined">unknown</a>'
+        total_time = '<div style="display:none"></div><a title="this PR\'s total time in review could not be determined">unknown</a>'
+        if pr_info:
+            last_update = aggregate_information[pr.number].last_status_change
+            if last_update is not None and last_update.status != DataStatus.Missing:
+                real_update = f'{last_update.time} ({format_delta(last_update.delta)} ago)'
+                if last_update.status == DataStatus.Incomplete:
+                    real_update += '<a title="caution: this data is likely incomplete">*</a>'
+            tqt = aggregate_information[pr.number].total_queue_time
+            if tqt is not None and tqt.status != DataStatus.Missing:
+                prefix = f'<div style="display:none">{format_delta2(tqt.value_td)}</div> '
+                total_time = f'{prefix}<a title="{tqt.explanation}">{format_delta(tqt.value_rd)}</a>'
+                if tqt.status == DataStatus.Incomplete:
+                    total_time += '<a title="caution: this data is likely incomplete">*</a>'
+        entries.append(real_update)
+        entries.append(total_time)
         result += _write_table_row(entries, "    ")
     return result
 
@@ -445,10 +444,10 @@ def write_dashboard(
             headings.append("Contact")
         if not extra_settings.hide_update:
             headings.append("<a title=\"this pull request's last update, according to github\">Updated</a>")
-        if extra_settings.show_last_real_update:
-            # TODO: are there better headings for this and the other header?
-            headings.append('<a title="The last time this PR\'s status changed from e.g. review to merge conflict, awaiting-author">Last status change</a>')
-            headings.append("total time in review")
+
+        # TODO: are there better headings for this and the other header?
+        headings.append('<a title="The last time this PR\'s status changed from e.g. review to merge conflict, awaiting-author">Last status change</a>')
+        headings.append("total time in review")
         head = _write_table_header(headings, "    ")
         body = _compute_pr_entries(page_name, custom_subpage or getIdTitle(kind)[0], prs, aggregate_info, extra_settings, potential_reviewers)
         return f"{title}\n  <table>\n{head}{body}  </table>"

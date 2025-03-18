@@ -235,7 +235,7 @@ def main() -> None:
     }
     # Future: have another column with a button to send a zulip DM to a
     # potential (e.g. selecting from the suggested ones).
-    settings = ExtraColumnSettings(show_assignee=False, show_approvals=True, potential_reviewers=True, hide_update=True, show_last_real_update=True)
+    settings = ExtraColumnSettings(show_assignee=False, show_approvals=True, potential_reviewers=True, hide_update=True)
     table = write_dashboard("assign-reviewer.html", pr_lists, Dashboard.QueueStaleUnassigned, parsed, settings, False, suggestions, "propose-reviewers")
     propose_stale = f"{header}\n{table}\n"
     # NB. This line becomes actual javascript code, so uses JS' string interpolation syntax.
