@@ -150,11 +150,14 @@ assert parser.isoparse("2024-04-29T18:53:51Z") == datetime(2024, 4, 29, 18, 53, 
 
 ### Core logic: writing out a dashboard of PRs ###
 
-#
 STANDARD_ALIAS_MAPPING = """
   // Return a table column index corresponding to a human-readable alias.
-  // |aliasOrIdx| is supposed to be an integer or a string; |table_id| is a string.
-  function getIdx (aliasOrIdx, table_id) {
+  // |aliasOrIdx| is supposed to be an integer or a string;
+  // |show_approvals| is true iff this table contains a visible column of github approvals.
+  function getIdx (aliasOrIdx, show_approvals) {
+    // Some tables show a column of all PR approvals right after the assignee.
+    // In this case, later indices must be shifted by 1.
+    let offset = show_approvals ? 1 : 0;
     switch (aliasOrIdx) {
       case "number":
         return 0;
@@ -173,17 +176,28 @@ STANDARD_ALIAS_MAPPING = """
       case "numberComments":
         return 8;
       // idx = 9 means the handles of users who commented or reviewed this PR
-      // The following column indices depend on a dashboard's configuration;
-      // we cannot use a uniform translation for all tables.
-      // TODO: change this configuration depending on the table ID and
-      // vary the table options accordingly.
-      // Currently, most dashboards have the following indices; this can change in the future
-      // 10 assignee(s), 11 last update (from Github), 12 last status change, 13 total time in review
+      case "assignee":
+        return 10;
+      // The following column indices depend on whether a dashboard shows
+      // the list of users who approved a PR.
+      case "approvals":
+        if (show_approvals) { return 11; }
+        break;
+      case "lastUpdate":
+        return 11 + offset;
+      case "lastStatusChange":
+        return 12 + offset;
+      case "totalTimeReview":
+        return 13 + offset;
       default:
         return aliasOrIdx;
     }
   }
 """
+
+# NB: keep this list in sync with any dashboard using ExtraColumnSettings.show_approvals(...).
+TABLES_WITH_APPROVALS = [Dashboard.QueueStaleUnassigned, Dashboard.QueueStaleAssigned, Dashboard.Approved]
+table_test = " || ".join([f'table_id == "{getTableId(kind)}"' for kind in TABLES_WITH_APPROVALS])
 
 # This javascript code is placed at the bottom of each dashboard page.
 STANDARD_SCRIPT = """
@@ -222,8 +236,9 @@ $(document).ready( function () {
   const search_params = params.get("search");
   const pageLength = params.get("length") || 10;
   const sort_params = params.getAll("sort");
-  // The configuration for initial sorting of tables.
+  // The configuration for initial sorting of tables, for tables with and without approvals.
   let sort_config = [];
+  let sort_config_approvals = [];
   for (const config of sort_params) {
     if (!config.includes('-')) {
       console.log(`invalid value ${config} passed as sort parameter`);
@@ -234,7 +249,8 @@ $(document).ready( function () {
       console.log(`invalid sorting direction ${dir} passed as sorting configuration`);
       continue;
     }
-    sort_config.push([getIdx(col, ""), dir]);
+    sort_config.push([getIdx(col, false), dir]);
+    sort_config_approvals.push([getIdx(col, true), dir]);
    }
   const options = {
     stateDuration: 0,
@@ -271,6 +287,7 @@ class ExtraColumnSettings(NamedTuple):
         return ExtraColumnSettings(True, False, False, False)
 
     @staticmethod
+    # NB. Any dashboard which calls this option should be noted in |TABLES_WITH_APPROVALS| above.
     def with_approvals(val: bool):
         self = ExtraColumnSettings.default()
         return ExtraColumnSettings(self.show_assignee, val, self.potential_reviewers, self.hide_update)

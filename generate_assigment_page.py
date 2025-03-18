@@ -5,6 +5,7 @@ Generate a webpage
 - displaying statistics about how many reviewers have how many PR assigned to them,
 - suggesting potential reviewers for unassigned PRs, based on their self-indicated areas of competence/interest
 
+TODO: the aliasses for this webpage's dashboard are very wrong
 """
 
 import json
