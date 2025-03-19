@@ -55,14 +55,13 @@ function download_pr {
 # Re-download data if missing. Take care to not ask for too much at once!
 # FIXME: this is only somewhat robust --- improve this to ensure to avoid
 # re-re-downloading in a loop!
-# for pr in $(cat "redownload.txt"); do
-#   echo "About to re-download PR $pr"
-#   # We try re-downloading every PR, so "redownload.txt" gets emptied for sure.
-#   download_pr $pr || true
-# done
-# echo "" > redownload.txt
-# echo "Successfully re-downloaded all planned PRs (if any)"
-echo "TEMPORARILY skipping re-downloading of normal PRs"
+for pr in $(cat "redownload.txt"); do
+  echo "About to re-download PR $pr"
+  # We try re-downloading every PR, so "redownload.txt" gets emptied for sure.
+  download_pr $pr || true
+done
+echo "" > redownload.txt
+echo "Successfully re-downloaded all planned PRs (if any)"
 
 # In case there are PRs which got "missed" somehow, backfill data for up to two of them.
 i=0
@@ -112,8 +111,8 @@ for pr in $stubborn_prs; do
   echo "Attempting to backfill data for 'stubborn' PR $pr"
   download_stubborn $pr
   i=$((i+1))
-  if [ $i -eq 10 ]; then
+  if [ $i -eq 2 ]; then
     break;
   fi
 done
-echo "Backfilled up to 10 'stubborn' PRs successfully"
+echo "Backfilled up to 2 'stubborn' PRs successfully"
