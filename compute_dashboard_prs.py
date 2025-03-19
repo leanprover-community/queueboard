@@ -163,7 +163,7 @@ def parse_aggregate_file(data: dict) -> dict[int, AggregatePRInfo]:
         date = parser.isoparse(pr["last_updated"])
         label_names = pr["label_names"]
         commenters = pr["commenters"]
-        users_commented = DataStatus.fromStr(commenters["status"]), commenters["users"]
+        users_commented = (DataStatus.fromStr(commenters["status"]), commenters["users"])
         # Some PRs only have basic information present.
         if "number_review_comments" in pr:
             number_all_comments = pr["number_comments"] + pr["number_review_comments"]
@@ -209,7 +209,7 @@ def parse_aggregate_file(data: dict) -> dict[int, AggregatePRInfo]:
             pr["is_draft"], CIStatus.from_string(pr["CI_status"]), pr["base_branch"], pr["branch_name"], pr["head_repo"]["login"],
             pr["state"], date, pr["author"], pr["title"], pr["description"], [toLabel(name) for name in label_names],
             pr["additions"], pr["deletions"], pr["files"], pr["num_files"], pr["review_approvals"], pr["assignees"],
-            number_all_comments, users_commented, last_status_change, first_on_queue, total_queue_time,
+            users_commented, number_all_comments, last_status_change, first_on_queue, total_queue_time,
         )
         aggregate_info[pr["number"]] = info
     return aggregate_info
