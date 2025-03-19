@@ -535,9 +535,8 @@ def code_link(s: str) -> str:
 
 
 TIPS_AND_TRICKS = f"""  <h2 id="tips-and-tricks">Tips and tricks</h2>
-  <details><summary>Click here to see some tips and tricks for using these webpages.</summary>
-  This page has a couple of hidden features. Some examples are:
-  <ul>
+  <details><summary>These webpages have a couple of hidden features. Click here to learn more.</summary>
+  <div><ul>
   <li><strong>semantic sorting</strong>: clicking on a table column sorts by the column. This sorting is semantically correct: PR diffs are sorted by the total number of added or deleted lines, sorting by total time in review converts between months, days, hours and seconds</li>
   <li><strong>hovers</strong>: many items contain further information when you hover over it.
   Hover over a section header to see which PRs are contained in it, hover over a column definition to see what it measures, hover over a PR number to see its git branch name, hover over a time column to see the detailed time, etc.</li>
@@ -563,9 +562,9 @@ TIPS_AND_TRICKS = f"""  <h2 id="tips-and-tricks">Tips and tricks</h2>
   <li><strong>filtering</strong>: click on a label or PR author to filter by this author</li>
   <li><strong>exact match when searching</strong>: searching for <code>foo bar</code> will match all PRs whose entry contains the string foo and the string bar (but at potentially different places). Searching for <code>"foo bar"</code> only yields literal occurrences of the string <code>foo bar</code></li>
   <li><strong>multi-column sorting</strong>: use shift-click to sort by a second (or third, etc.) column</li>
-  </ul>
+  </ul></div>
 
-  Would you like to add a hidden feature? <a href="https://github.com/leanprover-community/queueboard/issues?q=is%3Aissue%20state%3Aopen%20label%3Ahas-mentoring-instructions">These features</a> have mentoring instructions; PRs are very welcome!
+  Would you like to add a hidden feature? <a href="https://github.com/leanprover-community/queueboard/issues?q=is%3Aissue%20state%3Aopen%20label%3Ahas-mentoring-instructions">These proposed features</a> have mentoring instructions; PRs are very welcome!
   </details>"""
 
 
