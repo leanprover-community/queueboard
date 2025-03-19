@@ -366,7 +366,12 @@ def _compute_pr_entries(
                         assignees = f"{user1} and {user2}"
                     case several_users:
                         assignees = ", ".join(several_users)
-                entries.append(assignees)
+                # Mild HACK: add a hidden string 'assignee:name' for each assignee, to allow
+                # a typed search for PR assignees.
+                tmp = " ".join((f"author:{name}" for name in pr_info.assignees))
+                assignee_hack = f'<div style="display:none">{tmp}</div>' if tmp else ""
+                entries.append(assignees + assignee_hack)
+
             if extra_settings.show_approvals:
                 # Deduplicate the users with approving reviews.
                 # FIXME: should one indicate the number of such approvals per user instead?
