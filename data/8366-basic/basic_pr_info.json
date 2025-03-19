@@ -1,0 +1,777 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 1136,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "kim-em"
+        },
+        "baseRefName": "master",
+        "body": "# PR contents\r\n\r\nThis is the supremum of\r\n\r\n- #8284\r\n- #8056\r\n- #8023\r\n- #8332\r\n- #8226 (already approved)\r\n- #7834 (already approved)\r\n\r\nalong with some minor fixes from failures on nightly-testing as Mathlib `master` is merged into it.\r\n\r\nNote that some PRs for changes that are already compatible with the current toolchain and will be necessary have already been split out: #8380.\r\n\r\nI am hopeful that in future we will be able to progressively merge adaptation PRs into a `bump/v4.X.0` branch, so we never end up with a \"big merge\" like this. However one of these adaptation PRs (#8056) predates my new scheme for combined CI, and it wasn't possible to keep that PR viable in the meantime.\r\n\r\n# Lean PRs involved in this bump\r\n\r\nIn particular this includes adjustments for the Lean PRs\r\n\r\n* leanprover/lean4#2778 \r\n* leanprover/lean4#2790\r\n* leanprover/lean4#2783\r\n* leanprover/lean4#2825\r\n* leanprover/lean4#2722\r\n\r\n## leanprover/lean4#2778\r\n\r\nWe can get rid of all the \r\n```\r\nlocal macro_rules | `($x ^ $y) => `(HPow.hPow $x $y) -- Porting note: See issue lean4#2220\r\n```\r\nmacros across Mathlib (and in any projects that want to write natural number powers of reals).\r\n\r\n## leanprover/lean4#2722\r\n\r\nChanges the default behaviour of `simp` to `(config := {decide := false})`. This makes `simp` (and consequentially `norm_num`) less powerful, but also more consistent, and less likely to blow up in long failures. This requires a variety of changes: changing some previously by `simp` or `norm_num` to `decide` or `rfl`, or adding `(config := {decide := true})`. \r\n\r\n## leanprover/lean4#2783\r\n\r\nThis changed the behaviour of `simp` so that `simp [f]` will only unfold \"fully applied\" occurrences of `f`. The old behaviour can be recovered with `simp (config := { unfoldPartialApp := true })`. We may in future add a syntax for this, e.g. `simp [!f]`; please provide feedback! In the meantime, we have made the following changes:\r\n* switching to using explicit lemmas that have the intended level of application\r\n* `(config := { unfoldPartialApp := true })` in some places, to recover the old behaviour\r\n* Using `@[eqns]` to manually adjust the equation lemmas for a particular definition, recovering the old behaviour just for that definition. See #8371, where we do this for `Function.comp` and `Function.flip`.\r\n\r\nThis change in Lean may require further changes down the line (e.g. adding the `!f` syntax, and/or upstreaming the special treatment for `Function.comp` and `Function.flip`, and/or removing this special treatment). Please keep an open and skeptical mind about these changes!\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 446,
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5rt7Ik",
+              "body": "I'm looking at this right now",
+              "createdAt": "2023-11-12T18:13:27Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5rt79t",
+              "body": "It looks like in my changes to #8023 I forgot to fix a proof in the archive; I'll do that now, but let you do the merge from that PR back into this one",
+              "createdAt": "2023-11-12T18:28:03Z",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5rt8fS",
+              "body": "@eric-wieser I'm done -- I got mathlib itself to compile locally.",
+              "createdAt": "2023-11-12T18:37:47Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5rt8tg",
+              "body": "I've pushed the fix in https://github.com/leanprover-community/mathlib4/pull/8023, and am waiting for CI to go green before merging it prematurely here.\r\n\r\nIf there's time, I'd like to see what the fallout from #8371 is (which is a master-targeted #8023); I'll cherry-pick fixes so that there are no merge conflicts.",
+              "createdAt": "2023-11-12T18:41:30Z",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5r3hzZ",
+              "body": "The commit message now contains the line\r\n\r\n> This PR currently uses nightly-2023-11-12, but likely this will become v4.3.0-rc2 tomorrow.\r\n\r\nI guess this should be updated.\r\n\r\nThere's also a merge conflict concerning the lakefile. Apart from that, LGTM\r\n\r\nbors d+",
+              "createdAt": "2023-11-14T08:10:22Z",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5r3h0T",
+              "body": ":v: semorrison can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "createdAt": "2023-11-14T08:10:25Z",
+              "author": {
+                "login": "mathlib-bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5sOqxt",
+              "body": "bors p=10",
+              "createdAt": "2023-11-17T05:49:15Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5sOq1O",
+              "body": "bors merge",
+              "createdAt": "2023-11-17T05:49:33Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5sOq6p",
+              "body": "Build failed:\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6900398348/job/18773474645)",
+              "createdAt": "2023-11-17T05:50:04Z",
+              "author": {
+                "login": "mathlib-bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5sOreA",
+              "body": "bors merge",
+              "createdAt": "2023-11-17T05:53:26Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5sO4va",
+              "body": "Pull request successfully merged into master.\n\nBuild succeeded:\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6900421686/job/18773536061)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6900421686/job/18773536175)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6900421686/job/18773535948)",
+              "createdAt": "2023-11-17T07:04:21Z",
+              "author": {
+                "login": "mathlib-bors"
+              }
+            }
+          ]
+        },
+        "closed": true,
+        "closedAt": "2023-11-17T07:04:22Z",
+        "createdAt": "2023-11-12T09:26:31Z",
+        "deletions": 1253,
+        "files": {
+          "nodes": [
+            {
+              "path": ".gitignore",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Archive/Examples/IfNormalization/Result.lean",
+              "additions": 1,
+              "deletions": 8
+            },
+            {
+              "path": "Archive/Examples/IfNormalization/WithoutAesop.lean",
+              "additions": 2,
+              "deletions": 8
+            },
+            {
+              "path": "Archive/Imo/Imo1960Q1.lean",
+              "additions": 6,
+              "deletions": 1
+            },
+            {
+              "path": "Archive/Imo/Imo1962Q1.lean",
+              "additions": 12,
+              "deletions": 1
+            },
+            {
+              "path": "Archive/Imo/Imo1962Q4.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Archive/Imo/Imo1964Q1.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Archive/Imo/Imo1981Q3.lean",
+              "additions": 4,
+              "deletions": 2
+            },
+            {
+              "path": "Archive/Imo/Imo2001Q2.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Archive/Imo/Imo2005Q4.lean",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "Archive/Imo/Imo2008Q3.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Archive/Imo/Imo2013Q5.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Archive/Imo/Imo2019Q1.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Archive/Imo/Imo2019Q2.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Archive/Imo/Imo2019Q4.lean",
+              "additions": 5,
+              "deletions": 8
+            },
+            {
+              "path": "Archive/MiuLanguage/DecisionNec.lean",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "Archive/MiuLanguage/DecisionSuf.lean",
+              "additions": 4,
+              "deletions": 3
+            },
+            {
+              "path": "Archive/Sensitivity.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Archive/Wiedijk100Theorems/AbelRuffini.lean",
+              "additions": 7,
+              "deletions": 8
+            },
+            {
+              "path": "Archive/Wiedijk100Theorems/AreaOfACircle.lean",
+              "additions": 0,
+              "deletions": 3
+            },
+            {
+              "path": "Archive/Wiedijk100Theorems/BallotProblem.lean",
+              "additions": 3,
+              "deletions": 1
+            },
+            {
+              "path": "Archive/Wiedijk100Theorems/BirthdayProblem.lean",
+              "additions": 14,
+              "deletions": 6
+            },
+            {
+              "path": "Archive/Wiedijk100Theorems/HeronsFormula.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Archive/Wiedijk100Theorems/Konigsberg.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Archive/Wiedijk100Theorems/PerfectNumbers.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Archive/Wiedijk100Theorems/SumOfPrimeReciprocalsDiverges.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Archive/ZagierTwoSquares.lean",
+              "additions": 6,
+              "deletions": 3
+            },
+            {
+              "path": "Cache/IO.lean",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "Counterexamples/CliffordAlgebra_not_injective.lean",
+              "additions": 2,
+              "deletions": 1
+            },
+            {
+              "path": "Counterexamples/Cyclotomic105.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Counterexamples/HomogeneousPrimeNotPrime.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Algebra/Algebra/NonUnitalSubalgebra.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/BigOperators/Basic.lean",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Algebra/Category/ModuleCat/ChangeOfRings.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Algebra/CharP/Basic.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Algebra/CharP/LocalRing.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/CharZero/Quotient.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/GeomSum.lean",
+              "additions": 6,
+              "deletions": 5
+            },
+            {
+              "path": "Mathlib/Algebra/GradedMonoid.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Group/Defs.lean",
+              "additions": 44,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/GroupPower/NegOnePow.lean",
+              "additions": 2,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Homology/Augment.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Homology/Exact.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Homology/ExactSequence.lean",
+              "additions": 5,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Algebra/Homology/Flip.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Homology/Homotopy.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Algebra/Homology/Single.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Algebra/IsPrimePow.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Lie/DirectSum.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Module/DedekindDomain.lean",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Algebra/Module/Injective.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Order/Interval.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Order/Positive/Ring.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Order/Ring/WithTop.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Order/Sub/WithTop.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Algebra/Quaternion.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Regular/SMul.lean",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Algebra/RingQuot.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Star/NonUnitalSubalgebra.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/AlgebraicGeometry/EllipticCurve/Weierstrass.lean",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/AlgebraicTopology/DoldKan/NReflectsIso.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/Analytic/Basic.lean",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Analysis/Analytic/Composition.lean",
+              "additions": 4,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Analysis/Analytic/RadiusLiminf.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Asymptotics/AsymptoticEquivalent.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/BoxIntegral/Basic.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/BoxIntegral/DivergenceTheorem.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/BoxIntegral/Partition/Split.lean",
+              "additions": 4,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Calculus/BumpFunction/Convolution.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Calculus/BumpFunction/Normed.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Calculus/Monotone.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/AbsMax.lean",
+              "additions": 0,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/Liouville.lean",
+              "additions": 0,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/LocallyUniformLimit.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/PhragmenLindelof.lean",
+              "additions": 0,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/RemovableSingularity.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/ConstantSpeed.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/Convex/Between.lean",
+              "additions": 2,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/Convex/SpecificFunctions/Basic.lean",
+              "additions": 0,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Analysis/Convex/SpecificFunctions/Deriv.lean",
+              "additions": 1,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Analysis/Convex/SpecificFunctions/Pow.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Convex/Strong.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Convolution.lean",
+              "additions": 2,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/Distribution/SchwartzSpace.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Fourier/AddCircle.lean",
+              "additions": 5,
+              "deletions": 7
+            },
+            {
+              "path": "Mathlib/Analysis/Fourier/RiemannLebesgueLemma.lean",
+              "additions": 1,
+              "deletions": 5
+            },
+            {
+              "path": "Mathlib/Analysis/InnerProductSpace/Adjoint.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/InnerProductSpace/Calculus.lean",
+              "additions": 2,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Analysis/InnerProductSpace/PiL2.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/InnerProductSpace/Rayleigh.lean",
+              "additions": 2,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Analysis/InnerProductSpace/Spectrum.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/InnerProductSpace/TwoDim.lean",
+              "additions": 1,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Analysis/InnerProductSpace/l2Space.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/Matrix.lean",
+              "additions": 0,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Analysis/MeanInequalities.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/MeanInequalitiesPow.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/MellinTransform.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Analysis/NormedSpace/DualNumber.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/NormedSpace/Exponential.lean",
+              "additions": 1,
+              "deletions": 1
+            }
+          ]
+        },
+        "headRefName": "bump_v4.3.0-rc2",
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5fOuXf",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+              "color": "bfd4f2",
+              "name": "delegated"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            }
+          ]
+        },
+        "number": 8366,
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5m5DPu",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-11-12T11:43:45Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5m5XsJ",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-11-12T20:02:44Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5m5gzt",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-11-12T22:31:08Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5m7Nvq",
+              "state": "COMMENTED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-11-13T09:07:59Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5m8EOe",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-11-13T10:28:44Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5m8n0T",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-11-13T11:57:26Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5m8oMV",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-11-13T11:58:30Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5m9Gtj",
+              "state": "COMMENTED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-11-13T13:14:03Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5m_NFx",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-11-13T17:28:57Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5m_QYI",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-11-13T17:36:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nAKb7",
+              "state": "COMMENTED",
+              "author": {
+                "login": "b-mehta"
+              },
+              "submittedAt": "2023-11-13T19:28:14Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nAPSH",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-11-13T19:37:18Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nCHWK",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-11-14T02:36:13Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nCWJD",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-11-14T03:07:07Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nCcns",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-11-14T03:20:25Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5nCcr_",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-11-14T03:20:34Z"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - chore: bump to v4.3.0-rc2",
+        "updatedAt": "2023-11-17T07:04:26Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/8366"
+      }
+    }
+  }
+}
