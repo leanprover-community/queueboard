@@ -556,7 +556,8 @@ TIPS_AND_TRICKS = f"""  <h2 id="tips-and-tricks">Tips and tricks</h2>
   <details><summary>Reference-level explanation of search syntax</summary>
   The <code>search</code> parameter filters all tables on a page by default.
   The <code>sort</code> parameter changes the initial sorting of all dashboards; if the parameter is given several times, this configures a multi-column sort (sorting by the first parameter first). A valid value is of the form <code>idxOrAlias-direction</code>, where <code>direction</code> is either <code>asc</code> or <code>desc</code> (for ascending or descending order), and <code>idxOrAlias</code> describes the column to sort.
-  Some columns have human-readable aliasses already (such as <code>number</code>, <code>author</code>, <code>title</code>, <code>labels</code> and <code>diff</code>); for the remaining ones, you <em>currently</em> need to use an index: <code>sort=13-desc</code> sorts the column with index 13 in descending order. These indices count hidden columns, so may change over time. Stable aliasses for the remaining columns will be added soon.
+  All columns have human-readable names: these are <code>number</code>, <code>author</code>, <code>title</code>, <code>labels</code>, <code>diff</code>, <code>numberChangedFiles</code>, <code>numberComments</code>, <code>assignee</code>, <code>approvals</code>, <code>lastUpdate</code>, <code>lastStatusChange</code> and <code>totalTimeReview</code>, respectively &emdash; mapping to the obvious column.
+  Alternatively (deprecated), you can pass in the (0-based) index of the column you want to sort. (You have to account for hidden columns, and there are no stability guarantees. This option is only kept for backwards compatibility.)
   </details>
   </li>
   <li><strong>filtering</strong>: click on a label or PR author to filter by this author</li>
