@@ -176,7 +176,8 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
     for r in inner["reviews"]["nodes"]:
         if r["state"] == "APPROVED":
             approvals.append(r["author"]["login"])
-
+    number_comments = len(inner["comments"]["nodes"])
+    (is_incomplete, commenters) = _compute_commenter_data(pr_data)
     # NB. When adding future fields, pay attention to whether the 'basic' info files
     # also contain this information --- otherwise, it is fine to omit it!
     aggregate_data = {
@@ -192,24 +193,24 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
         "title": title,
         "description": description,
         "label_names": labels,
-        "num_files": number_modified_files,
-        "files": modified_files,
         "additions": additions,
         "deletions": deletions,
+        "num_files": number_modified_files,
+        "files": modified_files,
+        "number_comments": number_comments,
+        "commenters": {
+            "status": "incomplete" if is_incomplete else "valid",
+            "users": commenters,
+        },
         "assignees": assignees,
         "review_approvals": approvals,
     }
-    # TODO: once all basic PRs also have their comment data included, include the commenters
-    # in their data as well.
     if not only_basic_info:
-        number_comments = len(inner["comments"]["nodes"])
         number_review_comments = 0
         review_threads = inner["reviewThreads"]["nodes"]
         for t in review_threads:
             number_review_comments += len(t["comments"]["nodes"])
-        aggregate_data["number_comments"] = number_comments
         aggregate_data["number_review_comments"] = number_review_comments
-
         num_events = len(inner["timelineItems"]["nodes"])
         events_not_commit = [n for n in inner["timelineItems"]["nodes"]
             if "__typename" not in n or n["__typename"] != "PullRequestCommit"]
@@ -243,12 +244,6 @@ def get_aggregate_data(pr_data: dict, only_basic_info: bool) -> dict:
         aggregate_data["first_on_queue"] = res_first_on_queue
         aggregate_data["last_status_change"] = res_last_status_change
         aggregate_data["total_queue_time"] = res_total_queue_time
-
-        (is_incomplete, commenters) = _compute_commenter_data(pr_data)
-        aggregate_data["commenters"] = {
-            "status": "incomplete" if is_incomplete else "valid",
-            "users": commenters,
-        }
     return aggregate_data
 
 
