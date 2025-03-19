@@ -123,12 +123,12 @@ class AggregatePRInfo(NamedTuple):
     approvals: List[str]
     # The github handles of all users (if any) assigned to this PR
     assignees: List[str]
+    # All users who left a standard or review comment on this PR: could include
+    # bots posting, and the PR author (aside from the description).
+    users_commented: Tuple[DataStatus, List[str]]
     # This field is *not* present if there is only "basic" information about this PR.
-    # WIP: this is changing; if/when all stubborn PR data was re-downloaded, we can re-evaluate
+    # (Basic PRs contain have the number of standard comments, but of review comments.)
     number_total_comments: int | None
-    # Same as for number_total_comments: update this once the data is re-downloaded.
-    users_commented: Tuple[DataStatus, List[str]] | None
-    # This field is not
     # The following fields are not present when there is only basic information about this PR.
     # They are also missing if a PR's events data is invalid (because github returned bogus results).
     # Otherwise, they include their validity status ("missing", "incomplete", "valid").
@@ -162,8 +162,10 @@ def parse_aggregate_file(data: dict) -> dict[int, AggregatePRInfo]:
     for pr in data["pr_statusses"]:
         date = parser.isoparse(pr["last_updated"])
         label_names = pr["label_names"]
+        commenters = pr["commenters"]
+        users_commented = DataStatus.fromStr(commenters["status"]), commenters["users"]
         # Some PRs only have basic information present.
-        if "number_comments" in pr:
+        if "number_review_comments" in pr:
             number_all_comments = pr["number_comments"] + pr["number_review_comments"]
             # If status information is invalid, omit it.
             st = pr["last_status_change"]
@@ -198,11 +200,8 @@ def parse_aggregate_file(data: dict) -> dict[int, AggregatePRInfo]:
                 elif td is None:
                     print(f"error: invalid data, input {td} for 'value_td' field of 'total_queue_time' is invalid", file=sys.stderr)
                 total_queue_time = TotalQueueTime(DataStatus.fromStr(data_status), td, rd, explanation)
-            commenters = pr["commenters"]
-            users_commented = DataStatus.fromStr(commenters["status"]), commenters["users"]
         else:
             number_all_comments = None
-            users_commented = None
             last_status_change = None
             first_on_queue = None
             total_queue_time = None
