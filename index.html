@@ -41,7 +41,7 @@
     </ul>
   </details>
   <p>Feedback (including bug reports and ideas for improvements) on this dashboard is very welcome, for instance <a href="https://github.com/jcommelin/queueboard">directly on the github repository</a>.</p>
-  <p><small>This dashboard was last updated on: March 19, 2025 at 08:24 UTC</small></p>
+  <p><small>This dashboard was last updated on: March 19, 2025 at 08:29 UTC</small></p>
 
   <h2 id="tips-and-tricks">Tips and tricks</h2>
   <details><summary>Click here to see some tips and tricks for using these webpages.</summary>
@@ -76,102 +76,5 @@
   Would you like to add a hidden feature? <a href="https://github.com/leanprover-community/queueboard/issues?q=is%3Aissue%20state%3Aopen%20label%3Ahas-mentoring-instructions">These features</a> have mentoring instructions; PRs are very welcome!
   </details>
 
-<script>
-  let diff_stat = DataTable.type('diff_stat', {
-    detect: function (data) { return false; },
-    order: {
-      pre: function (data) {
-        // Input has the form
-        // <span style="color:green">42</span>/<span style="color:red">13</span>,
-        // we extract the tuple (42, 13) and compute their sum 42+13.
-        let parts = data.split('</span>/<span', 2);
-        return Number(parts[0].slice(parts[0].search(">") + 1)) + Number(parts[1].slice(parts[1].search(">") + 1, -7));
-      }
-    },
-  });
-  let formatted_relativedelta = DataTable.type('formatted_relativedelta', {
-    detect: function (data) { return data.startsWith('<div style="display:none">'); },
-    order: {
-      pre: function (data) {
-        let main = (data.split('</div>', 2))[0].slice('<div style="display:none">'.length);
-        // If there is no input data, main is the empty string.
-        if (!main.includes('-')) {
-            return -1;
-        }
-        const [days, seconds, ...rest] = main.split('-');
-        return 100000 * Number(days) + Number(seconds);
-      }
-    }
-  })
-
-  // Return a table column index corresponding to a human-readable alias.
-  // |aliasOrIdx| is supposed to be an integer or a string; |table_id| is a string.
-  function getIdx (aliasOrIdx, table_id) {
-    switch (aliasOrIdx) {
-      case "number":
-        return 0;
-      case "author":
-        return 1;
-      case "title":
-        return 2;
-      // idx = 3 means the PR description, which is a hidden field
-      case "labels":
-        return 4;
-      case "diff":
-        return 5;
-      // idx = 6 is the list of modified files
-      case "numberChangedFiles":
-        return 7;
-      case "numberComments":
-        return 8;
-      // idx = 9 means the handles of users who commented or reviewed this PR
-      // The following column indices depend on a dashboard's configuration;
-      // we cannot use a uniform translation for all tables.
-      // TODO: change this configuration depending on the table ID and
-      // vary the table options accordingly.
-      // Currently, most dashboards have the following indices; this can change in the future
-      // 10 assignee(s), 11 last update (from Github), 12 last status change, 13 total time in review
-      default:
-        return aliasOrIdx;
-    }
-  }
-
-$(document).ready( function () {
-  // Parse the URL for any initial configuration settings.
-  // Future: use this for deciding which table to apply the options to.
-  let fragment = window.location.hash;
-  const params = new URLSearchParams(document.location.search);
-  const search_params = params.get("search");
-  const pageLength = params.get("length") || 10;
-  const sort_params = params.getAll("sort");
-  // The configuration for initial sorting of tables.
-  let sort_config = [];
-  for (const config of sort_params) {
-    if (!config.includes('-')) {
-      console.log(`invalid value ${config} passed as sort parameter`);
-      continue;
-    }
-    const [col, dir, ...rest] = config.split('-');
-    if (dir != "asc" && dir != "desc") {
-      console.log(`invalid sorting direction ${dir} passed as sorting configuration`);
-      continue;
-    }
-    sort_config.push([getIdx(col, ""), dir]);
-   }
-  const options = {
-    stateDuration: 0,
-    pageLength: pageLength,
-    "searching": true,
-    columnDefs: [{ type: 'diff_stat', targets: 5 }, { visible: false, targets: [3, 6, 9] } ],
-  };
-  if (params.has("search")) {
-    options.search = {
-        search: search_params
-    };
-  }
-  options.order = sort_config;
-  $('table').DataTable(options);
-});
-</script>
 </body>
 </html>
