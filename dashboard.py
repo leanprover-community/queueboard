@@ -398,7 +398,8 @@ def _compute_pr_entries(
         if pr_info:
             last_update = aggregate_information[pr.number].last_status_change
             if last_update is not None and last_update.status != DataStatus.Missing:
-                real_update = f'{last_update.time} ({format_delta(last_update.delta)} ago)'
+                date = str(last_update.time).replace("+00:00", "")
+                real_update = f'{date} ({format_delta(last_update.delta)} ago)'
                 if last_update.status == DataStatus.Incomplete:
                     real_update += '<a title="caution: this data is likely incomplete">*</a>'
             tqt = aggregate_information[pr.number].total_queue_time
