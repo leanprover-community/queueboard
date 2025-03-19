@@ -534,7 +534,7 @@ def code_link(s: str) -> str:
     return f'<a href="{s}"><code>{s}</code></a>'
 
 
-TIPS_AND_TRICKS = f"""  <h2 id="tips-and-tricks">Tips and tricks</h2>
+TIPS_AND_TRICKS = f"""  <h2 id="tips-and-tricks"><a href="#tips-and-tricks">Tips and tricks</a></h2>
   <details><summary>These webpages have a couple of hidden features. Click here to learn more.</summary>
   <div><ul>
   <li><strong>semantic sorting</strong>: clicking on a table column sorts by the column. This sorting is semantically correct: PR diffs are sorted by the total number of added or deleted lines, sorting by total time in review converts between months, days, hours and seconds</li>
