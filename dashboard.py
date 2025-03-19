@@ -298,6 +298,11 @@ class ExtraColumnSettings(NamedTuple):
         return ExtraColumnSettings(self.show_assignee, val, self.potential_reviewers, self.hide_update)
 
 
+# Wrap some HTML |code| inside a display:none div; returns the empty string if |code| is empty.
+def hide(code: str) -> str:
+    return f'<div style="display:none">{code}</div>' if code else ""
+
+
 # Compute the table entries about a sequence of PRs.
 # |page| is the name of the current webpage (e.g. "review_dashboard.html"),
 # |id| is the fragment ID of the current table (e.g. "queue").
@@ -317,12 +322,12 @@ def _compute_pr_entries(
             print(f"warning: PR {pr.number} has url differing from the inferred one:\n  actual:   {pr.url}\n  inferred: {infer_pr_url(pr.number)}", file=sys.stderr)
         labels = _write_labels(pr.labels, page_name, id)
         # Mild HACK: if a PR has label "t-algebra", we append the hidden string "label:t-algebra$" to make this searchable.
-        label_hack = f'<div style="display:none">label:t-algebra$</div>' if "t-algebra" in [l.name for l in pr.labels] else ""
+        label_hack = hide('label:t-algebra$') if "t-algebra" in [l.name for l in pr.labels] else ""
         branch_name = aggregate_information[pr.number].branch_name if pr.number in aggregate_information else "missing"
         description = aggregate_information[pr.number].description
         # Mild HACK: append each PR's author as "author:name" to the end of the author column (hidden),
         # to allow for searches "author:name".
-        author_hack = f'<div style="display:none">author:{name}</div>'
+        author_hack = hide(f"author:{name}")
         entries = [pr_link(pr.number, pr.url, branch_name), user_filter_link(name, page_name, id) + author_hack,
             title_link(pr.title, pr.url), description, labels + label_hack]
         # Detailed information about the current PR.
@@ -368,8 +373,7 @@ def _compute_pr_entries(
                         assignees = ", ".join(several_users)
                 # Mild HACK: add a hidden string 'assignee:name' for each assignee, to allow
                 # a typed search for PR assignees.
-                tmp = " ".join((f"author:{name}" for name in pr_info.assignees))
-                assignee_hack = f'<div style="display:none">{tmp}</div>' if tmp else ""
+                assignee_hack = hide(" ".join((f"author:{name}" for name in pr_info.assignees)))
                 entries.append(assignees + assignee_hack)
 
             if extra_settings.show_approvals:
@@ -394,23 +398,23 @@ def _compute_pr_entries(
             tooltip = update.strftime("%Y-%m-%d %H:%M")
             now = datetime.now(timezone.utc)
             rd = relativedelta.relativedelta(now, update)
-            prefix = f'<div style="display:none">{format_delta2(now - update)}</div> '
-            entries.append(f'{prefix}<a title="{tooltip}">{format_delta(rd)} ago</a>')
+            prefix = hide(format_delta2(now - update))
+            entries.append(f'{prefix} <a title="{tooltip}">{format_delta(rd)} ago</a>')
 
         # Always start this column with a <div> with display:none, this is important for auto-detecting the column type!
-        real_update = '<div style="display:none"></div><a title="the last actual update for this PR could not be determined">unknown</a>'
-        total_time = '<div style="display:none"></div><a title="this PR\'s total time in review could not be determined">unknown</a>'
+        real_update = f'{hide(" ")}<a title="the last actual update for this PR could not be determined">unknown</a>'
+        total_time = f'{hide(" ")}<a title="this PR\'s total time in review could not be determined">unknown</a>'
         if pr_info:
             last_update = aggregate_information[pr.number].last_status_change
             if last_update is not None and last_update.status != DataStatus.Missing:
                 date = str(last_update.time).replace("+00:00", "")
-                prefix = f'<div style="display:none">{format_delta2(now - last_update.time)}</div> '
+                prefix = hide(format_delta2(now - last_update.time))
                 real_update = f'{prefix}<a title="{date}">{format_delta(last_update.delta)} ago</a>'
                 if last_update.status == DataStatus.Incomplete:
                     real_update += '<a title="caution: this data is likely incomplete">*</a>'
             tqt = aggregate_information[pr.number].total_queue_time
             if tqt is not None and tqt.status != DataStatus.Missing:
-                prefix = f'<div style="display:none">{format_delta2(tqt.value_td)}</div> '
+                prefix = hide(format_delta2(tqt.value_td))
                 total_time = f'{prefix}<a title="{tqt.explanation}">{format_delta(tqt.value_rd)}</a>'
                 if tqt.status == DataStatus.Incomplete:
                     total_time += '<a title="caution: this data is likely incomplete">*</a>'
