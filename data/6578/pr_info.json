@@ -1,0 +1,1300 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 154,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "dagurtomas"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "We exhibit a compact subset in a product of totally disconnected Hausdorff spaces as a limit of its projections to finite subsets of the indexing set, in the category `Profinite`. The proof is structured in the same way as `Profinite.isIso_asLimitCone_lift` and `DiscreteQuotient.exists_of_compat`.\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 3,
+        "closed": true,
+        "closedAt": "2023-10-10T21:36:45Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5j-x-P",
+              "body": "I'm not sure where to put the stuff that is currently in `section General` in `Mathlib/Topology/Category/Profinite/Product`. And maybe the rest belongs in `Mathlib/Topology/Category/Profinite/AsLimit`?",
+              "createdAt": "2023-08-14T14:15:43Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5j-0tW",
+              "body": "Also,  if there is a better way to implement `ProjRestrict`/`ProjRestricts`, those suggestions are very welcome!",
+              "createdAt": "2023-08-14T14:20:36Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5mEnLQ",
+              "body": "About `ProjRestrict`, etc, would not it be better to redesign it (and also `Proj` and `Set.proj`) so that if we have `φ : ι' → ι` then there is an induced \"pullback\" map `(∀ i, π i) → (∀ i', π (φ i))`. Then, `Set.proj` is the direct image of a subset `C` by this map. (If it is not absolutely necessary, I am a little disturbed by the `Inhabited` instances which may seem to be a little bit artificial. If such assumptions is needed, `Nonempty`, which is a `Prop`, would presumably be better.)",
+              "createdAt": "2023-09-09T11:03:37Z",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5mEpHP",
+              "body": "I agree with Joël (I meant to comment on that a while ago but then forgot about it, I'm very sorry). Incidentally I need similar results, so #6836 is proving continuity for these \"precomposition\" maps (although they are not literally precompositions because of dependent types). You could also use [Set.restrict](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Set/Function.html#Set.restrict) for the particular case of inclusion of a set into a type, but it's probably easier to work in greater generality than with subsets!\r\nThen, if you really need to extend by dummy values, you can probably prove a continuity result for [Function.extend](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Logic/Function/Basic.html#Function.extend). Does that make sense?",
+              "createdAt": "2023-09-09T11:50:44Z",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5mE4Az",
+              "body": "Thanks for the suggestions! I'm on vacation and will look at this in more detail when I get back. Regarding the `Inhabited` instances, the reason I'm using them is that in my application (#6286, Nöbeling's theorem) and the setting I originally did this in was for the space `I → Bool`, where `default` is `false`. It's really convenient to stay inside the space `I → Bool` throughout that proof, and thus map everything to the \"dummy\" value `false`. ",
+              "createdAt": "2023-09-09T16:55:30Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5mPDmg",
+              "body": "bors r-\n\n@jcommelin This was tagged as awaiting-author for a good reason, and I would like to continue this discussion when Dagur comes back from vacation.",
+              "createdAt": "2023-09-12T08:13:29Z",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5mPDnn",
+              "body": "Canceled.",
+              "createdAt": "2023-09-12T08:13:31Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5npBom",
+              "body": "Ok I'm back. Here are some thoughts:\r\n\r\nI would argue that the map `Proj J : ((i : ι) → π i) → ((i : ι) → π i)` is quite canonical when the `π i` are `Inhabited`. I'm not extending by what you call a dummy element, I'm extending by the *default* element. I don't see why it would be better to write it as a composition of a map`((i : ι) → π i) → ((j : {i // J i}) → π j.val)` and `Function.extend : ((j : {i // J i}) → π j.val) → ((i : ι) → π i)` as Anatole suggests, when I can instead write it cleanly in one line.  \r\n\r\nIn my application, Nöbeling's theorem, it is very convenient that `ι` stays fixed throughout the proof. I realise that in the context of this PR it might seem weird to require it when a similar end result is true regardless of the factors being `Inhabited`, but there is the explanation. I could try do something similar without requiring the factors to be inhabited, where the transition maps in the limits would go between products with different indexing sets. But again, in my application, I need the transition maps to stay within the same fixed product.",
+              "createdAt": "2023-09-28T09:33:21Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nsCtu",
+              "body": "The main statement (here) does not require `Inhabited`, which is the reason we feel it is not canonical. For this PR, I would suggest redefining `FinsetsToProfinite` in a way that seems more natural to me and Anatole (without any arbitrary choice given by `Inhabited`) and obtain the result that the corresponding cone is limit. Then, for your application, if it is critical to the proof, you may *additionally* define another `FinsetsToProfinite'` based on an `Inhabited` assumption, and then, it will be easy to show that these two functors are isomorphic and the corresponding cones corresponds, so that one of cones is limit iff the other is.",
+              "createdAt": "2023-09-28T15:53:34Z",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nxkGt",
+              "body": "Ok, I've removed all the `Inhabited` instances. I'm still thinking about how to apply this in Nöbeling but for now this works as a standalone PR, if you want to take a look again.",
+              "createdAt": "2023-09-29T15:10:11Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5n0Z3Z",
+              "body": "If this gets merged, then Nöbeling (#6286) is ready for review",
+              "createdAt": "2023-09-30T15:30:20Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5oAP7s",
+              "body": "The definitions/statements in this PR looks good to me, but they do not seem to be in appropriate namespaces. The results about profinite sets should be in the `Profinite` namespace. I think that `FinsetFunctor` and `precomp` should be renamed and/or put in a namespace in a way which reflects the fact that this is topology; also it seems that `SetFunctor` would be better than `FinsetFunctor`.",
+              "createdAt": "2023-10-03T12:45:58Z",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5oAiZV",
+              "body": "I moved `precomp` to `Topology/ContinuousFunction/Basic`, and put everything else in the `Profinite` namespace. I changed both the `FinsetFunctor` namespace and the name of the functor `FinsetsToProfinite` to `Profinite.IndexFunctor`, where `index` refers to the indexing set of the product. Does this make sense?",
+              "createdAt": "2023-10-03T13:23:13Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5oVNwu",
+              "body": "Build fails because of \"no space left on device\"...",
+              "createdAt": "2023-10-06T10:43:31Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5oV8J1",
+              "body": "That happens from time to time, we've removed the affected runner for now until someone can fix the issue. I restarted the build.",
+              "createdAt": "2023-10-06T12:34:03Z",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5orSzY",
+              "body": "This PR was included in a batch that was canceled, it will be automatically retried",
+              "createdAt": "2023-10-10T20:30:31Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5orxIl",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6474503178/job/17579568448)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6474503178/job/17579568916)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6474503178/job/17579569131)",
+              "createdAt": "2023-10-10T21:36:44Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "aebdb94c955c233bbd52375722ae90c09069a16d",
+                "additions": 231,
+                "deletions": 0,
+                "committedDate": "2023-08-14T12:49:37Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "41fddf25fd9fdb4c5a6c91428422686428ac52c4",
+                "additions": 10,
+                "deletions": 11,
+                "committedDate": "2023-08-14T14:02:48Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "59722b09feaae032631fd646802937c4c5ade23d",
+                "additions": 63,
+                "deletions": 14,
+                "committedDate": "2023-08-20T09:46:32Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "dac1573c4c5ec6791b2ef6ecf5215499caa10ca4",
+                "additions": 1,
+                "deletions": 0,
+                "committedDate": "2023-08-20T09:47:51Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "95a1bc6d16426eaed24d2e3c6b651ccaea8970b9",
+                "additions": 12,
+                "deletions": 0,
+                "committedDate": "2023-08-20T09:55:39Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c4a53d60c7cb3eeb1cc72e2cc36ecaf87b8f3919",
+                "additions": 5,
+                "deletions": 34,
+                "committedDate": "2023-08-21T14:44:45Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "98c0e9be8dcae0f652c3011b3e9e010a5848a759",
+                "additions": 75,
+                "deletions": 173,
+                "committedDate": "2023-09-29T14:31:40Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d1b2d0335ce5a7069f14afd9a62c1186347e1568",
+                "additions": 61059,
+                "deletions": 26457,
+                "committedDate": "2023-09-29T14:31:44Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6773d63f52dc926e38883d9c9d408fa016ca5efc",
+                "additions": 0,
+                "deletions": 0,
+                "committedDate": "2023-09-29T14:33:02Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "342ab6269a453cc5b5966381066e911b6238586d",
+                "additions": 41,
+                "deletions": 41,
+                "committedDate": "2023-09-29T14:36:59Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c7e54405adaef180a64c03483b3cb4ecdefa2ce0",
+                "additions": 40,
+                "deletions": 52,
+                "committedDate": "2023-09-29T15:09:00Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3b632abb921ca71a6fd8ebc40af32fac4d3b5c73",
+                "additions": 7,
+                "deletions": 12,
+                "committedDate": "2023-09-30T08:25:37Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "249db308a937e3c9ad93e7f74463697cf5061d5e",
+                "additions": 7,
+                "deletions": 4,
+                "committedDate": "2023-09-30T15:21:47Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e75db31f91001b04a25d128c1ef5cbfc9fbc6f4c",
+                "additions": 48,
+                "deletions": 45,
+                "committedDate": "2023-10-03T13:20:42Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1be46825f386fae71d4ca9070ccaac494ce4aee4",
+                "additions": 23,
+                "deletions": 23,
+                "committedDate": "2023-10-06T10:40:25Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4d486c448d210a594011cea0ea977a1d2a4b732c",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-10-06T10:42:16Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-08-14T12:50:48Z",
+        "deletions": 0,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Topology/Category/Profinite/Product.lean",
+              "additions": 149,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Topology/ContinuousFunction/Basic.lean",
+              "additions": 4,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "dagur_ProfiniteProduct",
+        "headRefOid": "4d486c448d210a594011cea0ea977a1d2a4b732c",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5X4TAJ",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABViJTYQ",
+              "color": "33dbec",
+              "name": "t-category-theory"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABViJbOw",
+              "color": "33DBEC",
+              "name": "t-topology"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5iclRQ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "github-actions"
+              },
+              "submittedAt": "2023-09-30T08:26:18Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5jdeTq",
+              "body": "Thanks :tada:\r\n\r\nbors merge",
+              "state": "APPROVED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-10-10T19:00:35Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5jBXrD",
+              "body": "",
+              "state": "APPROVED",
+              "author": {
+                "login": "joelriou"
+              },
+              "submittedAt": "2023-10-06T07:48:26Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 6578,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": "APPROVED",
+        "reviewRequests": {
+          "nodes": [
+            {
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjQ4NjU2Nzkz",
+                "login": "ADedecker"
+              }
+            },
+            {
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjU1Nzc2ODc=",
+                "login": "adamtopaz"
+              }
+            }
+          ]
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5gpz2u",
+              "body": "Thanks :tada:\r\n\r\nbors merge",
+              "state": "APPROVED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-09-12T08:00:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iclRQ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "github-actions"
+              },
+              "submittedAt": "2023-09-30T08:26:18Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5jBXrD",
+              "body": "",
+              "state": "APPROVED",
+              "author": {
+                "login": "joelriou"
+              },
+              "submittedAt": "2023-10-06T07:48:26Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5jdeTq",
+              "body": "Thanks :tada:\r\n\r\nbors merge",
+              "state": "APPROVED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-10-10T19:00:35Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P_Dap",
+                    "body": "**[lint-style]** <sub>reported by [reviewdog](https://github.com/reviewdog/reviewdog) :dog:</sub><br>\n```suggestion\n    (φ : ι' → ι) : C((i : ι) → π i, (i : ι') → π (φ i)) := ⟨_, Pi.continuous_precomp' φ⟩\n```\n",
+                    "createdAt": "2023-09-30T08:26:18Z",
+                    "author": {
+                      "login": "github-actions"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5QXnH_",
+                    "body": "```suggestion\r\ndef indexFunctor : (Finset ι)ᵒᵖ ⥤ Profinite.{u} where\r\n```",
+                    "createdAt": "2023-10-06T07:47:58Z",
+                    "author": {
+                      "login": "joelriou"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5QXnLt",
+                    "body": "```suggestion\r\ndef indexCone : Cone (IndexFunctor hC) where\r\n```",
+                    "createdAt": "2023-10-06T07:48:11Z",
+                    "author": {
+                      "login": "joelriou"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjI1NjIzODI5",
+              "login": "dagurtomas"
+            },
+            {
+              "id": "MDQ6VXNlcjM3NzcyOTQ5",
+              "login": "joelriou"
+            },
+            {
+              "id": "MDQ6VXNlcjQ4NjU2Nzkz",
+              "login": "ADedecker"
+            },
+            {
+              "id": "MDQ6VXNlcjU2MzY3MDU=",
+              "login": "jcommelin"
+            },
+            {
+              "id": "U_kgDOB75MNQ",
+              "login": "leanprover-community-mathlib4-bot"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat: compact subsets in products as cofiltered limits of projections",
+        "updatedAt": "2023-10-10T21:36:50Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/6578",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "aebdb94c955c233bbd52375722ae90c09069a16d"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJZMbUe",
+              "createdAt": "2023-08-14T12:58:24Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "41fddf25fd9fdb4c5a6c91428422686428ac52c4"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5j-x-P",
+              "createdAt": "2023-08-14T14:15:43Z",
+              "body": "I'm not sure where to put the stuff that is currently in `section General` in `Mathlib/Topology/Category/Profinite/Product`. And maybe the rest belongs in `Mathlib/Topology/Category/Profinite/AsLimit`?",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5j-0tW",
+              "createdAt": "2023-08-14T14:20:36Z",
+              "body": "Also,  if there is a better way to implement `ProjRestrict`/`ProjRestricts`, those suggestions are very welcome!",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJZQQCt",
+              "createdAt": "2023-08-14T14:20:59Z",
+              "label": {
+                "id": "MDU6TGFiZWwyOTg0NTM0NDU0",
+                "name": "help-wanted"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5N-Cgj",
+              "createdAt": "2023-08-15T13:26:00Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5W6xOT",
+                "title": "[Merged by Bors] - feat: Nobeling's theorem",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/6286"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "59722b09feaae032631fd646802937c4c5ade23d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "dac1573c4c5ec6791b2ef6ecf5215499caa10ca4"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "95a1bc6d16426eaed24d2e3c6b651ccaea8970b9"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uQG6IzwAAAAJcRd0Q",
+              "createdAt": "2023-08-20T09:56:00Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJcRd0R",
+              "createdAt": "2023-08-20T09:56:00Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJcRd0T",
+              "createdAt": "2023-08-20T09:56:00Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c5uQG6IzwAAAAJcReja",
+              "createdAt": "2023-08-20T09:58:14Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjQ4NjU2Nzkz",
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c5uQG6IzwAAAAJcRemS",
+              "createdAt": "2023-08-20T09:58:22Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjU1Nzc2ODc=",
+                "login": "adamtopaz"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c5uQG6IzwAAAAJcRemT",
+              "createdAt": "2023-08-20T09:58:22Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjU2MzY3MDU=",
+                "login": "jcommelin"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uQG6IzwAAAAJcRwZD",
+              "createdAt": "2023-08-20T10:51:40Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uQG6IzwAAAAJctYhO",
+              "createdAt": "2023-08-21T13:12:01Z",
+              "label": {
+                "id": "MDU6TGFiZWwyOTg0NTM0NDU0",
+                "name": "help-wanted"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uQG6IzwAAAAJctYhU",
+              "createdAt": "2023-08-21T13:12:01Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJctYhb",
+              "createdAt": "2023-08-21T13:12:01Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c4a53d60c7cb3eeb1cc72e2cc36ecaf87b8f3919"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uQG6IzwAAAAJcx3uv",
+              "createdAt": "2023-08-21T14:47:09Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJcx3u4",
+              "createdAt": "2023-08-21T14:47:09Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJcx3vA",
+              "createdAt": "2023-08-21T14:47:09Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uQG6IzwAAAAJc1APA",
+              "createdAt": "2023-08-21T15:44:46Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJdWIbn",
+              "createdAt": "2023-08-22T09:31:27Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABViJbOw",
+                "name": "t-topology"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJdaAyB",
+              "createdAt": "2023-08-22T10:57:48Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABViJTYQ",
+                "name": "t-category-theory"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5mEnLQ",
+              "createdAt": "2023-09-09T11:03:37Z",
+              "body": "About `ProjRestrict`, etc, would not it be better to redesign it (and also `Proj` and `Set.proj`) so that if we have `φ : ι' → ι` then there is an induced \"pullback\" map `(∀ i, π i) → (∀ i', π (φ i))`. Then, `Set.proj` is the direct image of a subset `C` by this map. (If it is not absolutely necessary, I am a little disturbed by the `Inhabited` instances which may seem to be a little bit artificial. If such assumptions is needed, `Nonempty`, which is a `Prop`, would presumably be better.)",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5mEpHP",
+              "createdAt": "2023-09-09T11:50:44Z",
+              "body": "I agree with Joël (I meant to comment on that a while ago but then forgot about it, I'm very sorry). Incidentally I need similar results, so #6836 is proving continuity for these \"precomposition\" maps (although they are not literally precompositions because of dependent types). You could also use [Set.restrict](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Set/Function.html#Set.restrict) for the particular case of inclusion of a set into a type, but it's probably easier to work in greater generality than with subsets!\r\nThen, if you really need to extend by dummy values, you can probably prove a continuity result for [Function.extend](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Logic/Function/Basic.html#Function.extend). Does that make sense?",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uQG6IzwAAAAJnXuve",
+              "createdAt": "2023-09-09T12:25:28Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJnXuvg",
+              "createdAt": "2023-09-09T12:25:28Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5mE4Az",
+              "createdAt": "2023-09-09T16:55:30Z",
+              "body": "Thanks for the suggestions! I'm on vacation and will look at this in more detail when I get back. Regarding the `Inhabited` instances, the reason I'm using them is that in my application (#6286, Nöbeling's theorem) and the setting I originally did this in was for the space `I → Bool`, where `default` is `false`. It's really convenient to stay inside the space `I → Bool` throughout that proof, and thus map everything to the \"dummy\" value `false`. ",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5gpz2u",
+              "createdAt": "2023-09-12T08:00:15Z",
+              "body": "Thanks :tada:\r\n\r\nbors merge",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJofpGr",
+              "createdAt": "2023-09-12T08:00:27Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uQG6IzwAAAAJofpJ3",
+              "createdAt": "2023-09-12T08:00:28Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5mPDmg",
+              "createdAt": "2023-09-12T08:13:29Z",
+              "body": "bors r-\n\n@jcommelin This was tagged as awaiting-author for a good reason, and I would like to continue this discussion when Dagur comes back from vacation.",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5mPDnn",
+              "createdAt": "2023-09-12T08:13:31Z",
+              "body": "Canceled.",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uQG6IzwAAAAJogNpq",
+              "createdAt": "2023-09-12T08:13:55Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJogNp9",
+              "createdAt": "2023-09-12T08:13:55Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "BaseRefChangedEvent"
+            },
+            {
+              "__typename": "BaseRefChangedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5npBom",
+              "createdAt": "2023-09-28T09:33:21Z",
+              "body": "Ok I'm back. Here are some thoughts:\r\n\r\nI would argue that the map `Proj J : ((i : ι) → π i) → ((i : ι) → π i)` is quite canonical when the `π i` are `Inhabited`. I'm not extending by what you call a dummy element, I'm extending by the *default* element. I don't see why it would be better to write it as a composition of a map`((i : ι) → π i) → ((j : {i // J i}) → π j.val)` and `Function.extend : ((j : {i // J i}) → π j.val) → ((i : ι) → π i)` as Anatole suggests, when I can instead write it cleanly in one line.  \r\n\r\nIn my application, Nöbeling's theorem, it is very convenient that `ι` stays fixed throughout the proof. I realise that in the context of this PR it might seem weird to require it when a similar end result is true regardless of the factors being `Inhabited`, but there is the explanation. I could try do something similar without requiring the factors to be inhabited, where the transition maps in the limits would go between products with different indexing sets. But again, in my application, I need the transition maps to stay within the same fixed product.",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uQG6IzwAAAAJxqxot",
+              "createdAt": "2023-09-28T09:42:31Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJxqxo3",
+              "createdAt": "2023-09-28T09:42:31Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nsCtu",
+              "createdAt": "2023-09-28T15:53:34Z",
+              "body": "The main statement (here) does not require `Inhabited`, which is the reason we feel it is not canonical. For this PR, I would suggest redefining `FinsetsToProfinite` in a way that seems more natural to me and Anatole (without any arbitrary choice given by `Inhabited`) and obtain the result that the corresponding cone is limit. Then, for your application, if it is critical to the proof, you may *additionally* define another `FinsetsToProfinite'` based on an `Inhabited` assumption, and then, it will be easy to show that these two functors are isomorphic and the corresponding cones corresponds, so that one of cones is limit iff the other is.",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "98c0e9be8dcae0f652c3011b3e9e010a5848a759"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d1b2d0335ce5a7069f14afd9a62c1186347e1568"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "6773d63f52dc926e38883d9c9d408fa016ca5efc"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "342ab6269a453cc5b5966381066e911b6238586d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c7e54405adaef180a64c03483b3cb4ecdefa2ce0"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nxkGt",
+              "createdAt": "2023-09-29T15:10:11Z",
+              "body": "Ok, I've removed all the `Inhabited` instances. I'm still thinking about how to apply this in Nöbeling but for now this works as a standalone PR, if you want to take a look again.",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3b632abb921ca71a6fd8ebc40af32fac4d3b5c73"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iclRQ",
+              "createdAt": "2023-09-30T08:26:18Z",
+              "body": "",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "249db308a937e3c9ad93e7f74463697cf5061d5e"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5n0Z3Z",
+              "createdAt": "2023-09-30T15:30:20Z",
+              "body": "If this gets merged, then Nöbeling (#6286) is ready for review",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5oAP7s",
+              "createdAt": "2023-10-03T12:45:58Z",
+              "body": "The definitions/statements in this PR looks good to me, but they do not seem to be in appropriate namespaces. The results about profinite sets should be in the `Profinite` namespace. I think that `FinsetFunctor` and `precomp` should be renamed and/or put in a namespace in a way which reflects the fact that this is topology; also it seems that `SetFunctor` would be better than `FinsetFunctor`.",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e75db31f91001b04a25d128c1ef5cbfc9fbc6f4c"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5oAiZV",
+              "createdAt": "2023-10-03T13:23:13Z",
+              "body": "I moved `precomp` to `Topology/ContinuousFunction/Basic`, and put everything else in the `Profinite` namespace. I changed both the `FinsetFunctor` namespace and the name of the functor `FinsetsToProfinite` to `Profinite.IndexFunctor`, where `index` refers to the indexing set of the product. Does this make sense?",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5jBXrD",
+              "createdAt": "2023-10-06T07:47:58Z",
+              "body": "",
+              "author": {
+                "login": "joelriou"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uQG6IzwAAAAJ2NlKu",
+              "createdAt": "2023-10-06T10:08:02Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJ2NlKx",
+              "createdAt": "2023-10-06T10:08:02Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1be46825f386fae71d4ca9070ccaac494ce4aee4"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4d486c448d210a594011cea0ea977a1d2a4b732c"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uQG6IzwAAAAJ2O0_b",
+              "createdAt": "2023-10-06T10:43:06Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJ2O0_g",
+              "createdAt": "2023-10-06T10:43:07Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJ2O0_n",
+              "createdAt": "2023-10-06T10:43:07Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5oVNwu",
+              "createdAt": "2023-10-06T10:43:31Z",
+              "body": "Build fails because of \"no space left on device\"...",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5oV8J1",
+              "createdAt": "2023-10-06T12:34:03Z",
+              "body": "That happens from time to time, we've removed the affected runner for now until someone can fix the issue. I restarted the build.",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uQG6IzwAAAAJ2T76O",
+              "createdAt": "2023-10-06T12:54:12Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5jdeTq",
+              "createdAt": "2023-10-10T19:00:35Z",
+              "body": "Thanks :tada:\r\n\r\nbors merge",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uQG6IzwAAAAJ4UFbF",
+              "createdAt": "2023-10-10T19:00:48Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uQG6IzwAAAAJ4UFey",
+              "createdAt": "2023-10-10T19:00:49Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5orSzY",
+              "createdAt": "2023-10-10T20:30:31Z",
+              "body": "This PR was included in a batch that was canceled, it will be automatically retried",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5orxIl",
+              "createdAt": "2023-10-10T21:36:44Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6474503178/job/17579568448)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6474503178/job/17579568916)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6474503178/job/17579569131)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5uQG6IzwAAAAJ4a83y",
+              "createdAt": "2023-10-10T21:36:46Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5uQG6IzwAAAAJ4a9A0",
+              "createdAt": "2023-10-10T21:36:50Z"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
