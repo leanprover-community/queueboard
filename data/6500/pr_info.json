@@ -1,0 +1,3247 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 140,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "BoltonBailey"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "Adds a theorem saying the cardinality of a multiplicative subgroup of a field, cast to the field, is nonzero. As well as `sum_subgroup_units_zero_of_ne_bot` and other theorems about summing over multiplicative subgroups.\r\n\r\nCo-authored-by: Pratyush Mishra <prat@upenn.edu>\r\nCo-authored-by:  Buster <rcopley@gmail.com>\r\n\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 5,
+        "closed": true,
+        "closedAt": "2023-09-28T17:09:50Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5j14la",
+              "body": "Note: this is true for [infinite fields too](https://leanprover.zulipchat.com/#narrow/stream/116395-maths/topic/cast_subgroup_of_units_card_ne_zero.20for.20infinite.20fields/near/384013573), so I should generalize it.",
+              "createdAt": "2023-08-11T16:36:26Z",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5meCnb",
+              "body": "Could you please reformat your `co-authored-by` line? It takes an email address (+ name) as argument. One co-author per line. See for example #3464.",
+              "createdAt": "2023-09-14T10:01:44Z",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5mip63",
+              "body": "> Could you please reformat your `co-authored-by` line? It takes an email address (+ name) as argument. One co-author per line. See for example #3464.\r\n\r\nI don't see any co-authorship lines on that PR",
+              "createdAt": "2023-09-15T01:27:55Z",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5miqhw",
+              "body": "Also, not aware if Buster (that's their Zulip handle) wants their email shared publicly.\r\n\r\nEdit: although it's been pointed out to me that Zulip shows it anyway, so I guess there's no harm.",
+              "createdAt": "2023-09-15T01:32:03Z",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nem0d",
+              "body": "@ericrbg The `DecidableEq` instance is needed for the rest of the lemma statement, let me know what you want done about that.",
+              "createdAt": "2023-09-26T18:35:51Z",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nkQmA",
+              "body": "I tried to do the golf, but was not getting it. Maybe actually `sum_pow_units` can be golfed too?",
+              "createdAt": "2023-09-27T14:49:54Z",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nkWeB",
+              "body": "Given that everything apparently turned out to be true in NoZeroDivisor rings, I'd be interested to know if the preexisting lemmas in this file can be generalized along those lines.",
+              "createdAt": "2023-09-27T15:02:21Z",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nkcSS",
+              "body": "This is as far as I got\r\n```\r\n/-- The sum of `x ^ i` as `x` ranges over a finite field of cardinality `q`\r\nis equal to `0` if `i < q - 1`. -/\r\ntheorem sum_pow_lt_card_sub_one (i : ℕ) (h : i < q - 1) : ∑ x : K, x ^ i = 0 := by\r\n  by_cases hi : i = 0\r\n  · simp only [hi, nsmul_one, sum_const, pow_zero, card_univ, cast_card_eq_zero]\r\n  classical\r\n    -- have hiq : ¬q - 1 ∣ i := by contrapose! h; exact Nat.le_of_dvd (Nat.pos_of_ne_zero hi) h\r\n    let φ : Kˣ ↪ K := ⟨fun x ↦ x, Units.ext⟩\r\n    have : univ.map φ = univ \\ {0} := by\r\n      ext x\r\n      simp only [true_and_iff, Function.Embedding.coeFn_mk, mem_sdiff, Units.exists_iff_ne_zero,\r\n        mem_univ, mem_map, exists_prop_of_true, mem_singleton]\r\n    calc\r\n      ∑ x : K, x ^ i = ∑ x in univ \\ {(0 : K)}, x ^ i := by\r\n        rw [← sum_sdiff ({0} : Finset K).subset_univ, sum_singleton,\r\n          zero_pow (Nat.pos_of_ne_zero hi), add_zero]\r\n      _ = ∑ x : Kˣ, (x ^ i : K) := by simp [← this, univ.sum_map φ]\r\n      _ = 0 := by \r\n        sorry\r\n        -- convert sum_subgroup_pow_eq_zero (G := ⊤) (k := i) hi _\r\n#align finite_field.sum_pow_lt_card_sub_one FiniteField.sum_pow_lt_card_sub_one\r\n```",
+              "createdAt": "2023-09-27T15:15:40Z",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nmDon",
+              "body": "> Given that everything apparently turned out to be true in NoZeroDivisor rings, I'd be interested to know if the preexisting lemmas in this file can be generalized along those lines.\r\n\r\nI think this can wait for a followup PR, but yes:)",
+              "createdAt": "2023-09-27T20:25:17Z",
+              "author": {
+                "login": "ericrbg"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nm4u_",
+              "body": "ok also the refactoring can, lmao it took me forever\r\n\r\n<details>\r\n<summary>if you want to see</summary>\r\n\r\n```lean\r\nlemma Subgroup.prod_top {α β : Type*} [Group α] [Fintype α] [Fintype (⊤ : Subgroup α)]\r\n  [CommMonoid β] (f : α → β) : ∏ x : (⊤ : Subgroup α), f x = ∏ x : α, f x :=\r\n  by simp [Finset.prod_set_coe]\r\n\r\nlemma Subgroup.sum_top {α β : Type*} [Group α] [Fintype α] [Fintype (⊤ : Subgroup α)]\r\n  [AddCommMonoid β] (f : α → β) : ∑ x : (⊤ : Subgroup α), f x = ∑ x : α, f x :=\r\n  by simp [Finset.sum_set_coe]\r\n\r\n-- how to make these a `to_additive` pair?\r\n\r\nlemma prod_units_nonunits {α β : Type*} [Monoid α] [CommMonoid β] [Fintype α] [Fintype αˣ]\r\n  [Fintype <| nonunits α] (f : α → β) :\r\n    (∏ x : αˣ, f x) * ∏ x in (nonunits α).toFinset, f x = ∏ x : α, f x := by\r\n  rw [←Finset.prod_set_coe, ←Fintype.prod_sum_elim]\r\n  apply Fintype.prod_bijective (Sum.elim (· : αˣ → α) (· : nonunits α → α))\r\n  swap; aesop\r\n  refine ⟨?_, fun x ↦ ?_⟩\r\n  · rintro (u | nu) (u | nu) h\r\n    · exact congr(Sum.inl $(Units.ext h))\r\n    · refine (nu.2 ?_).elim\r\n      dsimp at h\r\n      rw [←h]\r\n      exact u.isUnit\r\n    · refine (nu.2 ?_).elim\r\n      dsimp at h\r\n      rw [h]\r\n      exact u.isUnit\r\n    · refine congr(Sum.inr $(Subtype.ext h))\r\n  · by_cases h : IsUnit x\r\n    · exact ⟨.inl h.unit, rfl⟩\r\n    · exact ⟨.inr ⟨x, h⟩, rfl⟩\r\n\r\nlemma sum_units_nonunits {α β : Type*} [Monoid α] [AddCommMonoid β] [Fintype α] [Fintype αˣ]\r\n  [Fintype <| nonunits α] (f : α → β) :\r\n    (∑ x : αˣ, f x) + ∑ x in (nonunits α).toFinset, f x = ∑ x : α, f x :=\r\nprod_units_nonunits (β := Multiplicative β) f\r\n\r\n-- attribute [to_additive] prod_units_nonunits sum_units_nonunits\r\n-- this is the \"correct\" additivization but not sure how to tell `to_additive` that\r\n\r\n@[simp] lemma nonunits_eq_zero {G : Type*} [GroupWithZero G] : nonunits G = {0} :=\r\n  Set.ext <| fun x ↦ by simpa [nonunits] using (isUnit_iff_ne_zero (a := x)).not\r\n\r\n/-- The sum of `x ^ i` as `x` ranges over a finite field of cardinality `q`\r\nis equal to `0` if `i < q - 1`. -/\r\ntheorem sum_pow_lt_card_sub_one (i : ℕ) (h : i < q - 1) : ∑ x : K, x ^ i = 0 := by\r\n  by_cases hi : i = 0\r\n  · simp only [hi, nsmul_one, sum_const, pow_zero, card_univ, cast_card_eq_zero]\r\n  classical\r\n  rw [←Fintype.card_units, ←Subgroup.card_top] at h\r\n  have key := sum_subgroup_pow_eq_zero (K := K) (G := ⊤) hi (by convert h)\r\n  erw [Subgroup.sum_top ((· : Kˣ → K) ^ i : Kˣ → K)] at key\r\n  rw [←sum_units_nonunits, ← key]\r\n  simp [hi]\r\n\r\n#align finite_field.sum_pow_lt_card_sub_one FiniteField.sum_pow_lt_card_sub_one\r\n```\r\n\r\n</details>\r\n\r\nso I'll do this in a separate PR tidying up the file",
+              "createdAt": "2023-09-27T23:43:17Z",
+              "author": {
+                "login": "ericrbg"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nm5DT",
+              "body": "🚀 Pull request has been placed on the maintainer queue by ericrbg.",
+              "createdAt": "2023-09-27T23:45:20Z",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5noR3A",
+              "body": ":v: BoltonBailey can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "createdAt": "2023-09-28T07:20:01Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nrTO3",
+              "body": "bors r+",
+              "createdAt": "2023-09-28T14:42:00Z",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nse_c",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6341245360/job/17224462061)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6341245360/job/17224461400)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6341245360/job/17224461732)",
+              "createdAt": "2023-09-28T17:09:48Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "1a7dff42f32c7def5c1a2d9058ad978a4ae19432",
+                "additions": 28,
+                "deletions": 0,
+                "committedDate": "2023-08-10T18:13:02Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "57541327ddb999b763289b42dfa53f58149083e0",
+                "additions": 3,
+                "deletions": 3,
+                "committedDate": "2023-08-10T18:16:27Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "eb64b83754d5735955ed515ffa081ad4ed6d4369",
+                "additions": 2,
+                "deletions": 4,
+                "committedDate": "2023-08-10T18:17:58Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6e66456d8bcca2bfe506272862015d1cfeeb9cc3",
+                "additions": 153,
+                "deletions": 0,
+                "committedDate": "2023-08-10T19:45:43Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ed12058f4fe47e99e95d866281963246b7337646",
+                "additions": 10,
+                "deletions": 11,
+                "committedDate": "2023-08-10T20:40:34Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "20dcc9af0644efec8a2fad3c0ffc45817f6371b3",
+                "additions": 43,
+                "deletions": 57,
+                "committedDate": "2023-08-10T22:18:31Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d5e53bdab973f5cfa6d11d97ed8eaae162210b50",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-08-10T22:27:23Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6b4e58d30958e3b17a399caeb0c966ab73aa3ecc",
+                "additions": 6,
+                "deletions": 5,
+                "committedDate": "2023-08-10T22:32:58Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "dc6355b8bfadb8decb1f7a9bcd8c4084cdb53cd2",
+                "additions": 5,
+                "deletions": 8,
+                "committedDate": "2023-08-10T22:44:17Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0dceb63f05648c2cbbbc322f0742e440cb1cd550",
+                "additions": 3,
+                "deletions": 14,
+                "committedDate": "2023-08-11T15:12:24Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c31eda1d1a5346132e4ebcf4a213a55c56ad4af2",
+                "additions": 35,
+                "deletions": 0,
+                "committedDate": "2023-08-12T22:12:43Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5eb5626ce9d2e3612419b532c853bff2daa8f711",
+                "additions": 13166,
+                "deletions": 11494,
+                "committedDate": "2023-08-12T22:13:00Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "825460158f5f9eabf8a0da9089bad8c7a835c1af",
+                "additions": 3,
+                "deletions": 32,
+                "committedDate": "2023-08-12T22:15:11Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c4282b6e6ce4aece6150d7a847acdaae34eee31f",
+                "additions": 32,
+                "deletions": 32,
+                "committedDate": "2023-08-12T22:27:51Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0652811d1ee6533e44546e97bd65189905d89f30",
+                "additions": 10,
+                "deletions": 15,
+                "committedDate": "2023-08-12T22:45:30Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "120e5f6612c724850f1ce56223c2beb878e2d8c2",
+                "additions": 7,
+                "deletions": 6,
+                "committedDate": "2023-08-23T19:01:15Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8c26b359dffbbca73a84a1733ee08c9075e963af",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-08-23T19:04:02Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0fd227f8ec62cbb8c1f38d7e8a94d8df95f848e7",
+                "additions": 1,
+                "deletions": 2,
+                "committedDate": "2023-08-23T19:07:25Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "354e93f03da6618f09a634ae5902375a5547d47f",
+                "additions": 5,
+                "deletions": 8,
+                "committedDate": "2023-08-23T19:16:23Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "90d0abfabf7173a5b8e59fb4b0bddffb466d2c19",
+                "additions": 14,
+                "deletions": 15,
+                "committedDate": "2023-08-23T19:20:44Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4379780c3b02b5d7d9854037ef7ea7de5985f96c",
+                "additions": 10,
+                "deletions": 18,
+                "committedDate": "2023-08-23T22:10:32Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7f0b8738c59b950a27b0860f0a6555b082076b9b",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-08-23T23:06:55Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "dc6f6511439175dcafa2c58d8c625a3c8e31e337",
+                "additions": 3,
+                "deletions": 3,
+                "committedDate": "2023-08-23T23:13:37Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f67f87cbcf8a03001cded6eb076606d70cefb4a9",
+                "additions": 5,
+                "deletions": 0,
+                "committedDate": "2023-08-23T23:53:26Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "fa351f581a99982d874a6dbd75b9b36fd307c495",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-08-24T17:55:52Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c22314505beb7db35d383383795dfdbc6007ee77",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-08-24T17:56:33Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "768cc65b525c782108d5d12c14d8fc67d205970f",
+                "additions": 2,
+                "deletions": 3,
+                "committedDate": "2023-08-24T18:01:00Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "194e309478268b3c8616b2511e9f3f81666974d6",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-08-24T18:02:57Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "64071f798963c578daf3103e38ce3e1f8e5ace7e",
+                "additions": 7,
+                "deletions": 13,
+                "committedDate": "2023-08-24T18:21:50Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7d0ed7b306c8587abb4619f2f37b0742025b818d",
+                "additions": 66,
+                "deletions": 21,
+                "committedDate": "2023-08-24T22:37:04Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b61596f2a0534f01c2b90b164ca0e95a1f1c71eb",
+                "additions": 19,
+                "deletions": 40,
+                "committedDate": "2023-08-24T22:47:18Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6b18118ffd19769c59e734c3ddec949e590c3546",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-08-24T23:04:03Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5c926caf18a33f658933f209bebbbbc3f8d59c1b",
+                "additions": 4,
+                "deletions": 4,
+                "committedDate": "2023-08-24T23:04:28Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d24cfa511870fe6e1222a1cda54a8819aef38828",
+                "additions": 1,
+                "deletions": 3,
+                "committedDate": "2023-08-24T23:06:00Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4bc8a047e8539cb9e6c8a85900adc911d0bb6af9",
+                "additions": 0,
+                "deletions": 4,
+                "committedDate": "2023-09-10T01:58:39Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "824325c153b740acf4535f94477bc862edff7b35",
+                "additions": 1,
+                "deletions": 11,
+                "committedDate": "2023-09-10T02:04:35Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f4af48fff670df89734da413568a2f5ea103f5e2",
+                "additions": 2,
+                "deletions": 1,
+                "committedDate": "2023-09-10T02:16:42Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "edfd821c2e9a25cd86514aa38ac7fa4aa875dbff",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-09-12T17:32:36Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2f820cc8b0863889b48c5ad0c1b7facbf7048ac1",
+                "additions": 0,
+                "deletions": 2,
+                "committedDate": "2023-09-12T17:33:18Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6fee7cd8d0ac818c82d444e45ed86e1d5c7e8e14",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-15T01:26:24Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "bb439481ffe9b18345a6c257b854365f913033ad",
+                "additions": 4,
+                "deletions": 3,
+                "committedDate": "2023-09-19T12:08:10Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "55278f42bb1948820ba12969ce05b2a112fbd576",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-19T12:08:25Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "43ee60eb7ba2c25dee26bd6c059b2c6d84b700ed",
+                "additions": 52126,
+                "deletions": 22002,
+                "committedDate": "2023-09-19T12:10:43Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "742cfcc8216d57f4b1b85bac78e6e5c4701c108a",
+                "additions": 6,
+                "deletions": 8,
+                "committedDate": "2023-09-19T13:04:26Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "533f85f6eff3de94d45f49cdf10c9a808a10b110",
+                "additions": 1,
+                "deletions": 7,
+                "committedDate": "2023-09-19T13:30:20Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5349dd89c334b3a479386778ea79f9c3fd4d4d4d",
+                "additions": 1,
+                "deletions": 0,
+                "committedDate": "2023-09-19T13:32:11Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "12019ed8756f6febd4515c69948b647da5f19129",
+                "additions": 1,
+                "deletions": 2,
+                "committedDate": "2023-09-19T13:37:55Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b7bb602a26033072b9332b7a0049cfffee282edf",
+                "additions": 3,
+                "deletions": 1,
+                "committedDate": "2023-09-19T13:49:03Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "42043c67dde302d6db42315a2ed613123444701a",
+                "additions": 5,
+                "deletions": 4,
+                "committedDate": "2023-09-19T13:58:08Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "10589b4659a9378a3e7a018ce7273ce1ffc8ba9b",
+                "additions": 0,
+                "deletions": 1,
+                "committedDate": "2023-09-19T14:03:51Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "80a86ffc1076a9c39bd126fbaad75342d457bf25",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-19T16:43:48Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ea9cc90fdb62a7c23ba4af018fef94fb19440c21",
+                "additions": 6,
+                "deletions": 7,
+                "committedDate": "2023-09-26T16:29:31Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "90f2f7ed087a7b333a8f2ae20857e8dfe467e7a5",
+                "additions": 0,
+                "deletions": 3,
+                "committedDate": "2023-09-26T16:35:01Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "929db749a74bba6d90d4953f1031be2006f57267",
+                "additions": 6,
+                "deletions": 7,
+                "committedDate": "2023-09-26T16:36:46Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ec45a625a3d210e7ee096123c15cd6938a6ceab7",
+                "additions": 5865,
+                "deletions": 3471,
+                "committedDate": "2023-09-26T16:38:49Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "dba8d7360e0982e94a6267fcd3dbf46913e66560",
+                "additions": 0,
+                "deletions": 2,
+                "committedDate": "2023-09-26T16:43:15Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "aca132dd17e513294ee7999bf7fa52e1d982abc8",
+                "additions": 5,
+                "deletions": 5,
+                "committedDate": "2023-09-26T17:02:58Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e8c3e642f54283e61a3bb1e796986d2be1b9176f",
+                "additions": 6,
+                "deletions": 9,
+                "committedDate": "2023-09-26T17:09:01Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "68f87bc8ac1a0abd99c36fa30927a1c4fdd3584e",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-26T17:34:28Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "af57970ddd53fa00e85ae73469c3510a38c90452",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-09-26T17:36:18Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "37cb9a7f70527cf31403eb46a83daea8afab1a3e",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-26T17:36:31Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f66db9a55108dc71be781ddf62c8e86dcd03f1d1",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-26T17:37:39Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2b285fd0fd5cc81109a619bf25e86498bc808c90",
+                "additions": 26,
+                "deletions": 26,
+                "committedDate": "2023-09-26T17:42:29Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5ba5c3ff6b7f79fa8c710de9bad5aed4e4f3c189",
+                "additions": 11,
+                "deletions": 12,
+                "committedDate": "2023-09-26T18:02:54Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "013ef50faccb8be4a6be8105c191e5ef53a4e983",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-09-26T18:02:56Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c8dc642d8d5ca9b334d7f7af51b6dafd32bce51f",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-26T18:08:51Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "922403aa5d1e0a071534a4a4f2c663f515623d5d",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-26T18:50:20Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2f4a0623d23fc43cebc62e0f59f939d239fc7a63",
+                "additions": 4,
+                "deletions": 4,
+                "committedDate": "2023-09-27T13:57:50Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f7b8e3fb16caa605b530cbd787ae0889b9becaa3",
+                "additions": 28,
+                "deletions": 27,
+                "committedDate": "2023-09-27T14:00:33Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d919616ba2f6cc6ccc53c53abf7175593d5a0546",
+                "additions": 11,
+                "deletions": 10,
+                "committedDate": "2023-09-27T14:03:02Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ad5cb1b970df3c12adced650223a4756c947ba2f",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-27T14:04:05Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0fe6d75ab4fb67d23dc6e141fbbf0a2a24f7413d",
+                "additions": 0,
+                "deletions": 1,
+                "committedDate": "2023-09-27T14:04:34Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f452fd8cf9925f5411388ff966d3a7d71af1334d",
+                "additions": 1,
+                "deletions": 2,
+                "committedDate": "2023-09-27T14:06:28Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b6422f922d09661936bcdd00b04aa2c6a2e2dfb2",
+                "additions": 36,
+                "deletions": 34,
+                "committedDate": "2023-09-27T14:08:46Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c546c9147d354ca9183fa99f4c152584bbf8eb48",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-27T14:42:30Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d26f87ebe234798851e87e3c1da2b7f484817f5d",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-09-27T14:43:30Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ee2b7433718296b976a3140873d7d8e55b356157",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-27T14:44:07Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d4b8877a0d940f3298255b7706f4d3f9dc74f610",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-27T14:44:51Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4fa5c8b52343c5915d9bdc18650747d6c33bf13f",
+                "additions": 2,
+                "deletions": 4,
+                "committedDate": "2023-09-27T14:45:51Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5db7e5c5e64da011db8d89a26246d55e2264fd6b",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-27T15:04:21Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4657fffd4f7a3a34490e530d51bfd0a5fd2f26b7",
+                "additions": 2,
+                "deletions": 0,
+                "committedDate": "2023-09-28T13:03:48Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8afdd4db224d9e7944bc3197846ac0a377b66e8d",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-28T13:04:07Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2e8a7dd1ad269089b4b72bde6e9426edb31e1a98",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-28T13:04:16Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4900b5de4632fda1cf9507ebf3ccabb44dfcd255",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-09-28T13:10:05Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "fff1299befbe01c0d80459a382561c975cdd0058",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-09-28T13:10:06Z",
+                "author": {
+                  "name": "Bolton Bailey",
+                  "email": "bolton.bailey@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-08-10T18:14:39Z",
+        "deletions": 8,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib/Data/Fintype/Basic.lean",
+              "additions": 6,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/FieldTheory/Finite/Basic.lean",
+              "additions": 101,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/GroupTheory/OrderOfElement.lean",
+              "additions": 6,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/GroupTheory/SpecificGroups/Cyclic.lean",
+              "additions": 10,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/GroupTheory/Subgroup/Basic.lean",
+              "additions": 17,
+              "deletions": 7
+            }
+          ]
+        },
+        "headRefName": "BoltonBailey/subgroup_of_units_card_ne_zero",
+        "headRefOid": "fff1299befbe01c0d80459a382561c975cdd0058",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5Xqk-F",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+              "color": "bfd4f2",
+              "name": "delegated"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABViJjTQ",
+              "color": "33DBEC",
+              "name": "t-algebra"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5d51mr",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-08-12T21:44:02Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5g8r3p",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-09-14T10:03:26Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hQUdx",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ocfnash"
+              },
+              "submittedAt": "2023-09-18T17:51:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCueU",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T17:55:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iNf-x",
+              "body": "lgtm - there will be tidying done on this file after! I think it will just blow up this PR's size\r\n\r\nmaintainer merge",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ericrbg"
+              },
+              "submittedAt": "2023-09-27T23:45:08Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iO3El",
+              "body": "A few comments and LGTM, thanks!\r\n\r\nbors d+",
+              "state": "APPROVED",
+              "author": {
+                "login": "riccardobrasca"
+              },
+              "submittedAt": "2023-09-28T07:19:59Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 6500,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": "APPROVED",
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5dxA3e",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-08-11T07:19:35Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5dzzlu",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "BoltonBailey"
+              },
+              "submittedAt": "2023-08-11T15:09:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5d0BiN",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "BoltonBailey"
+              },
+              "submittedAt": "2023-08-11T15:20:48Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5d51mr",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-08-12T21:44:02Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5g8r3p",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-09-14T10:03:26Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hQUTO",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ocfnash"
+              },
+              "submittedAt": "2023-09-18T17:50:46Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hQUdx",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ocfnash"
+              },
+              "submittedAt": "2023-09-18T17:51:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hWs27",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "BoltonBailey"
+              },
+              "submittedAt": "2023-09-19T13:50:53Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5h-1HE",
+              "body": "some preliminary comments - sorry I took so long to get around to this!",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ericrbg"
+              },
+              "submittedAt": "2023-09-26T10:17:07Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCJAS",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "BoltonBailey"
+              },
+              "submittedAt": "2023-09-26T16:29:27Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCOhn",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "BoltonBailey"
+              },
+              "submittedAt": "2023-09-26T16:42:49Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCPj_",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "BoltonBailey"
+              },
+              "submittedAt": "2023-09-26T16:44:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCYF5",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "BoltonBailey"
+              },
+              "submittedAt": "2023-09-26T17:03:16Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCa1C",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "BoltonBailey"
+              },
+              "submittedAt": "2023-09-26T17:10:05Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCi9j",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "BoltonBailey"
+              },
+              "submittedAt": "2023-09-26T17:29:51Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCj0_",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "BoltonBailey"
+              },
+              "submittedAt": "2023-09-26T17:31:40Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCkRs",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "BoltonBailey"
+              },
+              "submittedAt": "2023-09-26T17:32:47Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCkWd",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "BoltonBailey"
+              },
+              "submittedAt": "2023-09-26T17:32:58Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCueU",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T17:55:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCyZ9",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "BoltonBailey"
+              },
+              "submittedAt": "2023-09-26T18:03:35Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCzPb",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "BoltonBailey"
+              },
+              "submittedAt": "2023-09-26T18:05:48Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iEW6L",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ericrbg"
+              },
+              "submittedAt": "2023-09-26T22:45:11Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iHHtC",
+              "body": "looking good!",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ericrbg"
+              },
+              "submittedAt": "2023-09-27T10:06:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iJ1Zo",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "BoltonBailey"
+              },
+              "submittedAt": "2023-09-27T14:22:14Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iNf-x",
+              "body": "lgtm - there will be tidying done on this file after! I think it will just blow up this PR's size\r\n\r\nmaintainer merge",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ericrbg"
+              },
+              "submittedAt": "2023-09-27T23:45:08Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iO3El",
+              "body": "A few comments and LGTM, thanks!\r\n\r\nbors d+",
+              "state": "APPROVED",
+              "author": {
+                "login": "riccardobrasca"
+              },
+              "submittedAt": "2023-09-28T07:19:59Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5M8t40",
+                    "body": "I'm confused by this statement; isn't the cardinality of _any_ subgroup non-zero because it contains 1?",
+                    "createdAt": "2023-08-11T07:19:35Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5M-hN9",
+                    "body": "Maybe you're confused by the casting to the field? While the cardinality of any subgroup is obviously a non-zero natural, it's not immediately obvious that this natural, when cast to the field, does not yield the zero of the field.",
+                    "createdAt": "2023-08-11T15:09:21Z",
+                    "author": {
+                      "login": "BoltonBailey"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5M-qLW",
+                    "body": "Or maybe you're interested in infinite fields as well? ~~Let me see if anything fails when I remove the finiteness from the field.~~ Actually the whole proof fails as it is, because it's about showing the characteristic divides the difference between the field and the units cardinality. I'm not sure if this holds for infinite fields, I don't know a proof either way.",
+                    "createdAt": "2023-08-11T15:20:48Z",
+                    "author": {
+                      "login": "BoltonBailey"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NChjD",
+                    "body": "Oh, I just totally missed the cast!",
+                    "createdAt": "2023-08-12T21:44:02Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PBNNa",
+                    "body": "```suggestion\r\n    (G : Subgroup Fˣ) [Fintype G] : (Fintype.card G : F) ≠ 0 := by\r\n```",
+                    "createdAt": "2023-09-14T10:03:26Z",
+                    "author": {
+                      "login": "jcommelin"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5POE09",
+                    "body": "```suggestion\r\n/-- If `e` is an equivalence of finite types, then `Multiset.map e` sends the universal finite set\r\nto the universal finite set. -/\r\n@[simp]\r\ntheorem _root_.Equiv.multiset_map_univ_eq_univ (e : α ≃ β) :\r\n    map e univ.val = univ.val := by\r\n```\r\n",
+                    "createdAt": "2023-09-18T17:50:46Z",
+                    "author": {
+                      "login": "ocfnash"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PSLY_",
+                    "body": "Looks like there's actually a Finset version called `Finset.map_univ_equiv` so I'll name this analogously. LMK if you really want this name.",
+                    "createdAt": "2023-09-19T13:50:53Z",
+                    "author": {
+                      "login": "BoltonBailey"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5POE7B",
+                    "body": "It looks like you don't need this\r\n```suggestion\r\nvariable [Fintype α] [DecidableEq α] [Fintype β]\r\n```\r\n(you might need to use `classical` in the proof)",
+                    "createdAt": "2023-09-18T17:51:15Z",
+                    "author": {
+                      "login": "ocfnash"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PsEgF",
+                    "body": "this is a weird docstring, I feel like it's never referred to as \"universal finite set\"; I'm not sure it's needed that you spell this out, to be honest",
+                    "createdAt": "2023-09-26T09:52:26Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuM5A",
+                    "body": "Ok, I'll just delete it",
+                    "createdAt": "2023-09-26T16:42:49Z",
+                    "author": {
+                      "login": "BoltonBailey"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PsITP",
+                    "body": "A few golfs, and actually this holds for a not-necessarily commutative ring with no zero divisors & nontrivial, and I don't see why it would hold in more generality than this.\r\n\r\n`<|` is preferred in Lean4 to `$`, as far as I can see. \r\n\r\n```suggestion\r\ntheorem cast_subgroup_of_units_card_ne_zero {F : Type} [Ring F] [NoZeroDivisors F] [Nontrivial F]\r\n    (G : Subgroup Fˣ) [Fintype G] : (Fintype.card G : F) ≠ 0 := by\r\n  let n := Fintype.card G\r\n  intro nzero\r\n  have ⟨p, char_p⟩ := CharP.exists F\r\n  have hd : p ∣ n := (CharP.cast_eq_zero_iff F p n).mp nzero\r\n  cases CharP.char_is_prime_or_zero F p with\r\n  | inr pzero =>\r\n    exact (Fintype.card_pos).ne' <| Nat.eq_zero_of_zero_dvd <| pzero ▸ hd\r\n  | inl pprime =>\r\n    have fact_pprime := Fact.mk pprime\r\n    -- G has an element x of order p by Cauchy's theorem\r\n    have ⟨x, hx⟩ := exists_prime_orderOf_dvd_card p hd\r\n    -- F has an element u (= ↑↑x) of order p\r\n    let u := ((x : Fˣ) : F)\r\n    have hu : orderOf u = p := by rwa [orderOf_units, orderOf_subgroup]\r\n    -- u ^ p = 1 implies (u - 1) ^ p = 0 and hence u = 1 ...\r\n    have h : u = 1 := by\r\n      rw [← sub_left_inj, sub_self 1]\r\n      apply pow_eq_zero (n := p)\r\n      rw [sub_pow_char_of_commute, one_pow, ← hu, pow_orderOf_eq_one, sub_self]\r\n      exact Commute.one_right u\r\n    -- ... meaning x didn't have order p after all, contradiction\r\n    apply pprime.one_lt.ne\r\n    rw [← hu, h, orderOf_one]\r\n```",
+                    "createdAt": "2023-09-26T10:04:26Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuJUY",
+                    "body": "Nice catch on the generality!",
+                    "createdAt": "2023-09-26T16:29:27Z",
+                    "author": {
+                      "login": "BoltonBailey"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PsIYl",
+                    "body": "remove this!",
+                    "createdAt": "2023-09-26T10:04:45Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PsIo-",
+                    "body": "you should be using `:= mulLeftEmbedding a` -- why aren't you?",
+                    "createdAt": "2023-09-26T10:05:42Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuNj5",
+                    "body": "I had trouble swapping these out, If you want me to I can try harder.",
+                    "createdAt": "2023-09-26T16:44:21Z",
+                    "author": {
+                      "login": "BoltonBailey"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuS8W",
+                    "body": "Ok I figured it out",
+                    "createdAt": "2023-09-26T17:03:16Z",
+                    "author": {
+                      "login": "BoltonBailey"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PsJNg",
+                    "body": "this could be golfed using something like `or.resolve_right` or stuff",
+                    "createdAt": "2023-09-26T10:07:47Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PsJYi",
+                    "body": "```suggestion\r\ntheorem sum_subgroup_units {G : Subgroup Kˣ} [Fintype G] :\r\n```\r\n\r\nand use `classical` instead in the proof, or even `rcases eq_or_ne G \\bot with rfl | G_bot`",
+                    "createdAt": "2023-09-26T10:08:27Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuUn4",
+                    "body": "It is impossible to state the type of the conclusion without this\r\n\r\nI get\r\nfailed to synthesize instance\r\n  Decidable (G = ⊥)\r\n\r\nOn the if-then-else",
+                    "createdAt": "2023-09-26T17:10:05Z",
+                    "author": {
+                      "login": "BoltonBailey"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pui8l",
+                    "body": "Note that the above lemma has a decidability assumption as well. Happy to get more guidance on how to remove this if possible.",
+                    "createdAt": "2023-09-26T18:05:48Z",
+                    "author": {
+                      "login": "BoltonBailey"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PvgJ6",
+                    "body": "Oh, d'oh, yes the ITE depends on it! ",
+                    "createdAt": "2023-09-26T22:45:10Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PsJv4",
+                    "body": "could you refactor the theorems such as `sum_pow_lt_card_sub_one` to now be acorollary of this? I'll have a look at this proof closer later!",
+                    "createdAt": "2023-09-26T10:09:45Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PsJ3m",
+                    "body": "also I'd probably call it `sum_pow_subgroup_eq_zero`",
+                    "createdAt": "2023-09-26T10:10:12Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuZoE",
+                    "body": "I tried this, but `exists_pow_ne_one_of_isCyclic` is supposed to take a Type, whereas `sum_pow_lt_card_sub_one` is polymorphic over universes for the Field, and that seemed to cause issues.\r\n\r\nIt's sort of tragic that this is the case, I shouldn't have to deal with this for meat and potatoes theorems about fields.",
+                    "createdAt": "2023-09-26T17:29:51Z",
+                    "author": {
+                      "login": "BoltonBailey"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuaK-",
+                    "body": "Notice that `sum_subgroup_pow_eq_zero` specifies a type `F` for the field different from the polymorphic one that the rest of the lemmas in this section get. Should I move the lemma? Should I fix `exists_pow_ne_one_of_isCyclic` to be polymorphic? Should I fix `K` to be `Type`?",
+                    "createdAt": "2023-09-26T17:31:40Z",
+                    "author": {
+                      "login": "BoltonBailey"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuadH",
+                    "body": "In fact the problems are weirder, ~~there is one K shadowing another.~~ maybe this syntax is just respecifying the explicitness?",
+                    "createdAt": "2023-09-26T17:32:47Z",
+                    "author": {
+                      "login": "BoltonBailey"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Puafp",
+                    "body": "I feel this is a question for the zulip",
+                    "createdAt": "2023-09-26T17:32:58Z",
+                    "author": {
+                      "login": "BoltonBailey"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PugK4",
+                    "body": "I think you should try to make everything universe polymorphic, if possible",
+                    "createdAt": "2023-09-26T17:55:15Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuibP",
+                    "body": "Ok, I have just gone and made exists_pow_ne_one_of_isCyclic polymorphic, feel free to golf the other proof if you'd like.",
+                    "createdAt": "2023-09-26T18:03:35Z",
+                    "author": {
+                      "login": "BoltonBailey"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PsKIL",
+                    "body": "```suggestion\r\ntheorem sum_subgroup_units_eq_zero {G : Subgroup Kˣ} [Fintype G] (hg : G ≠ ⊥) :\r\n```\r\n\r\nI'm sure that the `of_ne_bot` can be figured out later, and usually we spell these theorems with `_eq`.",
+                    "createdAt": "2023-09-26T10:11:09Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PsKbf",
+                    "body": "```suggestion\r\ntheorem card_cast_subgroup_card_ne_zero {F : Type} [Field F]\r\n```\r\n\r\nmaybe? I feel like it must be a subgroup of the units automatically anyways, I don't like this name 100% either but better than the original name (the `_card` gets lost within the `_of_units`)",
+                    "createdAt": "2023-09-26T10:12:14Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PsK5G",
+                    "body": "```suggestion\r\ntheorem card_zpowers_le {G : Type} [Group G] [Fintype G] (a : G) (k : ℕ) (k_pos : 0 < k)\r\n```",
+                    "createdAt": "2023-09-26T10:13:52Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PsLdV",
+                    "body": "```suggestion\r\n    ∃ x ∈ H ∧ x ≠ 1 := by\r\n```\r\n\r\ndoes this work?",
+                    "createdAt": "2023-09-26T10:16:00Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PxVRx",
+                    "body": "this again also holds for just `Ring`, `NoZeroDivisors`",
+                    "createdAt": "2023-09-27T09:29:56Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PxVm9",
+                    "body": "also again holds for ring, nozerodivisors",
+                    "createdAt": "2023-09-27T09:31:04Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PxVpl",
+                    "body": "```suggestion\r\n  let a_mul_emb : G ↪ G := mulLeftEmbedding a\r\n```",
+                    "createdAt": "2023-09-27T09:31:13Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PxVtd",
+                    "body": "```suggestion\r\n```",
+                    "createdAt": "2023-09-27T09:31:25Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PxWOj",
+                    "body": "```suggestion\r\n  rwa [←sub_eq_zero]\r\n```",
+                    "createdAt": "2023-09-27T09:33:11Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PxY1p",
+                    "body": "with\r\n\r\n```suggestion\r\n    (k_lt_card_G : k < Fintype.card G) : ∑ x : G, ((x : Kˣ) : K) ^ k = 0 := by\r\n  nontriviality K\r\n  have := NoZeroDivisors.to_isDomain K\r\n```\r\n\r\nthis holds for CommRing, NoZeroDivisors.",
+                    "createdAt": "2023-09-27T09:41:46Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pxdv0",
+                    "body": "this should be easy to golf with the new theorems, if you don't want to do it I will after all the other fixes.\r\n\r\ni'm guessing the other result with `i = q - 1` is slightly more annoying in the general case? maybe can be dealt with but it is just fermat's, I guess",
+                    "createdAt": "2023-09-27T09:57:38Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pyt-b",
+                    "body": "I'm not actually seeing a good way to golf this, it already relies on  `sum_pow_units` which is similar in form to the new lemmas. I'll leave it for you.",
+                    "createdAt": "2023-09-27T14:22:13Z",
+                    "author": {
+                      "login": "BoltonBailey"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PxeEb",
+                    "body": "```suggestion\r\ntheorem card_zpowers_le (a : G) (k : ℕ) (k_pos : 0 < k)\r\n```\r\n\r\nno need to shadow",
+                    "createdAt": "2023-09-27T09:58:50Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PxeNy",
+                    "body": "also, I think we're preferring `k ≠ 0` and using `.bot_lt` to transition it where needed; can this be done here too?",
+                    "createdAt": "2023-09-27T09:59:22Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PxeTv",
+                    "body": "```suggestion\r\n  {k : ℕ} (k_pos : k ≠ 0) (k_lt_card_G : k < Fintype.card G) : ∃ a : G, a ^ k ≠ 1 := by\r\n```",
+                    "createdAt": "2023-09-27T09:59:42Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PxfCW",
+                    "body": "```suggestion\r\n  rw [orderOf_eq_card_zpowers, eq_comm, Subgroup.card_eq_iff_eq_top, eq_top_iff]\r\n  exact fun x _ ↦ ha x\r\n```",
+                    "createdAt": "2023-09-27T10:02:22Z",
+                    "author": {
+                      "login": "ericrbg"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P2Vik",
+                    "body": "This can be `simp` I guess.",
+                    "createdAt": "2023-09-28T07:16:48Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P2VoR",
+                    "body": "Can also be `simp`.",
+                    "createdAt": "2023-09-28T07:17:07Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P2Vtz",
+                    "body": "```suggestion\r\ntheorem card_zpowers_le (a : G) {k : ℕ} (k_pos : k ≠ 0)\r\n```",
+                    "createdAt": "2023-09-28T07:17:27Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P2WIt",
+                    "body": "```suggestion\r\ntheorem exists_ne_one_of_nontrivial (H : Subgroup G) [Nontrivial H] :\r\n```",
+                    "createdAt": "2023-09-28T07:18:59Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P2WWc",
+                    "body": "In the previous iff lemma `H` is explicit: I don't have a preference, but it's better to stick to one convention.",
+                    "createdAt": "2023-09-28T07:19:45Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjgwMzA1OTk=",
+              "login": "BoltonBailey"
+            },
+            {
+              "id": "MDQ6VXNlcjU2MzY3MDU=",
+              "login": "jcommelin"
+            },
+            {
+              "id": "MDQ6VXNlcjM3OTg0ODUx",
+              "login": "ericrbg"
+            },
+            {
+              "id": "MDQ6VXNlcjQyNTI2MA==",
+              "login": "eric-wieser"
+            },
+            {
+              "id": "MDQ6VXNlcjc3MzQzNjQ=",
+              "login": "ocfnash"
+            },
+            {
+              "id": "MDQ6VXNlcjEzMzM5MDE3",
+              "login": "tb65536"
+            },
+            {
+              "id": "MDQ6VXNlcjMyNDkwNTMy",
+              "login": "riccardobrasca"
+            },
+            {
+              "id": "U_kgDOB75MNQ",
+              "login": "leanprover-community-mathlib4-bot"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat: add theorem cast_subgroup_of_units_card_ne_zero",
+        "updatedAt": "2023-09-28T17:09:55Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/6500",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1a7dff42f32c7def5c1a2d9058ad978a4ae19432"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "57541327ddb999b763289b42dfa53f58149083e0"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "eb64b83754d5735955ed515ffa081ad4ed6d4369"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uAqpZzwAAAAJXxzy7",
+              "createdAt": "2023-08-10T18:25:35Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "6e66456d8bcca2bfe506272862015d1cfeeb9cc3"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ed12058f4fe47e99e95d866281963246b7337646"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "20dcc9af0644efec8a2fad3c0ffc45817f6371b3"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d5e53bdab973f5cfa6d11d97ed8eaae162210b50"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "6b4e58d30958e3b17a399caeb0c966ab73aa3ecc"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "dc6355b8bfadb8decb1f7a9bcd8c4084cdb53cd2"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5dxA3e",
+              "createdAt": "2023-08-11T07:19:35Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0dceb63f05648c2cbbbc322f0742e440cb1cd550"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uAqpZzwAAAAJYSFQG",
+              "createdAt": "2023-08-11T15:24:29Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uAqpZzwAAAAJYSFQN",
+              "createdAt": "2023-08-11T15:24:30Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uAqpZzwAAAAJYSxL2",
+              "createdAt": "2023-08-11T15:40:09Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uAqpZzwAAAAJYUTYR",
+              "createdAt": "2023-08-11T16:18:33Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uAqpZzwAAAAJYU7Jv",
+              "createdAt": "2023-08-11T16:35:31Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uAqpZzwAAAAJYU7J5",
+              "createdAt": "2023-08-11T16:35:31Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5j14la",
+              "createdAt": "2023-08-11T16:36:26Z",
+              "body": "Note: this is true for [infinite fields too](https://leanprover.zulipchat.com/#narrow/stream/116395-maths/topic/cast_subgroup_of_units_card_ne_zero.20for.20infinite.20fields/near/384013573), so I should generalize it.",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "__typename": "UnsubscribedEvent"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c31eda1d1a5346132e4ebcf4a213a55c56ad4af2"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5eb5626ce9d2e3612419b532c853bff2daa8f711"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "825460158f5f9eabf8a0da9089bad8c7a835c1af"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c4282b6e6ce4aece6150d7a847acdaae34eee31f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0652811d1ee6533e44546e97bd65189905d89f30"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uAqpZzwAAAAJYwjWt",
+              "createdAt": "2023-08-13T05:36:08Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uAqpZzwAAAAJYwjWu",
+              "createdAt": "2023-08-13T05:36:08Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uAqpZzwAAAAJccx0F",
+              "createdAt": "2023-08-21T05:40:50Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uAqpZzwAAAAJccx0P",
+              "createdAt": "2023-08-21T05:40:50Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "120e5f6612c724850f1ce56223c2beb878e2d8c2"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8c26b359dffbbca73a84a1733ee08c9075e963af"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0fd227f8ec62cbb8c1f38d7e8a94d8df95f848e7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "354e93f03da6618f09a634ae5902375a5547d47f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "90d0abfabf7173a5b8e59fb4b0bddffb466d2c19"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4379780c3b02b5d7d9854037ef7ea7de5985f96c"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7f0b8738c59b950a27b0860f0a6555b082076b9b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "dc6f6511439175dcafa2c58d8c625a3c8e31e337"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f67f87cbcf8a03001cded6eb076606d70cefb4a9"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "fa351f581a99982d874a6dbd75b9b36fd307c495"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c22314505beb7db35d383383795dfdbc6007ee77"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "768cc65b525c782108d5d12c14d8fc67d205970f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "194e309478268b3c8616b2511e9f3f81666974d6"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "64071f798963c578daf3103e38ce3e1f8e5ace7e"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7d0ed7b306c8587abb4619f2f37b0742025b818d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b61596f2a0534f01c2b90b164ca0e95a1f1c71eb"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "6b18118ffd19769c59e734c3ddec949e590c3546"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5c926caf18a33f658933f209bebbbbc3f8d59c1b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d24cfa511870fe6e1222a1cda54a8819aef38828"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4bc8a047e8539cb9e6c8a85900adc911d0bb6af9"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "824325c153b740acf4535f94477bc862edff7b35"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f4af48fff670df89734da413568a2f5ea103f5e2"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5OYjq2",
+              "createdAt": "2023-09-12T17:30:24Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5aJ0ik",
+                "title": "[Merged by Bors] - feat: bijective_iff_map_univ_eq_univ",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/7120"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "edfd821c2e9a25cd86514aa38ac7fa4aa875dbff"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2f820cc8b0863889b48c5ad0c1b7facbf7048ac1"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uAqpZzwAAAAJpA1DX",
+              "createdAt": "2023-09-12T21:16:46Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uAqpZzwAAAAJpA1De",
+              "createdAt": "2023-09-12T21:16:46Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5meCnb",
+              "createdAt": "2023-09-14T10:01:44Z",
+              "body": "Could you please reformat your `co-authored-by` line? It takes an email address (+ name) as argument. One co-author per line. See for example #3464.",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5g8r3p",
+              "createdAt": "2023-09-14T10:03:26Z",
+              "body": "",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c5uAqpZzwAAAAJqHJCN",
+              "createdAt": "2023-09-14T10:04:47Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjM3OTg0ODUx",
+                "login": "ericrbg"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "6fee7cd8d0ac818c82d444e45ed86e1d5c7e8e14"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5mip63",
+              "createdAt": "2023-09-15T01:27:55Z",
+              "body": "> Could you please reformat your `co-authored-by` line? It takes an email address (+ name) as argument. One co-author per line. See for example #3464.\r\n\r\nI don't see any co-authorship lines on that PR",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5miqhw",
+              "createdAt": "2023-09-15T01:32:03Z",
+              "body": "Also, not aware if Buster (that's their Zulip handle) wants their email shared publicly.\r\n\r\nEdit: although it's been pointed out to me that Zulip shows it anyway, so I guess there's no harm.",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "__typename": "BaseRefChangedEvent"
+            },
+            {
+              "__typename": "BaseRefChangedEvent"
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5hQUTO",
+              "createdAt": "2023-09-18T17:50:46Z",
+              "body": "",
+              "author": {
+                "login": "ocfnash"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5hQUdx",
+              "createdAt": "2023-09-18T17:51:15Z",
+              "body": "",
+              "author": {
+                "login": "ocfnash"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uAqpZzwAAAAJsQfgb",
+              "createdAt": "2023-09-19T06:24:55Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uAqpZzwAAAAJsQfgj",
+              "createdAt": "2023-09-19T06:24:55Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "bb439481ffe9b18345a6c257b854365f913033ad"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "55278f42bb1948820ba12969ce05b2a112fbd576"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "43ee60eb7ba2c25dee26bd6c059b2c6d84b700ed"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "742cfcc8216d57f4b1b85bac78e6e5c4701c108a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "533f85f6eff3de94d45f49cdf10c9a808a10b110"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5349dd89c334b3a479386778ea79f9c3fd4d4d4d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "12019ed8756f6febd4515c69948b647da5f19129"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b7bb602a26033072b9332b7a0049cfffee282edf"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "42043c67dde302d6db42315a2ed613123444701a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "10589b4659a9378a3e7a018ce7273ce1ffc8ba9b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "80a86ffc1076a9c39bd126fbaad75342d457bf25"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uAqpZzwAAAAJtKJJR",
+              "createdAt": "2023-09-20T10:27:17Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uAqpZzwAAAAJtKJJv",
+              "createdAt": "2023-09-20T10:27:17Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uAqpZzwAAAAJuMfn3",
+              "createdAt": "2023-09-21T17:52:00Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABViJjTQ",
+                "name": "t-algebra"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5h-1HE",
+              "createdAt": "2023-09-26T09:52:26Z",
+              "body": "some preliminary comments - sorry I took so long to get around to this!",
+              "author": {
+                "login": "ericrbg"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ea9cc90fdb62a7c23ba4af018fef94fb19440c21"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "90f2f7ed087a7b333a8f2ae20857e8dfe467e7a5"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "929db749a74bba6d90d4953f1031be2006f57267"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ec45a625a3d210e7ee096123c15cd6938a6ceab7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "dba8d7360e0982e94a6267fcd3dbf46913e66560"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "aca132dd17e513294ee7999bf7fa52e1d982abc8"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e8c3e642f54283e61a3bb1e796986d2be1b9176f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "68f87bc8ac1a0abd99c36fa30927a1c4fdd3584e"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "af57970ddd53fa00e85ae73469c3510a38c90452"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "37cb9a7f70527cf31403eb46a83daea8afab1a3e"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f66db9a55108dc71be781ddf62c8e86dcd03f1d1"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2b285fd0fd5cc81109a619bf25e86498bc808c90"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5ba5c3ff6b7f79fa8c710de9bad5aed4e4f3c189"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "013ef50faccb8be4a6be8105c191e5ef53a4e983"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c8dc642d8d5ca9b334d7f7af51b6dafd32bce51f"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nem0d",
+              "createdAt": "2023-09-26T18:35:51Z",
+              "body": "@ericrbg The `DecidableEq` instance is needed for the rest of the lemma statement, let me know what you want done about that.",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "922403aa5d1e0a071534a4a4f2c663f515623d5d"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iHHtC",
+              "createdAt": "2023-09-27T09:29:56Z",
+              "body": "looking good!",
+              "author": {
+                "login": "ericrbg"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2f4a0623d23fc43cebc62e0f59f939d239fc7a63"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f7b8e3fb16caa605b530cbd787ae0889b9becaa3"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d919616ba2f6cc6ccc53c53abf7175593d5a0546"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ad5cb1b970df3c12adced650223a4756c947ba2f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0fe6d75ab4fb67d23dc6e141fbbf0a2a24f7413d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f452fd8cf9925f5411388ff966d3a7d71af1334d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b6422f922d09661936bcdd00b04aa2c6a2e2dfb2"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c546c9147d354ca9183fa99f4c152584bbf8eb48"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d26f87ebe234798851e87e3c1da2b7f484817f5d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ee2b7433718296b976a3140873d7d8e55b356157"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d4b8877a0d940f3298255b7706f4d3f9dc74f610"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4fa5c8b52343c5915d9bdc18650747d6c33bf13f"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nkQmA",
+              "createdAt": "2023-09-27T14:49:54Z",
+              "body": "I tried to do the golf, but was not getting it. Maybe actually `sum_pow_units` can be golfed too?",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nkWeB",
+              "createdAt": "2023-09-27T15:02:21Z",
+              "body": "Given that everything apparently turned out to be true in NoZeroDivisor rings, I'd be interested to know if the preexisting lemmas in this file can be generalized along those lines.",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5db7e5c5e64da011db8d89a26246d55e2264fd6b"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nkcSS",
+              "createdAt": "2023-09-27T15:15:40Z",
+              "body": "This is as far as I got\r\n```\r\n/-- The sum of `x ^ i` as `x` ranges over a finite field of cardinality `q`\r\nis equal to `0` if `i < q - 1`. -/\r\ntheorem sum_pow_lt_card_sub_one (i : ℕ) (h : i < q - 1) : ∑ x : K, x ^ i = 0 := by\r\n  by_cases hi : i = 0\r\n  · simp only [hi, nsmul_one, sum_const, pow_zero, card_univ, cast_card_eq_zero]\r\n  classical\r\n    -- have hiq : ¬q - 1 ∣ i := by contrapose! h; exact Nat.le_of_dvd (Nat.pos_of_ne_zero hi) h\r\n    let φ : Kˣ ↪ K := ⟨fun x ↦ x, Units.ext⟩\r\n    have : univ.map φ = univ \\ {0} := by\r\n      ext x\r\n      simp only [true_and_iff, Function.Embedding.coeFn_mk, mem_sdiff, Units.exists_iff_ne_zero,\r\n        mem_univ, mem_map, exists_prop_of_true, mem_singleton]\r\n    calc\r\n      ∑ x : K, x ^ i = ∑ x in univ \\ {(0 : K)}, x ^ i := by\r\n        rw [← sum_sdiff ({0} : Finset K).subset_univ, sum_singleton,\r\n          zero_pow (Nat.pos_of_ne_zero hi), add_zero]\r\n      _ = ∑ x : Kˣ, (x ^ i : K) := by simp [← this, univ.sum_map φ]\r\n      _ = 0 := by \r\n        sorry\r\n        -- convert sum_subgroup_pow_eq_zero (G := ⊤) (k := i) hi _\r\n#align finite_field.sum_pow_lt_card_sub_one FiniteField.sum_pow_lt_card_sub_one\r\n```",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nmDon",
+              "createdAt": "2023-09-27T20:25:17Z",
+              "body": "> Given that everything apparently turned out to be true in NoZeroDivisor rings, I'd be interested to know if the preexisting lemmas in this file can be generalized along those lines.\r\n\r\nI think this can wait for a followup PR, but yes:)",
+              "author": {
+                "login": "ericrbg"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nm4u_",
+              "createdAt": "2023-09-27T23:43:17Z",
+              "body": "ok also the refactoring can, lmao it took me forever\r\n\r\n<details>\r\n<summary>if you want to see</summary>\r\n\r\n```lean\r\nlemma Subgroup.prod_top {α β : Type*} [Group α] [Fintype α] [Fintype (⊤ : Subgroup α)]\r\n  [CommMonoid β] (f : α → β) : ∏ x : (⊤ : Subgroup α), f x = ∏ x : α, f x :=\r\n  by simp [Finset.prod_set_coe]\r\n\r\nlemma Subgroup.sum_top {α β : Type*} [Group α] [Fintype α] [Fintype (⊤ : Subgroup α)]\r\n  [AddCommMonoid β] (f : α → β) : ∑ x : (⊤ : Subgroup α), f x = ∑ x : α, f x :=\r\n  by simp [Finset.sum_set_coe]\r\n\r\n-- how to make these a `to_additive` pair?\r\n\r\nlemma prod_units_nonunits {α β : Type*} [Monoid α] [CommMonoid β] [Fintype α] [Fintype αˣ]\r\n  [Fintype <| nonunits α] (f : α → β) :\r\n    (∏ x : αˣ, f x) * ∏ x in (nonunits α).toFinset, f x = ∏ x : α, f x := by\r\n  rw [←Finset.prod_set_coe, ←Fintype.prod_sum_elim]\r\n  apply Fintype.prod_bijective (Sum.elim (· : αˣ → α) (· : nonunits α → α))\r\n  swap; aesop\r\n  refine ⟨?_, fun x ↦ ?_⟩\r\n  · rintro (u | nu) (u | nu) h\r\n    · exact congr(Sum.inl $(Units.ext h))\r\n    · refine (nu.2 ?_).elim\r\n      dsimp at h\r\n      rw [←h]\r\n      exact u.isUnit\r\n    · refine (nu.2 ?_).elim\r\n      dsimp at h\r\n      rw [h]\r\n      exact u.isUnit\r\n    · refine congr(Sum.inr $(Subtype.ext h))\r\n  · by_cases h : IsUnit x\r\n    · exact ⟨.inl h.unit, rfl⟩\r\n    · exact ⟨.inr ⟨x, h⟩, rfl⟩\r\n\r\nlemma sum_units_nonunits {α β : Type*} [Monoid α] [AddCommMonoid β] [Fintype α] [Fintype αˣ]\r\n  [Fintype <| nonunits α] (f : α → β) :\r\n    (∑ x : αˣ, f x) + ∑ x in (nonunits α).toFinset, f x = ∑ x : α, f x :=\r\nprod_units_nonunits (β := Multiplicative β) f\r\n\r\n-- attribute [to_additive] prod_units_nonunits sum_units_nonunits\r\n-- this is the \"correct\" additivization but not sure how to tell `to_additive` that\r\n\r\n@[simp] lemma nonunits_eq_zero {G : Type*} [GroupWithZero G] : nonunits G = {0} :=\r\n  Set.ext <| fun x ↦ by simpa [nonunits] using (isUnit_iff_ne_zero (a := x)).not\r\n\r\n/-- The sum of `x ^ i` as `x` ranges over a finite field of cardinality `q`\r\nis equal to `0` if `i < q - 1`. -/\r\ntheorem sum_pow_lt_card_sub_one (i : ℕ) (h : i < q - 1) : ∑ x : K, x ^ i = 0 := by\r\n  by_cases hi : i = 0\r\n  · simp only [hi, nsmul_one, sum_const, pow_zero, card_univ, cast_card_eq_zero]\r\n  classical\r\n  rw [←Fintype.card_units, ←Subgroup.card_top] at h\r\n  have key := sum_subgroup_pow_eq_zero (K := K) (G := ⊤) hi (by convert h)\r\n  erw [Subgroup.sum_top ((· : Kˣ → K) ^ i : Kˣ → K)] at key\r\n  rw [←sum_units_nonunits, ← key]\r\n  simp [hi]\r\n\r\n#align finite_field.sum_pow_lt_card_sub_one FiniteField.sum_pow_lt_card_sub_one\r\n```\r\n\r\n</details>\r\n\r\nso I'll do this in a separate PR tidying up the file",
+              "author": {
+                "login": "ericrbg"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iNf-x",
+              "createdAt": "2023-09-27T23:45:08Z",
+              "body": "lgtm - there will be tidying done on this file after! I think it will just blow up this PR's size\r\n\r\nmaintainer merge",
+              "author": {
+                "login": "ericrbg"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nm5DT",
+              "createdAt": "2023-09-27T23:45:20Z",
+              "body": "🚀 Pull request has been placed on the maintainer queue by ericrbg.",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iO3El",
+              "createdAt": "2023-09-28T07:16:47Z",
+              "body": "A few comments and LGTM, thanks!\r\n\r\nbors d+",
+              "author": {
+                "login": "riccardobrasca"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5noR3A",
+              "createdAt": "2023-09-28T07:20:01Z",
+              "body": ":v: BoltonBailey can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uAqpZzwAAAAJxlAuh",
+              "createdAt": "2023-09-28T07:20:10Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+                "name": "delegated"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uAqpZzwAAAAJxlAwg",
+              "createdAt": "2023-09-28T07:20:11Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4657fffd4f7a3a34490e530d51bfd0a5fd2f26b7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8afdd4db224d9e7944bc3197846ac0a377b66e8d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2e8a7dd1ad269089b4b72bde6e9426edb31e1a98"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4900b5de4632fda1cf9507ebf3ccabb44dfcd255"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "fff1299befbe01c0d80459a382561c975cdd0058"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nrTO3",
+              "createdAt": "2023-09-28T14:42:00Z",
+              "body": "bors r+",
+              "author": {
+                "login": "BoltonBailey"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nse_c",
+              "createdAt": "2023-09-28T17:09:48Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6341245360/job/17224462061)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6341245360/job/17224461400)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6341245360/job/17224461732)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5uAqpZzwAAAAJx-nx-",
+              "createdAt": "2023-09-28T17:09:50Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5uAqpZzwAAAAJx-n8X",
+              "createdAt": "2023-09-28T17:09:55Z"
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5Opw7Z",
+              "createdAt": "2023-09-29T23:48:42Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5bk66K",
+                "title": "chore: tidy finite fields file",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/7442"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
