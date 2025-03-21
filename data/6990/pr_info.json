@@ -1,0 +1,518 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 15,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "FLDutchmann"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "Add two lemmas about `Nat.lcm`. These results mirror [Nat.gcd_mul_left](https://leanprover-community.github.io/mathlib4_docs/Std/Data/Nat/Gcd.html#Nat.gcd_mul_left) present in Std.\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\nNote we do have the more general [gcd_mul_left](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/GCDMonoid/Basic.html#gcd_mul_left), which includes a `normalize` that  becomes trivial in the `Nat` case.\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 2,
+        "closed": true,
+        "closedAt": "2023-09-20T16:02:39Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5l2sTV",
+              "body": "How about adding `Int.lcm_mul_right` (/right) here too?\r\nI suppose they should also all be simp lemmas to match the non-namespaced versions?\r\nIt does make me question whether we should be using `Nat.lcm` for anything other than setting up and proving the general LCM theory and applying general lemmas.\r\nWhat is your intended application?",
+              "createdAt": "2023-09-06T17:49:26Z",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5l3DE4",
+              "body": "> How about adding `Int.lcm_mul_right` (/right) here too? I suppose they should also all be simp lemmas to match the non-namespaced versions? It does make me question whether we should be using `Nat.lcm` for anything other than setting up and proving the general LCM theory and applying general lemmas. What is your intended application?\r\n\r\nI agree on the `Int` versions. As for `simp`, do we want to match the behaviour of [lcm_mul_left](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/GCDMonoid/Basic.html#lcm_mul_left) or [Nat.gcd_mul_left](https://leanprover-community.github.io/mathlib4_docs/Std/Data/Nat/Gcd.html#Nat.gcd_mul_left)? The latter seems more consistent, and it would be more difficult to change that one to `simp` since it's in `Std`.\r\n\r\nFor my intended application it would definitely be possible to switch to `GCDMonoid.lcm`. The only place I use this lemma is for constructing a bijection between the set of pairs `(a, b)` with `a.lcm b = n` and the set of three-tuples `![x,y,z]` with product equal to `n` (specifically to show `(x*y).lcm (x*z) = x*y*z` for squarefree `n`)\r\n\r\nThat said I do think there is a case to be made for having parallel API for `Nat` (and `Int`). Note `Nat.lcm` is defined in `Std`. It's not inconceivable that someone would write a program using `Nat.lcm`, then later import `Mathlib` to prove something only to find out there's no API for it. I also think `gcd` and `lcm` are sufficiently elementary notions that programmers should be able to use them ergonomically without having to figure out what a `NormalizationMonoid` is. (And importantly the `Nat` case really *is* simpler, since you don't have to worry about normalisation)\r\n",
+              "createdAt": "2023-09-06T19:00:42Z",
+              "author": {
+                "login": "FLDutchmann"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5mW8Rj",
+              "body": "It's a bit unfortunate that these changes will mean that [Nat.gcd_mul_right](https://leanprover-community.github.io/mathlib4_docs/Std/Data/Nat/Gcd.html#Nat.gcd_mul_right) (and left) are in `Std` but these changes will be the corresponding lcm versions in Mathlib.\r\n\r\nIt's also a bit unfortunate that we will not have consistent `simp` attributes between `Std` and `Mathlib`.\r\n\r\nSurely it's not so hard to contribute to `Std`; how about adding all this to `Std` instead and introducing `simp` consistency?\r\n\r\nEven though this is my preference, I'm not against adding these to Mathlib. I'll let @alexjbest make the call.\r\n\r\nbors d=alexjbest",
+              "createdAt": "2023-09-13T09:37:52Z",
+              "author": {
+                "login": "ocfnash"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5mW8SC",
+              "body": ":v: alexjbest can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "createdAt": "2023-09-13T09:37:54Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5mXRsA",
+              "body": "I don't have a particular preference, and am not really sure where the diving line between mathlib and std is (in theory I guess std should only have very generally useful things for formalizing both maths and software, but also not grow too large, alas that's not really something measurable).\nDoes the fact that nobody needed these lemmas to be in std yet mean they don't belong there for now? I do think gcds tend to come up more than lcms, so the lack of symmetry wouldn't be too surprising.\n\nThe simp-ness is a bigger issue I guess. I would say that they should all be simp so there should be at least one pr to std here.",
+              "createdAt": "2023-09-13T10:36:57Z",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5m_YzU",
+              "body": "Let's just merge this and move it later if needed I think :)\r\nbors r+",
+              "createdAt": "2023-09-20T14:53:43Z",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5m_4if",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6250372139/job/16969085924)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6250372139/job/16969086678)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6250372139/job/16969086988)",
+              "createdAt": "2023-09-20T16:02:37Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "9cdd9858fd477abccfd232c67242ad5471b4ddfb",
+                "additions": 13,
+                "deletions": 0,
+                "committedDate": "2023-09-06T13:22:53Z",
+                "author": {
+                  "name": "Arend Mellendijk",
+                  "email": "arend.mellendijk@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "73492ddf71da5d16d766a7f719b29bdc706e75e0",
+                "additions": 4,
+                "deletions": 7,
+                "committedDate": "2023-09-06T19:11:07Z",
+                "author": {
+                  "name": "Arend Mellendijk",
+                  "email": "FLDutchmann@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "69bf21347cc3d12f73560e621652f641f3d6480b",
+                "additions": 1,
+                "deletions": 2,
+                "committedDate": "2023-09-06T19:11:15Z",
+                "author": {
+                  "name": "Arend Mellendijk",
+                  "email": "FLDutchmann@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7b7860e3817afe18af4dbbc792015a8200b00a2f",
+                "additions": 6,
+                "deletions": 0,
+                "committedDate": "2023-09-06T20:43:55Z",
+                "author": {
+                  "name": "Arend Mellendijk",
+                  "email": "arend.mellendijk@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-09-06T13:35:44Z",
+        "deletions": 0,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib/Data/Int/GCD.lean",
+              "additions": 6,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Data/Nat/GCD/Basic.lean",
+              "additions": 9,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "arend/lcm_mul_left",
+        "headRefOid": "7b7860e3817afe18af4dbbc792015a8200b00a2f",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5Zrynb",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+              "color": "bfd4f2",
+              "name": "delegated"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABViJLNA",
+              "color": "33DBEC",
+              "name": "t-number-theory"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5gM-uf",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-06T18:58:12Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 6990,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5gMUI_",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-06T17:08:29Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5gM-uf",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-06T18:58:12Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OiOkw",
+                    "body": "```suggestion\r\n  apply dvd_antisymm\r\n  · exact lcm_dvd (mul_dvd_mul_left m (dvd_lcm_left n k)) (mul_dvd_mul_left m (dvd_lcm_right n k))\r\n  · have h : m ∣ lcm (m * n) (m * k) := (dvd_mul_right m n).trans (dvd_lcm_left (m * n) (m * k))\r\n    rw [←dvd_div_iff h, lcm_dvd_iff, dvd_div_iff h, dvd_div_iff h, ←lcm_dvd_iff]\r\n```",
+                    "createdAt": "2023-09-06T17:08:29Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Oio1A",
+                    "body": "```suggestion\r\n rw [mul_comm, mul_comm k n, lcm_mul_left, mul_comm]\r\n```",
+                    "createdAt": "2023-09-06T18:58:11Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjg3NTk3NDU=",
+              "login": "FLDutchmann"
+            },
+            {
+              "id": "MDQ6VXNlcjE2ODg1MzM=",
+              "login": "alexjbest"
+            },
+            {
+              "id": "MDQ6VXNlcjc3MzQzNjQ=",
+              "login": "ocfnash"
+            },
+            {
+              "id": "MDQ6VXNlcjEzMzM5MDE3",
+              "login": "tb65536"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat: `Nat.lcm_mul_left` and `Nat.lcm_mul_right`",
+        "updatedAt": "2023-09-20T16:02:43Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/6990",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9cdd9858fd477abccfd232c67242ad5471b4ddfb"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5wTBjWzwAAAAJlscCb",
+              "createdAt": "2023-09-06T13:35:44Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5wTBjWzwAAAAJlscCk",
+              "createdAt": "2023-09-06T13:35:44Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABViJLNA",
+                "name": "t-number-theory"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5gMUI_",
+              "createdAt": "2023-09-06T17:08:28Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5l2sTV",
+              "createdAt": "2023-09-06T17:49:26Z",
+              "body": "How about adding `Int.lcm_mul_right` (/right) here too?\r\nI suppose they should also all be simp lemmas to match the non-namespaced versions?\r\nIt does make me question whether we should be using `Nat.lcm` for anything other than setting up and proving the general LCM theory and applying general lemmas.\r\nWhat is your intended application?",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5gM-uf",
+              "createdAt": "2023-09-06T18:58:11Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5l3DE4",
+              "createdAt": "2023-09-06T19:00:42Z",
+              "body": "> How about adding `Int.lcm_mul_right` (/right) here too? I suppose they should also all be simp lemmas to match the non-namespaced versions? It does make me question whether we should be using `Nat.lcm` for anything other than setting up and proving the general LCM theory and applying general lemmas. What is your intended application?\r\n\r\nI agree on the `Int` versions. As for `simp`, do we want to match the behaviour of [lcm_mul_left](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/GCDMonoid/Basic.html#lcm_mul_left) or [Nat.gcd_mul_left](https://leanprover-community.github.io/mathlib4_docs/Std/Data/Nat/Gcd.html#Nat.gcd_mul_left)? The latter seems more consistent, and it would be more difficult to change that one to `simp` since it's in `Std`.\r\n\r\nFor my intended application it would definitely be possible to switch to `GCDMonoid.lcm`. The only place I use this lemma is for constructing a bijection between the set of pairs `(a, b)` with `a.lcm b = n` and the set of three-tuples `![x,y,z]` with product equal to `n` (specifically to show `(x*y).lcm (x*z) = x*y*z` for squarefree `n`)\r\n\r\nThat said I do think there is a case to be made for having parallel API for `Nat` (and `Int`). Note `Nat.lcm` is defined in `Std`. It's not inconceivable that someone would write a program using `Nat.lcm`, then later import `Mathlib` to prove something only to find out there's no API for it. I also think `gcd` and `lcm` are sufficiently elementary notions that programmers should be able to use them ergonomically without having to figure out what a `NormalizationMonoid` is. (And importantly the `Nat` case really *is* simpler, since you don't have to worry about normalisation)\r\n",
+              "author": {
+                "login": "FLDutchmann"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "73492ddf71da5d16d766a7f719b29bdc706e75e0"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "69bf21347cc3d12f73560e621652f641f3d6480b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7b7860e3817afe18af4dbbc792015a8200b00a2f"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5mW8Rj",
+              "createdAt": "2023-09-13T09:37:52Z",
+              "body": "It's a bit unfortunate that these changes will mean that [Nat.gcd_mul_right](https://leanprover-community.github.io/mathlib4_docs/Std/Data/Nat/Gcd.html#Nat.gcd_mul_right) (and left) are in `Std` but these changes will be the corresponding lcm versions in Mathlib.\r\n\r\nIt's also a bit unfortunate that we will not have consistent `simp` attributes between `Std` and `Mathlib`.\r\n\r\nSurely it's not so hard to contribute to `Std`; how about adding all this to `Std` instead and introducing `simp` consistency?\r\n\r\nEven though this is my preference, I'm not against adding these to Mathlib. I'll let @alexjbest make the call.\r\n\r\nbors d=alexjbest",
+              "author": {
+                "login": "ocfnash"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5mW8SC",
+              "createdAt": "2023-09-13T09:37:54Z",
+              "body": ":v: alexjbest can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5wTBjWzwAAAAJpV9OL",
+              "createdAt": "2023-09-13T09:38:04Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+                "name": "delegated"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5wTBjWzwAAAAJpV9RX",
+              "createdAt": "2023-09-13T09:38:05Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5mXRsA",
+              "createdAt": "2023-09-13T10:36:57Z",
+              "body": "I don't have a particular preference, and am not really sure where the diving line between mathlib and std is (in theory I guess std should only have very generally useful things for formalizing both maths and software, but also not grow too large, alas that's not really something measurable).\nDoes the fact that nobody needed these lemmas to be in std yet mean they don't belong there for now? I do think gcds tend to come up more than lcms, so the lack of symmetry wouldn't be too surprising.\n\nThe simp-ness is a bigger issue I guess. I would say that they should all be simp so there should be at least one pr to std here.",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "BaseRefChangedEvent"
+            },
+            {
+              "__typename": "BaseRefChangedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5m_YzU",
+              "createdAt": "2023-09-20T14:53:43Z",
+              "body": "Let's just merge this and move it later if needed I think :)\r\nbors r+",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5m_4if",
+              "createdAt": "2023-09-20T16:02:37Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6250372139/job/16969085924)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6250372139/job/16969086678)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6250372139/job/16969086988)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5wTBjWzwAAAAJtY9wK",
+              "createdAt": "2023-09-20T16:02:39Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5wTBjWzwAAAAJtY97i",
+              "createdAt": "2023-09-20T16:02:43Z"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
