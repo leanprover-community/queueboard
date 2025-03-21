@@ -1,0 +1,1156 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 65,
+        "assignees": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjMyNDkwNTMy",
+              "login": "riccardobrasca"
+            },
+            {
+              "id": "MDQ6VXNlcjQ4NjU2Nzkz",
+              "login": "ADedecker"
+            }
+          ]
+        },
+        "author": {
+          "login": "dagurtomas"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "We define a variant of `LocallyConstant.piecewise` which defines a locally constant map on a subset given locally constant maps on two closed subsets covering it, that agree on the intersection.\r\n\r\n-  [x] depends on: #6616 \r\n\r\nCo-authored-by: Anatole Dedecker @ADedecker \r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 1,
+        "closed": true,
+        "closedAt": "2023-09-28T08:56:16Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5kLxdQ",
+              "body": "What do you think of the following implementation?\r\n\r\n```lean\r\nnoncomputable def piecewise' {C₀ C₁ C₂ : Set X} (h₀ : C₀ ⊆ C₁ ∪ C₂) (h₁ : IsClosed C₁)\r\n    (h₂ : IsClosed C₂) (f₁ : LocallyConstant C₁ Z) (f₂ : LocallyConstant C₂ Z)\r\n    [DecidablePred (· ∈ C₁)] (hf : ∀ x (hx : x ∈ C₁ ∩ C₂), f₁ ⟨x, hx.1⟩ = f₂ ⟨x, hx.2⟩) :\r\n    LocallyConstant C₀ Z :=\r\n  letI : ∀ j : C₀, Decidable (j ∈ Subtype.val ⁻¹' C₁) := fun j ↦ decidable_of_iff (↑j ∈ C₁) Iff.rfl\r\n  piecewise (h₁.preimage continuous_subtype_val) (h₂.preimage continuous_subtype_val)\r\n    (by simpa [eq_univ_iff_forall] using h₀)\r\n    (f₁.comap (restrictPreimage C₁ ((↑) : C₀ → X)))\r\n    (f₂.comap (restrictPreimage C₂ ((↑) : C₀ → X))) <| by\r\n      rintro ⟨x, hx₀⟩ ⟨hx₁ : x ∈ C₁, hx₂ : x ∈ C₂⟩\r\n      simp_rw [coe_comap_apply _ _ continuous_subtype_val.restrictPreimage]\r\n      exact hf x ⟨hx₁, hx₂⟩\r\n```\r\n\r\nIt requires changing `f.toFun` to `f` in the definition of `piecewise` (we always use the coercion instead of `.toFun`, so we should stick to it), as well as adding the following after `Continuous.codRestrict`:\r\n```lean\r\ntheorem Continuous.restrict {f : α → β} {s : Set α} {t : Set β} (h1 : MapsTo f s t)\r\n    (h2 : Continuous f) : Continuous (h1.restrict f s t) :=\r\n  (h2.comp continuous_subtype_val).codRestrict _\r\n\r\ntheorem Continuous.restrictPreimage {f : α → β} {s : Set β} (h : Continuous f) :\r\n    Continuous (s.restrictPreimage f) :=\r\n  h.restrict _\r\n```\r\n\r\nI can see a few disadvantages:\r\n- it's noncomputable (for bad reasons: Lean thinks it has to decide if some map is continuous in `LocallyConstant.comap`, but the map we use is always continuous)\r\n- unfolding this definition will be a bit harder. A way to make sure that this doesn't cause any problem is to add enough lemmas so that unfolding is no longer necessary.",
+              "createdAt": "2023-08-16T15:16:20Z",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kNjey",
+              "body": "I like it! I tried it on my Nöbeling branch and it works well by adding a simple lemma about applying `piecewise'`. I'll implement the changes and push them here. ",
+              "createdAt": "2023-08-16T21:09:28Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kNlrI",
+              "body": "Nice! By the way I opened #6616 with the two continuity lemmas on restrictions.",
+              "createdAt": "2023-08-16T21:18:19Z",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kNmLw",
+              "body": "Also could you add a comment saying that the two `piecewise` constructions should be generalized to `ContinuousMap`? We don't have a nice way to make the translation (I think?) so it's not really useful for now, but just adding a `TODO` would be nice.",
+              "createdAt": "2023-08-16T21:20:22Z",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kNmrm",
+              "body": "Regarding the noncomputability: `LocallyConstant.comap` is only noncomputable because you can comap along noncontinuous maps for some reason, right? Does anyone want to do this? Can we maybe have both versions, where one is computable and only accepts continuous maps?",
+              "createdAt": "2023-08-16T21:21:54Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kNnLx",
+              "body": "> Regarding the noncomputability: `LocallyConstant.comap` is only noncomputable because you can comap along noncontinuous maps for some reason, right? Does anyone want to do this? Can we maybe have both versions, where one is computable and only accepts continuous maps?\r\n\r\nThere is a comment about this next to the definition of `comap`",
+              "createdAt": "2023-08-16T21:23:57Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kNnyi",
+              "body": "Finally let me just mention that I think these two constructions could be made way nicer if we developed some gluing API. I'll try to find some time to post my thoughts in greater detail about this on Zulip, but what I imagine would be a proposition expressing that a given topological space is the gluing of a family of topological space (as a property on, not as a construction) that would allow to do this kind of constructions more systematically.",
+              "createdAt": "2023-08-16T21:26:27Z",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kNoUR",
+              "body": "> > Regarding the noncomputability: `LocallyConstant.comap` is only noncomputable because you can comap along noncontinuous maps for some reason, right? Does anyone want to do this? Can we maybe have both versions, where one is computable and only accepts continuous maps?\r\n> \r\n> There is a comment about this next to the definition of `comap`\r\n\r\nIndeed I think that would be a good idea, but maybe it's better to keep that aside for anther PR? Especially since I think we definitely want Johan's opinion on this kind of chance to see if it would mess with LTE.",
+              "createdAt": "2023-08-16T21:28:40Z",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kb2G6",
+              "body": "This PR/issue depends on:\n* ~~leanprover-community/mathlib4#6616~~\nBy **[Dependent Issues](https://github.com/z0al/dependent-issues)** (🤖). Happy coding!\n<!-- By Dependent Issues (Action) - DO NOT REMOVE -->",
+              "createdAt": "2023-08-19T14:46:56Z",
+              "author": {
+                "login": "leanprover-community-mathlib4-bot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5noQDr",
+              "body": ":v: dagurtomas can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "createdAt": "2023-09-28T07:13:47Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5noqj9",
+              "body": "bors r+",
+              "createdAt": "2023-09-28T08:34:46Z",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5noyBs",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6336514747/job/17209723429)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6336514747/job/17209723180)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6336514747/job/17209722960)",
+              "createdAt": "2023-09-28T08:56:15Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "98bf0d75e6da810972862e1a301b5d9f300001ba",
+                "additions": 42,
+                "deletions": 0,
+                "committedDate": "2023-08-15T15:33:37Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0c95753e1a460686e98e87dc3f95d7c0fa21f917",
+                "additions": 5,
+                "deletions": 9,
+                "committedDate": "2023-08-15T22:22:35Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "203f23a708206e0b39dc01055169e5061800b05a",
+                "additions": 35,
+                "deletions": 37,
+                "committedDate": "2023-08-16T21:19:14Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "edda21824d91d308cbfefdb3d95ff082b5f3a638",
+                "additions": 6,
+                "deletions": 2,
+                "committedDate": "2023-08-16T21:29:11Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "698a44b9002d45a1a59e192f1e8125d031542a5b",
+                "additions": 4498,
+                "deletions": 2748,
+                "committedDate": "2023-08-19T21:27:44Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1692e2e11d9b72a4acfd8b20811a0f196169a923",
+                "additions": 0,
+                "deletions": 12,
+                "committedDate": "2023-08-19T21:29:30Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "556d7bc8ffa4000504f9834745bb3886ecaf62d0",
+                "additions": 17,
+                "deletions": 5,
+                "committedDate": "2023-08-21T14:26:53Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c7151a411e9ee49745a6c9122e7570873f8d196c",
+                "additions": 553,
+                "deletions": 127,
+                "committedDate": "2023-08-21T14:27:27Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8b9fdb79035a291926ce2ff1cf6dcb6968d996f0",
+                "additions": 48208,
+                "deletions": 21680,
+                "committedDate": "2023-09-27T21:24:54Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4af82a023ff8b7ecb2ea3b1e30dd4435dc6272bb",
+                "additions": 1,
+                "deletions": 0,
+                "committedDate": "2023-09-27T21:27:09Z",
+                "author": {
+                  "name": "Dagur Tómas Ásgeirsson",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e7f61c002f81d68cff4583f3b2b233c5cbc41408",
+                "additions": 4,
+                "deletions": 3,
+                "committedDate": "2023-09-27T21:29:26Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e67560ab5732090260f96b821db76e41a7c4eee0",
+                "additions": 0,
+                "deletions": 0,
+                "committedDate": "2023-09-27T21:33:06Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "539ded3d015ac8f3a82268c8955c0890578c5ee9",
+                "additions": 30,
+                "deletions": 9,
+                "committedDate": "2023-09-27T21:55:26Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c098098b443d41f5a77cfe978e9c6846fa2c344a",
+                "additions": 4,
+                "deletions": 4,
+                "committedDate": "2023-09-27T22:01:33Z",
+                "author": {
+                  "name": "dagurtomas",
+                  "email": "dagurtomas@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-08-15T15:35:12Z",
+        "deletions": 3,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib/Topology/LocallyConstant/Basic.lean",
+              "additions": 65,
+              "deletions": 3
+            }
+          ]
+        },
+        "headRefName": "dagur_piecewise",
+        "headRefOid": "c098098b443d41f5a77cfe978e9c6846fa2c344a",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5X-3Pg",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+              "color": "bfd4f2",
+              "name": "delegated"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5f3e38",
+              "body": "Sorry for the delay. I made a few comments, but I think I shouldn't be the one merging that since I've made rather big suggestions (besides, I won't have time to take care of it in the near future). I'll un-assign myself, and you can ask for another review on Zulip after taking my review into account.",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ADedecker"
+              },
+              "submittedAt": "2023-09-02T21:10:57Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iO1q1",
+              "body": "Thanks!\r\n\r\nbors d+",
+              "state": "APPROVED",
+              "author": {
+                "login": "riccardobrasca"
+              },
+              "submittedAt": "2023-09-28T07:13:45Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 6589,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": "APPROVED",
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5eltll",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ADedecker"
+              },
+              "submittedAt": "2023-08-21T13:04:57Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5elvAF",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ADedecker"
+              },
+              "submittedAt": "2023-08-21T13:08:02Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5emZ3X",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "dagurtomas"
+              },
+              "submittedAt": "2023-08-21T14:26:30Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5f3e38",
+              "body": "Sorry for the delay. I made a few comments, but I think I shouldn't be the one merging that since I've made rather big suggestions (besides, I won't have time to take care of it in the near future). I'll un-assign myself, and you can ask for another review on Zulip after taking my review into account.",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ADedecker"
+              },
+              "submittedAt": "2023-09-02T21:10:57Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iO1q1",
+              "body": "Thanks!\r\n\r\nbors d+",
+              "state": "APPROVED",
+              "author": {
+                "login": "riccardobrasca"
+              },
+              "submittedAt": "2023-09-28T07:13:45Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iPZ-a",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "dagurtomas"
+              },
+              "submittedAt": "2023-09-28T08:34:35Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NfbgT",
+                    "body": "Is that really the most convenient form for this statement? I think it would be cleaner to have two statements for the cases `x.val ∈ C₁` and `x.val ∈ C₂`, but you should try it in your Nobeling branch first.",
+                    "createdAt": "2023-08-21T13:04:57Z",
+                    "author": {
+                      "login": "ADedecker"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NfcXA",
+                    "body": "Also, here's a small trick: we have a nicer way to write `or_iff_not_imp_left.mp (h₀ x.prop)` which is `(h₀ x.prop).resolve_left` ([Or.resolve_left](https://leanprover-community.github.io/mathlib4_docs/Std/Logic.html#Or.resolve_left)). Of course it's one more name to remember, but I find it intuitive enough to remember it.",
+                    "createdAt": "2023-08-21T13:08:02Z",
+                    "author": {
+                      "login": "ADedecker"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nf1WR",
+                    "body": "Thanks! You're right, two statements is a lot cleaner. Pushing now.",
+                    "createdAt": "2023-08-21T14:26:30Z",
+                    "author": {
+                      "login": "dagurtomas"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OUeWH",
+                    "body": "Do you really need all the `Set.` here?",
+                    "createdAt": "2023-09-02T21:05:04Z",
+                    "author": {
+                      "login": "ADedecker"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OUegS",
+                    "body": "```suggestion\r\n  · rfl\r\n\r\nend Piecewise\r\n```",
+                    "createdAt": "2023-09-02T21:07:22Z",
+                    "author": {
+                      "login": "ADedecker"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5OUejz",
+                    "body": "Could you add similar lemmas from `piecewise` and try to deduce the `piecewise'` version from it?",
+                    "createdAt": "2023-09-02T21:08:01Z",
+                    "author": {
+                      "login": "ADedecker"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P2UjD",
+                    "body": "You can maybe make `f` and `g` implicit (but it depends on how this is used).",
+                    "createdAt": "2023-09-28T07:12:59Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P2tU8",
+                    "body": "It's more convenient to have them explicit where I use this in Nöbeling, so I'll leave it as is for now. ",
+                    "createdAt": "2023-09-28T08:34:35Z",
+                    "author": {
+                      "login": "dagurtomas"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P2UqH",
+                    "body": "Same as above.",
+                    "createdAt": "2023-09-28T07:13:26Z",
+                    "author": {
+                      "login": "riccardobrasca"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjI1NjIzODI5",
+              "login": "dagurtomas"
+            },
+            {
+              "id": "MDQ6VXNlcjQ4NjU2Nzkz",
+              "login": "ADedecker"
+            },
+            {
+              "id": "U_kgDOB75MNQ",
+              "login": "leanprover-community-mathlib4-bot"
+            },
+            {
+              "id": "MDQ6VXNlcjMyNDkwNTMy",
+              "login": "riccardobrasca"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat: LocallyConstant.piecewise'",
+        "updatedAt": "2023-09-28T08:56:20Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/6589",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "98bf0d75e6da810972862e1a301b5d9f300001ba"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c5uXlf2zwAAAAJZ6dI4",
+              "createdAt": "2023-08-15T15:35:28Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjQ4NjU2Nzkz",
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uXlf2zwAAAAJZ6eT1",
+              "createdAt": "2023-08-15T15:35:38Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uXlf2zwAAAAJZ6eUH",
+              "createdAt": "2023-08-15T15:35:38Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5N-KRi",
+              "createdAt": "2023-08-15T15:36:48Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5W6xOT",
+                "title": "[Merged by Bors] - feat: Nobeling's theorem",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/6286"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uXlf2zwAAAAJZ7aRU",
+              "createdAt": "2023-08-15T15:56:27Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0c95753e1a460686e98e87dc3f95d7c0fa21f917"
+              }
+            },
+            {
+              "__typename": "AssignedEvent",
+              "id": "AE_lADOFcwZ1c5uXlf2zwAAAAJaiLT6",
+              "createdAt": "2023-08-16T13:54:18Z",
+              "assignee": {
+                "id": "MDQ6VXNlcjQ4NjU2Nzkz",
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kLxdQ",
+              "createdAt": "2023-08-16T15:16:20Z",
+              "body": "What do you think of the following implementation?\r\n\r\n```lean\r\nnoncomputable def piecewise' {C₀ C₁ C₂ : Set X} (h₀ : C₀ ⊆ C₁ ∪ C₂) (h₁ : IsClosed C₁)\r\n    (h₂ : IsClosed C₂) (f₁ : LocallyConstant C₁ Z) (f₂ : LocallyConstant C₂ Z)\r\n    [DecidablePred (· ∈ C₁)] (hf : ∀ x (hx : x ∈ C₁ ∩ C₂), f₁ ⟨x, hx.1⟩ = f₂ ⟨x, hx.2⟩) :\r\n    LocallyConstant C₀ Z :=\r\n  letI : ∀ j : C₀, Decidable (j ∈ Subtype.val ⁻¹' C₁) := fun j ↦ decidable_of_iff (↑j ∈ C₁) Iff.rfl\r\n  piecewise (h₁.preimage continuous_subtype_val) (h₂.preimage continuous_subtype_val)\r\n    (by simpa [eq_univ_iff_forall] using h₀)\r\n    (f₁.comap (restrictPreimage C₁ ((↑) : C₀ → X)))\r\n    (f₂.comap (restrictPreimage C₂ ((↑) : C₀ → X))) <| by\r\n      rintro ⟨x, hx₀⟩ ⟨hx₁ : x ∈ C₁, hx₂ : x ∈ C₂⟩\r\n      simp_rw [coe_comap_apply _ _ continuous_subtype_val.restrictPreimage]\r\n      exact hf x ⟨hx₁, hx₂⟩\r\n```\r\n\r\nIt requires changing `f.toFun` to `f` in the definition of `piecewise` (we always use the coercion instead of `.toFun`, so we should stick to it), as well as adding the following after `Continuous.codRestrict`:\r\n```lean\r\ntheorem Continuous.restrict {f : α → β} {s : Set α} {t : Set β} (h1 : MapsTo f s t)\r\n    (h2 : Continuous f) : Continuous (h1.restrict f s t) :=\r\n  (h2.comp continuous_subtype_val).codRestrict _\r\n\r\ntheorem Continuous.restrictPreimage {f : α → β} {s : Set β} (h : Continuous f) :\r\n    Continuous (s.restrictPreimage f) :=\r\n  h.restrict _\r\n```\r\n\r\nI can see a few disadvantages:\r\n- it's noncomputable (for bad reasons: Lean thinks it has to decide if some map is continuous in `LocallyConstant.comap`, but the map we use is always continuous)\r\n- unfolding this definition will be a bit harder. A way to make sure that this doesn't cause any problem is to add enough lemmas so that unfolding is no longer necessary.",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uXlf2zwAAAAJal9LR",
+              "createdAt": "2023-08-16T15:16:36Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uXlf2zwAAAAJal9LZ",
+              "createdAt": "2023-08-16T15:16:36Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kNjey",
+              "createdAt": "2023-08-16T21:09:28Z",
+              "body": "I like it! I tried it on my Nöbeling branch and it works well by adding a simple lemma about applying `piecewise'`. I'll implement the changes and push them here. ",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kNlrI",
+              "createdAt": "2023-08-16T21:18:19Z",
+              "body": "Nice! By the way I opened #6616 with the two continuity lemmas on restrictions.",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "203f23a708206e0b39dc01055169e5061800b05a"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kNmLw",
+              "createdAt": "2023-08-16T21:20:22Z",
+              "body": "Also could you add a comment saying that the two `piecewise` constructions should be generalized to `ContinuousMap`? We don't have a nice way to make the translation (I think?) so it's not really useful for now, but just adding a `TODO` would be nice.",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kNmrm",
+              "createdAt": "2023-08-16T21:21:54Z",
+              "body": "Regarding the noncomputability: `LocallyConstant.comap` is only noncomputable because you can comap along noncontinuous maps for some reason, right? Does anyone want to do this? Can we maybe have both versions, where one is computable and only accepts continuous maps?",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kNnLx",
+              "createdAt": "2023-08-16T21:23:57Z",
+              "body": "> Regarding the noncomputability: `LocallyConstant.comap` is only noncomputable because you can comap along noncontinuous maps for some reason, right? Does anyone want to do this? Can we maybe have both versions, where one is computable and only accepts continuous maps?\r\n\r\nThere is a comment about this next to the definition of `comap`",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kNnyi",
+              "createdAt": "2023-08-16T21:26:27Z",
+              "body": "Finally let me just mention that I think these two constructions could be made way nicer if we developed some gluing API. I'll try to find some time to post my thoughts in greater detail about this on Zulip, but what I imagine would be a proposition expressing that a given topological space is the gluing of a family of topological space (as a property on, not as a construction) that would allow to do this kind of constructions more systematically.",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kNoUR",
+              "createdAt": "2023-08-16T21:28:40Z",
+              "body": "> > Regarding the noncomputability: `LocallyConstant.comap` is only noncomputable because you can comap along noncontinuous maps for some reason, right? Does anyone want to do this? Can we maybe have both versions, where one is computable and only accepts continuous maps?\r\n> \r\n> There is a comment about this next to the definition of `comap`\r\n\r\nIndeed I think that would be a good idea, but maybe it's better to keep that aside for anther PR? Especially since I think we definitely want Johan's opinion on this kind of chance to see if it would mess with LTE.",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "edda21824d91d308cbfefdb3d95ff082b5f3a638"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5N_mo1",
+              "createdAt": "2023-08-16T21:30:53Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5YFJWz",
+                "title": "[Merged by Bors] - feat: two missing lemmas about restricting continuous maps",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/6616"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uXlf2zwAAAAJaxtKl",
+              "createdAt": "2023-08-16T21:31:50Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjg4OTQyMDg2",
+                "name": "blocked-by-other-PR"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uXlf2zwAAAAJay0ef",
+              "createdAt": "2023-08-16T22:26:21Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uXlf2zwAAAAJay0ej",
+              "createdAt": "2023-08-16T22:26:21Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uXlf2zwAAAAJcLVpE",
+              "createdAt": "2023-08-19T14:46:54Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjg4OTQyMDg2",
+                "name": "blocked-by-other-PR"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kb2G6",
+              "createdAt": "2023-08-19T14:46:56Z",
+              "body": "This PR/issue depends on:\n* ~~leanprover-community/mathlib4#6616~~\nBy **[Dependent Issues](https://github.com/z0al/dependent-issues)** (🤖). Happy coding!\n<!-- By Dependent Issues (Action) - DO NOT REMOVE -->",
+              "author": {
+                "login": "leanprover-community-mathlib4-bot"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "698a44b9002d45a1a59e192f1e8125d031542a5b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1692e2e11d9b72a4acfd8b20811a0f196169a923"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5eltll",
+              "createdAt": "2023-08-21T13:04:57Z",
+              "body": "",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uXlf2zwAAAAJctSlT",
+              "createdAt": "2023-08-21T13:09:58Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uXlf2zwAAAAJctSlb",
+              "createdAt": "2023-08-21T13:09:58Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "556d7bc8ffa4000504f9834745bb3886ecaf62d0"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c7151a411e9ee49745a6c9122e7570873f8d196c"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uXlf2zwAAAAJcw81C",
+              "createdAt": "2023-08-21T14:28:04Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uXlf2zwAAAAJcw81I",
+              "createdAt": "2023-08-21T14:28:04Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uXlf2zwAAAAJcw81R",
+              "createdAt": "2023-08-21T14:28:04Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uXlf2zwAAAAJcyCwI",
+              "createdAt": "2023-08-21T14:50:44Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c5uXlf2zwAAAAJfiaw_",
+              "createdAt": "2023-08-25T12:58:38Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjQ4NjU2Nzkz",
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5f3e38",
+              "createdAt": "2023-09-02T21:05:04Z",
+              "body": "Sorry for the delay. I made a few comments, but I think I shouldn't be the one merging that since I've made rather big suggestions (besides, I won't have time to take care of it in the near future). I'll un-assign myself, and you can ask for another review on Zulip after taking my review into account.",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uXlf2zwAAAAJkWUN1",
+              "createdAt": "2023-09-04T12:27:46Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uXlf2zwAAAAJkWUN6",
+              "createdAt": "2023-09-04T12:27:46Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "BaseRefChangedEvent"
+            },
+            {
+              "__typename": "BaseRefChangedEvent"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8b9fdb79035a291926ce2ff1cf6dcb6968d996f0"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4af82a023ff8b7ecb2ea3b1e30dd4435dc6272bb"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e7f61c002f81d68cff4583f3b2b233c5cbc41408"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e67560ab5732090260f96b821db76e41a7c4eee0"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "539ded3d015ac8f3a82268c8955c0890578c5ee9"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uXlf2zwAAAAJxaDpU",
+              "createdAt": "2023-09-27T21:56:20Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uXlf2zwAAAAJxaDpb",
+              "createdAt": "2023-09-27T21:56:20Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uXlf2zwAAAAJxaDpd",
+              "createdAt": "2023-09-27T21:56:20Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c098098b443d41f5a77cfe978e9c6846fa2c344a"
+              }
+            },
+            {
+              "__typename": "AssignedEvent",
+              "id": "AE_lADOFcwZ1c5uXlf2zwAAAAJxaiFR",
+              "createdAt": "2023-09-27T22:17:54Z",
+              "assignee": {
+                "id": "MDQ6VXNlcjMyNDkwNTMy",
+                "login": "riccardobrasca"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uXlf2zwAAAAJxapj0",
+              "createdAt": "2023-09-27T22:23:22Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iO1q1",
+              "createdAt": "2023-09-28T07:12:59Z",
+              "body": "Thanks!\r\n\r\nbors d+",
+              "author": {
+                "login": "riccardobrasca"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5noQDr",
+              "createdAt": "2023-09-28T07:13:47Z",
+              "body": ":v: dagurtomas can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5uXlf2zwAAAAJxkzHv",
+              "createdAt": "2023-09-28T07:13:59Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+                "name": "delegated"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5uXlf2zwAAAAJxkzJk",
+              "createdAt": "2023-09-28T07:14:00Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5noqj9",
+              "createdAt": "2023-09-28T08:34:46Z",
+              "body": "bors r+",
+              "author": {
+                "login": "dagurtomas"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5noyBs",
+              "createdAt": "2023-09-28T08:56:15Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6336514747/job/17209723429)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6336514747/job/17209723180)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6336514747/job/17209722960)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5uXlf2zwAAAAJxo3u-",
+              "createdAt": "2023-09-28T08:56:17Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5uXlf2zwAAAAJxo331",
+              "createdAt": "2023-09-28T08:56:20Z"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
