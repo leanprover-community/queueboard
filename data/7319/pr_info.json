@@ -1,0 +1,4376 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 163,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "kodyvajjha"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "The n-th Harmonic number is not an integer for n > 1. This proof uses 2-adic valuations. \r\n \r\n---\r\n\r\nThis proof is of Theorem 1 in Keith Conrad's [blurb](https://kconrad.math.uconn.edu/blurbs/gradnumthy/padicharmonicsum.pdf). This proof is credited to Kürschák (1918). From this it follows that the 2-adic valuation of `H_n` tends to infinity as `n` does. We quickly run into open problems when similar questions are asked for odd primes `p`.  \r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 6,
+        "closed": true,
+        "closedAt": "2023-09-29T05:56:19Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5nPpO2",
+              "body": "@Ruben-VandeVelde thank you for your comments, I've incorporated most of them and the build passes. @alexjbest suggested that we could move this material out of Counterexamples and into mathlib proper. I could do that as a follow up PR if that works. ",
+              "createdAt": "2023-09-23T00:53:06Z",
+              "author": {
+                "login": "kodyvajjha"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5ndxJT",
+              "body": "i think i've addressed most of the comments - just waiting now for the build to turn green, thanks everyone!",
+              "createdAt": "2023-09-26T16:10:49Z",
+              "author": {
+                "login": "kodyvajjha"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nfwUK",
+              "body": "It seems like induction can be used to simplify the main proof:\r\n```\r\nopen BigOperators\r\n\r\n/-- The nth-harmonic number defined as a finset sum of consecutive reciprocals. -/\r\ndef harmonic : ℕ → ℚ := fun n => ∑ i in Finset.range n, (↑(i + 1))⁻¹\r\n\r\n@[simp]\r\nlemma harmonic_zero : harmonic 0 = 0 :=\r\n  rfl\r\n\r\n@[simp]\r\nlemma harmonic_succ (n : ℕ) : harmonic (n + 1) = harmonic n + (↑(n + 1))⁻¹ := by\r\n  apply Finset.sum_range_succ\r\n\r\nlemma harmonic_pos {n : ℕ} (Hn : n ≠ 0) : 0 < harmonic n :=\r\n  Finset.sum_pos (fun n _ => inv_pos.mpr (Nat.cast_pos.mpr n.succ_pos))\r\n    (Finset.nonempty_range_iff.mpr Hn)\r\n\r\nlemma key1 {n : ℕ} (hn : n ≠ 0) : Nat.log 2 n ≠ padicValNat 2 (n + 1) := by\r\n  rw [Ne, Nat.log_eq_iff (by simp [hn])]\r\n  rintro ⟨h1, h2⟩\r\n  rw [← Nat.lt_add_one_iff, ← mul_one (2 ^ _)] at h1\r\n  rw [← Nat.add_one_le_iff, pow_succ'] at h2\r\n  refine' Nat.not_dvd_of_between_consec_multiples h1 (lt_of_le_of_ne' h2 _) pow_padicValNat_dvd\r\n  exact pow_succ_padicValNat_not_dvd n.succ_ne_zero ∘ dvd_of_eq\r\n\r\nlemma key2 (n : ℕ) : max (Nat.log 2 n) (padicValNat 2 (n + 1)) = Nat.log 2 (n + 1) := by\r\n  apply le_antisymm (max_le (Nat.le_log_of_pow_le one_lt_two (Nat.pow_log_le_add_one 2 n))\r\n    (Nat.le_log_of_pow_le one_lt_two (Nat.le_of_dvd n.succ_pos pow_padicValNat_dvd)))\r\n  rw [le_max_iff, or_iff_not_imp_left, not_le]\r\n  intro h\r\n  replace h := le_antisymm (Nat.add_one_le_iff.mpr (Nat.lt_pow_of_log_lt one_lt_two h))\r\n    (Nat.pow_log_le_self 2 n.succ_ne_zero)\r\n  rw [h, padicValNat.prime_pow, ← h]\r\n\r\n/-- The 2-adic valuation of the n-th harmonic number is the negative of the logarithm\r\n    of n. -/\r\ntheorem harmonic_two_adicValRat {n : ℕ} : padicValRat 2 (harmonic n) = -Nat.log 2 n := by\r\n  induction' n with n ih\r\n  · simp\r\n  · rcases eq_or_ne n 0 with rfl | hn\r\n    · simp\r\n    rw [harmonic_succ]\r\n    have key : padicValRat 2 (harmonic n) ≠ padicValRat 2 (↑(n + 1))⁻¹\r\n    · rw [ih, padicValRat.inv, padicValRat.of_nat, Ne, neg_inj, Nat.cast_inj]\r\n      exact key1 hn\r\n    rw [padicValRat.min_eq_padicValRat_add (harmonic_succ n ▸ (harmonic_pos n.succ_ne_zero).ne')\r\n        (harmonic_pos hn).ne' (inv_ne_zero (Nat.cast_ne_zero.mpr n.succ_ne_zero)) key, ih,\r\n        padicValRat.inv, padicValRat.of_nat, min_neg_neg, neg_inj, ← Nat.cast_max, Nat.cast_inj]\r\n    exact key2 n\r\n\r\n/-- The n-th harmonic number is not an integer for n ≥ 2. -/\r\ntheorem harmonic_not_int {n : ℕ} (h : 1 < n) : ¬(harmonic n).isInt := by\r\n  apply padicNorm.not_int_of_not_padic_int 2\r\n  rw [padicNorm.eq_zpow_of_nonzero (harmonic_pos (ne_zero_of_lt h)).ne',\r\n      harmonic_two_adicValRat, neg_neg, zpow_coe_nat]\r\n  exact one_lt_pow one_lt_two (Nat.log_pos one_lt_two h).ne'\r\n```",
+              "createdAt": "2023-09-26T22:15:09Z",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nfyYY",
+              "body": "@tb65536 Can we just merge this and you can make your proof as a PR later? Or, better yet: feel free to push your changes onto this branch. ",
+              "createdAt": "2023-09-26T22:24:31Z",
+              "author": {
+                "login": "kodyvajjha"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nujZb",
+              "body": "maintainer merge",
+              "createdAt": "2023-09-29T03:22:24Z",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nuja8",
+              "body": "🚀 Pull request has been placed on the maintainer queue by alexjbest.",
+              "createdAt": "2023-09-29T03:22:37Z",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nujfU",
+              "body": "Thanks for making all these changes @kodyvajjha, hopefully the next PR will be smoother :)",
+              "createdAt": "2023-09-29T03:23:14Z",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nujqi",
+              "body": "Hahaha hopefully! Thanks @alexjbest ",
+              "createdAt": "2023-09-29T03:24:42Z",
+              "author": {
+                "login": "kodyvajjha"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5nu6VU",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6347246320/job/17241964591)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6347246320/job/17241964507)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6347246320/job/17241964376)",
+              "createdAt": "2023-09-29T05:56:18Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "62e346a8a1f67d71b54f833968c4835e42f40ed2",
+                "additions": 29,
+                "deletions": 0,
+                "committedDate": "2023-09-26T23:12:54Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5254a3e847f8cb8abc8e90fc80226888c7e89ba2",
+                "additions": 19,
+                "deletions": 1,
+                "committedDate": "2023-09-26T23:12:54Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "886117ab226aef116bb6b1219db9ed266073b47d",
+                "additions": 17,
+                "deletions": 4,
+                "committedDate": "2023-09-26T23:12:54Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7e789be616bf1eb7d256bfb424803358ae6323e3",
+                "additions": 37,
+                "deletions": 2,
+                "committedDate": "2023-09-26T23:12:54Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d8f7d3eeb12f2a4d60aa76dfb9c88fae5959359c",
+                "additions": 9,
+                "deletions": 3,
+                "committedDate": "2023-09-26T23:12:54Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c7c345cf1ec1a2da67b9edc0be23b9794a8e58f6",
+                "additions": 18,
+                "deletions": 7,
+                "committedDate": "2023-09-26T23:12:54Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "25b4e914f10add5553e8c2c41eb634b7bea8cca3",
+                "additions": 24,
+                "deletions": 2,
+                "committedDate": "2023-09-26T23:12:54Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d193c37be6eb14039b931e59661e8076e0df4fc7",
+                "additions": 21,
+                "deletions": 9,
+                "committedDate": "2023-09-26T23:12:54Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a67c69f792978533b226def55d2c49ea441ce7bc",
+                "additions": 8,
+                "deletions": 11,
+                "committedDate": "2023-09-26T23:12:54Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0ed3c48f9149f66d5efe3123b7cc249677a9d467",
+                "additions": 61,
+                "deletions": 5,
+                "committedDate": "2023-09-26T23:12:54Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "39e7c9ba9406a047afb667cda923b769bed9206e",
+                "additions": 39,
+                "deletions": 30,
+                "committedDate": "2023-09-26T23:12:54Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "258d3cf457ceee6bd22f5c572d4f2e3c1d7ec54f",
+                "additions": 18,
+                "deletions": 0,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "57f8e457ea7984e71ea765fb582b2c394ecadf90",
+                "additions": 69,
+                "deletions": 1,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4df29c5c30a0e969de99687a78a7d8a356a04a76",
+                "additions": 7,
+                "deletions": 4,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3f020f945a7154ab348aa0ba1e682155f80aee3e",
+                "additions": 71,
+                "deletions": 71,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e4538fbc5e67561408dd7ab43f928687ae417cba",
+                "additions": 31,
+                "deletions": 4,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8ec3340f7979e2f659ad6345da7ccb0b85962e03",
+                "additions": 12,
+                "deletions": 5,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "60ceb83c8475577ead368c7200bc273e71d4ed94",
+                "additions": 49,
+                "deletions": 11,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "761aee7aed65552f1ff21197e4f0dede0b8482d4",
+                "additions": 42,
+                "deletions": 45,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7cac0afcaeb5798bde12b6a26d3de33bfae8b2a5",
+                "additions": 81,
+                "deletions": 121,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "25695222e2c29ae7c79a0c877fb4dfd2c5de26da",
+                "additions": 12,
+                "deletions": 9,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "16095829805029d034a69803cb15d402bb67c1ad",
+                "additions": 0,
+                "deletions": 30,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "45c0d30fb0305ab7e490a291701d6ad6ce422bc7",
+                "additions": 0,
+                "deletions": 3,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1311ab68c415de5cbb2230e47f68d0320c7323e1",
+                "additions": 4,
+                "deletions": 0,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a7fece2b43ae71d828419e25882e8bc857516589",
+                "additions": 1,
+                "deletions": 0,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "15b79f9d12f9fceffde0be591619bae2aa33d53f",
+                "additions": 20,
+                "deletions": 36,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2a27077e5771a8ba57255006a3ab09d1260638a0",
+                "additions": 68,
+                "deletions": 112,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "90cf3710e056deae76a64492b54d6b22246faec3",
+                "additions": 75,
+                "deletions": 81,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "90fd8dc5f96aa48efe36838856feaf9da422a649",
+                "additions": 3,
+                "deletions": 3,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f70cd3451b422ded521b4ae1fd908e012081b3c6",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d44e4e63f6a80e99e367fcadd13444026eb1cea3",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7fa0088f366fa7f1c50a9b6ffd81b5f83ab86e56",
+                "additions": 82,
+                "deletions": 89,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d7f092f78bc846941cd97b2a3ff69b6387adbbf0",
+                "additions": 31,
+                "deletions": 32,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ff72121236d90fad2dc171b9cfa6c502596dfc37",
+                "additions": 2,
+                "deletions": 6,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "be2bc38db6f45c55ce35888a2230248219681025",
+                "additions": 3,
+                "deletions": 3,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4c3a0e88ad345fba137b77dd99605d19371e4ed8",
+                "additions": 10,
+                "deletions": 4,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "faacc317d2d897241b8cc9f62ee9cc4872d67501",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4d46a3b98a05e4f3294e267fb4b7e79bd5d2622b",
+                "additions": 6,
+                "deletions": 5,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e3d29255a6f27d463363d596a6c56e723ef327ad",
+                "additions": 31,
+                "deletions": 29,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e484f4f1aad5a0a9b994095699fb2c2a299adaba",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8905db727ad67fa98dbf274157f81ce4f0bc3e3a",
+                "additions": 5,
+                "deletions": 1,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ec511de7762b99ff9e795683b26019d3b52c05c8",
+                "additions": 3,
+                "deletions": 3,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c7d4c9aefe4ff214ca29832e2cc3a2f5d476b496",
+                "additions": 11,
+                "deletions": 11,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f9e5dd3502404a418967146d5e92438c68bbffee",
+                "additions": 3,
+                "deletions": 3,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ef7a81e000a603f9722268e00142fe03b260b488",
+                "additions": 6,
+                "deletions": 14,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "bf025529bb0187390ee2fbba0326f3e01753871d",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "edd54dc7ad23cbea8818718e7561b16c5bc70c70",
+                "additions": 12,
+                "deletions": 18,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "db51df416706d45dd7d9add7726f8f084252532e",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "bc58ab8a4b929d504043cbd49cba0f0ed6e710a2",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "51f2acc81223e1b8d91d27c393f9e0c58fc7b951",
+                "additions": 3,
+                "deletions": 7,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "39c6fb000a3a57e9fe4d0a037bfa1ec9314a2d4d",
+                "additions": 1,
+                "deletions": 2,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "797e82f894573cec661c4c97c07ad921c018ef05",
+                "additions": 4,
+                "deletions": 5,
+                "committedDate": "2023-09-26T23:12:55Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6338778d53fbc18e738d3aa359bcfadad45a506d",
+                "additions": 13,
+                "deletions": 8,
+                "committedDate": "2023-09-27T00:53:31Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5c63894a9740e9af590c7f71bdef513efafab7c5",
+                "additions": 2,
+                "deletions": 1,
+                "committedDate": "2023-09-27T01:26:52Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a1cce8d9fb39b1f50e8bd00953db4bdd5745bf04",
+                "additions": 3,
+                "deletions": 3,
+                "committedDate": "2023-09-27T05:10:20Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8741aa3016ba612088924ef340a01a49060e6de6",
+                "additions": 4,
+                "deletions": 2,
+                "committedDate": "2023-09-27T05:15:30Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2b3ac1a2799158a20f98c34801e6e6291aafe3fb",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-09-27T22:12:05Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e249282cdb1d4fed4aa60e87ce7e9b9c65571836",
+                "additions": 3,
+                "deletions": 3,
+                "committedDate": "2023-09-27T22:13:00Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f61a5c5328ed24b07d57992cc0374d9e88a73625",
+                "additions": 5,
+                "deletions": 8,
+                "committedDate": "2023-09-27T22:13:27Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7ce7924aca740aeb9bf572afc91e03161b0b198d",
+                "additions": 38,
+                "deletions": 102,
+                "committedDate": "2023-09-27T22:15:46Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7212811e10716366a3ea5ac66a1e45f55c8b12f2",
+                "additions": 7,
+                "deletions": 0,
+                "committedDate": "2023-09-27T22:37:09Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "00a352072633ade4dcec27f9a6432c198898f061",
+                "additions": 1,
+                "deletions": 0,
+                "committedDate": "2023-09-27T22:37:50Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1a2cb2bdad1012ae270435c4ddec603fb3d88d97",
+                "additions": 1,
+                "deletions": 0,
+                "committedDate": "2023-09-28T05:21:18Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d8b593a5adecef1311f36cea0707cd1514075082",
+                "additions": 7,
+                "deletions": 5,
+                "committedDate": "2023-09-28T05:21:32Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e4a946ddbda86877242c1a812220dce99eab87d7",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-28T05:21:48Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "40ef8dc212b60c6a39bfec11463476d91649f6ea",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-28T05:34:18Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2365d537da3a23805b7ee9622d422ef7eeb7bb96",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-28T22:20:08Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "aa60496c0f055540dda47982f22ccb2b95e82cd4",
+                "additions": 18,
+                "deletions": 18,
+                "committedDate": "2023-09-28T22:23:02Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3653d5b3f3f6263be5ae4b8fa1a08f8a089faaf8",
+                "additions": 0,
+                "deletions": 3,
+                "committedDate": "2023-09-28T22:31:31Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f4cbf9c2526ddf98c9d47382097f471dee3f2361",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-28T22:49:35Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "aeb9acbf330a4e6e8943936531d3746e3d493743",
+                "additions": 3,
+                "deletions": 5,
+                "committedDate": "2023-09-28T22:50:27Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "12f33fb490e7d75cd858b1c1227c029c64258fc0",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-28T22:50:46Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "26fa1932f933f289e8ef8d9a1ffc2ee290dfbe8f",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-09-29T00:48:48Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c7549949a43cbac1ee1b2ce81c2ce3dd3dcb731d",
+                "additions": 5,
+                "deletions": 5,
+                "committedDate": "2023-09-29T03:15:47Z",
+                "author": {
+                  "name": "Koundinya Vajjha",
+                  "email": "koundinya.vajjha@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-09-22T06:40:41Z",
+        "deletions": 0,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Data/Finset/Basic.lean",
+              "additions": 10,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Data/Rat/Defs.lean",
+              "additions": 4,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/NumberTheory/Padics/Harmonic.lean",
+              "additions": 57,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/NumberTheory/Padics/PadicNorm.lean",
+              "additions": 7,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/NumberTheory/Padics/PadicVal.lean",
+              "additions": 84,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "kody/harmonicnotinteger",
+        "headRefOid": "c7549949a43cbac1ee1b2ce81c2ce3dd3dcb731d",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5a9Ux8",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5iWb3e",
+              "body": "Thanks :tada:\r\n\r\nbors merge",
+              "state": "COMMENTED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-09-29T04:39:42Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iV0Kr",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-29T01:02:00Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5htfvu",
+              "body": "Please don't be intimidated by the comments below, they're simple stylistic suggestions",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Ruben-VandeVelde"
+              },
+              "submittedAt": "2023-09-22T08:01:10Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iVu2c",
+              "body": "lgtm once those last two comments are taken care of",
+              "state": "APPROVED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-29T00:17:38Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 7319,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": "APPROVED",
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5htfvu",
+              "body": "Please don't be intimidated by the comments below, they're simple stylistic suggestions",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Ruben-VandeVelde"
+              },
+              "submittedAt": "2023-09-22T08:01:10Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hy6OS",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-22T23:27:49Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5hy6_q",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-22T23:36:34Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5h6zOL",
+              "body": "",
+              "state": "CHANGES_REQUESTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-25T18:56:20Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5h72q3",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-25T22:39:41Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5h73I8",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-25T22:42:09Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5h75fT",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-25T22:53:55Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5h75pH",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-25T22:54:46Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5h75vb",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-25T22:55:18Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5h757C",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-25T22:56:17Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5h77VO",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-25T23:04:11Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5h772r",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-25T23:07:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5h8_mo",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T05:39:26Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5h8_wQ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T05:40:04Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iA-Ko",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-26T14:23:59Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iA_1R",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-26T14:25:48Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iBCnV",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-26T14:29:56Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iBLxY",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-26T14:45:24Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iBNi-",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-26T14:48:28Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iBOft",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-26T14:49:47Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iBgeA",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-26T15:17:48Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iBhwh",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-26T15:19:23Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iBiFG",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-26T15:20:00Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iBjus",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-26T15:23:08Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iBk31",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-26T15:25:13Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iBttU",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T15:39:36Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iB5Zp",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-26T16:02:11Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCPw4",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-26T16:44:32Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCQqW",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-26T16:46:14Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCQ3L",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-26T16:46:45Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCRL9",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-26T16:47:17Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCRQr",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-26T16:47:28Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCRcw",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-26T16:47:54Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCwU2",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T17:59:07Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iCwky",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T17:59:38Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iC1ys",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T18:11:58Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iC2P3",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T18:13:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iDHxX",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T18:52:53Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iDJ_Q",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T18:57:04Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iDKHb",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T18:57:25Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iDLBZ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T18:59:51Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iDMta",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T19:04:14Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iDWbn",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T19:29:30Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iEXTT",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-26T22:47:24Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iEYG-",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-26T22:52:02Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iEZKe",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-26T22:57:26Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iEayI",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-26T23:06:42Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iEspS",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-27T00:55:25Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iFVBb",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-27T04:24:14Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iFVHy",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-27T04:24:52Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iFV6H",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-27T04:30:02Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iFWB5",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-27T04:30:48Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iFbNl",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-27T04:47:55Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iFc97",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-27T04:55:23Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iFiFo",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-27T05:17:29Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iFjYv",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-27T05:23:02Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iFkV0",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-27T05:30:54Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iFmM0",
+              "body": "I do suggest you consider proving `padicValRat_two_harmonic` by induction. It's shorter and avoids the hypothesis `2 ≤ n`.",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-27T05:42:44Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iMYDe",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-27T19:26:45Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iNQcM",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-27T22:16:44Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iOJFQ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-28T04:37:31Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iOQFj",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-28T05:19:58Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iORxs",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-28T05:22:25Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iOS4y",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-28T05:35:41Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iOwsh",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-28T06:58:53Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iVbYr",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-28T22:19:43Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iVcrQ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-28T22:25:56Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iVd07",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-28T22:31:47Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iVeIW",
+              "body": "Looking very good. Maybe someone else can take one last look over?",
+              "state": "APPROVED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-28T22:45:06Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iVu2c",
+              "body": "lgtm once those last two comments are taken care of",
+              "state": "APPROVED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-09-29T00:17:38Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iVyeQ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-29T00:47:46Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iVyhc",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-29T00:48:12Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iV0Kr",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "tb65536"
+              },
+              "submittedAt": "2023-09-29T01:02:00Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iWNA5",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kodyvajjha"
+              },
+              "submittedAt": "2023-09-29T03:19:23Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5iWb3e",
+              "body": "Thanks :tada:\r\n\r\nbors merge",
+              "state": "COMMENTED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-09-29T04:39:42Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pgxjb",
+                    "body": "```suggestion\r\n2-adic valuations. This proof is due to Kürschák.\r\n```",
+                    "createdAt": "2023-09-22T07:31:25Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PgxyT",
+                    "body": "```suggestion\r\nlemma harmonic_pos (n : ℕ) (Hn : n ≠ 0) : 0 < harmonic n :=\r\n```",
+                    "createdAt": "2023-09-22T07:32:18Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pgx64",
+                    "body": "```suggestion\r\n  (by rwa [Finset.nonempty_range_iff])\r\n```",
+                    "createdAt": "2023-09-22T07:32:51Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PgyDC",
+                    "body": "```suggestion\r\n    harmonic n = 1 / (c + 1) + ∑ x in Finset.range n \\ {c}, 1 / ((x : ℚ) + 1) := by\r\n  unfold harmonic\r\n  rwa [add_comm, Finset.sum_eq_sum_diff_singleton_add (i := c)]\r\n```",
+                    "createdAt": "2023-09-22T07:33:21Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PgyFO",
+                    "body": "```suggestion\r\n    Finset.Nonempty (Finset.range n \\ {c}) := by\r\n```",
+                    "createdAt": "2023-09-22T07:33:30Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PgyI8",
+                    "body": "```suggestion\r\n  rw [Finset.sdiff_nonempty, Finset.subset_singleton_iff, Finset.range_eq_empty_iff, not_or]\r\n  refine' ⟨by linarith, fun Hnot => _⟩\r\n```",
+                    "createdAt": "2023-09-22T07:33:44Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PgyOU",
+                    "body": "```suggestion\r\n  suffices n = 1 by linarith\r\n```",
+                    "createdAt": "2023-09-22T07:34:05Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pgyd3",
+                    "body": "```suggestion\r\n   ∑ x in Finset.range n \\ {c}, 1 / (x + 1 : ℚ) ≠ 0 := by\r\n```",
+                    "createdAt": "2023-09-22T07:34:31Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pgyu4",
+                    "body": "```suggestion\r\n  by_cases h : a = 0\r\n```\r\nor\r\n```suggestion\r\n  obtain rfl|h := eq_or_ne a 0\r\n```",
+                    "createdAt": "2023-09-22T07:35:16Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PgzcR",
+                    "body": "Given that `Rat.isInt` is used nowhere else, maybe just state this as `a.den ≠ 1` (and continuation of a statement should be indented four spaces, as elsewhere)",
+                    "createdAt": "2023-09-22T07:36:28Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PkKan",
+                    "body": "I use `Rat.isInt` at the main conclusion\r\n```\r\ntheorem harmonic_not_int : ∀ n, n ≥ 2 → ¬ (harmonic n).isInt := by\r\n```",
+                    "createdAt": "2023-09-22T23:27:49Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg0Hc",
+                    "body": "Why `try`? You're solving a single goal, so it should either work or not. (Presumably it works.)",
+                    "createdAt": "2023-09-22T07:37:02Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg0ns",
+                    "body": "`try` should not be needed here either: `;` will not apply a tactic to multiple goals as it did in lean 3.",
+                    "createdAt": "2023-09-22T07:38:04Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg03A",
+                    "body": "Where does the proof of `suffices` end? This is one of the reasons to prefer the `suffices padicValRat 2 a < 0 by ...` syntax",
+                    "createdAt": "2023-09-22T07:38:52Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg0-6",
+                    "body": "Same question",
+                    "createdAt": "2023-09-22T07:39:17Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg1A-",
+                    "body": "```suggestion\r\n  rw [one_div, padicValRat.inv, neg_inj, padicValRat.pow (by simp)]\r\n```",
+                    "createdAt": "2023-09-22T07:39:25Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg17b",
+                    "body": "```suggestion\r\nlemma nat_log_not_dvd {n : ℕ} (i : ℕ) (Hi₁ : 0 < i) (Hi₂ : i ≠ 2 ^ Nat.log 2 n) (Hi₃ : i ≤ n) :\r\n    ¬ 2 ^ Nat.log 2 n ∣ i := by\r\n```\r\nNote that `(p ∧ q) → r` is atypical; usually we'd use `p → q → r`\r\n\r\nShould this go into mathlib proper? Can the 2 be generalized?",
+                    "createdAt": "2023-09-22T07:42:57Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PkLAz",
+                    "body": "The `^` is not the conjuction connective but rather nat exponentiation :) And I don't think so! I make essential use of parity in this proof...",
+                    "createdAt": "2023-09-22T23:36:34Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg2Ss",
+                    "body": "That `simp` is not great. I think this should work:\r\n```suggestion\r\n  rintro ⟨c, Hc⟩\r\n```",
+                    "createdAt": "2023-09-22T07:44:31Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg2cc",
+                    "body": "Again,\r\n```suggestion\r\n  by_cases h : k = 0\r\n```\r\nor\r\n```suggestion\r\n  obtain rfl|h := eq_or_ne k 0\r\n```",
+                    "createdAt": "2023-09-22T07:45:09Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg2oZ",
+                    "body": "Move as much as possible before the colon here as well",
+                    "createdAt": "2023-09-22T07:45:54Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg25K",
+                    "body": "As a general rule, definitions that start with a (sequence of) upper case letter(s) get them lowercased:\r\n```suggestion\r\nlemma padicValRat_ge_neg_nat_log_ne {n : ℕ} :\r\n```",
+                    "createdAt": "2023-09-22T07:46:55Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg2-7",
+                    "body": "Space after comma",
+                    "createdAt": "2023-09-22T07:47:21Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg3Mo",
+                    "body": "The presence of the triangle `▸` is often an indication that your proof would be more readable using more tactics",
+                    "createdAt": "2023-09-22T07:48:10Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg3Vc",
+                    "body": "```suggestion\r\nlemma two_pow_log_mem_range {n : ℕ} (hn : 2 ≤ n):\r\n```",
+                    "createdAt": "2023-09-22T07:48:43Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg36m",
+                    "body": "As a matter of personal style, I'd probably write this as\r\n```suggestion\r\n  rw [padicValRat.add_eq_of_lt (p := 2) _\r\n      (one_div_ne_zero <| pow_ne_zero _ two_ne_zero) (harmonic_singleton_ne_zero Hn) _]\r\n  apply padicValRat_2_pow\r\n```",
+                    "createdAt": "2023-09-22T07:50:56Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg4DG",
+                    "body": "Use `simp?` to make this more robust to changes in the simp set",
+                    "createdAt": "2023-09-22T07:51:27Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg4FY",
+                    "body": "```suggestion\r\n    exact this (by linarith)\r\n```",
+                    "createdAt": "2023-09-22T07:51:36Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg4Lu",
+                    "body": "```suggestion\r\n      Nat.cast_pos, Nat.log_pos_iff]\r\n```",
+                    "createdAt": "2023-09-22T07:52:02Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg4X6",
+                    "body": "Since one branch is impossible, you might also use `if_neg` or `dif_neg` (whichever works here)",
+                    "createdAt": "2023-09-22T07:52:48Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg4dE",
+                    "body": "```suggestion\r\n    (hval : padicValRat p q ≠ padicValRat p r) :\r\n    padicValRat p (q + r) = min (padicValRat p q) (padicValRat p r) := by\r\n```",
+                    "createdAt": "2023-09-22T07:53:06Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg4rg",
+                    "body": "```suggestion\r\n    exact Hgen (by rwa [add_comm]) hr hq hval.symm\r\n      (by rwa [min_comm, add_comm])\r\n      (hval.symm.lt_of_le h)\r\n```",
+                    "createdAt": "2023-09-22T07:53:55Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg42h",
+                    "body": "```suggestion\r\n      rw [min_def] at Haux\r\n      split_ifs at Haux with Hspl\r\n      · assumption\r\n      · linarith\r\n```",
+                    "createdAt": "2023-09-22T07:54:34Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg5kN",
+                    "body": "You should not need to pass `hp` explicitly, and I'd hope not `p` either",
+                    "createdAt": "2023-09-22T07:57:18Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg55J",
+                    "body": "This entire block has incorrect indentation: doc string and first line of the statement should not be indented, further lines of the statement four spaces and proof starts at two spaces",
+                    "createdAt": "2023-09-22T07:58:26Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg6AV",
+                    "body": "```suggestion\r\n/-- If the p-adic valuation of a finite set of positive rationals is greater than a given rational\r\nnumber, then the p-adic valuation of their sum is also greater than the same rational number. -/\r\n```",
+                    "createdAt": "2023-09-22T07:58:52Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pg6V_",
+                    "body": "Why do you need this `·` block?",
+                    "createdAt": "2023-09-22T08:00:12Z",
+                    "author": {
+                      "login": "Ruben-VandeVelde"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PpehD",
+                    "body": "we tend to phrase everything in terms of `\\le` rather than `\\ge` in mathlib, I'd suggest doing that here",
+                    "createdAt": "2023-09-25T18:51:39Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Ppeoq",
+                    "body": "```suggestion\r\n    (hq : q ≠ 0) (hr : r ≠ 0) (hval : padicValRat p q < padicValRat p r) :\r\n    padicValRat p (q + r) = padicValRat p q := by\r\n  rw [min_eq_padicValRat_add hqr hq hr (ne_of_lt hval),min_eq_left (le_of_lt hval)]\r\n```",
+                    "createdAt": "2023-09-25T18:52:12Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PpeyJ",
+                    "body": "Try and follow this indentation style throughout the file (look at files in mathlib for more examples) but we do 4 spaces for the statement and 2 for the proof now (and tend to put by on the previous line)",
+                    "createdAt": "2023-09-25T18:52:57Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Ppe_b",
+                    "body": "```suggestion\r\nlemma le_nat_log (n : ℕ) [hp : Fact (Nat.Prime p)] : padicValNat p n ≤ Nat.log p n := by\r\n```",
+                    "createdAt": "2023-09-25T18:53:50Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PpfDv",
+                    "body": "```suggestion\r\nlemma nat_log_eq_padicValNat_iff {n : ℕ} [hp : Fact (Nat.Prime p)] (hn : 0 < n):\r\n```",
+                    "createdAt": "2023-09-25T18:54:08Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PpfF0",
+                    "body": "```suggestion\r\n    Nat.log p n = padicValNat p n ↔ n < p ^ (padicValNat p n + 1) := by\r\n```",
+                    "createdAt": "2023-09-25T18:54:17Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PpfKQ",
+                    "body": "```suggestion\r\nlemma le_nat_log_gen {n₁ n₂ : ℕ} [Fact (Nat.Prime p)] (hn : n₁ ≤ n₂) :\r\n```",
+                    "createdAt": "2023-09-25T18:54:32Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PpfRC",
+                    "body": "Also what does `gen` mean here? ",
+                    "createdAt": "2023-09-25T18:54:59Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PqJvm",
+                    "body": "Err. Poor naming. I renamed it to `le_nat_log_of_le`",
+                    "createdAt": "2023-09-25T22:39:41Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Ppfag",
+                    "body": "what is `gen`?",
+                    "createdAt": "2023-09-25T18:55:40Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PqKEy",
+                    "body": "Renamed to `sum_gt_of_gt` to conform with`sum_pos_of_pos` right above it.",
+                    "createdAt": "2023-09-25T22:42:09Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PqLpo",
+                    "body": "```suggestion\r\nlemma harmonic_singleton {n c : ℕ} (hc : c ∈ Finset.range n) :\r\n```\r\nplease change all of these not just the ones I comment on ;)",
+                    "createdAt": "2023-09-25T22:53:55Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PqL83",
+                    "body": "haha yes, got all of them :) ",
+                    "createdAt": "2023-09-25T22:56:16Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PqLwg",
+                    "body": "we tend not to use numbers in names but instead spell them out",
+                    "createdAt": "2023-09-25T22:54:46Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PqL0z",
+                    "body": "That said surely this lemma has nothing to do with two specificly? and could be generalized to any p?",
+                    "createdAt": "2023-09-25T22:55:18Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PqM4E",
+                    "body": "yes but i really only needed 2-adic valuations in this proof, but this was more of a local lemma specific to this file which i needed in the proofs below. ",
+                    "createdAt": "2023-09-25T23:04:11Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PqNN8",
+                    "body": "(but i can generalize it)",
+                    "createdAt": "2023-09-25T23:07:14Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PtZqE",
+                    "body": "Mathlib philosophy is really to try and avoid local lemmas that are only useful once, especially when the generalization is easy and the lemma could be useful to someone else at some point",
+                    "createdAt": "2023-09-26T14:23:59Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PtcQH",
+                    "body": "Yes, that lemma is generalized in 38884190410085716619b1cf03d126b033546b90.",
+                    "createdAt": "2023-09-26T14:29:55Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pth8e",
+                    "body": "Yeah I was just trying to explain a bit as you sounded unconvinced of the merits of generalizing!",
+                    "createdAt": "2023-09-26T14:45:24Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pq6MW",
+                    "body": "Can you generalize this to arbitrary primes and move this to the padic norm file?",
+                    "createdAt": "2023-09-26T05:39:26Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PtwA3",
+                    "body": "yep, done and moved",
+                    "createdAt": "2023-09-26T15:19:23Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pq6Tb",
+                    "body": "You should think about whether this unfolding is due to missing API.",
+                    "createdAt": "2023-09-26T05:40:04Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PtwOX",
+                    "body": "perhaps! i'm not really sure. changing that to `dsimp [padicValRat]` or `simp only [padicValRat]` also works. presumably those are ok? i really just need to unfold the definition once in that subproof...",
+                    "createdAt": "2023-09-26T15:20:00Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pt3dN",
+                    "body": "But it seems like some of this definition unfolding is in order to use the formula for `padicNorm` or to prove that `padicValRat` is negative. Could those be separate lemmas?",
+                    "createdAt": "2023-09-26T15:39:36Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pt-sg",
+                    "body": "I am adding a \r\n```lean\r\nlemma padicValRat_def (p : ℕ) (q : ℚ) :\r\n  padicValRat p q = padicValInt p q.num - padicValNat p q.den\r\n    := rfl\r\n```",
+                    "createdAt": "2023-09-26T16:02:11Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Ptalf",
+                    "body": "```suggestion\r\n  have Hpow : 2 ^ Nat.log 2 n * 2 = 2 ^ (Nat.log 2 n + 1) := by exact rfl\r\n```\r\nalso does this need to be `by exact rfl`, does `rfl` the proof term work instead?",
+                    "createdAt": "2023-09-26T14:25:47Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PtjEI",
+                    "body": "```suggestion\r\nlemma harmonic_pos {n : ℕ} (Hn : n ≠ 0) : 0 < harmonic n :=\r\n```\r\nan argument should normally be implicit when followed by another argument that pins it down. in this case this probably means one of the uses below will break but that should be easily fixable",
+                    "createdAt": "2023-09-26T14:48:28Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Ptu-7",
+                    "body": "thanks! missed that one",
+                    "createdAt": "2023-09-26T15:17:48Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PtjsQ",
+                    "body": "I think this would make a good simp lemma actually",
+                    "createdAt": "2023-09-26T14:49:46Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PtxPx",
+                    "body": "done, thanks",
+                    "createdAt": "2023-09-26T15:23:08Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PtyA4",
+                    "body": "```suggestion\r\n    (H : 1 < padicNorm p a) : ¬ a.isInt := by\r\n```",
+                    "createdAt": "2023-09-26T15:25:12Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuNsr",
+                    "body": "```suggestion\r\ntheorem lt_sum_of_lt {p j : ℕ} [hp : Fact (Nat.Prime p)] {F : ℕ → ℚ} {S : Finset ℕ}\r\n```",
+                    "createdAt": "2023-09-26T16:44:32Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuOSw",
+                    "body": "```suggestion\r\ntheorem padicValRat_two_harmonic {n : ℕ} (Hn : 2 ≤ n) :\r\n```",
+                    "createdAt": "2023-09-26T16:46:14Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuObC",
+                    "body": "```suggestion\r\nlemma two_pow_log_sub_one_mem_range {n : ℕ} (hn : 2 ≤ n) :\r\n```",
+                    "createdAt": "2023-09-26T16:46:45Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuOot",
+                    "body": "```suggestion\r\nlemma padicValRat_ge_neg_Nat_log_ge {p n q : ℕ} [hp : Fact (Nat.Prime p)] (Hq : q ≤ n) :\r\n```\r\nand the name should be changed to the le version (likewise below)",
+                    "createdAt": "2023-09-26T16:47:17Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuOz8",
+                    "body": "also Nat should be lowercase in the name",
+                    "createdAt": "2023-09-26T16:47:54Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuOr3",
+                    "body": "```suggestion\r\nlemma padicValRat_ge_neg_nat_log_ne {n q : ℕ} (Hq₁ : 0 < q)\r\n  (Hq₂ : q ≤ n) (Hq₃ : q ≠ 2 ^ Nat.log 2 n) :\r\n```",
+                    "createdAt": "2023-09-26T16:47:28Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuhMb",
+                    "body": "This feels like it should be a quick consequence of two simpler lemmas, one saying `(Finset.range n).Nontrivial` and one saying that `s.Nontrivial → (s \\ {c}).Nonempty`. And can you move it to an earlier file?",
+                    "createdAt": "2023-09-26T17:59:06Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PvgcQ",
+                    "body": "I tried this for a while but gave up. I tried to put this in `Finset.Basic` but the lemmas there don't know `linarith` apparently. This is what I could come up with: \r\n```lean\r\nlemma finset_range_sdiff_singleton_nonempty {c n : ℕ} (hn : 2 ≤ n) :\r\n    Finset.Nonempty (Finset.range n \\ {c}) := by\r\n  rw [Finset.sdiff_nonempty, Finset.subset_singleton_iff, Finset.range_eq_empty_iff, not_or]\r\n  refine' ⟨ne_of_gt <| lt_of_lt_of_le zero_lt_two hn, fun Hnot => _⟩\r\n  have : n = 1 := by rw [← Finset.card_range n, ← Finset.card_singleton c, Hnot]\r\n  simp only [this] at hn\r\n```\r\nFeel free to golf this and commit if you can",
+                    "createdAt": "2023-09-26T22:47:24Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PvhsL",
+                    "body": "I mean that you should write two lemmas, one saying `(Finset.range n).Nontrivial` and one saying that `s.Nontrivial → (s \\ {c}).Nonempty`. You might need to merge master to get access to `Finset.Nontrivial`.",
+                    "createdAt": "2023-09-26T22:57:26Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pvi2B",
+                    "body": "Ah okay, that explains it",
+                    "createdAt": "2023-09-26T23:06:41Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PvvPj",
+                    "body": "Ok this is done in 6338778d53fbc18e738d3aa359bcfadad45a506d.",
+                    "createdAt": "2023-09-27T00:55:25Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuhVq",
+                    "body": "Can you generalize this to arbitrary primes and move it to an earlier file?",
+                    "createdAt": "2023-09-26T17:59:38Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pvg_3",
+                    "body": "This is already done in 38884190410085716619b1cf03d126b033546b90. See `padicValRat.self_pow_div`. I use this lemma twice in two proofs below so I factored it out as a local lemma. I can't seem to use `self_pow_div` directly because of an implicit coercion in the proof below.",
+                    "createdAt": "2023-09-26T22:52:02Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pukbj",
+                    "body": "This feels simpler. That being said, I feel like `Rat.isInt` isn't quite the right tool for the job, since it is `Bool` and not `Prop`.\r\n```suggestion\r\nlemma _root_.Rat.isInt.eq_num {q : ℚ} (h : q.isInt) : q = q.num := by\r\n  rw [Rat.isInt, Nat.beq_eq_true_eq] at h\r\n  exact (Rat.coe_int_num_of_den_eq_one h).symm\r\n\r\n/-- If a rational is not a p-adic integer, it is not an integer. -/\r\ntheorem not_int_of_not_padic_int (p : ℕ) {a : ℚ} [hp : Fact (Nat.Prime p)]\r\n    (H : 1 < padicNorm p a) : ¬ a.isInt := by\r\n  contrapose! H\r\n  rw [Rat.isInt.eq_num H]\r\n  apply padicNorm.of_int\r\n```",
+                    "createdAt": "2023-09-26T18:11:58Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PukuK",
+                    "body": "```suggestion\r\nlemma padicValRat_def (p : ℕ) (q : ℚ) :\r\n    padicValRat p q = padicValInt p q.num - padicValNat p q.den :=\r\n  rfl\r\n```",
+                    "createdAt": "2023-09-26T18:13:15Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuugZ",
+                    "body": "```suggestion\r\n  have h1 := min_le_padicValRat_add (p := p) hqr\r\n  have h2 := min_le_padicValRat_add (p := p) (ne_of_eq_of_ne (add_neg_cancel_right q r) hq)\r\n  have h3 := min_le_padicValRat_add (p := p) (ne_of_eq_of_ne (add_neg_cancel_right r q) hr)\r\n  rw [add_neg_cancel_right, padicValRat.neg] at h2 h3\r\n  rw [add_comm] at h3\r\n  refine' le_antisymm (le_min _ _) h1\r\n  · contrapose! h2\r\n    rw [min_eq_right h2.le] at h3\r\n    exact lt_min h2 (lt_of_le_of_ne h3 hval)\r\n  · contrapose! h3\r\n    rw [min_eq_right h3.le] at h2\r\n    exact lt_min h3 (lt_of_le_of_ne h2 hval.symm)\r\n```",
+                    "createdAt": "2023-09-26T18:52:53Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuvtO",
+                    "body": "Perhaps this lemma should be called something like `add_eq_min`?",
+                    "createdAt": "2023-09-26T18:57:04Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Puv0h",
+                    "body": "Maybe this lemma should be called `lt_add_of_lt`?",
+                    "createdAt": "2023-09-26T18:57:25Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Puwog",
+                    "body": "```suggestion\r\nlemma self_pow_div (r : ℕ) : padicValRat p ((p : ℚ) ^ r)⁻¹ = -r := by\r\n  rw [padicValRat.inv, neg_inj, padicValRat.pow (Nat.cast_ne_zero.mpr hp.elim.ne_zero),\r\n      padicValRat.self hp.elim.one_lt, mul_one]\r\n```",
+                    "createdAt": "2023-09-26T18:59:51Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PuxpQ",
+                    "body": "```suggestion\r\n  rcases eq_or_ne n 0 with rfl | h\r\n  · rw [padicValNat.zero, Nat.log_zero_right]\r\n  · refine' Nat.le_log_of_pow_le hp.elim.one_lt _\r\n    exact le_of_dvd (Nat.pos_of_ne_zero h) pow_padicValNat_dvd\r\n```",
+                    "createdAt": "2023-09-26T19:04:13Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Pu3fv",
+                    "body": "```suggestion\r\n  rw [padicNorm.eq_zpow_of_nonzero (harmonic_pos (by linarith)).ne']\r\n```",
+                    "createdAt": "2023-09-26T19:29:29Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PwKRr",
+                    "body": "I think usually `n⁻¹` is preferred over `1 / n` (analogous to how `-n` is the preferred over `0 - n`).\r\n```suggestion\r\ndef harmonic : ℕ → ℚ := fun n => ∑ i in Finset.range n, (↑(i + 1))⁻¹\r\n```",
+                    "createdAt": "2023-09-27T04:24:14Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PwK64",
+                    "body": "But we also have: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Analysis/PSeries.html#Real.tendsto_sum_range_one_div_nat_succ_atTop which does `1/(i+1)`.",
+                    "createdAt": "2023-09-27T04:30:02Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PwKWV",
+                    "body": "This allows for dot notation.\r\n```suggestion\r\ntheorem Nontrivial.sdiff_singleton_nonempty {c : α} {s : Finset α} (hS : s.Nontrivial) :\r\n```",
+                    "createdAt": "2023-09-27T04:24:52Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PwLAQ",
+                    "body": "(And switching to `n⁻¹` should in theory make some proofs a bit tidier)\r\n```suggestion\r\n  Finset.sum_pos (fun _ _ => inv_pos.mpr (by norm_cast; linarith))\r\n```",
+                    "createdAt": "2023-09-27T04:30:48Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PwNMa",
+                    "body": "It also breaks other proofs down below which I'm quite weary of fixing... If this is a matter of taste, I'd prefer to leave it as is. Other places in mathlib do use `1/x` as I've linked to above.",
+                    "createdAt": "2023-09-27T04:47:55Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PwODi",
+                    "body": "I opened a discussion on Zulip: https://leanprover.zulipchat.com/#narrow/stream/144837-PR-reviews/topic/.237319.20harmonic.20number.20not.20an.20integer",
+                    "createdAt": "2023-09-27T04:55:23Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PwRXv",
+                    "body": "OK, Made the change. It wasn't that bad, actually.",
+                    "createdAt": "2023-09-27T05:17:29Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PwSSQ",
+                    "body": "Does this work?\r\n```suggestion\r\n    (Finset.range_nontrivial hn).sdiff_singleton_nonempty\r\n```",
+                    "createdAt": "2023-09-27T05:23:02Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PwS6W",
+                    "body": "```suggestion\r\n    padicValRat 2 (harmonic n) = -Nat.log 2 n := by\r\n  rw [harmonic_singleton (two_pow_log_sub_one_mem_range Hn)]\r\n```",
+                    "createdAt": "2023-09-27T05:27:40Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PwTSu",
+                    "body": "```suggestion\r\ntheorem harmonic_not_int {n : ℕ} (h : 2 ≤ n) : ¬ (harmonic n).isInt := by\r\n  apply padicNorm.not_int_of_not_padic_int 2\r\n  rw [padicNorm.eq_zpow_of_nonzero (harmonic_pos (ne_zero_of_lt h)).ne',\r\n      padicValRat_two_harmonic h, neg_neg, zpow_coe_nat]\r\n  exact one_lt_pow one_lt_two (Nat.log_pos one_lt_two h).ne'\r\n```",
+                    "createdAt": "2023-09-27T05:30:48Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5PwUHl",
+                    "body": "```suggestion\r\nlemma Nat.log_ne_padicValNat_succ {n : ℕ} (hn : n ≠ 0) : log 2 n ≠ padicValNat 2 (n + 1) := by\r\n  rw [Ne, log_eq_iff (by simp [hn])]\r\n  rintro ⟨h1, h2⟩\r\n  rw [← lt_add_one_iff, ← mul_one (2 ^ _)] at h1\r\n  rw [← add_one_le_iff, pow_succ] at h2\r\n  refine' not_dvd_of_between_consec_multiples h1 (lt_of_le_of_ne' h2 _) pow_padicValNat_dvd\r\n  exact pow_succ_padicValNat_not_dvd n.succ_ne_zero ∘ dvd_of_eq\r\n\r\nlemma Nat.max_log_padicValNat_succ_eq_log_succ (n : ℕ) :\r\n    max (log 2 n) (padicValNat 2 (n + 1)) = log 2 (n + 1) := by\r\n  apply le_antisymm (max_le (le_log_of_pow_le one_lt_two (pow_log_le_add_one 2 n))\r\n    (le_log_of_pow_le one_lt_two (le_of_dvd n.succ_pos pow_padicValNat_dvd)))\r\n  rw [le_max_iff, or_iff_not_imp_left, not_le]\r\n  intro h\r\n  replace h := le_antisymm (add_one_le_iff.mpr (lt_pow_of_log_lt one_lt_two h))\r\n    (pow_log_le_self 2 n.succ_ne_zero)\r\n  rw [h, padicValNat.prime_pow, ← h]\r\n\r\n/-- The 2-adic valuation of the n-th harmonic number is the negative of the logarithm\r\n    of n. -/\r\ntheorem padicValRat_two_harmonic {n : ℕ} : padicValRat 2 (harmonic n) = -Nat.log 2 n := by\r\n  induction' n with n ih\r\n  · simp\r\n  · rcases eq_or_ne n 0 with rfl | hn\r\n    · simp\r\n    rw [harmonic_succ]\r\n    have key : padicValRat 2 (harmonic n) ≠ padicValRat 2 (↑(n + 1))⁻¹\r\n    · rw [ih, padicValRat.inv, padicValRat.of_nat, Ne, neg_inj, Nat.cast_inj]\r\n      exact Nat.log_ne_padicValNat_succ hn\r\n    rw [padicValRat.add_eq_min (harmonic_succ n ▸ (harmonic_pos n.succ_ne_zero).ne')\r\n        (harmonic_pos hn).ne' (inv_ne_zero (Nat.cast_ne_zero.mpr n.succ_ne_zero)) key, ih,\r\n        padicValRat.inv, padicValRat.of_nat, min_neg_neg, neg_inj, ← Nat.cast_max, Nat.cast_inj]\r\n    exact Nat.max_log_padicValNat_succ_eq_log_succ n\r\n```",
+                    "createdAt": "2023-09-27T05:36:49Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P0SJJ",
+                    "body": "You would also need these simp-lemmas:\r\n```\r\n@[simp]\r\nlemma harmonic_zero : harmonic 0 = 0 :=\r\n  rfl\r\n\r\n@[simp]\r\nlemma harmonic_succ (n : ℕ) : harmonic (n + 1) = harmonic n + (↑(n + 1))⁻¹ := by\r\n  apply Finset.sum_range_succ\r\n```",
+                    "createdAt": "2023-09-27T19:26:45Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P09Kd",
+                    "body": "Done! Thanks",
+                    "createdAt": "2023-09-27T22:16:44Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P12Qo",
+                    "body": "```suggestion\r\n  exact (Rat.coe_int_num_of_den_eq_one h).symm\r\n\r\n/-- If a rational is not a p-adic integer, it is not an integer. -/\r\n```",
+                    "createdAt": "2023-09-28T04:37:31Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P18KY",
+                    "body": "```suggestion\r\nlemma padicValNat_le_nat_log (n : ℕ) : padicValNat p n ≤ Nat.log p n := by\r\n  rcases n with _ | n\r\n  · simp\r\n  rcases p with _ | _ | p\r\n  · simp\r\n  · simp\r\n  exact Nat.le_log_of_pow_le p.one_lt_succ_succ (le_of_dvd n.succ_pos pow_padicValNat_dvd)\r\n```",
+                    "createdAt": "2023-09-28T05:18:23Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P18OU",
+                    "body": "These last two lemmas are no longer used.",
+                    "createdAt": "2023-09-28T05:18:49Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P18yj",
+                    "body": "Yeah but they'd be good to have around.",
+                    "createdAt": "2023-09-28T05:22:24Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P19Oq",
+                    "body": "The second one seems potentially useful, but this first lemma just gives a weaker upper bound than the preceding lemma, I think?",
+                    "createdAt": "2023-09-28T05:24:44Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P6bBq",
+                    "body": "I use the first lemma in the proof of the second, so might as well factor it out into its own lemma?",
+                    "createdAt": "2023-09-28T22:19:43Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P6b3l",
+                    "body": "Sorry, I meant that `le_nat_log_of_le` doesn't improve on the upper bound in `padicValNat_le_nat_log`, so I'm not sure whether it makes sense to keep `le_nat_log_of_le`.",
+                    "createdAt": "2023-09-28T22:25:56Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P6cl_",
+                    "body": "Ah okay, I agree. I just removed it.",
+                    "createdAt": "2023-09-28T22:31:46Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P18W-",
+                    "body": "```suggestion\r\n    (padicValNat_le_nat_log (n + 1)))\r\n```",
+                    "createdAt": "2023-09-28T05:19:41Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P2Q3i",
+                    "body": "This and the following lemma should probably be moved earlier.",
+                    "createdAt": "2023-09-28T06:58:53Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P6cze",
+                    "body": "```suggestion\r\n  exact ⟨by rintro rfl; exact Finset.not_nontrivial_empty hS, hS.ne_singleton⟩\r\n```",
+                    "createdAt": "2023-09-28T22:33:29Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P6dn_",
+                    "body": "I think it's more common to write `1 < n` than `2 ≤ n`.\r\n```suggestion\r\nlemma range_nontrivial {n : ℕ} (hn : 1 < n) : (Finset.range n).Nontrivial := by\r\n  rw [Finset.Nontrivial, Finset.coe_range]\r\n  exact ⟨0, zero_lt_one.trans hn, 1, hn, zero_ne_one⟩\r\n```",
+                    "createdAt": "2023-09-28T22:40:39Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P6dwZ",
+                    "body": "This lemma should be moved earlier.",
+                    "createdAt": "2023-09-28T22:41:46Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P6p22",
+                    "body": "Can you suggest a place this could go? The most natural place I can think of is `Std/Data/Rat`, but that seems like its a different package(?)",
+                    "createdAt": "2023-09-29T00:47:46Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P6p44",
+                    "body": "Perhaps here? But this seems barren so I don't know: https://github.com/leanprover-community/mathlib4/blob/master/Mathlib/Init/Data/Rat/Basic.lean",
+                    "createdAt": "2023-09-29T00:48:11Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P6rD1",
+                    "body": "I would suggest Data.Rat.Defs, since that is where `Rat.coe_int_num_of_den_eq_one` is located",
+                    "createdAt": "2023-09-29T01:02:00Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P68yu",
+                    "body": "OK done. ",
+                    "createdAt": "2023-09-29T03:19:22Z",
+                    "author": {
+                      "login": "kodyvajjha"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P6d8B",
+                    "body": "```suggestion\r\n  rw [add_eq_min hqr hq hr (ne_of_lt hval), min_eq_left (le_of_lt hval)]\r\n```",
+                    "createdAt": "2023-09-28T22:43:29Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5P6eBy",
+                    "body": "```suggestion\r\nlemma self_pow_inv (r : ℕ) : padicValRat p ((p : ℚ) ^ r)⁻¹ = -r := by\r\n```",
+                    "createdAt": "2023-09-28T22:44:16Z",
+                    "author": {
+                      "login": "tb65536"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjEwNzUxODY1",
+              "login": "kodyvajjha"
+            },
+            {
+              "id": "MDQ6VXNlcjEzMzM5MDE3",
+              "login": "tb65536"
+            },
+            {
+              "id": "MDQ6VXNlcjE2ODg1MzM=",
+              "login": "alexjbest"
+            },
+            {
+              "id": "MDQ6VXNlcjU2MzY3MDU=",
+              "login": "jcommelin"
+            },
+            {
+              "id": "MDQ6VXNlcjY1NTE0MTMx",
+              "login": "Ruben-VandeVelde"
+            },
+            {
+              "id": "U_kgDOB75MNQ",
+              "login": "leanprover-community-mathlib4-bot"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat: the n-th harmonic number is not an integer for n > 1.",
+        "updatedAt": "2023-09-29T05:56:23Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/7319",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5htfvu",
+              "createdAt": "2023-09-22T07:31:25Z",
+              "body": "Please don't be intimidated by the comments below, they're simple stylistic suggestions",
+              "author": {
+                "login": "Ruben-VandeVelde"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5xvgtLzwAAAAJupGAA",
+              "createdAt": "2023-09-22T11:11:07Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nPpO2",
+              "createdAt": "2023-09-23T00:53:06Z",
+              "body": "@Ruben-VandeVelde thank you for your comments, I've incorporated most of them and the build passes. @alexjbest suggested that we could move this material out of Counterexamples and into mathlib proper. I could do that as a follow up PR if that works. ",
+              "author": {
+                "login": "kodyvajjha"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5h6zOL",
+              "createdAt": "2023-09-25T18:51:39Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5h75fT",
+              "createdAt": "2023-09-25T22:53:55Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5h75pH",
+              "createdAt": "2023-09-25T22:54:46Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5xvgtLzwAAAAJv-N02",
+              "createdAt": "2023-09-25T23:57:43Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5xvgtLzwAAAAJv-N05",
+              "createdAt": "2023-09-25T23:57:43Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5h8_mo",
+              "createdAt": "2023-09-26T05:39:26Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5h8_wQ",
+              "createdAt": "2023-09-26T05:40:04Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iA_1R",
+              "createdAt": "2023-09-26T14:25:47Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iBNi-",
+              "createdAt": "2023-09-26T14:48:28Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iBOft",
+              "createdAt": "2023-09-26T14:49:46Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iBk31",
+              "createdAt": "2023-09-26T15:25:12Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5ndxJT",
+              "createdAt": "2023-09-26T16:10:49Z",
+              "body": "i think i've addressed most of the comments - just waiting now for the build to turn green, thanks everyone!",
+              "author": {
+                "login": "kodyvajjha"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iCPw4",
+              "createdAt": "2023-09-26T16:44:32Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iCQqW",
+              "createdAt": "2023-09-26T16:46:14Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iCQ3L",
+              "createdAt": "2023-09-26T16:46:45Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iCRL9",
+              "createdAt": "2023-09-26T16:47:17Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iCRQr",
+              "createdAt": "2023-09-26T16:47:27Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iCwU2",
+              "createdAt": "2023-09-26T17:59:06Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iCwky",
+              "createdAt": "2023-09-26T17:59:37Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iC1ys",
+              "createdAt": "2023-09-26T18:11:58Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iC2P3",
+              "createdAt": "2023-09-26T18:13:15Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iDHxX",
+              "createdAt": "2023-09-26T18:52:52Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iDJ_Q",
+              "createdAt": "2023-09-26T18:57:03Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iDKHb",
+              "createdAt": "2023-09-26T18:57:24Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iDLBZ",
+              "createdAt": "2023-09-26T18:59:50Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iDMta",
+              "createdAt": "2023-09-26T19:04:13Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iDWbn",
+              "createdAt": "2023-09-26T19:29:29Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nfwUK",
+              "createdAt": "2023-09-26T22:15:09Z",
+              "body": "It seems like induction can be used to simplify the main proof:\r\n```\r\nopen BigOperators\r\n\r\n/-- The nth-harmonic number defined as a finset sum of consecutive reciprocals. -/\r\ndef harmonic : ℕ → ℚ := fun n => ∑ i in Finset.range n, (↑(i + 1))⁻¹\r\n\r\n@[simp]\r\nlemma harmonic_zero : harmonic 0 = 0 :=\r\n  rfl\r\n\r\n@[simp]\r\nlemma harmonic_succ (n : ℕ) : harmonic (n + 1) = harmonic n + (↑(n + 1))⁻¹ := by\r\n  apply Finset.sum_range_succ\r\n\r\nlemma harmonic_pos {n : ℕ} (Hn : n ≠ 0) : 0 < harmonic n :=\r\n  Finset.sum_pos (fun n _ => inv_pos.mpr (Nat.cast_pos.mpr n.succ_pos))\r\n    (Finset.nonempty_range_iff.mpr Hn)\r\n\r\nlemma key1 {n : ℕ} (hn : n ≠ 0) : Nat.log 2 n ≠ padicValNat 2 (n + 1) := by\r\n  rw [Ne, Nat.log_eq_iff (by simp [hn])]\r\n  rintro ⟨h1, h2⟩\r\n  rw [← Nat.lt_add_one_iff, ← mul_one (2 ^ _)] at h1\r\n  rw [← Nat.add_one_le_iff, pow_succ'] at h2\r\n  refine' Nat.not_dvd_of_between_consec_multiples h1 (lt_of_le_of_ne' h2 _) pow_padicValNat_dvd\r\n  exact pow_succ_padicValNat_not_dvd n.succ_ne_zero ∘ dvd_of_eq\r\n\r\nlemma key2 (n : ℕ) : max (Nat.log 2 n) (padicValNat 2 (n + 1)) = Nat.log 2 (n + 1) := by\r\n  apply le_antisymm (max_le (Nat.le_log_of_pow_le one_lt_two (Nat.pow_log_le_add_one 2 n))\r\n    (Nat.le_log_of_pow_le one_lt_two (Nat.le_of_dvd n.succ_pos pow_padicValNat_dvd)))\r\n  rw [le_max_iff, or_iff_not_imp_left, not_le]\r\n  intro h\r\n  replace h := le_antisymm (Nat.add_one_le_iff.mpr (Nat.lt_pow_of_log_lt one_lt_two h))\r\n    (Nat.pow_log_le_self 2 n.succ_ne_zero)\r\n  rw [h, padicValNat.prime_pow, ← h]\r\n\r\n/-- The 2-adic valuation of the n-th harmonic number is the negative of the logarithm\r\n    of n. -/\r\ntheorem harmonic_two_adicValRat {n : ℕ} : padicValRat 2 (harmonic n) = -Nat.log 2 n := by\r\n  induction' n with n ih\r\n  · simp\r\n  · rcases eq_or_ne n 0 with rfl | hn\r\n    · simp\r\n    rw [harmonic_succ]\r\n    have key : padicValRat 2 (harmonic n) ≠ padicValRat 2 (↑(n + 1))⁻¹\r\n    · rw [ih, padicValRat.inv, padicValRat.of_nat, Ne, neg_inj, Nat.cast_inj]\r\n      exact key1 hn\r\n    rw [padicValRat.min_eq_padicValRat_add (harmonic_succ n ▸ (harmonic_pos n.succ_ne_zero).ne')\r\n        (harmonic_pos hn).ne' (inv_ne_zero (Nat.cast_ne_zero.mpr n.succ_ne_zero)) key, ih,\r\n        padicValRat.inv, padicValRat.of_nat, min_neg_neg, neg_inj, ← Nat.cast_max, Nat.cast_inj]\r\n    exact key2 n\r\n\r\n/-- The n-th harmonic number is not an integer for n ≥ 2. -/\r\ntheorem harmonic_not_int {n : ℕ} (h : 1 < n) : ¬(harmonic n).isInt := by\r\n  apply padicNorm.not_int_of_not_padic_int 2\r\n  rw [padicNorm.eq_zpow_of_nonzero (harmonic_pos (ne_zero_of_lt h)).ne',\r\n      harmonic_two_adicValRat, neg_neg, zpow_coe_nat]\r\n  exact one_lt_pow one_lt_two (Nat.log_pos one_lt_two h).ne'\r\n```",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nfyYY",
+              "createdAt": "2023-09-26T22:24:31Z",
+              "body": "@tb65536 Can we just merge this and you can make your proof as a PR later? Or, better yet: feel free to push your changes onto this branch. ",
+              "author": {
+                "login": "kodyvajjha"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "62e346a8a1f67d71b54f833968c4835e42f40ed2"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5254a3e847f8cb8abc8e90fc80226888c7e89ba2"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "886117ab226aef116bb6b1219db9ed266073b47d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7e789be616bf1eb7d256bfb424803358ae6323e3"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d8f7d3eeb12f2a4d60aa76dfb9c88fae5959359c"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c7c345cf1ec1a2da67b9edc0be23b9794a8e58f6"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "25b4e914f10add5553e8c2c41eb634b7bea8cca3"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d193c37be6eb14039b931e59661e8076e0df4fc7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a67c69f792978533b226def55d2c49ea441ce7bc"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0ed3c48f9149f66d5efe3123b7cc249677a9d467"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "39e7c9ba9406a047afb667cda923b769bed9206e"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "258d3cf457ceee6bd22f5c572d4f2e3c1d7ec54f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "57f8e457ea7984e71ea765fb582b2c394ecadf90"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4df29c5c30a0e969de99687a78a7d8a356a04a76"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3f020f945a7154ab348aa0ba1e682155f80aee3e"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e4538fbc5e67561408dd7ab43f928687ae417cba"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8ec3340f7979e2f659ad6345da7ccb0b85962e03"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "60ceb83c8475577ead368c7200bc273e71d4ed94"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "761aee7aed65552f1ff21197e4f0dede0b8482d4"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7cac0afcaeb5798bde12b6a26d3de33bfae8b2a5"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "25695222e2c29ae7c79a0c877fb4dfd2c5de26da"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "16095829805029d034a69803cb15d402bb67c1ad"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "45c0d30fb0305ab7e490a291701d6ad6ce422bc7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1311ab68c415de5cbb2230e47f68d0320c7323e1"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a7fece2b43ae71d828419e25882e8bc857516589"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "15b79f9d12f9fceffde0be591619bae2aa33d53f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2a27077e5771a8ba57255006a3ab09d1260638a0"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "90cf3710e056deae76a64492b54d6b22246faec3"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "90fd8dc5f96aa48efe36838856feaf9da422a649"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f70cd3451b422ded521b4ae1fd908e012081b3c6"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d44e4e63f6a80e99e367fcadd13444026eb1cea3"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7fa0088f366fa7f1c50a9b6ffd81b5f83ab86e56"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d7f092f78bc846941cd97b2a3ff69b6387adbbf0"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ff72121236d90fad2dc171b9cfa6c502596dfc37"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "be2bc38db6f45c55ce35888a2230248219681025"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4c3a0e88ad345fba137b77dd99605d19371e4ed8"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "faacc317d2d897241b8cc9f62ee9cc4872d67501"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4d46a3b98a05e4f3294e267fb4b7e79bd5d2622b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e3d29255a6f27d463363d596a6c56e723ef327ad"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e484f4f1aad5a0a9b994095699fb2c2a299adaba"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8905db727ad67fa98dbf274157f81ce4f0bc3e3a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ec511de7762b99ff9e795683b26019d3b52c05c8"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c7d4c9aefe4ff214ca29832e2cc3a2f5d476b496"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f9e5dd3502404a418967146d5e92438c68bbffee"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ef7a81e000a603f9722268e00142fe03b260b488"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "bf025529bb0187390ee2fbba0326f3e01753871d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "edd54dc7ad23cbea8818718e7561b16c5bc70c70"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "db51df416706d45dd7d9add7726f8f084252532e"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "bc58ab8a4b929d504043cbd49cba0f0ed6e710a2"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "51f2acc81223e1b8d91d27c393f9e0c58fc7b951"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "39c6fb000a3a57e9fe4d0a037bfa1ec9314a2d4d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "797e82f894573cec661c4c97c07ad921c018ef05"
+              }
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c5xvgtLzwAAAAJwtLrN",
+              "createdAt": "2023-09-26T23:13:41Z"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "6338778d53fbc18e738d3aa359bcfadad45a506d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5c63894a9740e9af590c7f71bdef513efafab7c5"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iFVBb",
+              "createdAt": "2023-09-27T04:24:14Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iFVHy",
+              "createdAt": "2023-09-27T04:24:52Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iFWB5",
+              "createdAt": "2023-09-27T04:30:48Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a1cce8d9fb39b1f50e8bd00953db4bdd5745bf04"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8741aa3016ba612088924ef340a01a49060e6de6"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iFjYv",
+              "createdAt": "2023-09-27T05:23:02Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iFkV0",
+              "createdAt": "2023-09-27T05:27:40Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iFmM0",
+              "createdAt": "2023-09-27T05:36:49Z",
+              "body": "I do suggest you consider proving `padicValRat_two_harmonic` by induction. It's shorter and avoids the hypothesis `2 ≤ n`.",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2b3ac1a2799158a20f98c34801e6e6291aafe3fb"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e249282cdb1d4fed4aa60e87ce7e9b9c65571836"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f61a5c5328ed24b07d57992cc0374d9e88a73625"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7ce7924aca740aeb9bf572afc91e03161b0b198d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7212811e10716366a3ea5ac66a1e45f55c8b12f2"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "00a352072633ade4dcec27f9a6432c198898f061"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iOJFQ",
+              "createdAt": "2023-09-28T04:37:31Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iOQFj",
+              "createdAt": "2023-09-28T05:18:23Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1a2cb2bdad1012ae270435c4ddec603fb3d88d97"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d8b593a5adecef1311f36cea0707cd1514075082"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e4a946ddbda86877242c1a812220dce99eab87d7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "40ef8dc212b60c6a39bfec11463476d91649f6ea"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iOwsh",
+              "createdAt": "2023-09-28T06:58:52Z",
+              "body": "",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2365d537da3a23805b7ee9622d422ef7eeb7bb96"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "aa60496c0f055540dda47982f22ccb2b95e82cd4"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3653d5b3f3f6263be5ae4b8fa1a08f8a089faaf8"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iVeIW",
+              "createdAt": "2023-09-28T22:33:29Z",
+              "body": "Looking very good. Maybe someone else can take one last look over?",
+              "author": {
+                "login": "tb65536"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f4cbf9c2526ddf98c9d47382097f471dee3f2361"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "aeb9acbf330a4e6e8943936531d3746e3d493743"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "12f33fb490e7d75cd858b1c1227c029c64258fc0"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iVu2c",
+              "createdAt": "2023-09-29T00:17:38Z",
+              "body": "lgtm once those last two comments are taken care of",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "26fa1932f933f289e8ef8d9a1ffc2ee290dfbe8f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c7549949a43cbac1ee1b2ce81c2ce3dd3dcb731d"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nujZb",
+              "createdAt": "2023-09-29T03:22:24Z",
+              "body": "maintainer merge",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nuja8",
+              "createdAt": "2023-09-29T03:22:37Z",
+              "body": "🚀 Pull request has been placed on the maintainer queue by alexjbest.",
+              "author": {
+                "login": "github-actions"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nujfU",
+              "createdAt": "2023-09-29T03:23:14Z",
+              "body": "Thanks for making all these changes @kodyvajjha, hopefully the next PR will be smoother :)",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nujqi",
+              "createdAt": "2023-09-29T03:24:42Z",
+              "body": "Hahaha hopefully! Thanks @alexjbest ",
+              "author": {
+                "login": "kodyvajjha"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5iWb3e",
+              "createdAt": "2023-09-29T04:39:42Z",
+              "body": "Thanks :tada:\r\n\r\nbors merge",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5xvgtLzwAAAAJyP591",
+              "createdAt": "2023-09-29T04:39:57Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5xvgtLzwAAAAJyP5_D",
+              "createdAt": "2023-09-29T04:39:58Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5nu6VU",
+              "createdAt": "2023-09-29T05:56:18Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6347246320/job/17241964591)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6347246320/job/17241964507)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6347246320/job/17241964376)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5xvgtLzwAAAAJyRnvh",
+              "createdAt": "2023-09-29T05:56:19Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5xvgtLzwAAAAJyRn08",
+              "createdAt": "2023-09-29T05:56:23Z"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
