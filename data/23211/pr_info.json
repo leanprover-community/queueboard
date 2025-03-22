@@ -11,7 +11,7 @@
         },
         "autoMergeRequest": null,
         "baseRefName": "master",
-        "body": "Replace `induction'` with `induction` where the target is\r\n* `Nat` using both default inductor and `Nat.strong_induction_on`\r\n* `List` using default inductor\r\n* `Finset` using `Finset.induction(_on)`\r\n\r\nThis script performed the automatic replacement:\r\n```python\r\n#!/usr/bin/env python3\r\nimport re\r\n\r\nkeys = {}\r\nwith open(\"induction-uses\", 'r') as f:\r\n    for l in f:\r\n        filename, line_n, col_n, rest = l.split(':', maxsplit=3)\r\n        i = int(line_n)-1\r\n        col_n = int(col_n)\r\n        head, sep, n_subgoals = rest.strip().rpartition(' ')\r\n        n_subgoals = int(n_subgoals)\r\n        assert head.endswith(']')\r\n        head, sep, newvars = head[:-1].rpartition(' [')\r\n        assert sep\r\n        newvars = newvars.split(', ') if newvars else []\r\n        assert head.endswith(']')\r\n        head, sep, genvars = head[:-1].rpartition(' [')\r\n        assert sep\r\n        genvars = genvars.split(', ') if genvars else []\r\n        head, sep, inductor = head.rpartition(' ')\r\n        assert sep\r\n        if filename not in keys:\r\n            keys[filename] = {}\r\n        if i not in keys[filename]:\r\n            keys[filename][i] = {}\r\n        keys[filename][i].update({col_n: ((head, inductor, n_subgoals), genvars, newvars)})\r\n\r\nrep_dict = {(\"Nat\", \"~\", 2): [(\"zero\", 0), (\"succ\", 2)],\r\n            (\"Nat\", \"Nat.strong_induction_on\", 1): [(\"h\", 2)],\r\n            (\"List\", \"~\", 2): [(\"nil\", 0), (\"cons\", 3)],\r\n            (\"Finset\", \"Finset.induction\", 2): [(\"empty\", 0), (\"@insert\", 4)],\r\n            (\"Finset\", \"Finset.induction_on\", 2): [(\"empty\", 0), (\"@insert\", 4)]}\r\n\r\n# Strip · from the start of a line if present.\r\n# Return the stripped line (preserving indentation), its indent in spaces and whether it starts with ·\r\ndef strip_dot(l):\r\n    l1 = l.lstrip(' ')\r\n    l2 = l.lstrip(' ·')\r\n    dent = len(l) - len(l2)\r\n    return (' '*dent + l2, dent, len(l2) < len(l1))\r\n\r\nfor (filename, d) in keys.items():\r\n    with open(filename, 'r') as f:\r\n        lines = f.readlines()\r\n    drift = 0 # keep track of line count increases from replacing\r\n    for (i, t) in d.items():\r\n        line = lines[i + drift]\r\n        for (col_n, (ind_kind, genvars, newvars)) in t.items():\r\n            # If no new variables are named we might as well use plain `induction`\r\n            if not newvars:\r\n                lines[i + drift] = line.replace(\"induction'\", \"induction\")\r\n                continue\r\n            if ind_kind not in rep_dict:\r\n                continue\r\n            genstr = \" generalizing \" + \" \".join(genvars) if genvars else \"\"\r\n            if ind_kind[1] == \"~\":\r\n                induction_re = re.compile(r\"induction' (.*) with \" + \" \".join(newvars) + genstr)\r\n            else:\r\n                induction_re = re.compile(rf\"induction' (.*) using {ind_kind[1]} with \" + \" \".join(newvars) + genstr)\r\n            if not (m := induction_re.search(line)):\r\n                continue\r\n            # Scan below the induction' to find case blocks (marked by ·),\r\n            # until the indent goes back to or below the induction'.\r\n            # (It is possible that the final block has the same indent)\r\n            ind_blocks, j, bail = [], 1, False\r\n            start_dent = strip_dot(line)[1]\r\n            while True:\r\n                try:\r\n                    cand_line = lines[i + drift + j]\r\n                except IndexError: # we reached EOF\r\n                    break\r\n                stripped_line, dent, has_dot = strip_dot(cand_line)\r\n                if dent < start_dent:\r\n                    break\r\n                if dent == start_dent:\r\n                    ind_blocks.append([])\r\n                    break\r\n                if has_dot:\r\n                    ind_blocks.append([stripped_line])\r\n                else:\r\n                    try:\r\n                        ind_blocks[-1].append(stripped_line)\r\n                    except IndexError:\r\n                        bail = True\r\n                        break\r\n                j += 1\r\n            if bail:\r\n                continue\r\n            ind_branches = rep_dict[ind_kind]\r\n            if len(ind_blocks) != len(ind_branches):\r\n                continue\r\n            if ind_kind[1] == \"~\":\r\n                replacement_block = [' '*start_dent + f\"induction {m[1]}{genstr} with\\n\"]\r\n            else:\r\n                replacement_block = [' '*start_dent + f\"induction {m[1]} using {ind_kind[1]}{genstr} with\\n\"]\r\n            for ((branch_name, nvars), block) in zip(ind_branches, ind_blocks):\r\n                # Pick (up to) nvars variables from newvars\r\n                branch_head = ' '*start_dent + f\"| {branch_name}\" + \"\".join(' '+v for v in newvars[:nvars]) + \" =>\"\r\n                newvars = newvars[nvars:]\r\n                if len(block) == 0:\r\n                    replacement_block.append(branch_head + \" ?_\\n\")\r\n                elif len(block) == 1:\r\n                    replacement_block.append(branch_head + \" \" + block[0].lstrip(' '))\r\n                else:\r\n                    replacement_block.append(branch_head + '\\n')\r\n                    replacement_block.extend(block)\r\n            # Modify the replacement block to be on one line if it is exactly two lines\r\n            if len(replacement_block) == 2:\r\n                l0, l1 = replacement_block\r\n                replacement_block = [l0.rstrip() + ' ' + l1.lstrip(' ')]\r\n            n_orig_lines = sum(len(block) for block in ind_blocks) + 1\r\n            n_repl_lines = len(replacement_block)\r\n            lines[i+drift:i+drift+n_orig_lines] = replacement_block\r\n            drift += n_repl_lines - n_orig_lines\r\n    with open(filename, 'w') as f:\r\n        f.write(\"\".join(lines))\r\n```\r\n`induction-uses` was obtained from the output of [this run](https://github.com/leanprover-community/mathlib4/actions/runs/14004271932/job/39215914331) and is available [here](https://leanprover.zulipchat.com/#narrow/channel/287929-mathlib4/topic/The.20plan.20to.20remove.20induction'/near/507418143).",
+        "body": "Replace `induction'` with `induction` where the target is\r\n* `Nat` using both default inductor and `Nat.strong_induction_on`\r\n* `List` using default inductor\r\n* `Finset` using `Finset.induction(_on)`\r\n\r\nThis script performed the automatic replacement:\r\n```python\r\n#!/usr/bin/env python3\r\nimport re\r\n\r\nkeys = {}\r\nwith open(\"induction-uses\", 'r') as f:\r\n    for l in f:\r\n        filename, line_n, col_n, rest = l.split(':', maxsplit=3)\r\n        i = int(line_n)-1\r\n        col_n = int(col_n)\r\n        head, sep, n_subgoals = rest.strip().rpartition(' ')\r\n        n_subgoals = int(n_subgoals)\r\n        assert head.endswith(']')\r\n        head, sep, newvars = head[:-1].rpartition(' [')\r\n        assert sep\r\n        newvars = newvars.split(', ') if newvars else []\r\n        assert head.endswith(']')\r\n        head, sep, genvars = head[:-1].rpartition(' [')\r\n        assert sep\r\n        genvars = genvars.split(', ') if genvars else []\r\n        head, sep, inductor = head.rpartition(' ')\r\n        assert sep\r\n        if filename not in keys:\r\n            keys[filename] = {}\r\n        if i not in keys[filename]:\r\n            keys[filename][i] = {}\r\n        keys[filename][i].update({col_n: ((head, inductor, n_subgoals), genvars, newvars)})\r\n\r\nrep_dict = {(\"Nat\", \"~\", 2): [(\"zero\", 0), (\"succ\", 2)],\r\n            (\"Nat\", \"Nat.strong_induction_on\", 1): [(\"h\", 2)],\r\n            (\"List\", \"~\", 2): [(\"nil\", 0), (\"cons\", 3)],\r\n            (\"Finset\", \"Finset.induction\", 2): [(\"empty\", 0), (\"@insert\", 4)],\r\n            (\"Finset\", \"Finset.induction_on\", 2): [(\"empty\", 0), (\"@insert\", 4)]}\r\n\r\n# Strip · from the start of a line if present.\r\n# Return the stripped line (preserving indentation), its indent in spaces and whether it starts with ·\r\ndef strip_dot(l):\r\n    l1 = l.lstrip(' ')\r\n    l2 = l.lstrip(' ·')\r\n    dent = len(l) - len(l2)\r\n    return (' '*dent + l2, dent, len(l2) < len(l1))\r\n\r\nfor (filename, d) in keys.items():\r\n    with open(filename, 'r') as f:\r\n        lines = f.readlines()\r\n    drift = 0 # keep track of line count increases from replacing\r\n    for (i, t) in d.items():\r\n        line = lines[i + drift]\r\n        for (col_n, (ind_kind, genvars, newvars)) in t.items():\r\n            # If no new variables are named we might as well use plain `induction`\r\n            if not newvars:\r\n                lines[i + drift] = line.replace(\"induction'\", \"induction\")\r\n                continue\r\n            if ind_kind not in rep_dict:\r\n                continue\r\n            genstr = \" generalizing \" + \" \".join(genvars) if genvars else \"\"\r\n            if ind_kind[1] == \"~\":\r\n                induction_re = re.compile(r\"induction' (.*) with \" + \" \".join(newvars) + genstr)\r\n            else:\r\n                induction_re = re.compile(rf\"induction' (.*) using {ind_kind[1]} with \" + \" \".join(newvars) + genstr)\r\n            if not (m := induction_re.search(line)):\r\n                continue\r\n            # Scan below the induction' to find case blocks (marked by ·),\r\n            # until the indent goes back to or below the induction'.\r\n            # (It is possible that the final block has the same indent)\r\n            ind_blocks, j, bail = [], 1, False\r\n            start_dent = strip_dot(line)[1]\r\n            while True:\r\n                try:\r\n                    cand_line = lines[i + drift + j]\r\n                except IndexError: # we reached EOF\r\n                    break\r\n                stripped_line, dent, has_dot = strip_dot(cand_line)\r\n                if dent < start_dent:\r\n                    break\r\n                if dent == start_dent:\r\n                    ind_blocks.append([])\r\n                    break\r\n                if has_dot:\r\n                    ind_blocks.append([stripped_line])\r\n                else:\r\n                    try:\r\n                        ind_blocks[-1].append(stripped_line)\r\n                    except IndexError:\r\n                        bail = True\r\n                        break\r\n                j += 1\r\n            if bail:\r\n                continue\r\n            ind_branches = rep_dict[ind_kind]\r\n            if len(ind_blocks) != len(ind_branches):\r\n                continue\r\n            if ind_kind[1] == \"~\":\r\n                replacement_block = [' '*start_dent + f\"induction {m[1]}{genstr} with\\n\"]\r\n            else:\r\n                replacement_block = [' '*start_dent + f\"induction {m[1]} using {ind_kind[1]}{genstr} with\\n\"]\r\n            for ((branch_name, nvars), block) in zip(ind_branches, ind_blocks):\r\n                # Pick (up to) nvars variables from newvars\r\n                branch_head = ' '*start_dent + f\"| {branch_name}\" + \"\".join(' '+v for v in newvars[:nvars]) + \" =>\"\r\n                newvars = newvars[nvars:]\r\n                if len(block) == 0:\r\n                    replacement_block.append(branch_head + \" ?_\\n\")\r\n                elif len(block) == 1:\r\n                    replacement_block.append(branch_head + \" \" + block[0].lstrip(' '))\r\n                else:\r\n                    replacement_block.append(branch_head + '\\n')\r\n                    replacement_block.extend(block)\r\n            # Modify the replacement block to be on one line if it is exactly two lines\r\n            if len(replacement_block) == 2:\r\n                l0, l1 = replacement_block\r\n                replacement_block = [l0.rstrip() + ' ' + l1.lstrip(' ')]\r\n            n_orig_lines = sum(len(block) for block in ind_blocks) + 1\r\n            n_repl_lines = len(replacement_block)\r\n            lines[i+drift:i+drift+n_orig_lines] = replacement_block\r\n            drift += n_repl_lines - n_orig_lines\r\n    with open(filename, 'w') as f:\r\n        f.write(\"\".join(lines))\r\n```\r\n`induction-uses` was obtained from the output of [this run](https://github.com/leanprover-community/mathlib4/actions/runs/14004271932/job/39215914331) and is available [here](https://leanprover.zulipchat.com/#narrow/channel/287929-mathlib4/topic/The.20plan.20to.20remove.20induction'/near/507418143).\r\n\r\n`Archive` is also completely deprimed here.",
         "changedFiles": 237,
         "closed": false,
         "closedAt": null,
@@ -500,14 +500,6 @@
                       },
                       {
                         "__typename": "CheckRun",
-                        "id": "CR_kwDOFcwZ1c8AAAAJIczFxw",
-                        "name": "Build",
-                        "conclusion": null,
-                        "status": "IN_PROGRESS",
-                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14006806816/job/39221773767"
-                      },
-                      {
-                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAJIcvdTA",
                         "name": "Build (fork)",
                         "conclusion": "SKIPPED",
@@ -516,11 +508,27 @@
                       },
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAJIczFxw",
+                        "name": "Build",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14006806816/job/39221773767"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAJIcvdug",
                         "name": "Post-CI job (fork)",
                         "conclusion": "SKIPPED",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14006806812/job/39221714362"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAJIc7QMg",
+                        "name": "Post-CI job",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14006806816/job/39221907506"
                       },
                       {
                         "__typename": "CheckRun",
@@ -1215,14 +1223,6 @@
               },
               {
                 "__typename": "CheckRun",
-                "id": "CR_kwDOFcwZ1c8AAAAJIczFxw",
-                "name": "Build",
-                "conclusion": null,
-                "status": "IN_PROGRESS",
-                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14006806816/job/39221773767"
-              },
-              {
-                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAJIcvdTA",
                 "name": "Build (fork)",
                 "conclusion": "SKIPPED",
@@ -1231,11 +1231,27 @@
               },
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAJIczFxw",
+                "name": "Build",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14006806816/job/39221773767"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAJIcvdug",
                 "name": "Post-CI job (fork)",
                 "conclusion": "SKIPPED",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14006806812/job/39221714362"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAJIc7QMg",
+                "name": "Post-CI job",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14006806816/job/39221907506"
               },
               {
                 "__typename": "CheckRun",
@@ -1257,7 +1273,7 @@
           }
         },
         "title": "chore: automatically deprime common `induction'` uses",
-        "updatedAt": "2025-03-22T08:26:41Z",
+        "updatedAt": "2025-03-22T08:36:24Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/23211",
         "timelineItems": {
           "nodes": [
