@@ -1,0 +1,2297 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 193,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "adomani"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "Add `UniqueProds/Sums` and `NoZeroDivisors` instances.\r\n\r\nThis has recently been prompted by the port of the [Lindemann-Weierstrass Theorem](https://leanprover.zulipchat.com/#narrow/stream/116395-maths), but the results are self-contained.  Instances such as the ones in this PR are the reasons why `UniqueProds/Sums` were introduced.\r\n\r\nAffected files:\r\n```\r\nAlgebra/\r\n\tGroup/UniqueProds.lean\r\n\tMonoidAlgebra/NoZeroDivisors.lean\r\n```\r\n\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n- [x] depends on: #6751, `to_additive` support for naming -- no real dependency, other than automated naming\r\n- [x] depends on: #6752, adding `IsLeftCancel` instance on MulOpposites\r\n- [x] depends on: #6753, just some golfing -- no real dependency, other than a shorter diff\r\n- [x] depends on: #6755, adding `subsingleton` and `MulOpposites` on `UniqueProds`\r\n\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 2,
+        "closed": true,
+        "closedAt": "2023-09-14T18:48:17Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5kqdNn",
+              "body": "Wow! I didn't know you've already proven [add_monoid_algebra.no_zero_divisors.of_left_ordered](https://leanprover-community.github.io/mathlib_docs/algebra/monoid_algebra/no_zero_divisors.html#add_monoid_algebra.no_zero_divisors.of_left_ordered), which is super strong and could easily be used for the purpose of the Lindemann-Weierstrass proof! However, the correct thing to do is probably to derive `UniqueProds` from the assumptions (I'm on it).",
+              "createdAt": "2023-08-22T20:06:42Z",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kqfCr",
+              "body": "Yes, I clumsily did this in branch#adomani/useUA, but got confused with what was already PRed and what wasn't, so currently it does not build.  The missing instance is the `UniqueSums → NoZeroDivisors`.",
+              "createdAt": "2023-08-22T20:12:26Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kqf5E",
+              "body": "If you want to look at my approach, it is here:\n\nhttps://github.com/leanprover-community/mathlib4/blob/adomani/useUA/Mathlib/Algebra/MonoidAlgebra/NoZeroDivisors.lean#L87\n\nFeel free to add more stuff, if you want: I won't be working on this for several hours, since I'm ready to go to sleep!",
+              "createdAt": "2023-08-22T20:15:26Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kqg85",
+              "body": "Two final comments:\n* the left/right orderabilities were my motivation for switching to Unique sums and refactor (but was interrupted by the port)\n* most of the lemmas about support in NoZeroDivosors can probably be removed, once the UniqueSums have done their decoupling.",
+              "createdAt": "2023-08-22T20:19:03Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kq6-q",
+              "body": "I've formalized a simple proof that I figured out after reading https://arxiv.org/pdf/2302.11853 (Section 1.1). The paper talks about groups, so I needed to figure out how to generalize to monoids, and I came to the same conclusion as you did one year ago: left-orderability + right cancellation is enough. The \"diffuse\" property may be hard to generalize to monoids. The implication \"trivial units => no zero divisors => trivial idempotents\" may fail in a semiring. The \"two unique products\" property is interesting since it seems to be exactly what we need to show the factors of a homogeneous polynomial are homogeneous, where the homogeneity comes from a grading by such a monoid (assuming no zero divisors in the base semiring); yet to figure out whether it follows from \"one unique produt\" for monoids that are not groups.\r\n\r\n```\r\n@[to_additive Covariant.to_uniqueSums]\r\ninstance (priority := 100) Covariant.to_uniqueProds {A} [Mul A] [IsRightCancelMul A]\r\n    [LinearOrder A] [CovariantClass A A (· * ·) (· < ·)] :\r\n    UniqueProds A where\r\n  uniqueMul_of_nonempty {A B} hA hB := by\r\n    obtain ⟨a0, b0, ha0, hb0, he⟩ := Finset.mem_mul.mp (Finset.max'_mem _ <| hA.mul hB)\r\n    refine ⟨a0, ha0, b0, hb0, fun a b ha hb he' => ?_⟩\r\n    obtain hl | rfl | hl := lt_trichotomy b b0\r\n    · refine ((he'.trans he ▸ mul_lt_mul_left' hl a).not_le <| Finset.le_max' _ (a * b0) ?_).elim\r\n      exact Finset.mem_mul.mpr ⟨a, b0, ha, hb0, rfl⟩\r\n    · exact ⟨mul_right_cancel he', rfl⟩\r\n    · refine ((he ▸ mul_lt_mul_left' hl a0).not_le <| Finset.le_max' _ (a0 * b) ?_).elim\r\n      exact Finset.mem_mul.mpr ⟨a0, b, ha0, hb, rfl⟩\r\n```",
+              "createdAt": "2023-08-22T21:45:46Z",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5ksqYw",
+              "body": "If we add\r\n```lean\r\nopen Finset MulOpposite in\r\n@[to_additive]\r\ntheorem of_mulOpposite (h : @UniqueMul Gᵐᵒᵖ (MulOpposite.mul G)\r\n      (B.map ⟨_, op_injective⟩) (A.map ⟨_, op_injective⟩) (op b0) (op a0)) :\r\n    UniqueMul A B a0 b0 := by\r\n  intros a b aA bB ab\r\n  have := h (mem_map_of_mem _ bB) (mem_map_of_mem _ aA) (by erw [← op_mul, ab, op_mul])\r\n  simpa [and_comm] using this\r\n\r\nopen Finset MulOpposite in\r\n@[to_additive]\r\ntheorem of_mulOpposite (G : Type*) [Mul G] (h : @UniqueProds Gᵐᵒᵖ (MulOpposite.mul G)) : UniqueProds G :=\r\n⟨fun hA hB =>\r\n  let f : G ↪ Gᵐᵒᵖ := ⟨op, op_injective⟩\r\n  let ⟨y, yB, x, xA, hxy⟩ := h.uniqueMul_of_nonempty (hB.map (f := f)) (hA.map (f := f))\r\n  ⟨unop x, (mem_map' _).mp xA, unop y, (mem_map' _).mp yB, hxy.of_mulOpposite⟩⟩\r\n\r\nopen MulOpposite in\r\n@[to_additive]\r\ninstance {A : Type*} [inst : Mul A] [inst_1 : IsLeftCancelMul A] : IsRightCancelMul Aᵐᵒᵖ :=\r\n⟨fun a b c bc => by\r\n  apply_fun unop at bc ⊢ using unop_injective (α := A)\r\n  exact mul_left_cancel bc⟩\r\n```\r\n(the first two are probably a good idea anyway, the last I asked about to see if there are any issues and would probably be better for a separate PR)\r\nthen we can prove\r\n```lean\r\nopen MulOpposite in\r\n@[to_additive Covariant.to_uniqueSums_left]\r\ninstance (priority := 100) Covariant.to_uniqueProds_left {A} [Mul A] [IsLeftCancelMul A]\r\n    [LinearOrder A] [CovariantClass A A (Function.swap (· * ·)) (· < ·)] :\r\n    UniqueProds A :=\r\nlet _ := LinearOrder.lift' (unop : Aᵐᵒᵖ → A) unop_injective\r\nlet _ : CovariantClass Aᵐᵒᵖ Aᵐᵒᵖ (· * ·) (· < ·) :=\r\n{ elim := fun a _ _ bc =>\r\n            have : StrictMono (unop (α := A)) := fun _ _ => id\r\n            mul_lt_mul_right' (α := A) bc (unop a) }\r\nof_mulOpposite _ Covariant.to_uniqueProds_right\r\n```\r\n\r\nThis may help remove some of the code duplication.",
+              "createdAt": "2023-08-23T07:26:31Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5ksr_3",
+              "body": "Good idea! Please do. I think my `Pi` proof won't end up benefiting from `MulOpposite` lemmas, but removing this one duplication is definitely good.",
+              "createdAt": "2023-08-23T07:31:46Z",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5ksxFq",
+              "body": "I really like the `Pi` argument!  I'm meeting some students for the next couple of hours.  I'll take advantage of this non-Lean time to see if we can get `to_additive` to generate the correct names for `UniqueProds/Sums`.",
+              "createdAt": "2023-08-23T07:47:20Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kxL9e",
+              "body": "Another interesting fact is that UniqueProds implies IsCancelMul (just take A={a}, B={b,c} or the other way); I guess it's not mentioned in the literature because people only care about groups. If it's made an instance it would loop with `of_Covariant_left/right` though.",
+              "createdAt": "2023-08-23T20:47:08Z",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kxOq_",
+              "body": "Nice observation!\n\nI find non-cancellativity quite rare in the kind of informal maths that I do.  Also, when it fails, it is usually not on a structure with a *unique* operation: non-cancellative add monoids are really rare and arguments about rings with zero divisors are often reduced to domains with some general argument.\n\nStill I find these questions that arise from generalisation in formalization interesting!",
+              "createdAt": "2023-08-23T20:55:41Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5k5QkE",
+              "body": "It turns out the cancellation observation has been made in the literature:\r\n\r\n<img width=\"859\" alt=\"image\" src=\"https://github.com/leanprover-community/mathlib4/assets/3064145/e3843d46-d280-48f9-83a6-d6d9adb79aac\">\r\n\r\nfrom https://www.sciencedirect.com/science/article/pii/S0021869316000120\r\nalso mentioning an example of u.p. (therefore cancellative) semigroup that is not t.u.p. (two unique products) in the reference\r\n> [2] J. Okniński, Semigroup Algebras, Monogr. Textb. Pure Appl. Math., vol. 138, Marcel Dekker, Inc., New York, 1991.\r\n\r\nI've also looked into embeddability of cancellative semigroups into groups: this is not always possible and there are necessary and sufficient conditions by Mal'cev and Lambek independently. However, if the semigroup has u.p. it's not clear that the smallest/universal group it embeds into also has u.p. So there isn't a direct way to deduce t.u.p. from u.p. for ℕ and Finsupp α ℕ. However, under the left-orderable + right-cancellative conditions the min and max will be two different unique products, which is probably the best way to establish t.u.p. for ℕ. I have to think about whether my inductive argument extends to prove t.u.p. for direct products of t.u.p. semigroups ... (Edit: I believe it works)",
+              "createdAt": "2023-08-25T04:16:52Z",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lAG4s",
+              "body": "@adomani I've proven analogues of results in this PR in the TwoUniqueProds branch, and extracted lemmas as appropriate. However, there are [one lemma about `Nat` and two about `Finset.card`](https://github.com/leanprover-community/mathlib4/compare/adomani/UniqueProds_for_LW...TwoUniqueProds?expand=1#diff-ebdf20b185bac5adc5a22ffdf53e7dfa74bb23fb34dfa47a761bb9dfa66c9fc1R252-R276) that should be moved. I've adopted the Bool proof for `G × H` because it saves effort for both UniqueProds and TwoUniqueProds with some common auxiliary private definitions.\r\n\r\nSome changes would be worthwhile to make in this PR, but it may be difficult to single out those changes just for UniqueProds. Should I merge my branch into this PR? Let me know what you think.",
+              "createdAt": "2023-08-27T00:05:06Z",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lAXQZ",
+              "body": "@alreadydone I am happy if you want to merge your extension into this one: I only looked briefly at the new results, but they seem great!\n\nI think that maybe we should also re-think a splitting of the PR for merging.  The initial input was providing a `NoZeroDivisors` instance for Lindemann-Weierstrass.  Ideally, we would be able to split out a shortcut to this result that can be merged relatively early on, while keeping all the goodies in the \"main\" PR.\n\nDoes this seem reasonable?",
+              "createdAt": "2023-08-27T07:28:20Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lAZba",
+              "body": "We certainly can merge this PR as is; it already has all the necessary results. I'll just do the TwoUniqueProds refactoring in another PR.",
+              "createdAt": "2023-08-27T08:16:01Z",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5mfJpQ",
+              "body": "This PR/issue depends on:\n* ~~leanprover-community/mathlib4#6751~~\n* ~~leanprover-community/mathlib4#6752~~\n* ~~leanprover-community/mathlib4#6753~~\n* ~~leanprover-community/mathlib4#6755~~\nBy **[Dependent Issues](https://github.com/z0al/dependent-issues)** (🤖). Happy coding!\n<!-- By Dependent Issues (Action) - DO NOT REMOVE -->",
+              "createdAt": "2023-09-14T13:21:37Z",
+              "author": {
+                "login": "leanprover-community-mathlib4-bot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5mf_rP",
+              "body": "bors d=alreadydone",
+              "createdAt": "2023-09-14T15:20:47Z",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5mf_sD",
+              "body": ":v: alreadydone can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "createdAt": "2023-09-14T15:20:49Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5mgywW",
+              "body": "Thanks!\r\n\r\nbors r+",
+              "createdAt": "2023-09-14T17:35:47Z",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5mhKEw",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6189447827/job/16803552164)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6189447827/job/16803551507)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6189447827/job/16803551761)",
+              "createdAt": "2023-09-14T18:48:16Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "bebb7d8cba23140f843a053da8cd419facb9e896",
+                "additions": 93,
+                "deletions": 0,
+                "committedDate": "2023-08-22T10:46:10Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "976ed981d5c648f1405b3325202be2119785250b",
+                "additions": 2,
+                "deletions": 1,
+                "committedDate": "2023-08-22T17:59:31Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f13d5c1ab6a695c0a548de90d7f10c5e4fbf13a8",
+                "additions": 87,
+                "deletions": 191,
+                "committedDate": "2023-08-22T22:04:23Z",
+                "author": {
+                  "name": "Junyan Xu",
+                  "email": "junyanxu.math@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "825db45affbfeb11bbc6597ddede032019497391",
+                "additions": 15,
+                "deletions": 19,
+                "committedDate": "2023-08-23T03:38:44Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1e7dfc5aba6bd26d9727ae940841be3850959113",
+                "additions": 929,
+                "deletions": 964,
+                "committedDate": "2023-08-23T03:38:51Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "00cf568b5a0e40cd3deacac2a495c9196431f333",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-08-23T03:46:16Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3c0edb92d407e7f81207f2e832fe67849be4756b",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-08-23T03:47:35Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2fca8dcece8e293eba9141030a1d0f9ed344f700",
+                "additions": 52,
+                "deletions": 24,
+                "committedDate": "2023-08-23T04:02:21Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e14edac79d9e45c45c27cfcff68374a30bc8963b",
+                "additions": 21,
+                "deletions": 6,
+                "committedDate": "2023-08-23T04:22:17Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "615b72252f524afce327300c344527a07b2e14c3",
+                "additions": 70,
+                "deletions": 1,
+                "committedDate": "2023-08-23T05:45:33Z",
+                "author": {
+                  "name": "Junyan Xu",
+                  "email": "junyanxu.math@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c6c3fac7c99797a2673805d0b6b4563fa05c7025",
+                "additions": 999,
+                "deletions": 997,
+                "committedDate": "2023-08-23T06:23:41Z",
+                "author": {
+                  "name": "Junyan Xu",
+                  "email": "junyanxu.math@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "be74bf19d81fbf8165ad025bfb9579cdfff5ac59",
+                "additions": 1,
+                "deletions": 18,
+                "committedDate": "2023-08-23T06:46:14Z",
+                "author": {
+                  "name": "Junyan Xu",
+                  "email": "junyanxu.math@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0bee2a7209774ace4020fdc13adc86072264c094",
+                "additions": 39,
+                "deletions": 15,
+                "committedDate": "2023-08-23T07:43:01Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "dcc27b8a9edc5f2bf8bd54315924f271e32293e3",
+                "additions": 69,
+                "deletions": 19,
+                "committedDate": "2023-08-23T07:43:07Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "cb3ba1b78fdbfb40545ceac4a4a273b3a39fad98",
+                "additions": 1163,
+                "deletions": 1164,
+                "committedDate": "2023-08-23T11:12:26Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e8a74a647b3f8b0ed96b0ec08734f4484d1920ec",
+                "additions": 2,
+                "deletions": 1,
+                "committedDate": "2023-08-23T11:45:13Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2b9b7c388419ef30972b102dddca3c3293736d44",
+                "additions": 77,
+                "deletions": 56,
+                "committedDate": "2023-08-23T11:45:48Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "13a85acd877dccb53caaa562dc13fe8deef50548",
+                "additions": 464,
+                "deletions": 164,
+                "committedDate": "2023-08-23T17:51:23Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "aa26994654163dcaec736dc88cd67bccf25d447d",
+                "additions": 0,
+                "deletions": 9,
+                "committedDate": "2023-08-23T17:52:20Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "15461f7abb054dda31beef57fc03563ee106ee12",
+                "additions": 0,
+                "deletions": 2,
+                "committedDate": "2023-08-23T18:18:46Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c402093c90b3a468ec53c7db4b8d8f9ad73fff82",
+                "additions": 5,
+                "deletions": 5,
+                "committedDate": "2023-08-23T18:22:15Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "da70b2aa24446aec49466b7b768a57b697aa2818",
+                "additions": 21,
+                "deletions": 3,
+                "committedDate": "2023-08-24T03:26:46Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9fe4b8e629f83f6d9b2b0ca2eba70e98ad47e87c",
+                "additions": 276,
+                "deletions": 49,
+                "committedDate": "2023-08-24T15:06:42Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b704112dd96abd8187fc11350a27d010ad4e95b0",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-08-24T15:24:44Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "69e79ebdad36dbcb15af693faf0acc7977ff4f61",
+                "additions": 5,
+                "deletions": 20,
+                "committedDate": "2023-08-24T15:45:14Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f99f0e2b4d3c1518bc0cde6a9127a56b5ffecbd2",
+                "additions": 520,
+                "deletions": 13,
+                "committedDate": "2023-08-25T04:27:50Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2e588ffa5376903f541814eaf3f29ec269a6b83a",
+                "additions": 17,
+                "deletions": 24,
+                "committedDate": "2023-08-25T17:35:00Z",
+                "author": {
+                  "name": "Junyan Xu",
+                  "email": "junyanxu.math@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "02a49ab6f9244a423e8e2a5a027a03d95801a227",
+                "additions": 5,
+                "deletions": 5,
+                "committedDate": "2023-08-25T17:38:18Z",
+                "author": {
+                  "name": "Junyan Xu",
+                  "email": "junyanxu.math@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f5e14cc0da84458e4cf86d99124aca288b68363b",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-08-26T05:29:11Z",
+                "author": {
+                  "name": "Junyan Xu",
+                  "email": "junyanxu.math@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c92b17c70890a8470d1ac41ed0071bd76e673d7c",
+                "additions": 953,
+                "deletions": 522,
+                "committedDate": "2023-08-26T11:27:56Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d8f0a27cd142ceba5461ea77aa4ac3ee7d93dfa0",
+                "additions": 23,
+                "deletions": 30,
+                "committedDate": "2023-08-26T11:28:05Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ffe53127e09b97439d6f9f54344b0523262f4ad4",
+                "additions": 27527,
+                "deletions": 11391,
+                "committedDate": "2023-09-14T14:35:17Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3f5b8d518e8c2b6f00eead256f8e1afc5062b23c",
+                "additions": 209,
+                "deletions": 12,
+                "committedDate": "2023-09-14T14:39:06Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "838417749ba89e419bb11a53909262e64d2f81af",
+                "additions": 26,
+                "deletions": 35,
+                "committedDate": "2023-09-14T14:39:38Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d318438fd754471278c3316458d1f2064db01f52",
+                "additions": 31,
+                "deletions": 31,
+                "committedDate": "2023-09-14T14:40:58Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-08-22T10:48:42Z",
+        "deletions": 155,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib/Algebra/Group/UniqueProds.lean",
+              "additions": 127,
+              "deletions": 39
+            },
+            {
+              "path": "Mathlib/Algebra/MonoidAlgebra/NoZeroDivisors.lean",
+              "additions": 66,
+              "deletions": 116
+            }
+          ]
+        },
+        "headRefName": "adomani/UniqueProds_for_LW",
+        "headRefOid": "d318438fd754471278c3316458d1f2064db01f52",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5YfBPe",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+              "color": "bfd4f2",
+              "name": "delegated"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABViJjTQ",
+              "color": "33DBEC",
+              "name": "t-algebra"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5fMxDK",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-27T20:01:05Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 6723,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5ew9PC",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-22T16:37:14Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5eyOPQ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-22T19:56:23Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ey8bE",
+              "body": "@adomani I pushed some golfs and the left/right orderability -> uniqueProds instances; I hope you don't mind!",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-22T22:09:31Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ezTHf",
+              "body": "Contrary to my former expectation, I've now worked out a proof that an arbitrary direct product of monoids with unique products itself has unique products. The proof is by reducing to a smaller Finset and apply induction: if one of the Finsets A and B in the Pi monoid is not a singleton (wlog A), it's projection to some coordinate is not a singleton. Use the UniqueProds property on that coordinate to select a unique pair (a_i, b_i), and a unique pair for the Finsets {c ∈ A | c_i = a_i} (smaller than A) and {c ∈ B | c_i = b_i} will also be a unique pair for A and B.\r\n\r\nWorking on formalization now; it's annoying that `MulOpposite A` is no longer defeq to `A` so more duplication is destined ... The `UniqueProd (G × H)` instance is already done.",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-23T00:00:48Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ezoe4",
+              "body": "This all looks great!  Thank you for refactoring using `UniqueProds/Sums` more extensively.\n\n\nI'll take a closer look when I'm at a computer and will likely add some documentation about the role that UniqueProds has in decoupling certain arguments about MonoidAlgebras by focusing on the grading type.\n\n",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-23T02:19:58Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ezswu",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-23T02:35:35Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ezs2Y",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-23T02:36:07Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5eztRN",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-23T02:38:58Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ezuN-",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-23T02:45:00Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ezwpx",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-23T02:48:10Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e0BPu",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-23T03:27:39Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e0Da_",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-23T03:40:08Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e0kBe",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-23T06:47:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e0wRt",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-23T07:02:17Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e044S",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-23T07:23:56Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e46zO",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-23T17:32:34Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e5ZvV",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-23T17:41:39Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e5bUT",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-23T17:44:40Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e5nU_",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-23T18:17:03Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e5oDQ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-23T18:18:56Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e5oef",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-23T18:19:53Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e5rFY",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-23T18:27:01Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e5whI",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-23T18:42:22Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e5yAK",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-23T18:46:44Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e50Gh",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-23T18:51:47Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e6PYL",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-23T20:03:56Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e6USs",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-23T20:17:02Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e6cAk",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-23T20:41:24Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e7kg3",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-24T02:44:04Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e78u6",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-24T04:50:47Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e8Kbo",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-24T05:57:33Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e8Nn-",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-24T06:10:16Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e8diq",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-24T06:59:53Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e8ihJ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-24T07:13:18Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9Cqs",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-24T08:27:39Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5fAHbg",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-24T15:18:55Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5fANOJ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-24T15:31:02Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5fASiM",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-24T15:42:09Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5fD2SK",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-25T04:50:02Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5fI0Cm",
+              "body": "I removed the `subsingleton -> UniqueMul/Prods` instances to reduce the diff because they're not used.",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-25T17:40:59Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5fMxDK",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alreadydone"
+              },
+              "submittedAt": "2023-08-27T20:01:05Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NmalD",
+                    "body": "We can easily show `UniqueProds (G × H)` from `UniqueProds G` and `UniqueProds H`, and by induction on `Pi` (finitely many factors), `Finsupp` and `DFinsupp`. However, unlike linear orderability, I think `UniqueProds` probably doesn't transfer to direct product (`Pi`) with infinitely many factors, but I'm yet to find a counterexample.",
+                    "createdAt": "2023-08-22T16:37:14Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NnOEa",
+                    "body": "I do not know the answer to the question about infinite products.  However, these notions are very close and subtly different from torsion-freeness.\n\nKaplanski's conjecture asserts that torsion-freeness for a group `G` should be equivalent to no non-zero zero-divisors in `k[G]`.\n\nMaybe there is some room for an easy `Pi`-counterexample using Monoids/Semigroups?  However, a counterexample with a group may be hard...",
+                    "createdAt": "2023-08-22T19:56:23Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NoOeG",
+                    "body": "Kaplansky's conjecture is falsified but it's still unknown whether unique product <=> no zero divisors IIUC, and that's a hint that it should work for infinite direct products, which is what I have proven.",
+                    "createdAt": "2023-08-23T02:48:05Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NnqPw",
+                    "body": "This is now `inferInstance` so I removed it.",
+                    "createdAt": "2023-08-22T22:09:01Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NnqTw",
+                    "body": "Similarly these two are now `inferInstance`.",
+                    "createdAt": "2023-08-22T22:09:21Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nn5o6",
+                    "body": "Changed this lemma to use `UniqueAdd`",
+                    "createdAt": "2023-08-22T23:50:00Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NoI1e",
+                    "body": "Very nice!  This is all vestigial from before `UniqueProds/Sums` were introduced to mathlib.",
+                    "createdAt": "2023-08-23T02:09:41Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NoIkm",
+                    "body": "Is `LinearOrder σ` really needed as an assumption, or can you get away with adding an arbitrary linear order inside the proof, like in the final instance below.  (I.e. extend the Partial order given by `(• = •)` to a linear one inside the proof.)",
+                    "createdAt": "2023-08-23T02:07:23Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NoMun",
+                    "body": "The way to put an arbitrary linear order on a type is `IsWellOrder.linearOrder WellOrderingRel`. However I'm gonna prove this from the `Pi` result assuming only `UniqueSums L`.",
+                    "createdAt": "2023-08-23T02:44:59Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Noay3",
+                    "body": "Ok, I'm happy to see orders slowly fading away!",
+                    "createdAt": "2023-08-23T03:27:39Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nocbo",
+                    "body": "Anyway, while waiting for the `Pi` proof, I remove the `LinearOrder σ` assumption in this instance.",
+                    "createdAt": "2023-08-23T03:40:07Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NoJNA",
+                    "body": "Honestly, I do not really know if this iff is useful or not: I thought that I needed it for the step \"identify a ℚ-vector space with the `Finsupp basis → ℚ`\", but the injection version was enough.  This is a fairly common pattern: equivalences in formal maths are less ubiquitous than in informal maths.",
+                    "createdAt": "2023-08-23T02:13:11Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NoLub",
+                    "body": "Yeah but I wouldn't bother removing it ...",
+                    "createdAt": "2023-08-23T02:36:07Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NoMCN",
+                    "body": "Agreed.  It could also be useful for rewrites.",
+                    "createdAt": "2023-08-23T02:38:58Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NoJjY",
+                    "body": "By the way, `Module ℚ R` could be replaced by torsionfree.  I chose this assumption as it was a cheap way out and it still worked for Lindemann-Weierstrass.\n\nIn the longer term, proving that torsion-free abelian groups have `UniqueSums` could be nice.",
+                    "createdAt": "2023-08-23T02:16:18Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NoLqy",
+                    "body": "We just need the fact that [torsion-free abelian groups embed into a rational vector space](https://math.stackexchange.com/questions/425431/embedding-torsion-free-abelian-groups-into-mathbb-qn). Torsion-free abelian cancellative monoids embeds into such groups, so it even extends to that case.",
+                    "createdAt": "2023-08-23T02:35:34Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5No_1t",
+                    "body": "To show this with what we currently have in mathlib (in a future PR):\r\n1. for a commutative cancellative monoid, we know it embeds into its AddLocalization at \\top ([AddLocalization.mk_left_injective](https://leanprover-community.github.io/mathlib4_docs/Mathlib/GroupTheory/MonoidLocalization.html#AddLocalization.mk_left_injective)) but we don't have that the AddLocalization is a group. We also need to show [AddMonoid.IsTorsionFree](https://leanprover-community.github.io/mathlib4_docs/Mathlib/GroupTheory/Torsion.html#AddMonoid.IsTorsionFree) is preserved by AddLocalization.\r\n2. Show that `AddMonoid.IsTorsionFree A` is equivalent to `NoSmulZeroDivisors ℕ A` (or `NoSmulZeroDivisors ℤ A` for AddGroup A).\r\n3. Show that [`LocalizedModule.mkLinearMap`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Module/LocalizedModule.html#LocalizedModule.mkLinearMap)`R⁰ M` is injective when `NoSmulZeroDivisors R M` is satisfied: this should be easy from [LocalizedModule.mk_eq](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Module/LocalizedModule.html#LocalizedModule.mk_eq). `LocalizedModule ℤ⁰ M` is a module over `Localization ℤ⁰` (= `FractionRing ℤ`) by [LocalizedModule.isModule](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Module/LocalizedModule.html#LocalizedModule.isModule), so `LocalizedModule ℤ⁰ M` is a vector space over `FractionRing ℤ` and therefore isomorphic to some `ι →₀ FractionRing ℤ`, which is isomorphic (as AddGroup) to `ι →₀ ℚ`, and we can then apply the instance here. (Edit: we could also use [RestrictScalars.module](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Algebra/RestrictScalars.html#RestrictScalars.module) to directly put a `Module ℚ` structure on `LocalizedModule ℤ⁰ M`.)",
+                    "createdAt": "2023-08-23T07:23:55Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NoyU8",
+                    "body": "Oh I forgot to mention I deleted these two (as you suggested). But moving to another file could also be an option.",
+                    "createdAt": "2023-08-23T06:26:12Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5No6Uh",
+                    "body": "Yes, I saw the removal.  I am not sure that these lemmas would be useful, now that the whole `NoZeroDivisors` proof goes via `UniqueProds/Sums`.  I do not think that anyone will miss them: I had introduced them in mathlib3 before I defined `UniqueProds`.",
+                    "createdAt": "2023-08-23T07:02:17Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NrjpL",
+                    "body": "I suppose\r\n```suggestion\r\n```",
+                    "createdAt": "2023-08-23T16:21:56Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NsBRP",
+                    "body": "Good catch!",
+                    "createdAt": "2023-08-23T18:18:53Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nr3xY",
+                    "body": "Maybe this could be `UniqueProds.of_Covariant_right` because we're in `UniqueProds` namespace.",
+                    "createdAt": "2023-08-23T17:40:30Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NsBkz",
+                    "body": "Ok, I am not terribly fussed by the name of the instance, since it should mostly be invisible, possibly will be called out explicitly a couple of times.  Iĺl make the change.",
+                    "createdAt": "2023-08-23T18:19:53Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nr4Ce",
+                    "body": "may or may not be easier to prove via isomorphism with a `Pi` type indexed by `bool`.",
+                    "createdAt": "2023-08-23T17:41:33Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NsDTV",
+                    "body": "Hmm, I did not try much, but... is the `Pi` instance universe polymorphic?  Are the `G i` all in the same universe?  Maybe it is easier to keep the proof for a product separate.",
+                    "createdAt": "2023-08-23T18:27:01Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NsG2k",
+                    "body": "Oh indeed universe is an issue, so let's leave it as is.",
+                    "createdAt": "2023-08-23T18:42:22Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NsHy6",
+                    "body": "Here is my attempt: I am missing the \"multiplicativity, and I do not know how to put that instance effectively...\r\n\r\n```lean\r\n@[to_additive] instance [UniqueProds G] [UniqueProds H] : UniqueProds (G × H) := by\r\n  have : G × H ≃ ∀ x : Bool, if x then ULift.{max u_1 u_2} G else ULift.{max u_1 u_2} H := by\r\n    refine ⟨?_, ?_, ?_, ?_⟩\r\n    · intro (g, h) x\r\n      cases x\r\n      simpa only [ite_false] using { down := h }\r\n      simpa only [ite_true] using { down := g }\r\n    · intros x\r\n      let xG := x true\r\n      let xH := x false\r\n      simp at xG xH\r\n      exact ⟨xG.down, xH.down⟩\r\n    · intro (g, h)\r\n      simp\r\n    . intro h\r\n      ext x\r\n      cases x\r\n      · simp; rfl\r\n      · simp; rfl\r\n  apply UniqueProds.mulHom_image_iff.mp -- missing the ≃*!\r\n```",
+                    "createdAt": "2023-08-23T18:46:44Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NsI9n",
+                    "body": "We usually define a function out of `Bool` using `Bool.rec`; hopefully it simplifies the proof! Looks like it will be a lot shorter than the original, but another argument for keeping the original proof is that it's a different algorithm for finding a unique pair. I would be fine with either proof.\r\n\r\nAn injective MulHom is probably easier to exhibit than MulEquiv.\r\n\r\nFor ULift, the target type is already `Type (max u_1 u_2)`. The pattern is usually just `ULift.{u_2} G else ULift.{u_1} H`\r\n\r\nIn any case this `Mul/AddEquiv` probably belong in mathlib.",
+                    "createdAt": "2023-08-23T18:51:46Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NsZ6F",
+                    "body": "I'll give it a go, but tomorrow.  In any case, I'm not sure that aiming for shortest proof is necessarily an advantage.\n\nI'll also try with the injection only.\n\nAnyway, you are right that the equivalence between `Prod` and `Bool → ...` should be in mathlib.  I'll try to look for it (and prove it as well, to get some practice with universe levels).  If I cannot find it, I'll PR it.",
+                    "createdAt": "2023-08-23T20:03:55Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NsdE_",
+                    "body": "There is [Equiv.boolArrowEquivProd](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Logic/Equiv/Basic.html#Equiv.boolArrowEquivProd) but not the dependent version in the same file, and that should be pretty good evidence that it doesn't exist yet ...",
+                    "createdAt": "2023-08-23T20:17:02Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NsiIz",
+                    "body": "Ok, I will probably PR a version of the equivalence of\n* `Prod` with factors potentially in different universes and \n* dependent function from `Bool`.\n\n(This should be what is already in this thread, I think.)\n\nHowever, likely, I will not try to force through also a typeclass assumption on the types and will keep the two proofs for `Pi` Ans `Prod` of `UniqueProds` that we currently have.",
+                    "createdAt": "2023-08-23T20:41:24Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NtT9X",
+                    "body": "Oh I somehow missed this reply. \r\n\r\nI just found [prodEquivPiFinTwo](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Logic/Equiv/Fin.html#prodEquivPiFinTwo) and [piFinTwoEquiv](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Logic/Equiv/Fin.html#piFinTwoEquiv) which use `Fin 2` rather than `Bool`. A `Bool` version thus feel a bit redundant. I also think the fully universe polymorphic version is not \"atomic\" in the sense it can be obtained from the version with both types in the same universe by composing with [Equiv.prodCongr](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Logic/Equiv/Basic.html#Equiv.prodCongr) applied to [Equiv.ulift](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Logic/Equiv/Defs.html#Equiv.ulift), so I'd be satisfied with the less polymorphic version.",
+                    "createdAt": "2023-08-24T02:44:04Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NtmjN",
+                    "body": "I'm going to leave this as is: I think that the current proof is nicer than trying to force a polymorphic multiplicative equivalence with typeclasses between `Prod` and `Pi`.",
+                    "createdAt": "2023-08-24T04:50:47Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NtvlH",
+                    "body": "I can deduce Prod version from Pi in [11 lines](https://github.com/leanprover-community/mathlib4/compare/adomani/UniqueProds_for_LW...jyxu/UniqueProds_prod_from_pi?expand=1#diff-ebdf20b185bac5adc5a22ffdf53e7dfa74bb23fb34dfa47a761bb9dfa66c9fc1R352-R362) but to_additive strangely has trouble working.",
+                    "createdAt": "2023-08-24T05:57:33Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NtxqJ",
+                    "body": "I'll take a look!",
+                    "createdAt": "2023-08-24T06:10:16Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nt8K6",
+                    "body": "The issue seems to be caused by the `inferInstance`s.\r\n\r\nI solved the first 4 by replacing them with explicit `ULift.mul`.  I am working on figuring out the last two `inferInstance`s in `mulHom_image_of_injective`.",
+                    "createdAt": "2023-08-24T06:59:53Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nt_ek",
+                    "body": "There is also a combined issue that the `cases b` embeds something in the proof term that `to_additive` misinterprets.",
+                    "createdAt": "2023-08-24T07:13:17Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NuT99",
+                    "body": "I have tried a little to find a way to prove the instance without messing with `to_additive`, but I was not able to.  This version causes problems *only* due to the `cases b` at the end:\r\n```lean\r\n@[to_additive]\r\ninstance [uG : UniqueProds G] [uH : UniqueProds H] : UniqueProds (G × H) := by\r\n  let I : Bool → Type max u v := Bool.rec (ULift.{v} G) (ULift.{u} H)\r\n  let ins : Mul (∀ b, I b) := @Pi.instMul Bool I (Bool.rec ULift.mul ULift.mul)\r\n  let f : MulHom (G × H) (∀ b, I b) := ⟨fun x => Bool.rec ⟨x.1⟩ ⟨x.2⟩, fun x y => ?_⟩\r\n  swap; ext b; cases b <;> rfl\r\n  refine mulHom_image_of_injective f (fun x y he => Prod.ext ?_ ?_) ?_\r\n  · exact ULift.up_injective (congr_fun he false)\r\n  · exact ULift.up_injective (congr_fun he true)\r\n  refine @instUniqueProdsForAllInstMul _ I (Bool.rec ULift.mul ULift.mul) ?_\r\n  intro b\r\n  cases b <;> -- put a `sorry` before here and `to_additive` is happy\r\n  exact mulHom_image_of_injective ⟨ULift.down, fun _ _ => rfl⟩ ULift.down_injective inferInstance\r\n```\r\nIt is possible that the last `inferInstance` could cause further problems, but those might be soluble by explicitly passing the instance name.\r\n\r\nNote that the \"manually\" `to_additivized` version works:\r\n```lean\r\nexample [Add G] [Add H] [UniqueSums G] [UniqueSums H] : UniqueSums (G × H) := by\r\n  let I : Bool → Type max u v := Bool.rec (ULift.{v} G) (ULift.{u} H)\r\n  let ins : Add (∀ b, I b) := @Pi.instAdd Bool I (Bool.rec ULift.add ULift.add)\r\n  let f : AddHom (G × H) (∀ b, I b) := ⟨fun x => Bool.rec ⟨x.1⟩ ⟨x.2⟩, fun x y => ?_⟩\r\n  swap; ext b; cases b <;> rfl\r\n  refine UniqueSums.addHom_image_of_injective f (fun x y he => Prod.ext ?_ ?_) ?_\r\n  · exact ULift.up_injective (congr_fun he false)\r\n  · exact ULift.up_injective (congr_fun he true)\r\n  refine @UniqueSums.instUniqueProdsForAllInstAdd _ I (Bool.rec _ _) ?_\r\n  intro b; cases b <;>\r\n  exact UniqueSums.addHom_image_of_injective ⟨ULift.down, fun _ _ => rfl⟩ ULift.down_injective inferInstance\r\n```",
+                    "createdAt": "2023-08-24T08:27:39Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NwQWH",
+                    "body": "Thanks for the investigation! [This](https://github.com/leanprover-community/mathlib4/compare/adomani/UniqueProds_for_LW...jyxu/UniqueProds_prod_from_pi?expand=1#diff-ebdf20b185bac5adc5a22ffdf53e7dfa74bb23fb34dfa47a761bb9dfa66c9fc1R352-R364) is a version that makes `to_additive` work. The key seems to be singling out all `MulHom`s rather than inlining them (I tried using `MulHom.mk` rather than `⟨_, _⟩` and it doesn't work). Could `to_additive` be patched to support inlined `MulHom`s?",
+                    "createdAt": "2023-08-24T15:18:55Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NwT7k",
+                    "body": "Great!  Do you want to push it to the PR?  Should I do it?\r\n\r\nAs for the `to_additive` question, I do not know what the answer is.  I have tried to understand how `to_additive` works, I have some vague idea, but there is always something about it that seems magic...",
+                    "createdAt": "2023-08-24T15:31:02Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NwXVC",
+                    "body": "Feel free to push if you like the new proof! (Note the new import and explicit universes on G and H.)",
+                    "createdAt": "2023-08-24T15:42:09Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NysOi",
+                    "body": "Upon further reflection, I think that I prefer the current proof: disconnected instances for `Prod` and `Pi`.  The reason that I like the proof connecting the two is because I find it interesting how you manage to get the universe levels to line up, while also juggling the limitations of `to_additive`.  From the point of view of the PR, though, this is not really a goal!\r\n\r\nSo, unless you think differently, I would leave the proofs as they are now.",
+                    "createdAt": "2023-08-25T04:50:02Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5N1rnO",
+                    "body": "Sounds good!",
+                    "createdAt": "2023-08-25T16:57:53Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nr4zy",
+                    "body": "What was the auto-generated name before #6751?",
+                    "createdAt": "2023-08-23T17:44:40Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NsAwq",
+                    "body": "`to_additive` worked on `UniqueProds`, I think because that was the namespace, so it actually gave it the correct name.  Btw, the `to_additive` PR is not merged into this one, so you can still check the naming in this one, if you want.",
+                    "createdAt": "2023-08-23T18:17:03Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5N11wv",
+                    "body": "Moving up these variables facilitates replacing `A` by `G`, avoiding confusion with the two Finsets A and B.",
+                    "createdAt": "2023-08-25T17:39:42Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5N12FZ",
+                    "body": "TODO: will extract a lemma that is common to this proof and the similar TwoUniqueProds proof.",
+                    "createdAt": "2023-08-25T17:40:54Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5N4uJP",
+                    "body": "Opened #6818 for lemmas that don't fit in this file.",
+                    "createdAt": "2023-08-27T20:01:05Z",
+                    "author": {
+                      "login": "alreadydone"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjI5NDY3NzQ1",
+              "login": "adomani"
+            },
+            {
+              "id": "MDQ6VXNlcjMwNjQxNDU=",
+              "login": "alreadydone"
+            },
+            {
+              "id": "U_kgDOB75MNQ",
+              "login": "leanprover-community-mathlib4-bot"
+            },
+            {
+              "id": "MDQ6VXNlcjU2MzY3MDU=",
+              "login": "jcommelin"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat(UniqueProds + NoZeroDivisors): AddMonoidAlgebra instances",
+        "updatedAt": "2023-09-14T23:51:25Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/6723",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "bebb7d8cba23140f843a053da8cd419facb9e896"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5u76DczwAAAAJdcNj9",
+              "createdAt": "2023-08-22T11:57:17Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5u76DczwAAAAJdcNkB",
+              "createdAt": "2023-08-22T11:57:17Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABViJjTQ",
+                "name": "t-algebra"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5OEgoK",
+              "createdAt": "2023-08-22T14:33:51Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5YdL8j",
+                "title": "feat: Lindemann-Weierstrass Theorem",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/6718"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5ew9PC",
+              "createdAt": "2023-08-22T16:37:14Z",
+              "body": "",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "976ed981d5c648f1405b3325202be2119785250b"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kqdNn",
+              "createdAt": "2023-08-22T20:06:42Z",
+              "body": "Wow! I didn't know you've already proven [add_monoid_algebra.no_zero_divisors.of_left_ordered](https://leanprover-community.github.io/mathlib_docs/algebra/monoid_algebra/no_zero_divisors.html#add_monoid_algebra.no_zero_divisors.of_left_ordered), which is super strong and could easily be used for the purpose of the Lindemann-Weierstrass proof! However, the correct thing to do is probably to derive `UniqueProds` from the assumptions (I'm on it).",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kqfCr",
+              "createdAt": "2023-08-22T20:12:26Z",
+              "body": "Yes, I clumsily did this in branch#adomani/useUA, but got confused with what was already PRed and what wasn't, so currently it does not build.  The missing instance is the `UniqueSums → NoZeroDivisors`.",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kqf5E",
+              "createdAt": "2023-08-22T20:15:26Z",
+              "body": "If you want to look at my approach, it is here:\n\nhttps://github.com/leanprover-community/mathlib4/blob/adomani/useUA/Mathlib/Algebra/MonoidAlgebra/NoZeroDivisors.lean#L87\n\nFeel free to add more stuff, if you want: I won't be working on this for several hours, since I'm ready to go to sleep!",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kqg85",
+              "createdAt": "2023-08-22T20:19:03Z",
+              "body": "Two final comments:\n* the left/right orderabilities were my motivation for switching to Unique sums and refactor (but was interrupted by the port)\n* most of the lemmas about support in NoZeroDivosors can probably be removed, once the UniqueSums have done their decoupling.",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kq6-q",
+              "createdAt": "2023-08-22T21:45:46Z",
+              "body": "I've formalized a simple proof that I figured out after reading https://arxiv.org/pdf/2302.11853 (Section 1.1). The paper talks about groups, so I needed to figure out how to generalize to monoids, and I came to the same conclusion as you did one year ago: left-orderability + right cancellation is enough. The \"diffuse\" property may be hard to generalize to monoids. The implication \"trivial units => no zero divisors => trivial idempotents\" may fail in a semiring. The \"two unique products\" property is interesting since it seems to be exactly what we need to show the factors of a homogeneous polynomial are homogeneous, where the homogeneity comes from a grading by such a monoid (assuming no zero divisors in the base semiring); yet to figure out whether it follows from \"one unique produt\" for monoids that are not groups.\r\n\r\n```\r\n@[to_additive Covariant.to_uniqueSums]\r\ninstance (priority := 100) Covariant.to_uniqueProds {A} [Mul A] [IsRightCancelMul A]\r\n    [LinearOrder A] [CovariantClass A A (· * ·) (· < ·)] :\r\n    UniqueProds A where\r\n  uniqueMul_of_nonempty {A B} hA hB := by\r\n    obtain ⟨a0, b0, ha0, hb0, he⟩ := Finset.mem_mul.mp (Finset.max'_mem _ <| hA.mul hB)\r\n    refine ⟨a0, ha0, b0, hb0, fun a b ha hb he' => ?_⟩\r\n    obtain hl | rfl | hl := lt_trichotomy b b0\r\n    · refine ((he'.trans he ▸ mul_lt_mul_left' hl a).not_le <| Finset.le_max' _ (a * b0) ?_).elim\r\n      exact Finset.mem_mul.mpr ⟨a, b0, ha, hb0, rfl⟩\r\n    · exact ⟨mul_right_cancel he', rfl⟩\r\n    · refine ((he ▸ mul_lt_mul_left' hl a0).not_le <| Finset.le_max' _ (a0 * b) ?_).elim\r\n      exact Finset.mem_mul.mpr ⟨a0, b, ha0, hb, rfl⟩\r\n```",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f13d5c1ab6a695c0a548de90d7f10c5e4fbf13a8"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5ey8bE",
+              "createdAt": "2023-08-22T22:09:01Z",
+              "body": "@adomani I pushed some golfs and the left/right orderability -> uniqueProds instances; I hope you don't mind!",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5ezTHf",
+              "createdAt": "2023-08-22T23:49:59Z",
+              "body": "Contrary to my former expectation, I've now worked out a proof that an arbitrary direct product of monoids with unique products itself has unique products. The proof is by reducing to a smaller Finset and apply induction: if one of the Finsets A and B in the Pi monoid is not a singleton (wlog A), it's projection to some coordinate is not a singleton. Use the UniqueProds property on that coordinate to select a unique pair (a_i, b_i), and a unique pair for the Finsets {c ∈ A | c_i = a_i} (smaller than A) and {c ∈ B | c_i = b_i} will also be a unique pair for A and B.\r\n\r\nWorking on formalization now; it's annoying that `MulOpposite A` is no longer defeq to `A` so more duplication is destined ... The `UniqueProd (G × H)` instance is already done.",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5ezoe4",
+              "createdAt": "2023-08-23T02:07:23Z",
+              "body": "This all looks great!  Thank you for refactoring using `UniqueProds/Sums` more extensively.\n\n\nI'll take a closer look when I'm at a computer and will likely add some documentation about the role that UniqueProds has in decoupling certain arguments about MonoidAlgebras by focusing on the grading type.\n\n",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "825db45affbfeb11bbc6597ddede032019497391"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1e7dfc5aba6bd26d9727ae940841be3850959113"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "00cf568b5a0e40cd3deacac2a495c9196431f333"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3c0edb92d407e7f81207f2e832fe67849be4756b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2fca8dcece8e293eba9141030a1d0f9ed344f700"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e14edac79d9e45c45c27cfcff68374a30bc8963b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "615b72252f524afce327300c344527a07b2e14c3"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c6c3fac7c99797a2673805d0b6b4563fa05c7025"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "be74bf19d81fbf8165ad025bfb9579cdfff5ac59"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e0kBe",
+              "createdAt": "2023-08-23T06:26:11Z",
+              "body": "",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5ksqYw",
+              "createdAt": "2023-08-23T07:26:31Z",
+              "body": "If we add\r\n```lean\r\nopen Finset MulOpposite in\r\n@[to_additive]\r\ntheorem of_mulOpposite (h : @UniqueMul Gᵐᵒᵖ (MulOpposite.mul G)\r\n      (B.map ⟨_, op_injective⟩) (A.map ⟨_, op_injective⟩) (op b0) (op a0)) :\r\n    UniqueMul A B a0 b0 := by\r\n  intros a b aA bB ab\r\n  have := h (mem_map_of_mem _ bB) (mem_map_of_mem _ aA) (by erw [← op_mul, ab, op_mul])\r\n  simpa [and_comm] using this\r\n\r\nopen Finset MulOpposite in\r\n@[to_additive]\r\ntheorem of_mulOpposite (G : Type*) [Mul G] (h : @UniqueProds Gᵐᵒᵖ (MulOpposite.mul G)) : UniqueProds G :=\r\n⟨fun hA hB =>\r\n  let f : G ↪ Gᵐᵒᵖ := ⟨op, op_injective⟩\r\n  let ⟨y, yB, x, xA, hxy⟩ := h.uniqueMul_of_nonempty (hB.map (f := f)) (hA.map (f := f))\r\n  ⟨unop x, (mem_map' _).mp xA, unop y, (mem_map' _).mp yB, hxy.of_mulOpposite⟩⟩\r\n\r\nopen MulOpposite in\r\n@[to_additive]\r\ninstance {A : Type*} [inst : Mul A] [inst_1 : IsLeftCancelMul A] : IsRightCancelMul Aᵐᵒᵖ :=\r\n⟨fun a b c bc => by\r\n  apply_fun unop at bc ⊢ using unop_injective (α := A)\r\n  exact mul_left_cancel bc⟩\r\n```\r\n(the first two are probably a good idea anyway, the last I asked about to see if there are any issues and would probably be better for a separate PR)\r\nthen we can prove\r\n```lean\r\nopen MulOpposite in\r\n@[to_additive Covariant.to_uniqueSums_left]\r\ninstance (priority := 100) Covariant.to_uniqueProds_left {A} [Mul A] [IsLeftCancelMul A]\r\n    [LinearOrder A] [CovariantClass A A (Function.swap (· * ·)) (· < ·)] :\r\n    UniqueProds A :=\r\nlet _ := LinearOrder.lift' (unop : Aᵐᵒᵖ → A) unop_injective\r\nlet _ : CovariantClass Aᵐᵒᵖ Aᵐᵒᵖ (· * ·) (· < ·) :=\r\n{ elim := fun a _ _ bc =>\r\n            have : StrictMono (unop (α := A)) := fun _ _ => id\r\n            mul_lt_mul_right' (α := A) bc (unop a) }\r\nof_mulOpposite _ Covariant.to_uniqueProds_right\r\n```\r\n\r\nThis may help remove some of the code duplication.",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5ksr_3",
+              "createdAt": "2023-08-23T07:31:46Z",
+              "body": "Good idea! Please do. I think my `Pi` proof won't end up benefiting from `MulOpposite` lemmas, but removing this one duplication is definitely good.",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0bee2a7209774ace4020fdc13adc86072264c094"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "dcc27b8a9edc5f2bf8bd54315924f271e32293e3"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5ksxFq",
+              "createdAt": "2023-08-23T07:47:20Z",
+              "body": "I really like the `Pi` argument!  I'm meeting some students for the next couple of hours.  I'll take advantage of this non-Lean time to see if we can get `to_additive` to generate the correct names for `UniqueProds/Sums`.",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "cb3ba1b78fdbfb40545ceac4a4a273b3a39fad98"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e8a74a647b3f8b0ed96b0ec08734f4484d1920ec"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2b9b7c388419ef30972b102dddca3c3293736d44"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5u76DczwAAAAJeIwwl",
+              "createdAt": "2023-08-23T12:02:48Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjg4OTQyMDg2",
+                "name": "blocked-by-other-PR"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5OFltN",
+              "createdAt": "2023-08-23T12:07:29Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5Yl1Dk",
+                "title": "[Merged by Bors] - feat(UniqueProds): subsingleton and MulOpposite lemmas",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/6755"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e46zO",
+              "createdAt": "2023-08-23T16:21:56Z",
+              "body": "",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e5ZvV",
+              "createdAt": "2023-08-23T17:40:30Z",
+              "body": "",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e5bUT",
+              "createdAt": "2023-08-23T17:44:40Z",
+              "body": "",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "13a85acd877dccb53caaa562dc13fe8deef50548"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "aa26994654163dcaec736dc88cd67bccf25d447d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "15461f7abb054dda31beef57fc03563ee106ee12"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c402093c90b3a468ec53c7db4b8d8f9ad73fff82"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kxL9e",
+              "createdAt": "2023-08-23T20:47:08Z",
+              "body": "Another interesting fact is that UniqueProds implies IsCancelMul (just take A={a}, B={b,c} or the other way); I guess it's not mentioned in the literature because people only care about groups. If it's made an instance it would loop with `of_Covariant_left/right` though.",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kxOq_",
+              "createdAt": "2023-08-23T20:55:41Z",
+              "body": "Nice observation!\n\nI find non-cancellativity quite rare in the kind of informal maths that I do.  Also, when it fails, it is usually not on a structure with a *unique* operation: non-cancellative add monoids are really rare and arguments about rings with zero divisors are often reduced to domains with some general argument.\n\nStill I find these questions that arise from generalisation in formalization interesting!",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "da70b2aa24446aec49466b7b768a57b697aa2818"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9fe4b8e629f83f6d9b2b0ca2eba70e98ad47e87c"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b704112dd96abd8187fc11350a27d010ad4e95b0"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "69e79ebdad36dbcb15af693faf0acc7977ff4f61"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5OHQMJ",
+              "createdAt": "2023-08-24T19:14:40Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5YSwQO",
+                "title": "[Merged by Bors] - chore(Co(ntra)variantClass): generalize and remove duplicates",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/6677"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5k5QkE",
+              "createdAt": "2023-08-25T04:16:52Z",
+              "body": "It turns out the cancellation observation has been made in the literature:\r\n\r\n<img width=\"859\" alt=\"image\" src=\"https://github.com/leanprover-community/mathlib4/assets/3064145/e3843d46-d280-48f9-83a6-d6d9adb79aac\">\r\n\r\nfrom https://www.sciencedirect.com/science/article/pii/S0021869316000120\r\nalso mentioning an example of u.p. (therefore cancellative) semigroup that is not t.u.p. (two unique products) in the reference\r\n> [2] J. Okniński, Semigroup Algebras, Monogr. Textb. Pure Appl. Math., vol. 138, Marcel Dekker, Inc., New York, 1991.\r\n\r\nI've also looked into embeddability of cancellative semigroups into groups: this is not always possible and there are necessary and sufficient conditions by Mal'cev and Lambek independently. However, if the semigroup has u.p. it's not clear that the smallest/universal group it embeds into also has u.p. So there isn't a direct way to deduce t.u.p. from u.p. for ℕ and Finsupp α ℕ. However, under the left-orderable + right-cancellative conditions the min and max will be two different unique products, which is probably the best way to establish t.u.p. for ℕ. I have to think about whether my inductive argument extends to prove t.u.p. for direct products of t.u.p. semigroups ... (Edit: I believe it works)",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f99f0e2b4d3c1518bc0cde6a9127a56b5ffecbd2"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2e588ffa5376903f541814eaf3f29ec269a6b83a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "02a49ab6f9244a423e8e2a5a027a03d95801a227"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5fI0Cm",
+              "createdAt": "2023-08-25T16:57:52Z",
+              "body": "I removed the `subsingleton -> UniqueMul/Prods` instances to reduce the diff because they're not used.",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5u76DczwAAAAJfulIp",
+              "createdAt": "2023-08-25T18:28:58Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5u76DczwAAAAJfulIw",
+              "createdAt": "2023-08-25T18:28:58Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f5e14cc0da84458e4cf86d99124aca288b68363b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c92b17c70890a8470d1ac41ed0071bd76e673d7c"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d8f0a27cd142ceba5461ea77aa4ac3ee7d93dfa0"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lAG4s",
+              "createdAt": "2023-08-27T00:05:06Z",
+              "body": "@adomani I've proven analogues of results in this PR in the TwoUniqueProds branch, and extracted lemmas as appropriate. However, there are [one lemma about `Nat` and two about `Finset.card`](https://github.com/leanprover-community/mathlib4/compare/adomani/UniqueProds_for_LW...TwoUniqueProds?expand=1#diff-ebdf20b185bac5adc5a22ffdf53e7dfa74bb23fb34dfa47a761bb9dfa66c9fc1R252-R276) that should be moved. I've adopted the Bool proof for `G × H` because it saves effort for both UniqueProds and TwoUniqueProds with some common auxiliary private definitions.\r\n\r\nSome changes would be worthwhile to make in this PR, but it may be difficult to single out those changes just for UniqueProds. Should I merge my branch into this PR? Let me know what you think.",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lAXQZ",
+              "createdAt": "2023-08-27T07:28:20Z",
+              "body": "@alreadydone I am happy if you want to merge your extension into this one: I only looked briefly at the new results, but they seem great!\n\nI think that maybe we should also re-think a splitting of the PR for merging.  The initial input was providing a `NoZeroDivisors` instance for Lindemann-Weierstrass.  Ideally, we would be able to split out a shortcut to this result that can be merged relatively early on, while keeping all the goodies in the \"main\" PR.\n\nDoes this seem reasonable?",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lAZba",
+              "createdAt": "2023-08-27T08:16:01Z",
+              "body": "We certainly can merge this PR as is; it already has all the necessary results. I'll just do the TwoUniqueProds refactoring in another PR.",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5OI6M7",
+              "createdAt": "2023-08-27T20:01:53Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5Y3766",
+                "title": "[Merged by Bors] - feat: Finsets of cardinality > 1 in Pi types",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/6818"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5u76DczwAAAAJgIWSV",
+              "createdAt": "2023-08-27T23:57:55Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5u76DczwAAAAJgIWSW",
+              "createdAt": "2023-08-27T23:57:56Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5u76DczwAAAAJqL-_u",
+              "createdAt": "2023-09-14T12:07:31Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5u76DczwAAAAJqPIL6",
+              "createdAt": "2023-09-14T13:21:36Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjg4OTQyMDg2",
+                "name": "blocked-by-other-PR"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5mfJpQ",
+              "createdAt": "2023-09-14T13:21:37Z",
+              "body": "This PR/issue depends on:\n* ~~leanprover-community/mathlib4#6751~~\n* ~~leanprover-community/mathlib4#6752~~\n* ~~leanprover-community/mathlib4#6753~~\n* ~~leanprover-community/mathlib4#6755~~\nBy **[Dependent Issues](https://github.com/z0al/dependent-issues)** (🤖). Happy coding!\n<!-- By Dependent Issues (Action) - DO NOT REMOVE -->",
+              "author": {
+                "login": "leanprover-community-mathlib4-bot"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ffe53127e09b97439d6f9f54344b0523262f4ad4"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3f5b8d518e8c2b6f00eead256f8e1afc5062b23c"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "838417749ba89e419bb11a53909262e64d2f81af"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d318438fd754471278c3316458d1f2064db01f52"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5u76DczwAAAAJqTYrE",
+              "createdAt": "2023-09-14T14:48:57Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5mf_rP",
+              "createdAt": "2023-09-14T15:20:47Z",
+              "body": "bors d=alreadydone",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5mf_sD",
+              "createdAt": "2023-09-14T15:20:49Z",
+              "body": ":v: alreadydone can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5u76DczwAAAAJqU260",
+              "createdAt": "2023-09-14T15:21:02Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+                "name": "delegated"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5u76DczwAAAAJqU2-t",
+              "createdAt": "2023-09-14T15:21:03Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5mgywW",
+              "createdAt": "2023-09-14T17:35:47Z",
+              "body": "Thanks!\r\n\r\nbors r+",
+              "author": {
+                "login": "alreadydone"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5mhKEw",
+              "createdAt": "2023-09-14T18:48:16Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6189447827/job/16803552164)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6189447827/job/16803551507)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6189447827/job/16803551761)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5u76DczwAAAAJqccmQ",
+              "createdAt": "2023-09-14T18:48:18Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5u76DczwAAAAJqccsN",
+              "createdAt": "2023-09-14T18:48:21Z"
+            },
+            {
+              "__typename": "HeadRefRestoredEvent",
+              "id": "HRRE_lADOFcwZ1c5u76DczwAAAAJqj8uc",
+              "createdAt": "2023-09-14T23:51:25Z"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
