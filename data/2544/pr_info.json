@@ -1,0 +1,3041 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 1130,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "mcdoll"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "Adds a term elaborator for `congr(...)` \"congruence quotations\". For example, if `hf : f = f'` and `hx : x = x'`, then we have `congr($hf $x) : f x = f' x'`. This supports the functions having implicit arguments, and it has support for subsingleton instance arguments. So for example, if `s t : Set X` are sets with `Fintype` instances and `h : s = t` then `congr(Fintype.card $h) : Fintype.card s = Fintype.card t` works.\r\n\r\nPorts the `congrm` tactic as a convenient frontend for applying a congruence quotation to the goal. Holes are turned into congruence holes. For example, `congrm 1 + ?_` uses `congr(1 + $(?_))`. Placeholders (`_`) do not turn into congruence holes; that's not to say they have to be identical on the LHS and RHS, but `congrm` itself is responsible for finding a congruence lemma for such arguments.\r\n\r\n---\r\n\r\n\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 18,
+        "closed": true,
+        "closedAt": "2023-08-27T13:29:15Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5gMeLN",
+              "body": "It's occurred to me that we should be able to implement `congrm` using `convert_to` and then benefit from all of the congruence machinery that's there. I'm going to go and investigate.",
+              "createdAt": "2023-06-29T22:32:14Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5gQw08",
+              "body": "I have an experiment on the `mcdoll/congrm_kmill_experiment` branch [(diff)](https://github.com/leanprover-community/mathlib4/compare/master...mcdoll/congrm_kmill_experiment). It uses a `congr%` term elaborator to turn the pattern into a congruence lemma and then applies it using `refine`, which lets it unfold definitions too.\r\n\r\nIt uses `?m` for pattern holes rather than `_`, like in `gcongr`, and a consequence is that (1) we can differentiate between what should be solved by unification and what by future goals and (2) we can name goal tags and solve specific ones with `case`.\r\n\r\nIt's not perfect yet, since it doesn't completely handle things like `Fintype` instance arguments, but at the moment it's passing the tests from this PR.",
+              "createdAt": "2023-06-30T18:12:26Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5gf0Hy",
+              "body": "Thanks Kyle! This looks very nice. Feel free to merge it into this PR. I am extremely busy at the moment (I am at ESI in Vienna), so I will probably not find the time to do anything on this soon.",
+              "createdAt": "2023-07-03T17:59:03Z",
+              "author": {
+                "login": "mcdoll"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5iv5Tr",
+              "body": "@semorrison It turned out to be tricky to write a reliable congruence quotation elaborator, but it seems to work now!\r\n\r\nI haven't had a chance to do an in-depth review of my own code yet -- I've been staring at it too long too recently -- but if you can lend fresh eyes I'd appreciate it.",
+              "createdAt": "2023-07-29T12:46:01Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5i0kEP",
+              "body": "A nice test would be to try to remove all porting notes that mention `congrm` was used in mathlib3.",
+              "createdAt": "2023-07-31T08:54:04Z",
+              "author": {
+                "login": "PatrickMassot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5i251G",
+              "body": "@PatrickMassot Good idea. All the porting notes are handled but the one in `Mathlib.Geometry.Euclidean.Angle.Sphere`, where it wasn't clear that `congrm` was better (I did check that `congrm` worked though).",
+              "createdAt": "2023-07-31T15:06:01Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5i4I9j",
+              "body": "Great!",
+              "createdAt": "2023-07-31T17:52:52Z",
+              "author": {
+                "login": "PatrickMassot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kpM8j",
+              "body": "Have you thought of having `apply_fun` also be implemented using congruence quotations?  `apply_fun` works on hypotheses and goals, equalities and inequalities, but here I mean specifically for equality hypotheses.\r\n\r\nNot for this PR, just curious.",
+              "createdAt": "2023-08-22T16:17:59Z",
+              "author": {
+                "login": "hrmacbeth"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kp1Lh",
+              "body": "@hrmacbeth Yeah, `apply_fun f at h` ought to be equivalent to `replace h := congr(f $h)`. ",
+              "createdAt": "2023-08-22T18:13:48Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kz-Uw",
+              "body": "This is really nice!",
+              "createdAt": "2023-08-24T09:34:39Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lAKx8",
+              "body": "bors merge",
+              "createdAt": "2023-08-27T01:45:38Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lANwx",
+              "body": "Build failed (retrying...):\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5988493381/job/16243731401)",
+              "createdAt": "2023-08-27T02:54:36Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lAN6c",
+              "body": "Build failed (retrying...):\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5988506097/job/16243756603)",
+              "createdAt": "2023-08-27T02:59:02Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lAOlm",
+              "body": "Canceled.",
+              "createdAt": "2023-08-27T03:21:04Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lAOmG",
+              "body": "bors merge",
+              "createdAt": "2023-08-27T03:21:25Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lATUC",
+              "body": "Build failed (retrying...):\n  * Build",
+              "createdAt": "2023-08-27T05:46:20Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lAWHN",
+              "body": "@kmill, after merging master, the `docBlame` linter has been turned on, so you are missing some doc strings.\r\n\r\nbors d+",
+              "createdAt": "2023-08-27T07:02:23Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lAWHQ",
+              "body": ":v: mcdoll can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "createdAt": "2023-08-27T07:02:24Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lAaEY",
+              "body": "Build failed (retrying...):\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5989503558/job/16245762547)",
+              "createdAt": "2023-08-27T08:28:18Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lAjfb",
+              "body": "bors r-",
+              "createdAt": "2023-08-27T11:37:13Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lAjff",
+              "body": "Canceled.",
+              "createdAt": "2023-08-27T11:37:14Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lAlBp",
+              "body": "bors r+",
+              "createdAt": "2023-08-27T12:05:07Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lAptC",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5990769335/job/16248448073)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5990769335/job/16248448265)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5990769335/job/16248448174)",
+              "createdAt": "2023-08-27T13:29:14Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "f1b4c381e25b5639b6fa6893cf8b79cd0abbf1b0",
+                "additions": 45,
+                "deletions": 1,
+                "committedDate": "2023-02-28T23:02:39Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9ede3e4688bc60b95c4581583cee3fa39e9858a2",
+                "additions": 13,
+                "deletions": 0,
+                "committedDate": "2023-03-01T00:02:45Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4fdecd12c06da712b56303e4f35640ace8604f16",
+                "additions": 46,
+                "deletions": 10,
+                "committedDate": "2023-03-01T22:35:38Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8ed0be6613897f2bb8431f6b3b85dae15fe74038",
+                "additions": 459810,
+                "deletions": 22945,
+                "committedDate": "2023-05-22T22:43:09Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1ec03bcc0cb9cc7164cef6a31dcd41b15fea0f18",
+                "additions": 71,
+                "deletions": 17,
+                "committedDate": "2023-05-23T01:05:58Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "66356541f696316ddccd95f04436d76b3afdf56e",
+                "additions": 47,
+                "deletions": 9,
+                "committedDate": "2023-05-23T14:52:57Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3d3d7f204e034ea70913b042d93a6fef67dfa079",
+                "additions": 65,
+                "deletions": 72,
+                "committedDate": "2023-05-23T23:42:09Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "aa058be8bd10ae802d256899292321a203cf5632",
+                "additions": 9,
+                "deletions": 44,
+                "committedDate": "2023-05-24T01:09:38Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "43e1fa08a7cbcd4dbf2be91e956eed71f7032e37",
+                "additions": 49,
+                "deletions": 41,
+                "committedDate": "2023-05-24T17:43:50Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "28fc8136ffdff1d3713c5178612ba6a0cdb52bce",
+                "additions": 23961,
+                "deletions": 721,
+                "committedDate": "2023-05-25T06:51:46Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "35cafa797a7517319b14cac5d4f1ddd18a455c12",
+                "additions": 145,
+                "deletions": 79,
+                "committedDate": "2023-05-25T17:40:16Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7cc9f1542dcd9c5eeb48fb9f6c0546339fd34b43",
+                "additions": 4,
+                "deletions": 0,
+                "committedDate": "2023-05-25T17:44:26Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6a63af83ff04330afda52cf2b0a7ad61048a4570",
+                "additions": 33,
+                "deletions": 31,
+                "committedDate": "2023-05-25T17:49:45Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f0dd3b683bb672b3e01a1f65e7fb20b945abe57a",
+                "additions": 8,
+                "deletions": 1,
+                "committedDate": "2023-05-25T17:54:33Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9631fbdf1f45c86d0be6cff9798251081a66d75e",
+                "additions": 7,
+                "deletions": 4,
+                "committedDate": "2023-05-25T22:42:42Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d0019496140431a8076569f57f96ff8529da7f50",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-06-20T20:33:11Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d0e9aabc76baf2f504a502c286ca61e4424c6021",
+                "additions": 263646,
+                "deletions": 12177,
+                "committedDate": "2023-06-20T20:34:00Z",
+                "author": {
+                  "name": "Moritz Doll",
+                  "email": "moritz.doll@googlemail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7b5be8457dd7f942fad58e30188c1ed1f6f41490",
+                "additions": 342,
+                "deletions": 149,
+                "committedDate": "2023-06-30T16:05:09Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "cabb2974fe2ad5b3cfa1645ee8bc7f40bd7e5971",
+                "additions": 131753,
+                "deletions": 33093,
+                "committedDate": "2023-07-27T19:54:15Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3af91b6d93b8b4d72c01320a054edca47cc85357",
+                "additions": 25,
+                "deletions": 36,
+                "committedDate": "2023-07-27T21:53:52Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "af82239c90c8c80f31a9e38fc138fb65dcf9387d",
+                "additions": 56,
+                "deletions": 26,
+                "committedDate": "2023-07-28T09:50:14Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1e7e6bbab9797ec3922dc6f4c52e4c0dcc4c566b",
+                "additions": 132872,
+                "deletions": 33355,
+                "committedDate": "2023-07-28T09:51:40Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "712ef6c9dd392dd3f625f713ceabf4ebd8c0cc9d",
+                "additions": 75,
+                "deletions": 56,
+                "committedDate": "2023-07-28T09:51:56Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a21e6e384993e4cb70abe1bad2ac27b5c0541b47",
+                "additions": 116,
+                "deletions": 49,
+                "committedDate": "2023-07-28T16:21:06Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "41a5dcf857506368a628f2ba29d81d48785e3647",
+                "additions": 192,
+                "deletions": 122,
+                "committedDate": "2023-07-28T19:56:40Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "939935f8ef6700272474dbe1cfa9966d190723fe",
+                "additions": 285,
+                "deletions": 114,
+                "committedDate": "2023-07-29T00:00:11Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "41139907d0dfdd49e68c2d1709d9b4497e781d8f",
+                "additions": 18,
+                "deletions": 21,
+                "committedDate": "2023-07-29T01:05:18Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b464dfcda2a0104cd2b946f76beb1c5038cb095d",
+                "additions": 246,
+                "deletions": 153,
+                "committedDate": "2023-07-29T12:23:32Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "45115f718e9fdf62dd669958e0700d08928e12d6",
+                "additions": 2,
+                "deletions": 0,
+                "committedDate": "2023-07-29T12:25:01Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "01e1cea0501c8d6115fd6622104ceb69b504e004",
+                "additions": 2,
+                "deletions": 1,
+                "committedDate": "2023-07-29T14:22:42Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "be051e596ce2a64a708b3407f681ea43fa67a0ed",
+                "additions": 344,
+                "deletions": 248,
+                "committedDate": "2023-07-30T16:04:11Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a706fe2cea74bab2109aa5f8373500967c53dd90",
+                "additions": 59,
+                "deletions": 25,
+                "committedDate": "2023-07-30T16:58:34Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e38eb7a3852450ad19aa79c25d27af59aa8aec60",
+                "additions": 17,
+                "deletions": 1,
+                "committedDate": "2023-07-30T17:20:39Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4af778c92a5fa1f076d2b9a1523fb8325c6cbe70",
+                "additions": 3,
+                "deletions": 3,
+                "committedDate": "2023-07-30T17:32:14Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b6473f0f7f5015769134731b95296b3045efd308",
+                "additions": 2,
+                "deletions": 5,
+                "committedDate": "2023-07-31T09:35:56Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7954c09deaa36180170b4cfc4b1b885bd70e32ad",
+                "additions": 6,
+                "deletions": 8,
+                "committedDate": "2023-07-31T10:24:26Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a4602df874063d0ef592fdbe038ecd5864759006",
+                "additions": 74,
+                "deletions": 44,
+                "committedDate": "2023-07-31T11:20:36Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5304f18d853a520cf2737aeae9c0586d57ae3e05",
+                "additions": 70,
+                "deletions": 21,
+                "committedDate": "2023-07-31T13:24:03Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "384ade1924579a625b97fd60258d099527d4a73d",
+                "additions": 5,
+                "deletions": 6,
+                "committedDate": "2023-07-31T14:12:33Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ca5915bb2d54ff8f1d157bbe4d4d5829b02cfaa1",
+                "additions": 3433,
+                "deletions": 576,
+                "committedDate": "2023-07-31T14:12:48Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1aa79c5f9a3c75ec36e44b38579aee53c5f6b7d5",
+                "additions": 2,
+                "deletions": 7,
+                "committedDate": "2023-07-31T14:38:10Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6a3b769468da94841468872e3ee4181c344cf728",
+                "additions": 11851,
+                "deletions": 4848,
+                "committedDate": "2023-08-09T15:03:40Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c069aa5022f5a81b1f13be23e207dceb1aedbad1",
+                "additions": 1205,
+                "deletions": 556,
+                "committedDate": "2023-08-10T04:30:14Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "dfeff294bc9e3ea5b3c591fd918130afdcfd18c1",
+                "additions": 21,
+                "deletions": 11,
+                "committedDate": "2023-08-24T08:44:59Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e21bcbde3d6acc532264703d0eed555e37d22573",
+                "additions": 12,
+                "deletions": 8,
+                "committedDate": "2023-08-24T10:29:33Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9d19339b9b16bc831d4c0e31f7c434e7ca24d112",
+                "additions": 5,
+                "deletions": 0,
+                "committedDate": "2023-08-24T10:34:13Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e74f37bd33c85e7a27835590c7e5408089c5e16c",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-08-24T10:38:12Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e55640791297ec7be56073997e46bf1a44c333f0",
+                "additions": 31169,
+                "deletions": 19452,
+                "committedDate": "2023-08-27T03:20:17Z",
+                "author": {
+                  "name": "Scott Morrison",
+                  "email": "scott.morrison@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4f16a732431179e755f2f71784128f446d195103",
+                "additions": 2,
+                "deletions": 0,
+                "committedDate": "2023-08-27T03:20:53Z",
+                "author": {
+                  "name": "Scott Morrison",
+                  "email": "scott.morrison@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "799b637ce40af132b1e39884410b884b3bbc1226",
+                "additions": 9,
+                "deletions": 3,
+                "committedDate": "2023-08-27T11:59:52Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2d10bef87c8eee89abec4fc3db802f5e2b8fd47f",
+                "additions": 6,
+                "deletions": 0,
+                "committedDate": "2023-08-27T12:04:26Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-02-28T23:03:51Z",
+        "deletions": 38,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib.lean",
+              "additions": 2,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Analysis/Convex/Gauge.lean",
+              "additions": 2,
+              "deletions": 6
+            },
+            {
+              "path": "Mathlib/Analysis/LocallyConvex/WithSeminorms.lean",
+              "additions": 2,
+              "deletions": 8
+            },
+            {
+              "path": "Mathlib/Geometry/Manifold/LocalInvariantProperties.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Geometry/Manifold/MFDeriv.lean",
+              "additions": 1,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Geometry/Manifold/VectorBundle/FiberwiseLinear.lean",
+              "additions": 1,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/LinearAlgebra/Matrix/SpecialLinearGroup.lean",
+              "additions": 3,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Mathport/Syntax.lean",
+              "additions": 1,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/NumberTheory/Modular.lean",
+              "additions": 1,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Order/OrderIsoNat.lean",
+              "additions": 3,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Tactic.lean",
+              "additions": 2,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic/Common.lean",
+              "additions": 2,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic/Congrm.lean",
+              "additions": 78,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic/TermCongr.lean",
+              "additions": 709,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Topology/UniformSpace/Equicontinuity.lean",
+              "additions": 2,
+              "deletions": 7
+            },
+            {
+              "path": "test/TermCongr.lean",
+              "additions": 147,
+              "deletions": 0
+            },
+            {
+              "path": "test/TermCongr2.lean",
+              "additions": 33,
+              "deletions": 0
+            },
+            {
+              "path": "test/congrm.lean",
+              "additions": 140,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "mcdoll/congrm",
+        "headRefOid": "2d10bef87c8eee89abec4fc3db802f5e2b8fd47f",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5K-ko2",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+              "color": "bfd4f2",
+              "name": "delegated"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+              "color": "33DBEC",
+              "name": "t-meta"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5e99Dj",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-08-24T10:40:47Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5fMTrs",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-27T01:44:44Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5YPmXA",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "PatrickMassot"
+              },
+              "submittedAt": "2023-06-15T00:27:02Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 2544,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5YPmXA",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "PatrickMassot"
+              },
+              "submittedAt": "2023-06-15T00:27:02Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ZkxJC",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-28T10:44:18Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Zkx64",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-28T10:46:19Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ZkyOM",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-28T10:47:10Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ZkydS",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-28T10:47:51Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Zky0z",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-28T10:48:59Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ZkzL9",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-28T10:50:03Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ZkzcJ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-28T10:50:47Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ZkzzQ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-28T10:51:51Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Zkz9b",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-28T10:52:19Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Zk0nb",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-28T10:54:09Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Zk1CK",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-28T10:55:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Zk1Z5",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-28T10:56:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Zk2Ds",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-28T10:57:41Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ZxvY8",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-06-29T22:25:22Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e8hjc",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T07:10:44Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e8hzj",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T07:11:22Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e8iTu",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T07:12:42Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e8jfW",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T07:15:51Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e8j3Q",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T07:16:49Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e8k8-",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T07:19:43Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e8lXB",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T07:20:50Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9K9J",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-08-24T08:46:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9UXZ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T09:07:00Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9VPI",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T09:08:56Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9V0J",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T09:10:14Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9Wn_",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T09:12:07Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9ahX",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T09:20:52Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9alY",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T09:21:01Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9bYB",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T09:22:49Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9bnI",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T09:23:22Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9bw2",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T09:23:43Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9cw2",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T09:25:58Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9e5N",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T09:30:53Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9t_0",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-08-24T10:06:43Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9yRb",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-08-24T10:17:48Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9z5E",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-08-24T10:21:59Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e905G",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-08-24T10:24:37Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e94XJ",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-08-24T10:28:02Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e97Xy",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-08-24T10:36:13Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e97wN",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-08-24T10:37:13Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e99Dj",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-08-24T10:40:47Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5fMTrs",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-27T01:44:44Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JVM7u",
+                    "body": "Is this error message truncated?",
+                    "createdAt": "2023-06-15T00:27:02Z",
+                    "author": {
+                      "login": "PatrickMassot"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5KNbMU",
+                    "body": "Needs module doc.",
+                    "createdAt": "2023-06-28T10:44:17Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5KNbrP",
+                    "body": "Please move to Mathlib/Lean/Expr/Basic.lean",
+                    "createdAt": "2023-06-28T10:46:19Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5KNb3b",
+                    "body": "This is a bit weird. Usually we'd have an `Option.some` when a `try` succeeds, rather than the reverse? Does this really need its own function?",
+                    "createdAt": "2023-06-28T10:47:10Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5KNcBW",
+                    "body": "Not sure this really needs its own function; it's barely shorter than its definition!",
+                    "createdAt": "2023-06-28T10:47:51Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5KNcP6",
+                    "body": "You could do these three lines nicely with a `match ← goal.applyWithFreshMVarLevels with`.",
+                    "createdAt": "2023-06-28T10:48:58Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5KNcga",
+                    "body": "If you're immediately calling `.fvarId!`, wouldn't it make more sense to have an `FVarId` argument?",
+                    "createdAt": "2023-06-28T10:50:03Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5KNcqo",
+                    "body": "Unless the argument order matters for some other reason, I like the convention of `MVarId`s-come-last. It is often convenient for combining tactics, passing to `liftMetaTactic`, etc.",
+                    "createdAt": "2023-06-28T10:50:47Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5KNc5p",
+                    "body": "Why is this `partial`? Why does it have `telescoping` in the name? There's no recursive call.",
+                    "createdAt": "2023-06-28T10:51:51Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5KNdAl",
+                    "body": "Maybe you could track down the \"somewhere\"? :-)",
+                    "createdAt": "2023-06-28T10:52:19Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5KNdcA",
+                    "body": "```suggestion\r\ninitialize registerTraceClass `Tactic.congrm\r\n```\r\nWe're wildly inconsistent about this, but I *think* putting `` `Tactic`` in the name is the more common approach.",
+                    "createdAt": "2023-06-28T10:54:09Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5KNdtt",
+                    "body": "Does this need an error message? If we haven't consumed the pattern yet the user probably should know about it!",
+                    "createdAt": "2023-06-28T10:55:20Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5KNd6j",
+                    "body": "Could you explain the logic here? If we're \"failing\", we should say so in some way, not just do nothing.",
+                    "createdAt": "2023-06-28T10:56:15Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5KNeRA",
+                    "body": "This should be turned on, and use #guard_msgs to check they fail in the right way.",
+                    "createdAt": "2023-06-28T10:57:41Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5KVzC9",
+                    "body": "You're allowed to return assigned metavariables with `liftMetaTactic`, so you can do something like this, if we want to avoid needing `tryRefl`:\r\n```lean\r\nfor mvar in mvars do\r\n  try discard <| mvar.refl catch _ => pure ()\r\nreturn mvars\r\n```\r\nWhenever you get the main goal, it prunes assigned metavariables for you anyway.",
+                    "createdAt": "2023-06-29T22:25:22Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nt-3W",
+                    "body": "```suggestion\r\n  congrm fun x => ∀ w, ?_ + a = w\r\n```",
+                    "createdAt": "2023-08-24T07:10:44Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nt_CC",
+                    "body": "and elsewhere.",
+                    "createdAt": "2023-08-24T07:11:21Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nt_WH",
+                    "body": "Could we have a test for it failing to unfold something irreducible?",
+                    "createdAt": "2023-08-24T07:12:41Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NuAIu",
+                    "body": "```suggestion\r\n  congrm fun x => ∀ w, ?_ + a = w\r\n```",
+                    "createdAt": "2023-08-24T07:15:51Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NuAYa",
+                    "body": "Word missing here? \"is *built* from\"?",
+                    "createdAt": "2023-08-24T07:16:49Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NuBFM",
+                    "body": "Could you clarify \"but whenever we can figure out a LHS or a RHS we unify\"? It isn't obvious to me yet what this means.",
+                    "createdAt": "2023-08-24T07:19:43Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NuZfn",
+                    "body": "That was a mysterious sentence, but I think I figured out what I meant.",
+                    "createdAt": "2023-08-24T08:46:21Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NuBW7",
+                    "body": "```suggestion\r\n2. Once the pattern has been elaborated twice, we unify against the LHS and RHS of the target type.\r\n```\r\nJust to avoid a slightly hard to dereference \"these\".",
+                    "createdAt": "2023-08-24T07:20:50Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nufrx",
+                    "body": "Is this different from `(← inferType pfTy).isProp`?",
+                    "createdAt": "2023-08-24T09:07:00Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NuweR",
+                    "body": "Yeah, it has the side effect of making `pfTy` a proposition if its type is just a metavariable. I'm adding the comment \"Ensure that `pfTy` is a proposition\"",
+                    "createdAt": "2023-08-24T10:06:43Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NugOu",
+                    "body": "```suggestion\r\nby replacing antiquotations with `cHole%` terms, and ensure the elaborated term\r\n```",
+                    "createdAt": "2023-08-24T09:08:56Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nugmx",
+                    "body": "I couldn't follow this sentence.",
+                    "createdAt": "2023-08-24T09:10:14Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nu4Sb",
+                    "body": "Added clarification. \"Kind\" refers to a `CongrKind`, and this function uses `subsingletonInst` for arguments that are subsingletons for reasons other than being `Decidable` instances.",
+                    "createdAt": "2023-08-24T10:36:13Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NuhIe",
+                    "body": "Is this something generally useful that maybe should be lifted out of this file for visibility?",
+                    "createdAt": "2023-08-24T09:12:06Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nu4hq",
+                    "body": "Lifting it out would take a bit of work to do right (there are also some useful functions in `Mathlib.Tactic.Congr!` that ought to be lifted out). Is the TODO I left ok for now?",
+                    "createdAt": "2023-08-24T10:37:13Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nujqr",
+                    "body": "```suggestion\r\n  throwError \"Could not generate congruence between{indentD lhs}\\nand{indentD rhs}\"\r\n```",
+                    "createdAt": "2023-08-24T09:20:52Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nujs9",
+                    "body": "I'm confused by this note.",
+                    "createdAt": "2023-08-24T09:21:01Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nu5Y1",
+                    "body": "This was a problem in `congr!` as well. I added some clarification.\r\n\r\nThe issue is that if you have `Sort ?u` then if there weren't `withNewMCtxDepth` then instance search is perfectly happy to unify this with `Prop` and say \"yes, these are subsingletons\". Without it, this would succeed:\r\n```\r\nexample (T : Sort _) (x y : T) : x = y := congr(_)\r\n```",
+                    "createdAt": "2023-08-24T10:40:47Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NukPG",
+                    "body": "Do these actually happen? I'm unclear if these are meant to be considered unreachable or just unfortunate. :-)",
+                    "createdAt": "2023-08-24T09:22:49Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NuzR9",
+                    "body": "If it happens, it's really unfortunate, but I wouldn't expect it in normal operation. The expected type could be an equality with a metavariable shared between the LHS and RHS, letting a hole leak from the LHS to the RHS.\r\n\r\nI don't really know how else this can occur in practice, but I figure one day someone on Zulip will let us know :wink:",
+                    "createdAt": "2023-08-24T10:17:48Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NukZD",
+                    "body": "Similarly here.",
+                    "createdAt": "2023-08-24T09:23:22Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nu0US",
+                    "body": "This is also not impossible, sadly. We always have the problem that the congruence hole could be given to an elaborator that reduces its argument in some way, stripping the annotation. These particular cases come up when that elaborator does it conditionally (what if `h : 1 = x` and `foo% 1` turns `1` into `Nat.succ Nat.zero` but leaves `foo% x` alone since it's not a number?).",
+                    "createdAt": "2023-08-24T10:21:59Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NukfQ",
+                    "body": "```suggestion\r\nWhere they are desynchronized, we fall back to the base case (using `CongrResult.mkDefault'`)\r\n```",
+                    "createdAt": "2023-08-24T09:23:43Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NulJI",
+                    "body": "Just making sure I understand here, the \"since\" means that congruence holes inside proofs wouldn't matter, and not fastforwarding in their presence is the \"more conservative\"?",
+                    "createdAt": "2023-08-24T09:25:58Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nu0-U",
+                    "body": "Correct. I changed it to \"since congruence holes might *only* be inside proofs\" to try to make the meaning clearer",
+                    "createdAt": "2023-08-24T10:24:37Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NumhA",
+                    "body": "I guess you could remove the duplication here by writing a single function `res.or_or_heq kind` or something. Probably doesn't matter, but it would have saved my taking a moment to work out if anything was different.",
+                    "createdAt": "2023-08-24T09:30:52Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nu2Xq",
+                    "body": "Yeah, I'd considered trying to deduplicate, but what stopped me before is all these `mut` variables",
+                    "createdAt": "2023-08-24T10:28:02Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5N4OmS",
+                    "body": "Ah, indeed. Okay.",
+                    "createdAt": "2023-08-27T01:44:44Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjIxMzY2MzE5",
+              "login": "mcdoll"
+            },
+            {
+              "id": "MDQ6VXNlcjIzNTMwNw==",
+              "login": "kmill"
+            },
+            {
+              "id": "MDQ6VXNlcjE0MDYwODgz",
+              "login": "PatrickMassot"
+            },
+            {
+              "id": "MDQ6VXNlcjI1MzE2MTYy",
+              "login": "hrmacbeth"
+            },
+            {
+              "id": "MDQ6VXNlcjQ3Nzk1Ng==",
+              "login": "kim-em"
+            },
+            {
+              "id": "U_kgDOB75MNQ",
+              "login": "leanprover-community-mathlib4-bot"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat: `congr(...)` congruence quotations and port `congrm` tactic",
+        "updatedAt": "2023-08-27T13:29:19Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/2544",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f1b4c381e25b5639b6fa6893cf8b79cd0abbf1b0"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5fmlE2zwAAAAIChqVn",
+              "createdAt": "2023-02-28T23:03:51Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5fmlE2zwAAAAIChqVv",
+              "createdAt": "2023-02-28T23:03:51Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+                "name": "t-meta"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9ede3e4688bc60b95c4581583cee3fa39e9858a2"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4fdecd12c06da712b56303e4f35640ace8604f16"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5Lm0fE",
+              "createdAt": "2023-03-02T23:10:33Z",
+              "source": {
+                "id": "I_kwDOFcwZ1c5SLg7U",
+                "title": "tactic porting tracking issue",
+                "url": "https://github.com/leanprover-community/mathlib4/issues/430"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5fmlE2zwAAAAIED40I",
+              "createdAt": "2023-03-03T09:48:55Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8ed0be6613897f2bb8431f6b3b85dae15fe74038"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5fmlE2zwAAAAIq0kx1",
+              "createdAt": "2023-05-22T22:48:57Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1ec03bcc0cb9cc7164cef6a31dcd41b15fea0f18"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "66356541f696316ddccd95f04436d76b3afdf56e"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3d3d7f204e034ea70913b042d93a6fef67dfa079"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "aa058be8bd10ae802d256899292321a203cf5632"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "43e1fa08a7cbcd4dbf2be91e956eed71f7032e37"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "28fc8136ffdff1d3713c5178612ba6a0cdb52bce"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "35cafa797a7517319b14cac5d4f1ddd18a455c12"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7cc9f1542dcd9c5eeb48fb9f6c0546339fd34b43"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "6a63af83ff04330afda52cf2b0a7ad61048a4570"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f0dd3b683bb672b3e01a1f65e7fb20b945abe57a"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5fmlE2zwAAAAIs4nu9",
+              "createdAt": "2023-05-25T17:56:09Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5fmlE2zwAAAAIs4nvI",
+              "createdAt": "2023-05-25T17:56:09Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9631fbdf1f45c86d0be6cff9798251081a66d75e"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5YPmXA",
+              "createdAt": "2023-06-15T00:27:02Z",
+              "body": "",
+              "author": {
+                "login": "PatrickMassot"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d0019496140431a8076569f57f96ff8529da7f50"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d0e9aabc76baf2f504a502c286ca61e4424c6021"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5ZkxJC",
+              "createdAt": "2023-06-28T10:44:17Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5Zkx64",
+              "createdAt": "2023-06-28T10:46:18Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5ZkyOM",
+              "createdAt": "2023-06-28T10:47:10Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5ZkydS",
+              "createdAt": "2023-06-28T10:47:51Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5Zky0z",
+              "createdAt": "2023-06-28T10:48:58Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5ZkzL9",
+              "createdAt": "2023-06-28T10:50:03Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5ZkzcJ",
+              "createdAt": "2023-06-28T10:50:47Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5ZkzzQ",
+              "createdAt": "2023-06-28T10:51:51Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5Zkz9b",
+              "createdAt": "2023-06-28T10:52:19Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5Zk0nb",
+              "createdAt": "2023-06-28T10:54:09Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5Zk1CK",
+              "createdAt": "2023-06-28T10:55:20Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5Zk1Z5",
+              "createdAt": "2023-06-28T10:56:15Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5Zk2Ds",
+              "createdAt": "2023-06-28T10:57:41Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5ZxvY8",
+              "createdAt": "2023-06-29T22:25:21Z",
+              "body": "",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5gMeLN",
+              "createdAt": "2023-06-29T22:32:14Z",
+              "body": "It's occurred to me that we should be able to implement `congrm` using `convert_to` and then benefit from all of the congruence machinery that's there. I'm going to go and investigate.",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7b5be8457dd7f942fad58e30188c1ed1f6f41490"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5gQw08",
+              "createdAt": "2023-06-30T18:12:26Z",
+              "body": "I have an experiment on the `mcdoll/congrm_kmill_experiment` branch [(diff)](https://github.com/leanprover-community/mathlib4/compare/master...mcdoll/congrm_kmill_experiment). It uses a `congr%` term elaborator to turn the pattern into a congruence lemma and then applies it using `refine`, which lets it unfold definitions too.\r\n\r\nIt uses `?m` for pattern holes rather than `_`, like in `gcongr`, and a consequence is that (1) we can differentiate between what should be solved by unification and what by future goals and (2) we can name goal tags and solve specific ones with `case`.\r\n\r\nIt's not perfect yet, since it doesn't completely handle things like `Fintype` instance arguments, but at the moment it's passing the tests from this PR.",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5gf0Hy",
+              "createdAt": "2023-07-03T17:59:03Z",
+              "body": "Thanks Kyle! This looks very nice. Feel free to merge it into this PR. I am extremely busy at the moment (I am at ESI in Vienna), so I will probably not find the time to do anything on this soon.",
+              "author": {
+                "login": "mcdoll"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "cabb2974fe2ad5b3cfa1645ee8bc7f40bd7e5971"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3af91b6d93b8b4d72c01320a054edca47cc85357"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "af82239c90c8c80f31a9e38fc138fb65dcf9387d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1e7e6bbab9797ec3922dc6f4c52e4c0dcc4c566b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "712ef6c9dd392dd3f625f713ceabf4ebd8c0cc9d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a21e6e384993e4cb70abe1bad2ac27b5c0541b47"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "41a5dcf857506368a628f2ba29d81d48785e3647"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "939935f8ef6700272474dbe1cfa9966d190723fe"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "41139907d0dfdd49e68c2d1709d9b4497e781d8f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b464dfcda2a0104cd2b946f76beb1c5038cb095d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "45115f718e9fdf62dd669958e0700d08928e12d6"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5iv5Tr",
+              "createdAt": "2023-07-29T12:46:01Z",
+              "body": "@semorrison It turned out to be tricky to write a reliable congruence quotation elaborator, but it seems to work now!\r\n\r\nI haven't had a chance to do an in-depth review of my own code yet -- I've been staring at it too long too recently -- but if you can lend fresh eyes I'd appreciate it.",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "01e1cea0501c8d6115fd6622104ceb69b504e004"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "be051e596ce2a64a708b3407f681ea43fa67a0ed"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a706fe2cea74bab2109aa5f8373500967c53dd90"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e38eb7a3852450ad19aa79c25d27af59aa8aec60"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4af778c92a5fa1f076d2b9a1523fb8325c6cbe70"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5i0kEP",
+              "createdAt": "2023-07-31T08:54:04Z",
+              "body": "A nice test would be to try to remove all porting notes that mention `congrm` was used in mathlib3.",
+              "author": {
+                "login": "PatrickMassot"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b6473f0f7f5015769134731b95296b3045efd308"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7954c09deaa36180170b4cfc4b1b885bd70e32ad"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a4602df874063d0ef592fdbe038ecd5864759006"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5304f18d853a520cf2737aeae9c0586d57ae3e05"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "384ade1924579a625b97fd60258d099527d4a73d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ca5915bb2d54ff8f1d157bbe4d4d5829b02cfaa1"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1aa79c5f9a3c75ec36e44b38579aee53c5f6b7d5"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5i251G",
+              "createdAt": "2023-07-31T15:06:01Z",
+              "body": "@PatrickMassot Good idea. All the porting notes are handled but the one in `Mathlib.Geometry.Euclidean.Angle.Sphere`, where it wasn't clear that `congrm` was better (I did check that `congrm` worked though).",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5i4I9j",
+              "createdAt": "2023-07-31T17:52:52Z",
+              "body": "Great!",
+              "author": {
+                "login": "PatrickMassot"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5fmlE2zwAAAAJWTuNW",
+              "createdAt": "2023-08-08T16:51:08Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "6a3b769468da94841468872e3ee4181c344cf728"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5fmlE2zwAAAAJW9n4x",
+              "createdAt": "2023-08-09T15:05:36Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c069aa5022f5a81b1f13be23e207dceb1aedbad1"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kpM8j",
+              "createdAt": "2023-08-22T16:17:59Z",
+              "body": "Have you thought of having `apply_fun` also be implemented using congruence quotations?  `apply_fun` works on hypotheses and goals, equalities and inequalities, but here I mean specifically for equality hypotheses.\r\n\r\nNot for this PR, just curious.",
+              "author": {
+                "login": "hrmacbeth"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kp1Lh",
+              "createdAt": "2023-08-22T18:13:48Z",
+              "body": "@hrmacbeth Yeah, `apply_fun f at h` ought to be equivalent to `replace h := congr(f $h)`. ",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e8hjc",
+              "createdAt": "2023-08-24T07:10:43Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e8iTu",
+              "createdAt": "2023-08-24T07:12:41Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e8jfW",
+              "createdAt": "2023-08-24T07:15:51Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e8j3Q",
+              "createdAt": "2023-08-24T07:16:49Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e8k8-",
+              "createdAt": "2023-08-24T07:19:43Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e8lXB",
+              "createdAt": "2023-08-24T07:20:50Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "dfeff294bc9e3ea5b3c591fd918130afdcfd18c1"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e9UXZ",
+              "createdAt": "2023-08-24T09:07:00Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e9VPI",
+              "createdAt": "2023-08-24T09:08:56Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e9V0J",
+              "createdAt": "2023-08-24T09:10:14Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e9Wn_",
+              "createdAt": "2023-08-24T09:12:06Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e9ahX",
+              "createdAt": "2023-08-24T09:20:51Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e9alY",
+              "createdAt": "2023-08-24T09:21:01Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e9bYB",
+              "createdAt": "2023-08-24T09:22:48Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e9bnI",
+              "createdAt": "2023-08-24T09:23:22Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e9bw2",
+              "createdAt": "2023-08-24T09:23:43Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e9cw2",
+              "createdAt": "2023-08-24T09:25:58Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e9e5N",
+              "createdAt": "2023-08-24T09:30:52Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kz-Uw",
+              "createdAt": "2023-08-24T09:34:39Z",
+              "body": "This is really nice!",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e21bcbde3d6acc532264703d0eed555e37d22573"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9d19339b9b16bc831d4c0e31f7c434e7ca24d112"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e74f37bd33c85e7a27835590c7e5408089c5e16c"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lAKx8",
+              "createdAt": "2023-08-27T01:45:38Z",
+              "body": "bors merge",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5fmlE2zwAAAAJgBnz-",
+              "createdAt": "2023-08-27T01:45:49Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5fmlE2zwAAAAJgBn0S",
+              "createdAt": "2023-08-27T01:45:49Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lANwx",
+              "createdAt": "2023-08-27T02:54:36Z",
+              "body": "Build failed (retrying...):\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5988493381/job/16243731401)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lAN6c",
+              "createdAt": "2023-08-27T02:59:02Z",
+              "body": "Build failed (retrying...):\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5988506097/job/16243756603)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e55640791297ec7be56073997e46bf1a44c333f0"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4f16a732431179e755f2f71784128f446d195103"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lAOlm",
+              "createdAt": "2023-08-27T03:21:04Z",
+              "body": "Canceled.",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lAOmG",
+              "createdAt": "2023-08-27T03:21:25Z",
+              "body": "bors merge",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lATUC",
+              "createdAt": "2023-08-27T05:46:20Z",
+              "body": "Build failed (retrying...):\n  * Build",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lAWHN",
+              "createdAt": "2023-08-27T07:02:23Z",
+              "body": "@kmill, after merging master, the `docBlame` linter has been turned on, so you are missing some doc strings.\r\n\r\nbors d+",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lAWHQ",
+              "createdAt": "2023-08-27T07:02:24Z",
+              "body": ":v: mcdoll can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5fmlE2zwAAAAJgCwR8",
+              "createdAt": "2023-08-27T07:02:34Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+                "name": "delegated"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lAaEY",
+              "createdAt": "2023-08-27T08:28:18Z",
+              "body": "Build failed (retrying...):\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5989503558/job/16245762547)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lAjfb",
+              "createdAt": "2023-08-27T11:37:13Z",
+              "body": "bors r-",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lAjff",
+              "createdAt": "2023-08-27T11:37:14Z",
+              "body": "Canceled.",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "799b637ce40af132b1e39884410b884b3bbc1226"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2d10bef87c8eee89abec4fc3db802f5e2b8fd47f"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lAlBp",
+              "createdAt": "2023-08-27T12:05:07Z",
+              "body": "bors r+",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lAptC",
+              "createdAt": "2023-08-27T13:29:14Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5990769335/job/16248448073)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5990769335/job/16248448265)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5990769335/job/16248448174)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5fmlE2zwAAAAJgE8TJ",
+              "createdAt": "2023-08-27T13:29:15Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5fmlE2zwAAAAJgE8UP",
+              "createdAt": "2023-08-27T13:29:18Z"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
