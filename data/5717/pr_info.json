@@ -1,0 +1,956 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 433,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "kmill"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "This provides a function to create a tactic from any `Expr → MetaM Expr` that maps expresions to defeq expressions. The tactic handles the standard location processing.\r\n\r\nAlso provides some tactics: `whnf`, `beta_reduce`, `reduce`, `unfold_let`, `unfold_projs`, `eta_reduce`, and `eta_expand`. Some of these (like `whnf`) are more useful in high-level tactic scripts or for exploration than in actual finished proofs. The `unfold_let` tactic is useful for finer-grained zeta reduction (a.k.a. substituting in the values of let-bound hypotheses) and for providing a working alternative to `unfold` for local bindings.\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 6,
+        "closed": true,
+        "closedAt": "2023-08-24T16:07:49Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5goQ2E",
+              "body": "Is it a good opportunity to implement `change ... at ...`?",
+              "createdAt": "2023-07-05T07:15:31Z",
+              "author": {
+                "login": "PatrickMassot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5goiGU",
+              "body": "@PatrickMassot I added `change ... at ...` [a few months ago](https://github.com/leanprover-community/mathlib4/blob/24d17585e764e2fe4c70e5e0ba1b7a06473767e7/Mathlib/Tactic/Basic.lean#L125). It didn't seem worth trying to unify it into this defeq tactics framework, so I left it alone.",
+              "createdAt": "2023-07-05T07:59:51Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5gr6Sv",
+              "body": "Here's another tactic for applying eta reduction for structures.\r\n\r\n```\r\ndef etaStructAtom (e: Expr): MetaM (Option Expr) := do\r\n  let (declName, declArgs) := e.getAppFnArgs\r\n  match (← getEnv).find? declName with\r\n  | ConstantInfo.ctorInfo ctorInfo =>\r\n    match (← getEnv).find? ctorInfo.induct with\r\n    | ConstantInfo.inductInfo indInfo =>\r\n      if indInfo.ctors.length == 1 \r\n        && ctorInfo.numFields > 0\r\n        && declArgs.size == ctorInfo.numParams + ctorInfo.numFields then\r\n        match declArgs.get? ctorInfo.numParams with\r\n        | some (Expr.proj _ _ arg) =>\r\n          if ←  isDefEq e arg then\r\n            pure (some arg)\r\n          else\r\n            pure none\r\n        | some a =>\r\n          match (a).getAppArgs'.back? with\r\n          | some arg =>\r\n              if ←  isDefEq e arg then\r\n                pure (some arg)\r\n              else\r\n                pure none\r\n          | none => pure none\r\n        | _ => pure none\r\n      else\r\n        pure none\r\n    | _ => pure none\r\n  | _ =>\r\n    pure none\r\n\r\n\r\n def etaStruct (e: Expr): MetaM Expr := do\r\n  Meta.transform e (post:= fun n => do\r\n    match (← etaStructAtom n) with\r\n    | some t => pure (TransformStep.done t)\r\n    | none => pure TransformStep.continue \r\n  )\r\n\r\n/--\r\n`eta_struct at loc` applies eta reduction for structures to all sub-expressions at the given location.\r\nThis also exists as a `conv`-mode tactic.\r\n\r\nFor example, if `x` is a Prod, `Prod.mk x.1 x.2` becomes `x` after eta reduction for structures.\r\n-/\r\nelab (name := etaStructStx) \"eta_struct\" loc?:(ppSpace Parser.Tactic.location)? : tactic =>\r\n  runDefeqTactic etaStruct loc? \"eta_struct\"\r\n\r\n@[inherit_doc etaStructStx]\r\nelab \"eta_struct\" : conv => runDefeqConvTactic etaStruct\r\n```",
+              "createdAt": "2023-07-05T16:44:41Z",
+              "author": {
+                "login": "jeremysalwen"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5gtO7n",
+              "body": "@jeremysalwen Added `eta_struct`",
+              "createdAt": "2023-07-05T20:41:40Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5g1H0S",
+              "body": "Wow thanks!  I learned a lot from reading your code too!",
+              "createdAt": "2023-07-07T02:06:17Z",
+              "author": {
+                "login": "jeremysalwen"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jUNus",
+              "body": "LGTM\r\n\r\nI guess at  a later date we could add eta expansion for structures (that isn't already covered here right?) i.e. `x -> (x.1, x.2)` ",
+              "createdAt": "2023-08-04T22:38:35Z",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5k0EZM",
+              "body": "bors d+",
+              "createdAt": "2023-08-24T09:51:51Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5k0EZy",
+              "body": ":v: kmill can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "createdAt": "2023-08-24T09:51:53Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5k0zRb",
+              "body": "bors r+",
+              "createdAt": "2023-08-24T12:13:46Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5k1Q3U",
+              "body": "Build failed:\n  * Build",
+              "createdAt": "2023-08-24T13:31:54Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5k1x_a",
+              "body": "bors r+",
+              "createdAt": "2023-08-24T14:43:01Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5k2Zoi",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5965257908/job/16182268487)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5965257908/job/16182268747)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5965257908/job/16182267989)",
+              "createdAt": "2023-08-24T16:07:48Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "f5709be313219d110b6ac97eb0f7b095f6c324e7",
+                "additions": 141,
+                "deletions": 0,
+                "committedDate": "2023-07-04T20:35:06Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8967a8aebbee23915c70f3bebf49bfcd5a9b5ef7",
+                "additions": 183,
+                "deletions": 16,
+                "committedDate": "2023-07-04T23:32:10Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8aff21fa732fa3eefe8c0890520ddf28a61e8e57",
+                "additions": 4,
+                "deletions": 2,
+                "committedDate": "2023-07-04T23:40:43Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4b9a7275362e656d1272350842df6b70ae059270",
+                "additions": 98,
+                "deletions": 24,
+                "committedDate": "2023-07-05T20:14:55Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3a265b99b3d29b6890b116c4c38ae4fcdc52c540",
+                "additions": 16,
+                "deletions": 0,
+                "committedDate": "2023-07-05T20:21:05Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e7f54ec603d09c833f5c25a9878bf749c24a2c80",
+                "additions": 33,
+                "deletions": 12,
+                "committedDate": "2023-07-05T20:34:01Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "94b2ab916a0d6204ce55e43d657ed788c67f581c",
+                "additions": 14,
+                "deletions": 8,
+                "committedDate": "2023-07-05T20:40:35Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "37e12df0bb754a97b4b31659701e0d36362016a3",
+                "additions": 10,
+                "deletions": 8,
+                "committedDate": "2023-08-08T19:22:04Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "13aff21d27654b939c576e2e193b78d2ea828158",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-08-08T19:28:42Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6a3e799419528b5d3d912a6ce0428c9a0c63cbb2",
+                "additions": 62206,
+                "deletions": 30399,
+                "committedDate": "2023-08-08T19:29:09Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1acf770d589896d0d84d0ad326d4f365f7e44233",
+                "additions": 25,
+                "deletions": 25,
+                "committedDate": "2023-08-24T10:45:28Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7c5f0c934036def056585b7e0930370743be37e7",
+                "additions": 5,
+                "deletions": 3,
+                "committedDate": "2023-08-24T14:42:26Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-07-04T23:46:56Z",
+        "deletions": 2,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Mathport/Syntax.lean",
+              "additions": 1,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Tactic.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic/Common.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic/DefEqTransformations.lean",
+              "additions": 293,
+              "deletions": 0
+            },
+            {
+              "path": "test/DefEqTransformations.lean",
+              "additions": 136,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "kmill_defeq_tactics",
+        "headRefOid": "7c5f0c934036def056585b7e0930370743be37e7",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5UpvD-",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+              "color": "bfd4f2",
+              "name": "delegated"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+              "color": "33DBEC",
+              "name": "t-meta"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5e9npl",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T09:51:25Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5dMw93",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-08-04T22:36:19Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5dWeGa",
+              "body": "",
+              "state": "DISMISSED",
+              "author": {
+                "login": "thorimur"
+              },
+              "submittedAt": "2023-08-07T21:39:09Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 5717,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5dMwlf",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-08-04T22:33:11Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5dMw93",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-08-04T22:36:19Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5dWeGa",
+              "body": "",
+              "state": "DISMISSED",
+              "author": {
+                "login": "thorimur"
+              },
+              "submittedAt": "2023-08-07T21:39:09Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ddliP",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-08-08T19:36:23Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9lSG",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T09:45:46Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5e9npl",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-08-24T09:51:25Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MldcJ",
+                    "body": "\n```suggestion\nThis does the same transformation as the `#reduce` command.\n```",
+                    "createdAt": "2023-08-04T22:33:10Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MldrW",
+                    "body": "\n```suggestion\n/-- Finds all occurrences of expressions of the form `S.mk x.1 ... x.n` where `S.mk`\n```",
+                    "createdAt": "2023-08-04T22:36:18Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MrN8t",
+                    "body": "```suggestion\r\n`m` *must* transform expressions to defeq expressions. If `checkDefEq` is `true` (the default), \r\n`runDefeqTactic` will throw an error if the result is not defeq to the original expression. If \r\n`checkDefEq` is `false`, the result is still assumed to be defeq to the original, but this is not \r\nchecked. -/\r\ndef runDefeqTactic (m : Expr → MetaM Expr)\r\n    (loc? : Option (TSyntax ``Parser.Tactic.location))\r\n    (tacticName : String)\r\n    (checkDefEq := true) :\r\n    TacticM Unit := withMainContext do\r\n  withLocation (expandOptLocation (Lean.mkOptionalNode loc?))\r\n    (atLocal := fun h => liftMetaTactic1 fun mvarId => do\r\n      let ty ← instantiateMVars (← h.getType)\r\n      mvarId.changeLocalDecl' h (← m ty) checkDefEq)\r\n    (atTarget := liftMetaTactic1 fun mvarId => do\r\n      let ty ← instantiateMVars (← mvarId.getType)\r\n      mvarId.change (← m ty) checkDefEq)\r\n    (failed := fun _ => throwError \"{tacticName} failed\")\r\n```\r\nEDIT: Oops, sorry, I think I would have rather left this as a comment instead of requesting changes per se. :)\r\n\r\nSince this essentially maps `change`/`changeLocalDecl'` over the specified locations, and since both take the optional argument `checkDefEq := true`, I think it should probably preserve that option. Is there a reason we don't? Also, since `isDefEq` can be so expensive, it's probably useful to be able to turn checking off when we know the result is defeq (e.g., if `m` already checks for defeq); I think cases like this are quite frequent!\r\n\r\nMaybe defeq checking should also be turned off for the specific tactics in this file that necessarily preserve defeq, like `whnf` and beta reduction.",
+                    "createdAt": "2023-08-07T21:26:51Z",
+                    "author": {
+                      "login": "thorimur"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MvyTR",
+                    "body": "It seems good to do defeq checks if only because defeq is not a transitive relation, but I added the option. (I've imagined that it's probably not too expensive doing defeq checks for the sorts of transformations in this file, though I haven't measured anything. These are also probably going to be infrequently used tactics, so likely these defeq checks won't be measurable in a mathlib build.)",
+                    "createdAt": "2023-08-08T19:36:22Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MrPYl",
+                    "body": "```suggestion\r\nFor example, if `x : α × β`, then `(x.1, x.2)` becomes `x`.\r\n```",
+                    "createdAt": "2023-08-07T21:35:36Z",
+                    "author": {
+                      "login": "thorimur"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Nuqxo",
+                    "body": "```suggestion\r\ndef runDefEqTactic (m : Expr → MetaM Expr)\r\n```\r\nLet's have consistent capitalization of `DefEq`!",
+                    "createdAt": "2023-08-24T09:45:46Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5NusSh",
+                    "body": "(Filenames, too.)",
+                    "createdAt": "2023-08-24T09:51:25Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjIzNTMwNw==",
+              "login": "kmill"
+            },
+            {
+              "id": "MDQ6VXNlcjE0MDYwODgz",
+              "login": "PatrickMassot"
+            },
+            {
+              "id": "MDQ6VXNlcjQ1MDYzOA==",
+              "login": "jeremysalwen"
+            },
+            {
+              "id": "MDQ6VXNlcjE2ODg1MzM=",
+              "login": "alexjbest"
+            },
+            {
+              "id": "MDQ6VXNlcjQ3Nzk1Ng==",
+              "login": "kim-em"
+            },
+            {
+              "id": "MDQ6VXNlcjY4NDEwNDY4",
+              "login": "thorimur"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat: some tactics to transform hypotheses and goals to defeq expressions",
+        "updatedAt": "2023-08-24T16:07:55Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/5717",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f5709be313219d110b6ac97eb0f7b095f6c324e7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8967a8aebbee23915c70f3bebf49bfcd5a9b5ef7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8aff21fa732fa3eefe8c0890520ddf28a61e8e57"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5qm14EzwAAAAJDr2P5",
+              "createdAt": "2023-07-04T23:46:56Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5qm14EzwAAAAJDr2P7",
+              "createdAt": "2023-07-04T23:46:56Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+                "name": "t-meta"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5qm14EzwAAAAJDr2P9",
+              "createdAt": "2023-07-04T23:46:56Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABMtntmA",
+                "name": "new-feature"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5goQ2E",
+              "createdAt": "2023-07-05T07:15:31Z",
+              "body": "Is it a good opportunity to implement `change ... at ...`?",
+              "author": {
+                "login": "PatrickMassot"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5goiGU",
+              "createdAt": "2023-07-05T07:59:51Z",
+              "body": "@PatrickMassot I added `change ... at ...` [a few months ago](https://github.com/leanprover-community/mathlib4/blob/24d17585e764e2fe4c70e5e0ba1b7a06473767e7/Mathlib/Tactic/Basic.lean#L125). It didn't seem worth trying to unify it into this defeq tactics framework, so I left it alone.",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5gr6Sv",
+              "createdAt": "2023-07-05T16:44:41Z",
+              "body": "Here's another tactic for applying eta reduction for structures.\r\n\r\n```\r\ndef etaStructAtom (e: Expr): MetaM (Option Expr) := do\r\n  let (declName, declArgs) := e.getAppFnArgs\r\n  match (← getEnv).find? declName with\r\n  | ConstantInfo.ctorInfo ctorInfo =>\r\n    match (← getEnv).find? ctorInfo.induct with\r\n    | ConstantInfo.inductInfo indInfo =>\r\n      if indInfo.ctors.length == 1 \r\n        && ctorInfo.numFields > 0\r\n        && declArgs.size == ctorInfo.numParams + ctorInfo.numFields then\r\n        match declArgs.get? ctorInfo.numParams with\r\n        | some (Expr.proj _ _ arg) =>\r\n          if ←  isDefEq e arg then\r\n            pure (some arg)\r\n          else\r\n            pure none\r\n        | some a =>\r\n          match (a).getAppArgs'.back? with\r\n          | some arg =>\r\n              if ←  isDefEq e arg then\r\n                pure (some arg)\r\n              else\r\n                pure none\r\n          | none => pure none\r\n        | _ => pure none\r\n      else\r\n        pure none\r\n    | _ => pure none\r\n  | _ =>\r\n    pure none\r\n\r\n\r\n def etaStruct (e: Expr): MetaM Expr := do\r\n  Meta.transform e (post:= fun n => do\r\n    match (← etaStructAtom n) with\r\n    | some t => pure (TransformStep.done t)\r\n    | none => pure TransformStep.continue \r\n  )\r\n\r\n/--\r\n`eta_struct at loc` applies eta reduction for structures to all sub-expressions at the given location.\r\nThis also exists as a `conv`-mode tactic.\r\n\r\nFor example, if `x` is a Prod, `Prod.mk x.1 x.2` becomes `x` after eta reduction for structures.\r\n-/\r\nelab (name := etaStructStx) \"eta_struct\" loc?:(ppSpace Parser.Tactic.location)? : tactic =>\r\n  runDefeqTactic etaStruct loc? \"eta_struct\"\r\n\r\n@[inherit_doc etaStructStx]\r\nelab \"eta_struct\" : conv => runDefeqConvTactic etaStruct\r\n```",
+              "author": {
+                "login": "jeremysalwen"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4b9a7275362e656d1272350842df6b70ae059270"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3a265b99b3d29b6890b116c4c38ae4fcdc52c540"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e7f54ec603d09c833f5c25a9878bf749c24a2c80"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "94b2ab916a0d6204ce55e43d657ed788c67f581c"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5gtO7n",
+              "createdAt": "2023-07-05T20:41:40Z",
+              "body": "@jeremysalwen Added `eta_struct`",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5g1H0S",
+              "createdAt": "2023-07-07T02:06:17Z",
+              "body": "Wow thanks!  I learned a lot from reading your code too!",
+              "author": {
+                "login": "jeremysalwen"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5NxIc7",
+              "createdAt": "2023-08-01T11:43:59Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5Vi048",
+                "title": "[Merged by Bors] - port the clean tactic from lean 3 to lean 4",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/5909"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5dMwlf",
+              "createdAt": "2023-08-04T22:33:09Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5dMw93",
+              "createdAt": "2023-08-04T22:36:18Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jUNus",
+              "createdAt": "2023-08-04T22:38:35Z",
+              "body": "LGTM\r\n\r\nI guess at  a later date we could add eta expansion for structures (that isn't already covered here right?) i.e. `x -> (x.1, x.2)` ",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5dWeGa",
+              "createdAt": "2023-08-07T21:26:51Z",
+              "body": "",
+              "author": {
+                "login": "thorimur"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "37e12df0bb754a97b4b31659701e0d36362016a3"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "13aff21d27654b939c576e2e193b78d2ea828158"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "6a3e799419528b5d3d912a6ce0428c9a0c63cbb2"
+              }
+            },
+            {
+              "__typename": "ReviewDismissedEvent",
+              "id": "RDE_lADOFcwZ1c5qm14EzwAAAAJWZYDW",
+              "createdAt": "2023-08-08T19:39:58Z",
+              "review": {
+                "author": {
+                  "login": "thorimur"
+                }
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5e9lSG",
+              "createdAt": "2023-08-24T09:45:46Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5k0EZM",
+              "createdAt": "2023-08-24T09:51:51Z",
+              "body": "bors d+",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5k0EZy",
+              "createdAt": "2023-08-24T09:51:53Z",
+              "body": ":v: kmill can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5qm14EzwAAAAJeu-2c",
+              "createdAt": "2023-08-24T09:52:04Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+                "name": "delegated"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5qm14EzwAAAAJeu-5B",
+              "createdAt": "2023-08-24T09:52:05Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1acf770d589896d0d84d0ad326d4f365f7e44233"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5k0zRb",
+              "createdAt": "2023-08-24T12:13:46Z",
+              "body": "bors r+",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5qm14EzwAAAAJe0LR0",
+              "createdAt": "2023-08-24T12:13:59Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5k1Q3U",
+              "createdAt": "2023-08-24T13:31:54Z",
+              "body": "Build failed:\n  * Build",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7c5f0c934036def056585b7e0930370743be37e7"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5k1x_a",
+              "createdAt": "2023-08-24T14:43:01Z",
+              "body": "bors r+",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5k2Zoi",
+              "createdAt": "2023-08-24T16:07:48Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5965257908/job/16182268487)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5965257908/job/16182268747)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5965257908/job/16182267989)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5qm14EzwAAAAJe-4YL",
+              "createdAt": "2023-08-24T16:07:50Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5qm14EzwAAAAJe-4mR",
+              "createdAt": "2023-08-24T16:07:55Z"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
