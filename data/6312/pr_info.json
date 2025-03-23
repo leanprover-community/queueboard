@@ -1,0 +1,1136 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 121,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "nomeata"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "The main reasons is that having `h : 0 < denom` in the context should suffice for `field_simp` to do its job, without the need to manually pass `h.ne` or similar.\r\n\r\nQuite a few `have := … ≠ 0` could be dropped, and some `field_simp` calls no longer need explicit arguments; this is promising.\r\n\r\nThis does break some proofs where `field_simp` was not used as a closing tactic, and it now\r\nshuffles terms around a bit different. These were fixed. Using `field_simp` in the middle of a proof seems rather fragile anyways.\r\n\r\nAs a drive-by contribution, `positivity` now knows about `π > 0`.\r\n\r\nfixes: #4835\r\n\r\n\r\n---\r\n\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 32,
+        "closed": true,
+        "closedAt": "2023-08-27T02:49:59Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5jGG-q",
+              "body": "This is my attempt at #4835. Some questions:\r\n\r\n* Should I refactor `positivity` like I do, to be able to pass an `Expr` to it, or should I do it differently?\r\n* I did not match on the goal in `field_simp` to see if we can expect positivity to succeed, but simply try `positivity` every time, as that will do that check first. ok?\r\n* If the same `denom ≠ 0` precondition comes up multiple times, will this run `positivity` multiple times? Should we maybe remember and reuse the result (as a new hypothesis)? If so, should we remove them afterwards somehow?\r\n* The logic in `discharge` of “try this, then this, then this” looks awfully manual. Is there no combinator for sequencing discharger functions?\r\n* For `field_simp only [ … ]` the expectation might the that no implicit context (e.g. `positivity extensions`) should be used. Should `positivity` be disabled in `only` mode?\r\n* I see `field_simp [_root_.abs_of_nonneg Real.pi_pos.le, Real.pi_pos.ne.symm]` because `positivity` cannot solve `π > 0`.. Should `positivity` be able to do that? Now it does!",
+              "createdAt": "2023-08-02T16:30:02Z",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jKQ8z",
+              "body": "There will be a merge conflict with @mattrobball’s https://github.com/leanprover-community/mathlib4/pull/6034, and they eliminate some of the same extra steps, but both additions seem to be useful.",
+              "createdAt": "2023-08-03T09:37:03Z",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jKruN",
+              "body": "Yeah. This looks great. My motivation was code like\n\n```lean\nhave : n \\neq 0 := sorry\nhave : (n : Real) := by norm_cast; exact this\n```\n\nA real world example is in `Geometry.Manifold.Instances.Sphere` which I saw when porting. \n\n#6034 handles this. But it makes more sense to operate on the norm casted term directly. This runs into the problem that often there are simp args fed into `field_simp` un-normalized to work around the existing issues. \n\nRight now I want to `norm_cast` all the simp theorems in the context and then go. But I haven't gotten back to it yet. ",
+              "createdAt": "2023-08-03T10:34:51Z",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jKxAs",
+              "body": "What does this mean for the present PR? Go ahead, wait for yours first, do them together?",
+              "createdAt": "2023-08-03T10:52:04Z",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jLN88",
+              "body": "Go full speed ahead. Feel free to incorporate whatever from #6034 or nothing. ",
+              "createdAt": "2023-08-03T12:22:32Z",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jLOe8",
+              "body": "Whatever your want is good with me. ",
+              "createdAt": "2023-08-03T12:23:26Z",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jLdjn",
+              "body": "In that case I’ll just be lazy and ignore your PR for now, and see if I can get this change in without learning more about `normCast` :-)",
+              "createdAt": "2023-08-03T13:04:18Z",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jLl4u",
+              "body": "!bench\r\n",
+              "createdAt": "2023-08-03T13:26:24Z",
+              "author": {
+                "login": "sgouezel"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jMUxs",
+              "body": "I couldn’t find information on `!bench`; where will I see the result?",
+              "createdAt": "2023-08-03T15:15:28Z",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jMW1Z",
+              "body": "The bot will report back once it clears the [queue](http://speedcenter.informatik.kit.edu/mathlib4/queue)",
+              "createdAt": "2023-08-03T15:20:39Z",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jN_A7",
+              "body": "Here are the [benchmark results](http://speedcenter.informatik.kit.edu/mathlib4/run-detail/20763d70-97f0-47ce-9093-a0ba02c185d9) for commit ce54f5ed2bb2f60a875418221ea5f3693a43b379.Found no runs to compare against.",
+              "createdAt": "2023-08-03T20:32:38Z",
+              "author": {
+                "login": "leanprover-bot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jqibo",
+              "body": "I’ll be traveling without a laptop for week, and will address review comments afterwards. Should anyone want to adopt this PR and see it through, that’s fine with me as well.",
+              "createdAt": "2023-08-09T20:23:19Z",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kRX6R",
+              "body": "Back from vacation. What’s needed to make progress here?",
+              "createdAt": "2023-08-17T13:20:18Z",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kTtMW",
+              "body": "!bench",
+              "createdAt": "2023-08-17T19:54:28Z",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kT3v5",
+              "body": "Here are the [benchmark results](http://speed.lean-fro.org/mathlib4/run-detail/4c8e4c7f-cae4-42f0-89de-e88d4f2bdcf3) for commit dfc778279e983d91795bd57abbb292cfbde403ce.\nThe entire run failed.\nFound no significant differences.",
+              "createdAt": "2023-08-17T20:29:21Z",
+              "author": {
+                "login": "leanprover-bot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kT7pp",
+              "body": "!bench",
+              "createdAt": "2023-08-17T20:40:30Z",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kT7wU",
+              "body": "Looks like latest master (or the speedcenter) had stricter linting. Fixed, I hope.",
+              "createdAt": "2023-08-17T20:40:52Z",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kT8RP",
+              "body": "leanprover-community/mathlib4#6579",
+              "createdAt": "2023-08-17T20:42:38Z",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kULyT",
+              "body": "Here are the [benchmark results](http://speed.lean-fro.org/mathlib4/run-detail/231387d7-6c23-4f1f-8af8-f0bbe6fcc928) for commit f6de4b6d9d16fa6ec97b47b8e29701202d3859be.\nThere were [significant changes](http://speed.lean-fro.org/mathlib4/compare/027f1068-0e6a-4035-9d44-2eb28f06c265/to/231387d7-6c23-4f1f-8af8-f0bbe6fcc928) against commit 916c75c1d9f2fcdcd11d5d5b32f69afcc94bb9c4:\n```diff\n  Benchmark                                                                Metric           Change\n  ================================================================================================\n+ build                                                                    native linking    -5.0%\n- ~Mathlib.Algebra.ContinuedFractions.Computation.CorrectnessTerminating   instructions      35.7%\n- ~Mathlib.Analysis.Convex.Slope                                           instructions       6.2%\n+ ~Mathlib.Analysis.SpecialFunctions.Stirling                              instructions      -6.0%\n+ ~Mathlib.NumberTheory.Bernoulli                                          instructions      -7.3%\n```",
+              "createdAt": "2023-08-17T21:36:58Z",
+              "author": {
+                "login": "leanprover-bot"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kWBGT",
+              "body": "`Mathlib.Algebra.ContinuedFractions.Computation.CorrectnessTerminating` uses a bunch of `field_simp`, not unexpected that it got slower. A quick glance at it doesn’t show any obvious ways to fix this. Other modules sped up… not sure what to make of it.",
+              "createdAt": "2023-08-18T07:35:29Z",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kXlkm",
+              "body": "I think `field_simp` should be closer to a finishing call than what that file wants to do. \r\n\r\nI think the performance profile is good and the PR definitely improves user ergonomics. \r\n\r\n@sgouezel do you have any concerns? ",
+              "createdAt": "2023-08-18T13:14:43Z",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5kb7OQ",
+              "body": "I'm perfectly happy with the performance, given how it improves readability and usability. Someone more skilled than me in meta code should still review it properly, however. If noone shows up, you can ping on Zulip. ",
+              "createdAt": "2023-08-19T16:41:58Z",
+              "author": {
+                "login": "sgouezel"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lAKZe",
+              "body": "Looks great, thanks!\r\n\r\nbors merge",
+              "createdAt": "2023-08-27T01:38:09Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lANn8",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5988164198/job/16243083716)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5988164198/job/16243083641)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5988164198/job/16243083557)",
+              "createdAt": "2023-08-27T02:49:58Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "3c2f5b273393f07d69aeb3a4bc33d2a08e6ff4e1",
+                "additions": 24,
+                "deletions": 10,
+                "committedDate": "2023-08-02T16:24:57Z",
+                "author": {
+                  "name": "Joachim Breitner",
+                  "email": "mail@joachim-breitner.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "237657c5b60b5d3556b23eb560a5b723bf1aaae8",
+                "additions": 32,
+                "deletions": 50,
+                "committedDate": "2023-08-02T17:29:35Z",
+                "author": {
+                  "name": "Joachim Breitner",
+                  "email": "mail@joachim-breitner.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "72a56cb709b86628d836e517449dbe03a79e5186",
+                "additions": 16,
+                "deletions": 19,
+                "committedDate": "2023-08-02T18:46:45Z",
+                "author": {
+                  "name": "Joachim Breitner",
+                  "email": "mail@joachim-breitner.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a3a5bfde1486b8f28eb785b94bbee89a856fad7a",
+                "additions": 13,
+                "deletions": 28,
+                "committedDate": "2023-08-02T19:17:48Z",
+                "author": {
+                  "name": "Joachim Breitner",
+                  "email": "mail@joachim-breitner.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a5714f45fa0075116e6e0ad28d6730b0701e5adf",
+                "additions": 9,
+                "deletions": 13,
+                "committedDate": "2023-08-02T19:41:31Z",
+                "author": {
+                  "name": "Joachim Breitner",
+                  "email": "mail@joachim-breitner.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ae8960d00e0d9db52cd069acff25e31492a1a9c6",
+                "additions": 2,
+                "deletions": 3,
+                "committedDate": "2023-08-02T19:42:28Z",
+                "author": {
+                  "name": "Joachim Breitner",
+                  "email": "mail@joachim-breitner.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7ff30462c79152f632ba9b29073da343d8e04498",
+                "additions": 0,
+                "deletions": 3,
+                "committedDate": "2023-08-02T19:53:45Z",
+                "author": {
+                  "name": "Joachim Breitner",
+                  "email": "mail@joachim-breitner.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c36d799f8fb8a3f2c567d08987ef4cf86894abc4",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-08-02T19:57:48Z",
+                "author": {
+                  "name": "Joachim Breitner",
+                  "email": "mail@joachim-breitner.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8c5fa4ce6946fc0fde6ef39aeb136a7078413456",
+                "additions": 6,
+                "deletions": 6,
+                "committedDate": "2023-08-02T20:34:57Z",
+                "author": {
+                  "name": "Joachim Breitner",
+                  "email": "mail@joachim-breitner.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0f89c00b6970a334a93083ca7d6b66b1415e98e9",
+                "additions": 13,
+                "deletions": 1,
+                "committedDate": "2023-08-02T20:35:46Z",
+                "author": {
+                  "name": "Joachim Breitner",
+                  "email": "mail@joachim-breitner.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1bfdeefae074f537105efc324b44d586d8681994",
+                "additions": 0,
+                "deletions": 1,
+                "committedDate": "2023-08-02T20:50:57Z",
+                "author": {
+                  "name": "Joachim Breitner",
+                  "email": "mail@joachim-breitner.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9ea2a57706c4929519f71833308ae02a2a8d3b3e",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-08-02T21:00:01Z",
+                "author": {
+                  "name": "Joachim Breitner",
+                  "email": "mail@joachim-breitner.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5c00eb7419dd1dbfdb3747412b9fe6ca3826f02b",
+                "additions": 4,
+                "deletions": 18,
+                "committedDate": "2023-08-02T21:55:48Z",
+                "author": {
+                  "name": "Joachim Breitner",
+                  "email": "mail@joachim-breitner.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ce54f5ed2bb2f60a875418221ea5f3693a43b379",
+                "additions": 1,
+                "deletions": 7,
+                "committedDate": "2023-08-03T09:39:27Z",
+                "author": {
+                  "name": "Joachim Breitner",
+                  "email": "mail@joachim-breitner.de"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "dfc778279e983d91795bd57abbb292cfbde403ce",
+                "additions": 30402,
+                "deletions": 18372,
+                "committedDate": "2023-08-17T19:54:01Z",
+                "author": {
+                  "name": "Matthew Ballard",
+                  "email": "matt@mrb.email"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f6de4b6d9d16fa6ec97b47b8e29701202d3859be",
+                "additions": 3,
+                "deletions": 0,
+                "committedDate": "2023-08-17T20:39:17Z",
+                "author": {
+                  "name": "Joachim Breitner",
+                  "email": "mail@joachim-breitner.de"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-08-02T16:26:05Z",
+        "deletions": 157,
+        "files": {
+          "nodes": [
+            {
+              "path": "Archive/Imo/Imo2005Q3.lean",
+              "additions": 0,
+              "deletions": 3
+            },
+            {
+              "path": "Archive/Imo/Imo2008Q2.lean",
+              "additions": 0,
+              "deletions": 3
+            },
+            {
+              "path": "Archive/Imo/Imo2008Q4.lean",
+              "additions": 4,
+              "deletions": 7
+            },
+            {
+              "path": "Archive/Imo/Imo2013Q1.lean",
+              "additions": 2,
+              "deletions": 4
+            },
+            {
+              "path": "Archive/Imo/Imo2013Q5.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Archive/Wiedijk100Theorems/AreaOfACircle.lean",
+              "additions": 6,
+              "deletions": 6
+            },
+            {
+              "path": "Archive/Wiedijk100Theorems/InverseTriangleSum.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/Order/ToIntervalMod.lean",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Algebra/QuadraticDiscriminant.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/Analytic/Basic.lean",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Analysis/BoxIntegral/Basic.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/Calculus/BumpFunction/FiniteDimension.lean",
+              "additions": 4,
+              "deletions": 6
+            },
+            {
+              "path": "Mathlib/Analysis/Calculus/Taylor.lean",
+              "additions": 4,
+              "deletions": 17
+            },
+            {
+              "path": "Mathlib/Analysis/Complex/LocallyUniformLimit.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/Convex/Slope.lean",
+              "additions": 12,
+              "deletions": 20
+            },
+            {
+              "path": "Mathlib/Analysis/Convex/SpecificFunctions/Basic.lean",
+              "additions": 11,
+              "deletions": 11
+            },
+            {
+              "path": "Mathlib/Analysis/Convex/SpecificFunctions/Deriv.lean",
+              "additions": 3,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/Fourier/AddCircle.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/NormedSpace/Pointwise.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/NormedSpace/lpSpace.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/PSeries.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Stirling.lean",
+              "additions": 1,
+              "deletions": 9
+            },
+            {
+              "path": "Mathlib/Analysis/SpecialFunctions/Trigonometric/Basic.lean",
+              "additions": 12,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Combinatorics/Catalan.lean",
+              "additions": 4,
+              "deletions": 6
+            },
+            {
+              "path": "Mathlib/Data/Complex/Exponential.lean",
+              "additions": 3,
+              "deletions": 5
+            },
+            {
+              "path": "Mathlib/Data/Polynomial/HasseDeriv.lean",
+              "additions": 1,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/Geometry/Manifold/Instances/Sphere.lean",
+              "additions": 5,
+              "deletions": 20
+            },
+            {
+              "path": "Mathlib/NumberTheory/Bernoulli.lean",
+              "additions": 4,
+              "deletions": 5
+            },
+            {
+              "path": "Mathlib/NumberTheory/DiophantineApproximation.lean",
+              "additions": 5,
+              "deletions": 6
+            },
+            {
+              "path": "Mathlib/NumberTheory/PythagoreanTriples.lean",
+              "additions": 2,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/Tactic/FieldSimp.lean",
+              "additions": 10,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic/Positivity/Core.lean",
+              "additions": 14,
+              "deletions": 7
+            }
+          ]
+        },
+        "headRefName": "field_simp_positivity",
+        "headRefOid": "f6de4b6d9d16fa6ec97b47b8e29701202d3859be",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5XBylk",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+              "color": "33DBEC",
+              "name": "t-meta"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": []
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 6312,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": []
+        },
+        "reviewThreads": {
+          "nodes": []
+        },
+        "closingIssuesReferences": {
+          "nodes": [
+            {
+              "id": "I_kwDOFcwZ1c5oIBpU",
+              "title": "positivity discharger for field_simp",
+              "url": "https://github.com/leanprover-community/mathlib4/issues/4835"
+            }
+          ]
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjE0ODAzNw==",
+              "login": "nomeata"
+            },
+            {
+              "id": "U_kgDOBfZl7g",
+              "login": "mattrobball"
+            },
+            {
+              "id": "MDQ6VXNlcjEwODE4NDM0",
+              "login": "sgouezel"
+            },
+            {
+              "id": "MDQ6VXNlcjg1NjY4Mzk0",
+              "login": "leanprover-bot"
+            },
+            {
+              "id": "MDQ6VXNlcjQ3Nzk1Ng==",
+              "login": "kim-em"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - field_simp: Use positivity as a discharger",
+        "updatedAt": "2023-08-27T02:50:03Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/6312",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3c2f5b273393f07d69aeb3a4bc33d2a08e6ff4e1"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jGG-q",
+              "createdAt": "2023-08-02T16:30:02Z",
+              "body": "This is my attempt at #4835. Some questions:\r\n\r\n* Should I refactor `positivity` like I do, to be able to pass an `Expr` to it, or should I do it differently?\r\n* I did not match on the goal in `field_simp` to see if we can expect positivity to succeed, but simply try `positivity` every time, as that will do that check first. ok?\r\n* If the same `denom ≠ 0` precondition comes up multiple times, will this run `positivity` multiple times? Should we maybe remember and reuse the result (as a new hypothesis)? If so, should we remove them afterwards somehow?\r\n* The logic in `discharge` of “try this, then this, then this” looks awfully manual. Is there no combinator for sequencing discharger functions?\r\n* For `field_simp only [ … ]` the expectation might the that no implicit context (e.g. `positivity extensions`) should be used. Should `positivity` be disabled in `only` mode?\r\n* I see `field_simp [_root_.abs_of_nonneg Real.pi_pos.le, Real.pi_pos.ne.symm]` because `positivity` cannot solve `π > 0`.. Should `positivity` be able to do that? Now it does!",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "237657c5b60b5d3556b23eb560a5b723bf1aaae8"
+              }
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c5tSUNbzwAAAAJTfZ5V",
+              "createdAt": "2023-08-02T17:29:42Z"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "72a56cb709b86628d836e517449dbe03a79e5186"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a3a5bfde1486b8f28eb785b94bbee89a856fad7a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a5714f45fa0075116e6e0ad28d6730b0701e5adf"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ae8960d00e0d9db52cd069acff25e31492a1a9c6"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7ff30462c79152f632ba9b29073da343d8e04498"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c36d799f8fb8a3f2c567d08987ef4cf86894abc4"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8c5fa4ce6946fc0fde6ef39aeb136a7078413456"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0f89c00b6970a334a93083ca7d6b66b1415e98e9"
+              }
+            },
+            {
+              "__typename": "ReadyForReviewEvent",
+              "id": "RFRE_lADOFcwZ1c5tSUNbzwAAAAJTlUdl",
+              "createdAt": "2023-08-02T20:41:59Z"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1bfdeefae074f537105efc324b44d586d8681994"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9ea2a57706c4929519f71833308ae02a2a8d3b3e"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5c00eb7419dd1dbfdb3747412b9fe6ca3826f02b"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jKQ8z",
+              "createdAt": "2023-08-03T09:37:03Z",
+              "body": "There will be a merge conflict with @mattrobball’s https://github.com/leanprover-community/mathlib4/pull/6034, and they eliminate some of the same extra steps, but both additions seem to be useful.",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ce54f5ed2bb2f60a875418221ea5f3693a43b379"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5tSUNbzwAAAAJT3g1U",
+              "createdAt": "2023-08-03T09:55:23Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jKruN",
+              "createdAt": "2023-08-03T10:34:51Z",
+              "body": "Yeah. This looks great. My motivation was code like\n\n```lean\nhave : n \\neq 0 := sorry\nhave : (n : Real) := by norm_cast; exact this\n```\n\nA real world example is in `Geometry.Manifold.Instances.Sphere` which I saw when porting. \n\n#6034 handles this. But it makes more sense to operate on the norm casted term directly. This runs into the problem that often there are simp args fed into `field_simp` un-normalized to work around the existing issues. \n\nRight now I want to `norm_cast` all the simp theorems in the context and then go. But I haven't gotten back to it yet. ",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jKxAs",
+              "createdAt": "2023-08-03T10:52:04Z",
+              "body": "What does this mean for the present PR? Go ahead, wait for yours first, do them together?",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jLN88",
+              "createdAt": "2023-08-03T12:22:32Z",
+              "body": "Go full speed ahead. Feel free to incorporate whatever from #6034 or nothing. ",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jLOe8",
+              "createdAt": "2023-08-03T12:23:26Z",
+              "body": "Whatever your want is good with me. ",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jLdjn",
+              "createdAt": "2023-08-03T13:04:18Z",
+              "body": "In that case I’ll just be lazy and ignore your PR for now, and see if I can get this change in without learning more about `normCast` :-)",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jLl4u",
+              "createdAt": "2023-08-03T13:26:24Z",
+              "body": "!bench\r\n",
+              "author": {
+                "login": "sgouezel"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jMUxs",
+              "createdAt": "2023-08-03T15:15:28Z",
+              "body": "I couldn’t find information on `!bench`; where will I see the result?",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jMW1Z",
+              "createdAt": "2023-08-03T15:20:39Z",
+              "body": "The bot will report back once it clears the [queue](http://speedcenter.informatik.kit.edu/mathlib4/queue)",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jN_A7",
+              "createdAt": "2023-08-03T20:32:38Z",
+              "body": "Here are the [benchmark results](http://speedcenter.informatik.kit.edu/mathlib4/run-detail/20763d70-97f0-47ce-9093-a0ba02c185d9) for commit ce54f5ed2bb2f60a875418221ea5f3693a43b379.Found no runs to compare against.",
+              "author": {
+                "login": "leanprover-bot"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5tSUNbzwAAAAJVBWv8",
+              "createdAt": "2023-08-06T01:12:47Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+                "name": "t-meta"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jqibo",
+              "createdAt": "2023-08-09T20:23:19Z",
+              "body": "I’ll be traveling without a laptop for week, and will address review comments afterwards. Should anyone want to adopt this PR and see it through, that’s fine with me as well.",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kRX6R",
+              "createdAt": "2023-08-17T13:20:18Z",
+              "body": "Back from vacation. What’s needed to make progress here?",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "dfc778279e983d91795bd57abbb292cfbde403ce"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kTtMW",
+              "createdAt": "2023-08-17T19:54:28Z",
+              "body": "!bench",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kT3v5",
+              "createdAt": "2023-08-17T20:29:21Z",
+              "body": "Here are the [benchmark results](http://speed.lean-fro.org/mathlib4/run-detail/4c8e4c7f-cae4-42f0-89de-e88d4f2bdcf3) for commit dfc778279e983d91795bd57abbb292cfbde403ce.\nThe entire run failed.\nFound no significant differences.",
+              "author": {
+                "login": "leanprover-bot"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f6de4b6d9d16fa6ec97b47b8e29701202d3859be"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kT7pp",
+              "createdAt": "2023-08-17T20:40:30Z",
+              "body": "!bench",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kT7wU",
+              "createdAt": "2023-08-17T20:40:52Z",
+              "body": "Looks like latest master (or the speedcenter) had stricter linting. Fixed, I hope.",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kT8RP",
+              "createdAt": "2023-08-17T20:42:38Z",
+              "body": "leanprover-community/mathlib4#6579",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kULyT",
+              "createdAt": "2023-08-17T21:36:58Z",
+              "body": "Here are the [benchmark results](http://speed.lean-fro.org/mathlib4/run-detail/231387d7-6c23-4f1f-8af8-f0bbe6fcc928) for commit f6de4b6d9d16fa6ec97b47b8e29701202d3859be.\nThere were [significant changes](http://speed.lean-fro.org/mathlib4/compare/027f1068-0e6a-4035-9d44-2eb28f06c265/to/231387d7-6c23-4f1f-8af8-f0bbe6fcc928) against commit 916c75c1d9f2fcdcd11d5d5b32f69afcc94bb9c4:\n```diff\n  Benchmark                                                                Metric           Change\n  ================================================================================================\n+ build                                                                    native linking    -5.0%\n- ~Mathlib.Algebra.ContinuedFractions.Computation.CorrectnessTerminating   instructions      35.7%\n- ~Mathlib.Analysis.Convex.Slope                                           instructions       6.2%\n+ ~Mathlib.Analysis.SpecialFunctions.Stirling                              instructions      -6.0%\n+ ~Mathlib.NumberTheory.Bernoulli                                          instructions      -7.3%\n```",
+              "author": {
+                "login": "leanprover-bot"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kWBGT",
+              "createdAt": "2023-08-18T07:35:29Z",
+              "body": "`Mathlib.Algebra.ContinuedFractions.Computation.CorrectnessTerminating` uses a bunch of `field_simp`, not unexpected that it got slower. A quick glance at it doesn’t show any obvious ways to fix this. Other modules sped up… not sure what to make of it.",
+              "author": {
+                "login": "nomeata"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kXlkm",
+              "createdAt": "2023-08-18T13:14:43Z",
+              "body": "I think `field_simp` should be closer to a finishing call than what that file wants to do. \r\n\r\nI think the performance profile is good and the PR definitely improves user ergonomics. \r\n\r\n@sgouezel do you have any concerns? ",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5kb7OQ",
+              "createdAt": "2023-08-19T16:41:58Z",
+              "body": "I'm perfectly happy with the performance, given how it improves readability and usability. Someone more skilled than me in meta code should still review it properly, however. If noone shows up, you can ping on Zulip. ",
+              "author": {
+                "login": "sgouezel"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lAKZe",
+              "createdAt": "2023-08-27T01:38:09Z",
+              "body": "Looks great, thanks!\r\n\r\nbors merge",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5tSUNbzwAAAAJgBl92",
+              "createdAt": "2023-08-27T01:38:22Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5tSUNbzwAAAAJgBl-G",
+              "createdAt": "2023-08-27T01:38:23Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lANn8",
+              "createdAt": "2023-08-27T02:49:58Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5988164198/job/16243083716)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5988164198/job/16243083641)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5988164198/job/16243083557)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5tSUNbzwAAAAJgB162",
+              "createdAt": "2023-08-27T02:50:00Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5tSUNbzwAAAAJgB17f",
+              "createdAt": "2023-08-27T02:50:03Z"
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5UMf-T",
+              "createdAt": "2024-07-31T13:33:52Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5WCT8C",
+                "title": "feat (Mathlib.Tactic.FieldSimp) : discharger uses normCast",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/6034"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
