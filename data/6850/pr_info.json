@@ -1,0 +1,481 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 68,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "kkytola"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "Create a new file `MeasureTheory.Integral.Indicator` to undo adding the import of `MeasureTheory.Constructions.BorelSpace.Metrizable` in `MeasureTheory.Integral.Lebesgue` introduced in #6225.\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 3,
+        "closed": true,
+        "closedAt": "2023-09-03T21:45:24Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5lOKNE",
+              "body": "Thanks, much appreciated! \r\n\r\nIt is indeed tricky to judge whether it is ok to add an additional import. It's not easy to see how many files you are newly importing.\r\n\r\nBy the way, is the condition `h_lim` in all these lemmas equivalent to the following?\r\n```\r\n(h_lim : Tendsto As L <| .pi (pure <| · ∈ A))\r\n```\r\ni.e.\r\n```\r\n(h_lim : Tendsto As L (Filter.pi fun x ↦ pure (x ∈ A)))\r\n```\r\nI believe it is, and I think that is a more natural statement, since then the statement doesn't involve `ENNReal`.\r\n\r\nUsing this reformulation, maybe the supporting lemmas `measurableSet_of_tendsto_indicator` can be already proven in `MeasurableSpace` to a lemma similar to `measurableSet_limsup` (maybe `measurableSet_limsup` generalized to countably generated filters)?\r\n\r\nApologies if this was already mentioned in the earlier review.\r\n\r\nFeel free to merge as is, or try to simplify the statements.\r\n\r\nbors d+",
+              "createdAt": "2023-08-29T22:08:23Z",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lOKNT",
+              "body": ":v: kkytola can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "createdAt": "2023-08-29T22:08:24Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5laeK8",
+              "body": "> By the way, is the condition `h_lim` in all these lemmas equivalent to the following?\r\n> \r\n> ```\r\n> (h_lim : Tendsto As L <| .pi (pure <| · ∈ A))\r\n> ```\r\n> \r\n> i.e.\r\n> \r\n> ```\r\n> (h_lim : Tendsto As L (Filter.pi fun x ↦ pure (x ∈ A)))\r\n> ```\r\n> \r\n> I believe it is, and I think that is a more natural statement, since then the statement doesn't involve `ENNReal`.\r\n\r\nIt indeed is equivalent.\r\n\r\nI agree that my `ENNReal`-specific pointwise convergence of indicators is a dubious formulation of the content of the hypothesis, although I believe this formulation comes naturally to a mathematician who thinks about the content of the statement (instead of the hypothesis) in terms of dominated convergence. I probably should at least have phrased the hypothesis as the pointwise convergence of indicators of constants on any T1 topological space (since I can imagine other mathematicians choosing as the codomain either the reals, the nonnegative reals, or even `Fin 2`). And phrasing it as a pointwise convergence of indicators might still be not optimal Lean implementation.\r\n\r\nThat said, I find your suggested phrasing `Tendsto As L <| .pi (pure <| · ∈ A)` likely to be unnatural to an ordinary mathematician. (I had to look up two definitions to parse it, and even after that, I find it hard to read).\r\n\r\nSo yet another alternative equivalent formulation is `∀ x, ∀ᶠ i in L, (x ∈ As i ↔ x ∈ A)`, and I currently think this is the most palatable while not dubiously referring to `ENNReal`s (or any other arbitrary type). If this is acceptable to you, I might propose adding the following lemmas somewhere (the imports below should be minimal), with the `@[simp]`-lemma `tendsto_indicator_const_iff_forall_eventually` indicating the preferred spelling. What do you think?\r\n\r\n```lean\r\nimport Mathlib.Topology.Constructions\r\nimport Mathlib.Algebra.IndicatorFunction\r\nimport Mathlib.Topology.Separation\r\n\r\nopen Filter Topology\r\n\r\nvariable {α : Type*} {A : Set α}\r\nvariable {ι : Type*} (L : Filter ι) [IsCountablyGenerated L] {As : ι → Set α}\r\n\r\nlemma tendsto_indicator_const_iff_forall_eventually' {β : Type*} [Zero β] [TopologicalSpace β]\r\n    (b : β) {B O : Set β} (B_nhd : B ∈ 𝓝 b) (nin_B : 0 ∉ B) (O_nhd : O ∈ 𝓝 0) (nin_O : b ∉ O) :\r\n    Tendsto (fun i ↦ (As i).indicator (fun (_ : α) ↦ b)) L (𝓝 (A.indicator (fun (_ : α) ↦ b)))\r\n      ↔ ∀ x, ∀ᶠ i in L, (x ∈ As i ↔ x ∈ A) := by\r\n  simp_rw [tendsto_pi_nhds]\r\n  constructor <;> intro h\r\n  · intro x\r\n    specialize h x\r\n    by_cases hx : x ∈ A\r\n    · simp [hx] at h\r\n      filter_upwards [mem_map.mp (h B_nhd)] with i hi\r\n      simp only [Set.mem_preimage, Set.mem_Ioi] at hi\r\n      simp only [show As i x ↔ x ∈ As i by rfl, hx, eq_iff_iff, iff_true]\r\n      by_contra con\r\n      apply nin_B (by simpa [con] using hi)\r\n    · simp [hx] at h\r\n      filter_upwards [mem_map.mp (h O_nhd)] with i hi\r\n      simp only [Set.mem_preimage, Set.mem_Ioi] at hi\r\n      simp only [show As i x ↔ x ∈ As i by rfl, hx, eq_iff_iff, iff_false]\r\n      intro con\r\n      simp [con] at hi\r\n      apply nin_O (by simpa [con] using hi)\r\n  · intro x\r\n    apply Tendsto.congr' (h := tendsto_const_nhds)\r\n    filter_upwards [h x] with i hi\r\n    by_cases x ∈ A <;> · simp [h, hi]\r\n\r\n@[simp] lemma tendsto_indicator_const_iff_forall_eventually {β : Type*} [Zero β] [TopologicalSpace β]\r\n    [T1Space β] (b : β) [NeZero b] :\r\n    Tendsto (fun i ↦ (As i).indicator (fun (_ : α) ↦ b)) L (𝓝 (A.indicator (fun (_ : α) ↦ b)))\r\n      ↔ ∀ x, ∀ᶠ i in L, (x ∈ As i ↔ x ∈ A) := by\r\n  apply tendsto_indicator_const_iff_forall_eventually' _ b (B := {0}ᶜ) (O := {b}ᶜ)\r\n  · simp only [compl_singleton_mem_nhds_iff, ne_eq, NeZero.ne]\r\n  · exact (Set.not_mem_compl_iff).mpr rfl\r\n  · simp only [compl_singleton_mem_nhds_iff, ne_eq, (NeZero.ne b).symm]\r\n  · exact (Set.not_mem_compl_iff).mpr rfl\r\n\r\nlemma tendsto_indicator_const_iff_tendsto_pi_pure' {β : Type*} [Zero β] [TopologicalSpace β]\r\n    (b : β) {B O : Set β} (B_nhd : B ∈ 𝓝 b) (nin_B : 0 ∉ B) (O_nhd : O ∈ 𝓝 0) (nin_O : b ∉ O) :\r\n    Tendsto (fun i ↦ (As i).indicator (fun (_ : α) ↦ b)) L (𝓝 (A.indicator (fun (_ : α) ↦ b)))\r\n      ↔ (Tendsto As L <| Filter.pi (pure <| · ∈ A)) := by\r\n  rw [tendsto_indicator_const_iff_forall_eventually' _ b B_nhd nin_B O_nhd nin_O, tendsto_pi]\r\n  simp_rw [tendsto_pure]\r\n  aesop\r\n\r\nlemma tendsto_indicator_const_iff_tendsto_pi_pure {β : Type*} [Zero β] [TopologicalSpace β]\r\n    [T1Space β] (b : β) [NeZero b] :\r\n    Tendsto (fun i ↦ (As i).indicator (fun (_ : α) ↦ b)) L (𝓝 (A.indicator (fun (_ : α) ↦ b)))\r\n      ↔ (Tendsto As L <| Filter.pi (pure <| · ∈ A)) := by\r\n  rw [tendsto_indicator_const_iff_forall_eventually _ b, tendsto_pi]\r\n  simp_rw [tendsto_pure]\r\n  aesop\r\n```\r\n\r\nIn some of my recent PRs (for example about indicators of thickenings) I have introduced the dubious formulation, and I could change those to a preferred spelling if easy rewrites exist that can then be used for the purpose of integrating the indicators.",
+              "createdAt": "2023-08-31T17:11:17Z",
+              "author": {
+                "login": "kkytola"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5la5eW",
+              "body": "> Using this reformulation, maybe the supporting lemmas `measurableSet_of_tendsto_indicator` can be already proven in `MeasurableSpace` to a lemma similar to `measurableSet_limsup` (maybe `measurableSet_limsup` generalized to countably generated filters)?\r\n\r\nI fully agree that one should not need indicators to prove the measurability of this limit set! I forgot how exactly I chose the current approach, but it might have been because I didn't find a countably-generated filter version of the lemma `measurableSet_limsup`.\r\n\r\nThe countably-generated filter version of `measurableSet_limsup` would probably be a natural generalization and useful to have, but making the generalization quickly seemed to require more filter skills than I have. Should we first focus on getting the heavy import issue fixed, and later see about generalizing `measurableSet_limsup` and refactoring?",
+              "createdAt": "2023-08-31T18:22:35Z",
+              "author": {
+                "login": "kkytola"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5llvBG",
+              "body": "> Feel free to merge as is, or try to simplify the statements.\r\n> \r\n> bors d+\r\n\r\nOk, so in order not to delay the removal of the heavy import (in particular since many LFTCM participants might download Mathlib tomorrow), I will merge with the current contents, and only add a note that there would be better approaches.\r\n\r\nIdeally, the results would indeed be proved with a generalization of convergence results of measures to countably generated filters. And I will try to make a PR soon to simplify many indicator convergence phrasings to a less arbitrary form.\r\n\r\nThanks!",
+              "createdAt": "2023-09-03T20:08:40Z",
+              "author": {
+                "login": "kkytola"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5llyJk",
+              "body": "> ✌️ kkytola can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).\r\n\r\nbors r+",
+              "createdAt": "2023-09-03T21:10:12Z",
+              "author": {
+                "login": "kkytola"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5ll0f7",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6066766587/job/16457720458)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6066766587/job/16457720416)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6066766587/job/16457720355)",
+              "createdAt": "2023-09-03T21:45:23Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5lq2VP",
+              "body": "Sorry for the late reply! I think it's good that you merged this, and we can try to refactor later.\r\n\r\nThe filter lemmas you suggested seem reasonable, though I didn't look very carefully.",
+              "createdAt": "2023-09-04T22:09:27Z",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "bf426c91aa847f441f9b2846944c4af0e52fe374",
+                "additions": 55,
+                "deletions": 23,
+                "committedDate": "2023-08-29T19:34:43Z",
+                "author": {
+                  "name": "Kalle",
+                  "email": "kalle.kytola@aalto.fi"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4c0e17b2a824b92f14c0aa73321e6dca6a8a4de6",
+                "additions": 7,
+                "deletions": 2,
+                "committedDate": "2023-08-29T19:52:32Z",
+                "author": {
+                  "name": "Kalle",
+                  "email": "kalle.kytola@aalto.fi"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3a229c77533a3d645d5955c3dd2bde1514a058ea",
+                "additions": 8,
+                "deletions": 2,
+                "committedDate": "2023-09-03T20:23:27Z",
+                "author": {
+                  "name": "Kalle",
+                  "email": "kalle.kytola@aalto.fi"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1f04aaacd0354cf7270c1585e3b4d25e38c0393b",
+                "additions": 3,
+                "deletions": 3,
+                "committedDate": "2023-09-03T20:25:52Z",
+                "author": {
+                  "name": "Kalle",
+                  "email": "kalle.kytola@aalto.fi"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-08-29T19:37:34Z",
+        "deletions": 25,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/MeasureTheory/Integral/Indicator.lean",
+              "additions": 63,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/MeasureTheory/Integral/Lebesgue.lean",
+              "additions": 4,
+              "deletions": 25
+            }
+          ]
+        },
+        "headRefName": "kkytola/undo_adding_import_to_integral_lebesgue_file",
+        "headRefOid": "1f04aaacd0354cf7270c1585e3b4d25e38c0393b",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5ZEV2-",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+              "color": "bfd4f2",
+              "name": "delegated"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": []
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 6850,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": [
+            {
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjczNzYwMTI=",
+                "login": "fpvandoorn"
+              }
+            }
+          ]
+        },
+        "reviews": {
+          "nodes": []
+        },
+        "reviewThreads": {
+          "nodes": []
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjM5NTI4MTAy",
+              "login": "kkytola"
+            },
+            {
+              "id": "MDQ6VXNlcjczNzYwMTI=",
+              "login": "fpvandoorn"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - chore: Undo adding a heavy import in MeasureTheory.Integral.Lebesgue.",
+        "updatedAt": "2023-09-04T22:09:28Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/6850",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "bf426c91aa847f441f9b2846944c4af0e52fe374"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5vmN-vzwAAAAJhdvQn",
+              "createdAt": "2023-08-29T19:37:34Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c5vmN-vzwAAAAJhdvy4",
+              "createdAt": "2023-08-29T19:37:50Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjczNzYwMTI=",
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5OLijj",
+              "createdAt": "2023-08-29T19:49:26Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5Wsph9",
+                "title": "[Merged by Bors] - feat: Results about convergence of measures of sets assuming convergence of indicator functions.",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/6225"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4c0e17b2a824b92f14c0aa73321e6dca6a8a4de6"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5vmN-vzwAAAAJhfVst",
+              "createdAt": "2023-08-29T20:30:18Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5vmN-vzwAAAAJhfVs2",
+              "createdAt": "2023-08-29T20:30:18Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lOKNE",
+              "createdAt": "2023-08-29T22:08:23Z",
+              "body": "Thanks, much appreciated! \r\n\r\nIt is indeed tricky to judge whether it is ok to add an additional import. It's not easy to see how many files you are newly importing.\r\n\r\nBy the way, is the condition `h_lim` in all these lemmas equivalent to the following?\r\n```\r\n(h_lim : Tendsto As L <| .pi (pure <| · ∈ A))\r\n```\r\ni.e.\r\n```\r\n(h_lim : Tendsto As L (Filter.pi fun x ↦ pure (x ∈ A)))\r\n```\r\nI believe it is, and I think that is a more natural statement, since then the statement doesn't involve `ENNReal`.\r\n\r\nUsing this reformulation, maybe the supporting lemmas `measurableSet_of_tendsto_indicator` can be already proven in `MeasurableSpace` to a lemma similar to `measurableSet_limsup` (maybe `measurableSet_limsup` generalized to countably generated filters)?\r\n\r\nApologies if this was already mentioned in the earlier review.\r\n\r\nFeel free to merge as is, or try to simplify the statements.\r\n\r\nbors d+",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lOKNT",
+              "createdAt": "2023-08-29T22:08:24Z",
+              "body": ":v: kkytola can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5vmN-vzwAAAAJhiX9I",
+              "createdAt": "2023-08-29T22:08:36Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+                "name": "delegated"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5vmN-vzwAAAAJhiX-U",
+              "createdAt": "2023-08-29T22:08:37Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5laeK8",
+              "createdAt": "2023-08-31T17:11:17Z",
+              "body": "> By the way, is the condition `h_lim` in all these lemmas equivalent to the following?\r\n> \r\n> ```\r\n> (h_lim : Tendsto As L <| .pi (pure <| · ∈ A))\r\n> ```\r\n> \r\n> i.e.\r\n> \r\n> ```\r\n> (h_lim : Tendsto As L (Filter.pi fun x ↦ pure (x ∈ A)))\r\n> ```\r\n> \r\n> I believe it is, and I think that is a more natural statement, since then the statement doesn't involve `ENNReal`.\r\n\r\nIt indeed is equivalent.\r\n\r\nI agree that my `ENNReal`-specific pointwise convergence of indicators is a dubious formulation of the content of the hypothesis, although I believe this formulation comes naturally to a mathematician who thinks about the content of the statement (instead of the hypothesis) in terms of dominated convergence. I probably should at least have phrased the hypothesis as the pointwise convergence of indicators of constants on any T1 topological space (since I can imagine other mathematicians choosing as the codomain either the reals, the nonnegative reals, or even `Fin 2`). And phrasing it as a pointwise convergence of indicators might still be not optimal Lean implementation.\r\n\r\nThat said, I find your suggested phrasing `Tendsto As L <| .pi (pure <| · ∈ A)` likely to be unnatural to an ordinary mathematician. (I had to look up two definitions to parse it, and even after that, I find it hard to read).\r\n\r\nSo yet another alternative equivalent formulation is `∀ x, ∀ᶠ i in L, (x ∈ As i ↔ x ∈ A)`, and I currently think this is the most palatable while not dubiously referring to `ENNReal`s (or any other arbitrary type). If this is acceptable to you, I might propose adding the following lemmas somewhere (the imports below should be minimal), with the `@[simp]`-lemma `tendsto_indicator_const_iff_forall_eventually` indicating the preferred spelling. What do you think?\r\n\r\n```lean\r\nimport Mathlib.Topology.Constructions\r\nimport Mathlib.Algebra.IndicatorFunction\r\nimport Mathlib.Topology.Separation\r\n\r\nopen Filter Topology\r\n\r\nvariable {α : Type*} {A : Set α}\r\nvariable {ι : Type*} (L : Filter ι) [IsCountablyGenerated L] {As : ι → Set α}\r\n\r\nlemma tendsto_indicator_const_iff_forall_eventually' {β : Type*} [Zero β] [TopologicalSpace β]\r\n    (b : β) {B O : Set β} (B_nhd : B ∈ 𝓝 b) (nin_B : 0 ∉ B) (O_nhd : O ∈ 𝓝 0) (nin_O : b ∉ O) :\r\n    Tendsto (fun i ↦ (As i).indicator (fun (_ : α) ↦ b)) L (𝓝 (A.indicator (fun (_ : α) ↦ b)))\r\n      ↔ ∀ x, ∀ᶠ i in L, (x ∈ As i ↔ x ∈ A) := by\r\n  simp_rw [tendsto_pi_nhds]\r\n  constructor <;> intro h\r\n  · intro x\r\n    specialize h x\r\n    by_cases hx : x ∈ A\r\n    · simp [hx] at h\r\n      filter_upwards [mem_map.mp (h B_nhd)] with i hi\r\n      simp only [Set.mem_preimage, Set.mem_Ioi] at hi\r\n      simp only [show As i x ↔ x ∈ As i by rfl, hx, eq_iff_iff, iff_true]\r\n      by_contra con\r\n      apply nin_B (by simpa [con] using hi)\r\n    · simp [hx] at h\r\n      filter_upwards [mem_map.mp (h O_nhd)] with i hi\r\n      simp only [Set.mem_preimage, Set.mem_Ioi] at hi\r\n      simp only [show As i x ↔ x ∈ As i by rfl, hx, eq_iff_iff, iff_false]\r\n      intro con\r\n      simp [con] at hi\r\n      apply nin_O (by simpa [con] using hi)\r\n  · intro x\r\n    apply Tendsto.congr' (h := tendsto_const_nhds)\r\n    filter_upwards [h x] with i hi\r\n    by_cases x ∈ A <;> · simp [h, hi]\r\n\r\n@[simp] lemma tendsto_indicator_const_iff_forall_eventually {β : Type*} [Zero β] [TopologicalSpace β]\r\n    [T1Space β] (b : β) [NeZero b] :\r\n    Tendsto (fun i ↦ (As i).indicator (fun (_ : α) ↦ b)) L (𝓝 (A.indicator (fun (_ : α) ↦ b)))\r\n      ↔ ∀ x, ∀ᶠ i in L, (x ∈ As i ↔ x ∈ A) := by\r\n  apply tendsto_indicator_const_iff_forall_eventually' _ b (B := {0}ᶜ) (O := {b}ᶜ)\r\n  · simp only [compl_singleton_mem_nhds_iff, ne_eq, NeZero.ne]\r\n  · exact (Set.not_mem_compl_iff).mpr rfl\r\n  · simp only [compl_singleton_mem_nhds_iff, ne_eq, (NeZero.ne b).symm]\r\n  · exact (Set.not_mem_compl_iff).mpr rfl\r\n\r\nlemma tendsto_indicator_const_iff_tendsto_pi_pure' {β : Type*} [Zero β] [TopologicalSpace β]\r\n    (b : β) {B O : Set β} (B_nhd : B ∈ 𝓝 b) (nin_B : 0 ∉ B) (O_nhd : O ∈ 𝓝 0) (nin_O : b ∉ O) :\r\n    Tendsto (fun i ↦ (As i).indicator (fun (_ : α) ↦ b)) L (𝓝 (A.indicator (fun (_ : α) ↦ b)))\r\n      ↔ (Tendsto As L <| Filter.pi (pure <| · ∈ A)) := by\r\n  rw [tendsto_indicator_const_iff_forall_eventually' _ b B_nhd nin_B O_nhd nin_O, tendsto_pi]\r\n  simp_rw [tendsto_pure]\r\n  aesop\r\n\r\nlemma tendsto_indicator_const_iff_tendsto_pi_pure {β : Type*} [Zero β] [TopologicalSpace β]\r\n    [T1Space β] (b : β) [NeZero b] :\r\n    Tendsto (fun i ↦ (As i).indicator (fun (_ : α) ↦ b)) L (𝓝 (A.indicator (fun (_ : α) ↦ b)))\r\n      ↔ (Tendsto As L <| Filter.pi (pure <| · ∈ A)) := by\r\n  rw [tendsto_indicator_const_iff_forall_eventually _ b, tendsto_pi]\r\n  simp_rw [tendsto_pure]\r\n  aesop\r\n```\r\n\r\nIn some of my recent PRs (for example about indicators of thickenings) I have introduced the dubious formulation, and I could change those to a preferred spelling if easy rewrites exist that can then be used for the purpose of integrating the indicators.",
+              "author": {
+                "login": "kkytola"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5la5eW",
+              "createdAt": "2023-08-31T18:22:35Z",
+              "body": "> Using this reformulation, maybe the supporting lemmas `measurableSet_of_tendsto_indicator` can be already proven in `MeasurableSpace` to a lemma similar to `measurableSet_limsup` (maybe `measurableSet_limsup` generalized to countably generated filters)?\r\n\r\nI fully agree that one should not need indicators to prove the measurability of this limit set! I forgot how exactly I chose the current approach, but it might have been because I didn't find a countably-generated filter version of the lemma `measurableSet_limsup`.\r\n\r\nThe countably-generated filter version of `measurableSet_limsup` would probably be a natural generalization and useful to have, but making the generalization quickly seemed to require more filter skills than I have. Should we first focus on getting the heavy import issue fixed, and later see about generalizing `measurableSet_limsup` and refactoring?",
+              "author": {
+                "login": "kkytola"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5llvBG",
+              "createdAt": "2023-09-03T20:08:40Z",
+              "body": "> Feel free to merge as is, or try to simplify the statements.\r\n> \r\n> bors d+\r\n\r\nOk, so in order not to delay the removal of the heavy import (in particular since many LFTCM participants might download Mathlib tomorrow), I will merge with the current contents, and only add a note that there would be better approaches.\r\n\r\nIdeally, the results would indeed be proved with a generalization of convergence results of measures to countably generated filters. And I will try to make a PR soon to simplify many indicator convergence phrasings to a less arbitrary form.\r\n\r\nThanks!",
+              "author": {
+                "login": "kkytola"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3a229c77533a3d645d5955c3dd2bde1514a058ea"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1f04aaacd0354cf7270c1585e3b4d25e38c0393b"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5llyJk",
+              "createdAt": "2023-09-03T21:10:12Z",
+              "body": "> ✌️ kkytola can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).\r\n\r\nbors r+",
+              "author": {
+                "login": "kkytola"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5ll0f7",
+              "createdAt": "2023-09-03T21:45:23Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/6066766587/job/16457720458)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/6066766587/job/16457720416)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/6066766587/job/16457720355)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5vmN-vzwAAAAJj_O2X",
+              "createdAt": "2023-09-03T21:45:25Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5vmN-vzwAAAAJj_O4K",
+              "createdAt": "2023-09-03T21:45:27Z"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5lq2VP",
+              "createdAt": "2023-09-04T22:09:27Z",
+              "body": "Sorry for the late reply! I think it's good that you merged this, and we can try to refactor later.\r\n\r\nThe filter lemmas you suggested seem reasonable, though I didn't look very carefully.",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5PUTUM",
+              "createdAt": "2023-11-10T23:00:10Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5fMKcu",
+                "title": "[Merged by Bors] - chore: better phrasing of pointwise convergence of indicators",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/8331"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
