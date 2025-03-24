@@ -373,7 +373,7 @@ def _compute_pr_entries(
                         assignees = ", ".join(several_users)
                 # Mild HACK: add a hidden string 'assignee:name' for each assignee, to allow
                 # a typed search for PR assignees.
-                assignee_hack = hide(" ".join((f"author:{name}" for name in pr_info.assignees)))
+                assignee_hack = hide(" ".join((f"assignee:{name}" for name in pr_info.assignees)))
                 entries.append(assignees + assignee_hack)
 
             if extra_settings.show_approvals:
@@ -552,6 +552,7 @@ TIPS_AND_TRICKS = f"""  <h2 id="tips-and-tricks"><a href="#tips-and-tricks">Tips
   <li><strong>hovers</strong>: many items contain further information when you hover over it.
   Hover over a section header to see which PRs are contained in it, hover over a column definition to see what it measures, hover over a PR number to see its git branch name, hover over a time column to see the detailed time, etc.</li>
   <li><strong>author search</strong>: search for <code>author:name</code> to find all PRs by a particular author</li>
+  <li><strong>assignee search</strong>: search for <code>assignee:name</code> to find all PRs assigned to this user</li>
   <li><strong>exact label matching</strong>: a few label names are prefixes of other labels, e.g. <code>t-algebra</code> is a prefix of <code>t-algebraic geometry</code>, so searching for <code>t-algebra</code> will also find <code>t-algebraic geometry</code> PRs.
   There is special support for this combining: searching for <code>t-algebra$</code> will match only PRs with label <code>t-algebra</code>.</li>
   <li><strong>find PRs by modified file</strong>: search for a file name and find all PRs in a list which modify this file. Searching for several files finds all PRs which modify all these files. (Caveat: we only track the first 100 files each PR changes, so this may yield incomplete results for cross-cutting PRs. Such PRs are rare, however.)</li>
