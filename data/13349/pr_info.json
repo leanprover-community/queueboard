@@ -11284,11 +11284,43 @@
                       },
                       {
                         "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAJJ7subQ",
+                        "name": "Add ready-to-merge or delegated label",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14044249367/job/39321284205"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAJKAdZFg",
+                        "name": "Add ready-to-merge or delegated label",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14045808274/job/39326275862"
+                      },
+                      {
+                        "__typename": "CheckRun",
                         "id": "CR_kwDOFcwZ1c8AAAAJFfqGMQ",
                         "name": "label-and-report-new-contributor",
                         "conclusion": "SUCCESS",
                         "status": "COMPLETED",
                         "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13942910237/job/39023445553"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAJJ7stuQ",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14044249362/job/39321284025"
+                      },
+                      {
+                        "__typename": "CheckRun",
+                        "id": "CR_kwDOFcwZ1c8AAAAJKAdZMQ",
+                        "name": "Ping maintainers on Zulip",
+                        "conclusion": "SUCCESS",
+                        "status": "COMPLETED",
+                        "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14045808252/job/39326275889"
                       },
                       {
                         "__typename": "CheckRun",
@@ -11428,6 +11460,15 @@
         },
         "latestReviews": {
           "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c6hoNBP",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "loefflerd"
+              },
+              "submittedAt": "2025-03-24T21:01:06Z"
+            },
             {
               "id": "PRR_kwDOFcwZ1c6cpWLc",
               "body": "",
@@ -11614,6 +11655,24 @@
                 "login": "CBirkbeck"
               },
               "submittedAt": "2025-03-18T19:55:14Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6hm8a9",
+              "body": "This is as far as I got before stopping for dinner. ",
+              "state": "COMMENTED",
+              "author": {
+                "login": "loefflerd"
+              },
+              "submittedAt": "2025-03-24T19:31:52Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c6hoNBP",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "loefflerd"
+              },
+              "submittedAt": "2025-03-24T21:01:06Z"
             }
           ]
         },
@@ -11738,6 +11797,140 @@
                   }
                 ]
               }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c532Srl",
+                    "body": "Couple of comments here.\r\n- In the statement `n` has type `Finset \\iota` while elsewhere in the proof it has type `\\iota`. A different letter would be preferable\r\n- The `filter_upwards` tactic is very very useful. You should never be manually intersecting sets to prove an `eventually` statement!\r\n- You take `hu.norm` unnecessarily and then have to un-do it later by using `Real.le_norm_self`. Just use `hu` directly and the final step is simpler.\r\n- You are defining a lemma in the `Complex` namespace so you can omit the `Complex.` prefix on existing declarations (like `log`). \r\n\r\nHere's my suggestion:\r\n```suggestion\r\nlemma Complex.tendstoUniformlyOn_tsum_log_one_add {α : Type*} {f : ι → α → ℂ} (K : Set α)\r\n    {u : ι → ℝ} (hu : Summable u) (h : ∀ᶠ n in cofinite, ∀ x ∈ K, ‖f n x‖ ≤ u n) :\r\n    TendstoUniformlyOn (fun s a ↦ ∑ i ∈ s, log (1 + f i a)) (fun a ↦ ∑' i, log (1 + f i a)) \r\n    atTop K := by\r\n  apply tendstoUniformlyOn_tsum_of_cofinite_eventually <| hu.mul_left (3 / 2)\r\n  filter_upwards [h, hu.tendsto_cofinite_zero.eventually_le_const one_half_pos] with n hn hn' x hx\r\n    using (norm_log_one_add_half_le_self <| (hn x hx).trans hn').trans (by simpa using hn x hx)\r\n```",
+                    "createdAt": "2025-03-24T18:26:12Z",
+                    "author": {
+                      "login": "loefflerd"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c532Xob",
+                    "body": "I can't write this as a suggestion (since the PR has a mixture of deleted and edited lines), but here is a 2-line proof:\r\n```lean\r\nlemma Complex.tendstoUniformlyOn_tsum_nat_log_one_add {α : Type*} {f : ℕ → α → ℂ} (K : Set α)\r\n    {u : ℕ → ℝ} (hu : Summable u) (h : ∀ᶠ n in atTop, ∀ x ∈ K, ‖f n x‖ ≤ u n) :\r\n    TendstoUniformlyOn (fun n a ↦ ∑ i ∈ Finset.range n, log (1 + f i a)) \r\n    (fun a ↦ ∑' i : ℕ, log (1 + f i a)) atTop K :=\r\n  fun v hv ↦ tendsto_finset_range.eventually \r\n    <| tendstoUniformlyOn_tsum_log_one_add K hu (Nat.cofinite_eq_atTop ▸ h) v hv\r\n```",
+                    "createdAt": "2025-03-24T18:41:58Z",
+                    "author": {
+                      "login": "loefflerd"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c532X-c",
+                    "body": "I am not sure `Topology/Algebra` is the best place for this file given that it imports stuff from `Analysis`. ",
+                    "createdAt": "2025-03-24T18:43:06Z",
+                    "author": {
+                      "login": "loefflerd"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c532Zt8",
+                    "body": "You've already got `Complex` open so there's no need for the `open scoped`.",
+                    "createdAt": "2025-03-24T18:48:39Z",
+                    "author": {
+                      "login": "loefflerd"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c532aMY",
+                    "body": "I suggest `TendstoUniformlyOn.eventually_forall_lt` for the name. The problem is that this will upset `to_additive` because nothing involving the group structure appears in the name; and that's for good reason – the statement doesn't use the group structure either!\r\n\r\nI had a stab at proving it without the group-theoretic assumptions but it didn't work; I found I was needing something to tie the uniformity and order structures together – it would be sufficient to show that `{(a, b) | a ≤ T → b < V} ∈ uniformity β`. Is there a notion of an `OrderUniformity`, I wonder?\r\n\r\nSuggest making `f` implicit in the statement (because of `hf`).",
+                    "createdAt": "2025-03-24T18:49:27Z",
+                    "author": {
+                      "login": "loefflerd"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c533DVb",
+                    "body": "See [#maths > Ordered uniform spaces?](https://leanprover.zulipchat.com/#narrow/channel/116395-maths/topic/Ordered.20uniform.20spaces.3F) for discussion on this point.",
+                    "createdAt": "2025-03-24T21:01:06Z",
+                    "author": {
+                      "login": "loefflerd"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c532mfu",
+                    "body": "```suggestion\r\n  rw [tendstoUniformlyOn_iff_tendsto] at hf\r\n```",
+                    "createdAt": "2025-03-24T19:25:25Z",
+                    "author": {
+                      "login": "loefflerd"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c532mtj",
+                    "body": "Here we have a ⟨ ⟩ pattern nested inside another, can it be restructured to avoid that? Also the `simpa only` is terminal so it doesn't need to be squeezed, which gets you a few golf points.",
+                    "createdAt": "2025-03-24T19:26:10Z",
+                    "author": {
+                      "login": "loefflerd"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c532oHB",
+                    "body": "```suggestion\r\n  filter_upwards [hf.eventually_lt_mul_const htv hg] with i hi x hx using (hi x hx).le\r\n```",
+                    "createdAt": "2025-03-24T19:31:06Z",
+                    "author": {
+                      "login": "loefflerd"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c532oQq",
+                    "body": "There is a TODO in the heading of this file which looks like it may now have been fixed.",
+                    "createdAt": "2025-03-24T19:31:39Z",
+                    "author": {
+                      "login": "loefflerd"
+                    }
+                  }
+                ]
+              }
             }
           ]
         },
@@ -11757,6 +11950,10 @@
             {
               "id": "MDQ6VXNlcjg5MjA1OTg=",
               "login": "j-loreaux"
+            },
+            {
+              "id": "MDQ6VXNlcjM0Mzk2ODg=",
+              "login": "loefflerd"
             },
             {
               "id": "MDQ6VXNlcjQ4NjU2Nzkz",
@@ -11786,11 +11983,43 @@
               },
               {
                 "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAJJ7subQ",
+                "name": "Add ready-to-merge or delegated label",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14044249367/job/39321284205"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAJKAdZFg",
+                "name": "Add ready-to-merge or delegated label",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14045808274/job/39326275862"
+              },
+              {
+                "__typename": "CheckRun",
                 "id": "CR_kwDOFcwZ1c8AAAAJFfqGMQ",
                 "name": "label-and-report-new-contributor",
                 "conclusion": "SUCCESS",
                 "status": "COMPLETED",
                 "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/13942910237/job/39023445553"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAJJ7stuQ",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14044249362/job/39321284025"
+              },
+              {
+                "__typename": "CheckRun",
+                "id": "CR_kwDOFcwZ1c8AAAAJKAdZMQ",
+                "name": "Ping maintainers on Zulip",
+                "conclusion": "SUCCESS",
+                "status": "COMPLETED",
+                "detailsUrl": "https://github.com/leanprover-community/mathlib4/actions/runs/14045808252/job/39326275889"
               },
               {
                 "__typename": "CheckRun",
@@ -11876,7 +12105,7 @@
           }
         },
         "title": "feat: TendstoUniformlyOn for tprod's",
-        "updatedAt": "2025-03-24T19:27:48Z",
+        "updatedAt": "2025-03-24T21:01:06Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/13349",
         "timelineItems": {
           "nodes": [
@@ -12745,6 +12974,15 @@
               "__typename": "PullRequestCommit",
               "commit": {
                 "oid": "fffded135bcdb70731ce7f3447de8b23631b15ee"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c6hm8a9",
+              "createdAt": "2025-03-24T18:26:12Z",
+              "body": "This is as far as I got before stopping for dinner. ",
+              "author": {
+                "login": "loefflerd"
               }
             }
           ]
