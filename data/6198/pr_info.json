@@ -1,0 +1,668 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 41,
+        "assignees": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjQ4NjU2Nzkz",
+              "login": "ADedecker"
+            }
+          ]
+        },
+        "author": {
+          "login": "dupuisf"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "This PR adds a way to characterize `IsBigO` along the `atTop` filter, for cases where we want the constant to depend on a \"starting point\" `n₀`.\r\n\r\nIt also adds the lemma `tendsto_nhds_of_eventually_eq`.\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 4,
+        "closed": true,
+        "closedAt": "2023-08-05T13:15:44Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5i3M19",
+              "body": "I have suggestions for this PR that I didn't yet have the time to write down, including some proof simplification. Could you wait for them before merging? I should be able to write them in a few hours.",
+              "createdAt": "2023-07-31T15:46:27Z",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5i_Nx7",
+              "body": "Actually I have an even better suggestion: you should add \r\n```lean\r\nlemma exists_eventually_atTop {α : Type _} [SemilatticeSup α] [Nonempty α] {r : α → β → Prop} :\r\n    (∃ b, ∀ᶠ a in atTop, r a b) ↔ ∀ᶠ a₀ in atTop, ∃ b, ∀ a ≥ a₀, r a b := by\r\n  simp_rw [eventually_atTop, ← exists_swap (α := α)]\r\n  refine exists_congr fun a ↦ .symm <| forall_ge_iff <| Monotone.exists fun _ _ _ hb H n hn ↦\r\n    H n (hb.trans hn)\r\n```\r\n\r\nThen, your proofs become:\r\n```lean\r\ntheorem isBigO_atTop_iff_dep_const {α : Type _} [SemilatticeSup α] [Nonempty α]\r\n    {f : α → E} {g : α → F} : f =O[atTop] g ↔ ∀ᶠ n₀ in atTop, ∃ c, ∀ n ≥ n₀, ‖f n‖ ≤ c * ‖g n‖ := by\r\n  rw [isBigO_iff, exists_eventually_atTop]\r\n\r\ntheorem isBigO_atTop_iff_dep_const' {α : Type _}\r\n    [SemilatticeSup α] [Nonempty α] {f : α → G} {g : α → G'} :\r\n    f =O[atTop] g ↔ ∀ᶠ n₀ in atTop, ∃ c > 0, ∀ n ≥ n₀, c * ‖f n‖ ≤ ‖g n‖ := by\r\n  simp_rw [isBigO_iff'', ← exists_prop, Subtype.exists', exists_eventually_atTop]\r\n```",
+              "createdAt": "2023-08-01T16:55:36Z",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jShnd",
+              "body": "Thanks a lot for the suggestions, Anatole, this is indeed much nicer! I have now implemented your last version, and changed the lemma names to what Oliver suggested.",
+              "createdAt": "2023-08-04T15:35:21Z",
+              "author": {
+                "login": "dupuisf"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jVIMj",
+              "body": "Thank you both, this is great!\r\n\r\nbors merge",
+              "createdAt": "2023-08-05T11:50:27Z",
+              "author": {
+                "login": "ocfnash"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jVNRh",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5770496073/job/15643586122)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5770496073/job/15643586170)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5770496073/job/15643586019)",
+              "createdAt": "2023-08-05T13:15:43Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "4dc37127ed45d238364e68893b54a78690866629",
+                "additions": 42,
+                "deletions": 0,
+                "committedDate": "2023-07-28T02:04:48Z",
+                "author": {
+                  "name": "Frédéric Dupuis",
+                  "email": "dupuisf@iro.umontreal.ca"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7106188db4301582d490524e9cfb1fed143533cc",
+                "additions": 19,
+                "deletions": 3,
+                "committedDate": "2023-08-02T19:41:02Z",
+                "author": {
+                  "name": "Frédéric Dupuis",
+                  "email": "dupuisf@iro.umontreal.ca"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7f5c253a97955b29069eb9e47b5ad84bd7079813",
+                "additions": 12,
+                "deletions": 0,
+                "committedDate": "2023-08-03T16:28:43Z",
+                "author": {
+                  "name": "Frédéric Dupuis",
+                  "email": "dupuisf@iro.umontreal.ca"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f39e8d34755befbc4c2167e12d2ec6f379e1b3ce",
+                "additions": 2,
+                "deletions": 31,
+                "committedDate": "2023-08-04T15:33:28Z",
+                "author": {
+                  "name": "Frédéric Dupuis",
+                  "email": "dupuisf@iro.umontreal.ca"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-07-28T02:10:18Z",
+        "deletions": 0,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib/Analysis/Asymptotics/Asymptotics.lean",
+              "additions": 9,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Order/BoundedOrder.lean",
+              "additions": 16,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Order/Filter/AtTopBot.lean",
+              "additions": 12,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Topology/Basic.lean",
+              "additions": 4,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "dupuisf/isBigO_dependent_c",
+        "headRefOid": "f39e8d34755befbc4c2167e12d2ec6f379e1b3ce",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5WnCza",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABViJeVg",
+              "color": "33DBEC",
+              "name": "t-analysis"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5c1DcX",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ocfnash"
+              },
+              "submittedAt": "2023-08-01T16:35:45Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5dMmwp",
+              "body": "@ocfnash I don't want to pull the trigger since I made quite heavy suggestions, would you mind having a final look?",
+              "state": "APPROVED",
+              "author": {
+                "login": "ADedecker"
+              },
+              "submittedAt": "2023-08-04T21:31:34Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 6198,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": "CHANGES_REQUESTED",
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5crh_c",
+              "body": "Thanks: these will be very useful lemmas but I think worth a few tweaks.",
+              "state": "CHANGES_REQUESTED",
+              "author": {
+                "login": "ocfnash"
+              },
+              "submittedAt": "2023-07-31T15:30:54Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ckRcC",
+              "body": "Sorry for the delay!",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ADedecker"
+              },
+              "submittedAt": "2023-08-01T16:26:11Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5c1Arz",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ADedecker"
+              },
+              "submittedAt": "2023-08-01T16:28:47Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5c1DcX",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "ocfnash"
+              },
+              "submittedAt": "2023-08-01T16:35:45Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5dMmwp",
+              "body": "@ocfnash I don't want to pull the trigger since I made quite heavy suggestions, would you mind having a final look?",
+              "state": "APPROVED",
+              "author": {
+                "login": "ADedecker"
+              },
+              "submittedAt": "2023-08-04T21:31:34Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MLo39",
+                    "body": "Untested\r\n```suggestion\r\n  tendsto_const_nhds.congr' (.symm h)\r\n```",
+                    "createdAt": "2023-07-28T22:14:23Z",
+                    "author": {
+                      "login": "ADedecker"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MQdRW",
+                    "body": "```suggestion\r\ntheorem isBigO_atTop_iff_eventually_exists {α : Type _} [SemilatticeSup α] [Nonempty α]\r\n```",
+                    "createdAt": "2023-07-31T14:28:00Z",
+                    "author": {
+                      "login": "ocfnash"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MQrmf",
+                    "body": "How about:\r\n```suggestion\r\n  let p : α → Prop := fun N ↦ ∃ c, ∀ n, n ≥ N → ‖f n‖ ≤ c * ‖g n‖\r\n  suffices : ∀ N, (p N ↔ ∀ m, m ≥ N → p m)\r\n  · rw [isBigO_iff_isBigOWith]\r\n    simp_rw [isBigOWith_iff, eventually_atTop]\r\n    rw [exists_comm]\r\n    exact exists_congr this\r\n  intro N\r\n  refine' ⟨_, fun h ↦ h N le_rfl⟩\r\n  rintro ⟨c, hc⟩ m hm\r\n  exact ⟨c, fun m' hm' ↦ hc m' $ le_trans hm hm'⟩\r\n```",
+                    "createdAt": "2023-07-31T15:02:26Z",
+                    "author": {
+                      "login": "ocfnash"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MWIgG",
+                    "body": "I suggest adding the following right after [Antitone.ball](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Order/BoundedOrder.html#Antitone.ball):\r\n```lean\r\ntheorem Monotone.exists {P : β → α → Prop} (hP : ∀ x, Monotone (P x)) :\r\n    Monotone fun y => ∃ x, P x y :=\r\n  fun _ _ hy ⟨x, hx⟩ ↦ ⟨x, hP x hy hx⟩\r\n\r\ntheorem Antitone.exists {P : β → α → Prop} (hP : ∀ x, Antitone (P x)) :\r\n    Antitone fun y => ∃ x, P x y :=\r\n  fun _ _ hy ⟨x, hx⟩ ↦ ⟨x, hP x hy hx⟩\r\n\r\ntheorem forall_ge_iff {P : α → Prop} {x₀ : α} (hP : Monotone P) :\r\n    (∀ x ≥ x₀, P x) ↔ P x₀ :=\r\n  ⟨fun H ↦ H x₀ le_rfl, fun H _ hx ↦ hP hx H⟩\r\n\r\ntheorem forall_le_iff {P : α → Prop} {x₀ : α} (hP : Antitone P) :\r\n    (∀ x ≤ x₀, P x) ↔ P x₀ :=\r\n  ⟨fun H ↦ H x₀ le_rfl, fun H _ hx ↦ hP hx H⟩\r\n```\r\n\r\nThen, your can do the following here:\r\n```suggestion\r\n  simp_rw [isBigO_iff, eventually_atTop, exists_swap (α := ℝ)]\r\n  exact exists_congr fun a ↦ .symm <| forall_ge_iff <| Monotone.exists fun _ _ _ hb H n hn ↦\r\n    H n (hb.trans hn)\r\n```",
+                    "createdAt": "2023-08-01T16:15:29Z",
+                    "author": {
+                      "login": "ADedecker"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MQsM0",
+                    "body": "```suggestion\r\ntheorem isBigO_atTop_iff_eventually_exists_pos {α : Type _}\r\n```",
+                    "createdAt": "2023-07-31T15:04:17Z",
+                    "author": {
+                      "login": "ocfnash"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MQ3Ig",
+                    "body": "The statement _and proof_ redundantly use the fact that `G'` carries `SeminormedAddCommGroup`. How about fixing the statement so that we only assume `G'` carries `Norm` and then using a proof along the following lines:\r\n```suggestion\r\n  rw [isBigO_atTop_iff_eventually_exists, ← eventually_congr]\r\n  refine' eventually_of_forall (fun N ↦ ⟨_, _⟩)\r\n  · rintro ⟨C, hC, hCN⟩\r\n    refine' ⟨C⁻¹, fun n hn ↦ _⟩\r\n    rw [← inv_mul_le_iff (inv_pos.mpr hC), inv_inv] -- TODO Easier if add lemma `le_inv_mul_iff`\r\n    exact hCN n hn\r\n  · rintro ⟨C, hCN⟩\r\n    rcases lt_trichotomy C 0 with hC | rfl | hC\r\n    · -- Obtain contradiction from `hCN`\r\n      sorry\r\n    · refine' ⟨1, one_pos, _⟩\r\n      -- Use `‖f n‖ = 0` for all `n` from `hCN`\r\n      sorry\r\n    · refine' ⟨C⁻¹, (inv_pos.mpr hC), fun n hn ↦ _⟩\r\n      rw [inv_mul_le_iff hC]\r\n      exact hCN n hn\r\n```",
+                    "createdAt": "2023-07-31T15:29:47Z",
+                    "author": {
+                      "login": "ocfnash"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MWLJq",
+                    "body": "Here is a proof similar to what I suggested above, \r\n```suggestion\r\n  simp_rw [isBigO_iff'', eventually_atTop, ← exists_and_left, exists_swap (α := ℝ)]\r\n  exact exists_congr fun a ↦ .symm <| forall_ge_iff <| Monotone.exists fun _ _ _ hb H ↦\r\n    ⟨H.1, fun n hn ↦ H.2 n (hb.trans hn)⟩\r\n```",
+                    "createdAt": "2023-08-01T16:25:33Z",
+                    "author": {
+                      "login": "ADedecker"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MWMEl",
+                    "body": "@ocfnash I'm not sure how you'd get a contradiction in your first case. Isn't the point that norms can be negative if you only have `Norm`?",
+                    "createdAt": "2023-08-01T16:28:47Z",
+                    "author": {
+                      "login": "ADedecker"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MWN3v",
+                    "body": "I guess I was thinking of `NNNorm`. I guess we can just leave this specialized to `SeminormedAddCommGroup` then.",
+                    "createdAt": "2023-08-01T16:35:44Z",
+                    "author": {
+                      "login": "ocfnash"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjMxMTAxODkz",
+              "login": "dupuisf"
+            },
+            {
+              "id": "MDQ6VXNlcjQ4NjU2Nzkz",
+              "login": "ADedecker"
+            },
+            {
+              "id": "MDQ6VXNlcjc3MzQzNjQ=",
+              "login": "ocfnash"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat: characterizations of `IsBigO` along `atTop`",
+        "updatedAt": "2023-08-05T13:15:47Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/6198",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4dc37127ed45d238364e68893b54a78690866629"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sz_79zwAAAAJQol3O",
+              "createdAt": "2023-07-28T02:10:18Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sz_79zwAAAAJQol3U",
+              "createdAt": "2023-07-28T02:10:18Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5sz_79zwAAAAJQpzxk",
+              "createdAt": "2023-07-28T03:00:15Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5crh_c",
+              "createdAt": "2023-07-31T14:27:59Z",
+              "body": "Thanks: these will be very useful lemmas but I think worth a few tweaks.",
+              "author": {
+                "login": "ocfnash"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5sz_79zwAAAAJR_qbm",
+              "createdAt": "2023-07-31T15:31:45Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sz_79zwAAAAJR_qbv",
+              "createdAt": "2023-07-31T15:31:45Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sz_79zwAAAAJR_qb9",
+              "createdAt": "2023-07-31T15:31:46Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABViJeVg",
+                "name": "t-analysis"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5i3M19",
+              "createdAt": "2023-07-31T15:46:27Z",
+              "body": "I have suggestions for this PR that I didn't yet have the time to write down, including some proof simplification. Could you wait for them before merging? I should be able to write them in a few hours.",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "AssignedEvent",
+              "id": "AE_lADOFcwZ1c5sz_79zwAAAAJSA6rW",
+              "createdAt": "2023-07-31T15:59:19Z",
+              "assignee": {
+                "id": "MDQ6VXNlcjQ4NjU2Nzkz",
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5ckRcC",
+              "createdAt": "2023-07-28T22:14:23Z",
+              "body": "Sorry for the delay!",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5i_Nx7",
+              "createdAt": "2023-08-01T16:55:36Z",
+              "body": "Actually I have an even better suggestion: you should add \r\n```lean\r\nlemma exists_eventually_atTop {α : Type _} [SemilatticeSup α] [Nonempty α] {r : α → β → Prop} :\r\n    (∃ b, ∀ᶠ a in atTop, r a b) ↔ ∀ᶠ a₀ in atTop, ∃ b, ∀ a ≥ a₀, r a b := by\r\n  simp_rw [eventually_atTop, ← exists_swap (α := α)]\r\n  refine exists_congr fun a ↦ .symm <| forall_ge_iff <| Monotone.exists fun _ _ _ hb H n hn ↦\r\n    H n (hb.trans hn)\r\n```\r\n\r\nThen, your proofs become:\r\n```lean\r\ntheorem isBigO_atTop_iff_dep_const {α : Type _} [SemilatticeSup α] [Nonempty α]\r\n    {f : α → E} {g : α → F} : f =O[atTop] g ↔ ∀ᶠ n₀ in atTop, ∃ c, ∀ n ≥ n₀, ‖f n‖ ≤ c * ‖g n‖ := by\r\n  rw [isBigO_iff, exists_eventually_atTop]\r\n\r\ntheorem isBigO_atTop_iff_dep_const' {α : Type _}\r\n    [SemilatticeSup α] [Nonempty α] {f : α → G} {g : α → G'} :\r\n    f =O[atTop] g ↔ ∀ᶠ n₀ in atTop, ∃ c > 0, ∀ n ≥ n₀, c * ‖f n‖ ≤ ‖g n‖ := by\r\n  simp_rw [isBigO_iff'', ← exists_prop, Subtype.exists', exists_eventually_atTop]\r\n```",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7106188db4301582d490524e9cfb1fed143533cc"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7f5c253a97955b29069eb9e47b5ad84bd7079813"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f39e8d34755befbc4c2167e12d2ec6f379e1b3ce"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jShnd",
+              "createdAt": "2023-08-04T15:35:21Z",
+              "body": "Thanks a lot for the suggestions, Anatole, this is indeed much nicer! I have now implemented your last version, and changed the lemma names to what Oliver suggested.",
+              "author": {
+                "login": "dupuisf"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5sz_79zwAAAAJUsBJB",
+              "createdAt": "2023-08-04T15:35:38Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sz_79zwAAAAJUsBJH",
+              "createdAt": "2023-08-04T15:35:38Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5dMmwp",
+              "createdAt": "2023-08-04T21:31:34Z",
+              "body": "@ocfnash I don't want to pull the trigger since I made quite heavy suggestions, would you mind having a final look?",
+              "author": {
+                "login": "ADedecker"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jVIMj",
+              "createdAt": "2023-08-05T11:50:27Z",
+              "body": "Thank you both, this is great!\r\n\r\nbors merge",
+              "author": {
+                "login": "ocfnash"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5sz_79zwAAAAJU8nRy",
+              "createdAt": "2023-08-05T11:50:39Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5sz_79zwAAAAJU8nTT",
+              "createdAt": "2023-08-05T11:50:40Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jVNRh",
+              "createdAt": "2023-08-05T13:15:43Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5770496073/job/15643586122)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5770496073/job/15643586170)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5770496073/job/15643586019)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5sz_79zwAAAAJU9U5-",
+              "createdAt": "2023-08-05T13:15:44Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5sz_79zwAAAAJU9U_C",
+              "createdAt": "2023-08-05T13:15:47Z"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
