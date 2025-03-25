@@ -48,6 +48,14 @@
               "author": {
                 "login": "Vierkantor"
               }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c6kBGbj",
+              "body": "The trace shows that `isDefEq` calls `synthInstance`, obtains the wrong instance, and fails:\r\n```lean\r\n[Meta.isDefEq] ❌️ d n =?= d ?n ▼\r\n  [] ✅️ n =?= ?n ▼\r\n    [] n [nonassignable] =?= ?n [assignable]\r\n    [] ✅️ Nat =?= Nat\r\n  [synthInstance] ✅️ C ▼\r\n    [] new goal C ▶\r\n    [] ✅️ apply c₂ to C ▶\r\n    [isDefEq] ✅️ C =?= C\r\n    [] result c₂\r\n  [] ❌️ { n := C.n + C.n } =?= c₂ + ?m.1216 ▼\r\n    [] ❌️ { n := C.n + C.n } =?= instHAdd.1 c₂ ?m.1216 ▼\r\n      [] ❌️ { n := C.n + C.n } =?= Add.add c₂ ?m.1216 ▼\r\n        [] ❌️ { n := C.n + C.n } =?= instAddC.1 c₂ ?m.1216 ▼\r\n          [] ❌️ { n := C.n + C.n } =?= { n := C.n + C.n } ▼\r\n            [] ❌️ C.n + C.n =?= C.n + C.n ▼\r\n              [] ✅️ instHAdd =?= instHAdd\r\n              [] ❌️ C.n =?= C.n ▶\r\n              [] ❌️ instHAdd.1 C.n C.n =?= instHAdd.1 C.n C.n ▼\r\n                [] ❌️ Add.add C.n C.n =?= Add.add C.n C.n ▼\r\n                  [] ✅️ instAddNat =?= instAddNat\r\n                  [] ❌️ C.n =?= C.n ▼\r\n                    [] ❌️ c₁.1 =?= c₂.1 ▼\r\n                      [] ❌️ c₁ =?= c₂ ▼\r\n                        [onFailure] ❌️ c₁ =?= c₂\r\n                      [onFailure] ❌️ c₁.1 =?= c₂.1\r\n                  [] ❌️ instAddNat.1 C.n C.n =?= instAddNat.1 C.n C.n ▶\r\n            [onFailure] ❌️ { n := C.n + C.n } =?= { n := C.n + C.n }\r\n            [onFailure] ❌️ { n := C.n + C.n } =?= { n := C.n + C.n }\r\n```\r\n\r\nI am not sure why it decides to look for an instance though. I can't find a `synthInstance` call anywhere near the implementation of `isDefEq`...",
+              "createdAt": "2025-03-25T15:57:24Z",
+              "author": {
+                "login": "Vierkantor"
+              }
             }
           ]
         },
@@ -404,7 +412,7 @@
           }
         },
         "title": "refactor(MeasureTheory): fix `simp` not applying `measurableSet_inf`",
-        "updatedAt": "2025-03-25T15:54:13Z",
+        "updatedAt": "2025-03-25T15:57:25Z",
         "url": "https://github.com/leanprover-community/mathlib4/pull/23270",
         "timelineItems": {
           "nodes": [
@@ -464,6 +472,15 @@
               "id": "IC_kwDOFcwZ1c6kBD9c",
               "createdAt": "2025-03-25T15:54:04Z",
               "body": "After a while of staring at code:\r\n\r\n```lean\r\nclass C where n : Nat\r\n\r\ninstance : Add C where\r\n  add c₁ c₂ := ⟨c₁.n + c₂.n⟩\r\n\r\ndef d [c : C] (n : Nat) := C.n * n\r\n\r\ntheorem d_add {c₁ c₂ : C} (n : Nat) : d (c := c₁ + c₂) n = d (c := c₁) n + d (c := c₂) n :=\r\n  Nat.add_mul _ _ _\r\n\r\n-- Fails if the local variables are ordered `c₁ c₂`\r\nexample (c₁ c₂ : C) (n : Nat) : d (c := c₁ + c₂) n = d (c := c₁) n + d (c := c₂) n := by\r\n  rw [d_add] -- fails\r\nexample (c₁ c₂ : C) : d (c := c₁ + c₂) n = d (c := c₁) n + d (c := c₂) n := by\r\n  simp only [d_add] -- fails\r\n\r\n-- Succeeds if the local variables are ordered `c₂ c₁`\r\nexample (c₂ c₁ : C) (n : Nat) : d (c := c₁ + c₂) n = d (c := c₁) n + d (c := c₂) n := by\r\n  rw [d_add] -- succeeds\r\nexample (c₂ c₁ : C) : d (c := c₁ + c₂) n = d (c := c₁) n + d (c := c₂) n := by\r\n  simp only [d_add] -- succeeds\r\n```",
+              "author": {
+                "login": "Vierkantor"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c6kBGbj",
+              "createdAt": "2025-03-25T15:57:24Z",
+              "body": "The trace shows that `isDefEq` calls `synthInstance`, obtains the wrong instance, and fails:\r\n```lean\r\n[Meta.isDefEq] ❌️ d n =?= d ?n ▼\r\n  [] ✅️ n =?= ?n ▼\r\n    [] n [nonassignable] =?= ?n [assignable]\r\n    [] ✅️ Nat =?= Nat\r\n  [synthInstance] ✅️ C ▼\r\n    [] new goal C ▶\r\n    [] ✅️ apply c₂ to C ▶\r\n    [isDefEq] ✅️ C =?= C\r\n    [] result c₂\r\n  [] ❌️ { n := C.n + C.n } =?= c₂ + ?m.1216 ▼\r\n    [] ❌️ { n := C.n + C.n } =?= instHAdd.1 c₂ ?m.1216 ▼\r\n      [] ❌️ { n := C.n + C.n } =?= Add.add c₂ ?m.1216 ▼\r\n        [] ❌️ { n := C.n + C.n } =?= instAddC.1 c₂ ?m.1216 ▼\r\n          [] ❌️ { n := C.n + C.n } =?= { n := C.n + C.n } ▼\r\n            [] ❌️ C.n + C.n =?= C.n + C.n ▼\r\n              [] ✅️ instHAdd =?= instHAdd\r\n              [] ❌️ C.n =?= C.n ▶\r\n              [] ❌️ instHAdd.1 C.n C.n =?= instHAdd.1 C.n C.n ▼\r\n                [] ❌️ Add.add C.n C.n =?= Add.add C.n C.n ▼\r\n                  [] ✅️ instAddNat =?= instAddNat\r\n                  [] ❌️ C.n =?= C.n ▼\r\n                    [] ❌️ c₁.1 =?= c₂.1 ▼\r\n                      [] ❌️ c₁ =?= c₂ ▼\r\n                        [onFailure] ❌️ c₁ =?= c₂\r\n                      [onFailure] ❌️ c₁.1 =?= c₂.1\r\n                  [] ❌️ instAddNat.1 C.n C.n =?= instAddNat.1 C.n C.n ▶\r\n            [onFailure] ❌️ { n := C.n + C.n } =?= { n := C.n + C.n }\r\n            [onFailure] ❌️ { n := C.n + C.n } =?= { n := C.n + C.n }\r\n```\r\n\r\nI am not sure why it decides to look for an instance though. I can't find a `synthInstance` call anywhere near the implementation of `isDefEq`...",
               "author": {
                 "login": "Vierkantor"
               }
