@@ -1,0 +1,1308 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 195,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "adomani"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "This is a first PR porting some of the functionality of the `extract_goal` tactic from mathlib3.\r\n\r\n---\r\n\r\nIt is my first attempt at porting a tactic, so do not restrain yourself from providing copious comments!\r\n\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 4,
+        "closed": true,
+        "closedAt": "2023-08-02T16:24:09Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5eAWJ5",
+              "body": "I'm sorry I don't have time to make this comment more precise right now (so maybe its just a useless comment), but part of me can't help feeling some of this approach is a bit low-tech somehow? e.g. there is a lot of manual matching on and joining of strings. Although I don't know precisely how to do it immediately I would quite like to see a version of this PR that targets `Syntax` rather than strings/format, and uses the built in delaborators more somehow.\r\nOf course if it gets good results as is then maybe we shouldn't worry too much right now, and maybe merge this and discuss whether a shorter/cleaner implementation is possible later, but if you were interested I think it would be good to play with a more Syntaxey version (I'd also like to try more seriously, but unfortunately can't this week)",
+              "createdAt": "2023-06-05T16:57:35Z",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5eBV9i",
+              "body": "Alex, I see what you are saying, although I do not really know how to actually put it in practice.  I'm all for learning how to work with Syntax, but I am not really sure where to start.\n\nWhen you have the time, I'd be happy to hear some suggestions!  In the meantime, I'll see that I can find!",
+              "createdAt": "2023-06-05T20:11:06Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5i9edY",
+              "body": "Thanks for working on porting this tactic.\r\n\r\nI'd prefer that we use delaborators and other constructions to build a declaration for this, rather than doing string manipulation though. Here's an implementation that makes use of the signature pretty printer that's used by `#check`.\r\n\r\n```lean\r\nopen Lean Meta Elab Tactic\r\n\r\n/--\r\n`extract_goal` formats the current goal as a stand-alone theorem or definition.\r\nIt tries to produce an output that can be copy-pasted and just work.\r\n\r\nBy default it cleans up the local context. To use the full local context, use `extract_goal*`.\r\n-/\r\nelab (name := extractGoal) \"extract_goal\" full?:&\"*\"? name?:(colGt ppSpace ident)? : tactic => do\r\n  let name ← if let some name := name?\r\n             then pure name.getId\r\n             else mkAuxName ((← getCurrNamespace) ++ `extracted) 1\r\n  let msg ← withoutModifyingEnv <| withoutModifyingState do\r\n    let mut g ← getMainGoal\r\n    unless full?.isSome do\r\n      g ← g.cleanup\r\n    (g, _) ← g.renameInaccessibleFVars\r\n    (_, g) ← g.revert (clearAuxDeclsInsteadOfRevert := true) (← g.getDecl).lctx.getFVarIds\r\n    let ty ← instantiateMVars (← g.getType)\r\n    if ty.hasExprMVar then\r\n      -- TODO: turn metavariables into new hypotheses?\r\n      throwError \"Extracted goal has metavariables: {ty}\"\r\n    let ty ← Term.levelMVarToParam ty\r\n    let seenLevels := collectLevelParams {} ty\r\n    let levels := (← Term.getLevelNames).filter\r\n                    fun u => seenLevels.visitedLevel.contains (.param u)\r\n    addAndCompile <| Declaration.axiomDecl\r\n      { name := name\r\n        levelParams := levels\r\n        isUnsafe := false\r\n        type := ty }\r\n    let sig ← addMessageContext <| MessageData.ofPPFormat { pp := fun\r\n                | some ctx => ctx.runMetaM <| PrettyPrinter.ppSignature name\r\n                | none     => unreachable!\r\n              }\r\n    let cmd := if ← Meta.isProp ty then \"theorem\" else \"def\"\r\n    pure m!\"{cmd} {sig} := sorry\"\r\n  logInfo msg\r\n```\r\nThis has some downsides, like writing `[inst : F]` rather than just `[F]`, but perhaps we could get some pretty printer options into Lean 4 to handle this.",
+              "createdAt": "2023-08-01T13:11:07Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jB9x5",
+              "body": "Kyle, thank you very much: your version is great!\r\n\r\nI replaced mine with yours, added you as an author and mentioned some of the cases in which the extracted theorem is incorrect.\r\n\r\nNote that my version gave incorrect results way more often!",
+              "createdAt": "2023-08-02T04:07:51Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jCE3i",
+              "body": "I will add a test that the extracted goal proves the given goal and emit a warning otherwise.  However, I do not have time to do it right now!",
+              "createdAt": "2023-08-02T04:45:38Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jD3t4",
+              "body": "I tried and failed.  I am unable to get my hands on the output of `logInfo msg`, in order to parse it again.  If I had that, then I would\r\n* make sure that it parses with no issues, other than the `sorry`;\r\n* check that the new declaration actually closes the initial goal.\r\n\r\nI have added a couple of examples to the docs-module containing examples that would form good tests, if the above were implemented.\r\n\r\nStill, I think that the tactic already works very well as is and these improvements could come later on.\r\n\r\nAn option would be to add something like `extract_goal [...] pp.all` to specify that you want the full, round-tripping expression.",
+              "createdAt": "2023-08-02T10:28:49Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jEmhj",
+              "body": "@kmill, CI failed to build the tests, since `#guard_msgs` complained for the `pp.all` output.  Does CI remove `pp`-options and hence the test will check against the non-`pp.all` message?\r\n\r\nI am running CI again to test this, but maybe you already know what the issue it!",
+              "createdAt": "2023-08-02T12:48:10Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jEqvH",
+              "body": "I'm not sure this is a CI issue per se, since it could be a difference between Lean in an editor and Lean on the command line. Maybe the options aren't actually guaranteed to be propagated into the pretty printer at line 135? I can take a look later.",
+              "createdAt": "2023-08-02T12:58:47Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jErrP",
+              "body": "I looked closer at the diff: the current hypothesis is that\r\n* my computer displays `fun`s as `fun ... ↦ ...`,\r\n* CI displays `fun`s as `fun ... => ...`.",
+              "createdAt": "2023-08-02T13:01:16Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jEuBw",
+              "body": "Yes, it seems to be this: on my local version, `#guard_msgs` complains that the outputs do not match, because of the `fun` arrow.  On GitHub, though, the PR has passed the tests, so that `#guard_msgs` liked what it received.",
+              "createdAt": "2023-08-02T13:07:17Z",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jEwXI",
+              "body": "Ok, that's a known issue then. Add `set_option pp.unicode.fun true` to the top of the tests file.",
+              "createdAt": "2023-08-02T13:13:23Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jF0Zs",
+              "body": "Thanks!\r\n\r\nbors r+\r\n\r\nIn a followup PR, feel free to add this to `Mathlib.Tactic.Common` so that it's readily available.",
+              "createdAt": "2023-08-02T15:50:39Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5jGD1a",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5741039884/job/15560239400)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5741039884/job/15560239985)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5741039884/job/15560240261)",
+              "createdAt": "2023-08-02T16:24:08Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "0c95979eaf396c912395cb6f233516a56f363437",
+                "additions": 100,
+                "deletions": 0,
+                "committedDate": "2023-06-02T15:03:24Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ec6fc5681d8f50592ef88cda9343db1484e899af",
+                "additions": 2,
+                "deletions": 0,
+                "committedDate": "2023-06-02T15:14:48Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "05380df9605fc0927a1b35e1a2800e858425460d",
+                "additions": 8,
+                "deletions": 8,
+                "committedDate": "2023-06-02T15:44:24Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "16426b810f9b97d4bf72988c53e2377fd07b9ffb",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-06-02T15:44:53Z",
+                "author": {
+                  "name": "damiano",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "090b3791e4bfb2ac69280c8fe7e474bf2728641d",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-06-02T15:45:40Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "390be49cb34b388d2cf8f251e274ac371996e199",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-06-02T15:47:42Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3572b00d876e14012e36ab9b477712a44b406d51",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-06-02T15:48:29Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "298c6d203663b2d3335a868fe749629e8ea52e7c",
+                "additions": 2,
+                "deletions": 9,
+                "committedDate": "2023-06-02T15:52:39Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9d2b17562b92d510af5bc9c4dd6d3b83f26dabbb",
+                "additions": 14,
+                "deletions": 12,
+                "committedDate": "2023-06-03T03:15:48Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5f2fbffd4efe997029ff75a135033748b8f91746",
+                "additions": 8,
+                "deletions": 3,
+                "committedDate": "2023-06-03T03:16:26Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "90b993fe99c959c6218f26e50d03d3db48414e03",
+                "additions": 17,
+                "deletions": 3,
+                "committedDate": "2023-06-03T05:00:53Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "38a393cd101adcb2fc80353ca81605215f91276e",
+                "additions": 217517,
+                "deletions": 11522,
+                "committedDate": "2023-06-27T09:02:00Z",
+                "author": {
+                  "name": "Alex J Best",
+                  "email": "alex.j.best@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "dc0a560c59159f0937d850f051dc0526b9aecdff",
+                "additions": 57828,
+                "deletions": 10209,
+                "committedDate": "2023-07-12T13:53:42Z",
+                "author": {
+                  "name": "damiano",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d7affb8c6673adc1c0b02c2462a2c9970118976e",
+                "additions": 31073,
+                "deletions": 24259,
+                "committedDate": "2023-07-30T14:35:02Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ab7add3939b853d615bb030404b577c15af7ac89",
+                "additions": 4188,
+                "deletions": 1226,
+                "committedDate": "2023-08-02T02:19:19Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e3f4d1617f6aed27677732963249e5bad5285e4e",
+                "additions": 85,
+                "deletions": 61,
+                "committedDate": "2023-08-02T04:05:18Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "626eed4a1b924fc10ae4f02db79539de6df6003f",
+                "additions": 12,
+                "deletions": 0,
+                "committedDate": "2023-08-02T04:44:50Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f48a135c57e1065ee70cb310fd9b7c6627efec00",
+                "additions": 15,
+                "deletions": 0,
+                "committedDate": "2023-08-02T10:16:59Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "647b359acbc19e940a47971d083d8361751b8a48",
+                "additions": 27,
+                "deletions": 4,
+                "committedDate": "2023-08-02T11:40:38Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "37d505b3fc0b9893cdc0dea94b2c559e88f874a4",
+                "additions": 6,
+                "deletions": 4,
+                "committedDate": "2023-08-02T12:46:27Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4104eb6c6d69fe3364edd67749ab8d8afcf7b2ce",
+                "additions": 2,
+                "deletions": 1,
+                "committedDate": "2023-08-02T12:59:33Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d728ac6b90a15a80a1c75a1a3e03e461031df438",
+                "additions": 3,
+                "deletions": 1,
+                "committedDate": "2023-08-02T13:17:07Z",
+                "author": {
+                  "name": "adomani",
+                  "email": "adomani@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-06-02T15:06:28Z",
+        "deletions": 0,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic/ExtractGoal.lean",
+              "additions": 140,
+              "deletions": 0
+            },
+            {
+              "path": "test/ExtractGoal.lean",
+              "additions": 53,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "adomani_extractGoal",
+        "headRefOid": "d728ac6b90a15a80a1c75a1a3e03e461031df438",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5SAw_1",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c7mTAET",
+              "color": "DA6D43",
+              "name": "modifies-tactic-syntax"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+              "color": "33DBEC",
+              "name": "t-meta"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5c6qwB",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-08-02T12:21:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5W5Uum",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-06-02T15:49:03Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 4595,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5W5Ntu",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-06-02T15:37:30Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5W5OKk",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-06-02T15:38:17Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5W5Ocr",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-06-02T15:38:44Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5W5SNG",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-06-02T15:44:49Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5W5Urh",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-06-02T15:48:58Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5W5Uum",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexjbest"
+              },
+              "submittedAt": "2023-06-02T15:49:03Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5W5Ux-",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-06-02T15:49:09Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5W5XUK",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-06-02T15:53:14Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5c6Hgz",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-08-02T10:50:11Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5c6Vy3",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-02T11:28:13Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5c6a5y",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-02T11:42:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5c6fI8",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "adomani"
+              },
+              "submittedAt": "2023-08-02T11:53:07Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5c6qwB",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kmill"
+              },
+              "submittedAt": "2023-08-02T12:21:21Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5IZFnz",
+                    "body": "I would expect the filename to still begin with a capital letter",
+                    "createdAt": "2023-06-02T15:37:30Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5IZIPz",
+                    "body": "Changed, thanks!",
+                    "createdAt": "2023-06-02T15:48:58Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5IZFy_",
+                    "body": "The tactic syntax should probably be ` extract_goal` though",
+                    "createdAt": "2023-06-02T15:38:17Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5IZISj",
+                    "body": "Also, changed!",
+                    "createdAt": "2023-06-02T15:49:09Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5IZF59",
+                    "body": "```suggestion\r\n* TODO: Add functionality to produce a named `theorem` via `extractGoal thmName`\r\n```",
+                    "createdAt": "2023-06-02T15:38:44Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5IZHUS",
+                    "body": "Thanks!",
+                    "createdAt": "2023-06-02T15:44:49Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5IZIQ_",
+                    "body": "This already exists as `Lean.BinderInfo.brackets`",
+                    "createdAt": "2023-06-02T15:49:03Z",
+                    "author": {
+                      "login": "alexjbest"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5IZJRF",
+                    "body": "Golf using this, thanks!",
+                    "createdAt": "2023-06-02T15:53:14Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MZcKf",
+                    "body": "May as well put a warning that people shouldn't be *too* hopeful :wink: :\r\n```suggestion\r\nIt tries to produce an output that can be copy-pasted and just work,\r\nbut its success depends on whether the expressions are amenable\r\nto being unambiguously pretty printed.\r\n```\r\n\r\nI haven't tested it, but could you try it and if it works add this suggestion?\r\n```\r\nThe tactic responds to pretty printing options.\r\nFor example, `set_option pp.all in extract_goal` gives the `pp.all` form.\r\n```\r\n\r\nMaybe we should add to the first line of the docstring too:\r\n```\r\n`extract_goal` formats the current goal as a stand-alone theorem or definition,\r\nand `extract_goal name` uses the name `name` instead of an autogenerated one.\r\n```",
+                    "createdAt": "2023-08-02T10:50:10Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MZlCz",
+                    "body": "The `set_option pp.all in extract_goal` trick is great!!\r\n\r\nThis works with no errors:\r\n```lean\r\ntheorem extracted_1.{u_1} {α : Sort u_1} (a : α) : @Exists.{u_1} (α → α) fun (f : α → α) ↦ @Eq.{u_1} α (f a) a := sorry\r\n\r\nexample (a : α) : ∃ f : α → α, f a = a := by\r\n  set_option pp.all true in\r\n  extract_goal\r\n  apply extracted_1\r\n\r\nopen Polynomial\r\n\r\ntheorem extracted_2 :\r\n  @Eq.{1} (@Polynomial.{0} Nat Nat.semiring) (@Polynomial.X.{0} Nat Nat.semiring)\r\n    (@Polynomial.X.{0} Nat Nat.semiring) := sorry\r\n\r\n\r\nexample : (X : Nat[X]) = X := by\r\n  set_option pp.all true in\r\n  extract_goal\r\n  apply extracted_2\r\n```\r\n(Of course, the `extracted_i` are simply copy-pasted from `extract_goal`.)",
+                    "createdAt": "2023-08-02T11:28:13Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MZoMQ",
+                    "body": "I added the `pp.all` trick to the docs and a test.",
+                    "createdAt": "2023-08-02T11:42:21Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MZqur",
+                    "body": "Btw, I checked and the polynomial example, failed also in Lean3.  However, the \"exists\" example actually inserted the type-ascription:\r\n```lean\r\n--  Lean3 code:\r\nexample {z : ℤ}: ∃ n : ℕ, z = n := begin\r\n  extract_goal coes\r\nend\r\n\r\n-- produces:\r\nlemma coes {z : ℤ} : ∃ (n : ℕ), z = ↑n :=\r\nbegin\r\n  admit,\r\nend\r\n```\r\nIn either case, you could place `set_option pp.all true` before the *statement* and it would print it with that option.  Unlike in Lean 4, it does not seem to be possible to use `pp.all` *inside* the proof, though.",
+                    "createdAt": "2023-08-02T11:53:07Z",
+                    "author": {
+                      "login": "adomani"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MZx9Q",
+                    "body": "Exists doesn't show a type ascription in Lean 4 because it's implemented using an `app_unexpander` and is transforming a `fun`, but by default lambdas don't show types. I've been wanting to get around to fixing this for a while.",
+                    "createdAt": "2023-08-02T12:21:21Z",
+                    "author": {
+                      "login": "kmill"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjI5NDY3NzQ1",
+              "login": "adomani"
+            },
+            {
+              "id": "MDQ6VXNlcjE2ODg1MzM=",
+              "login": "alexjbest"
+            },
+            {
+              "id": "MDQ6VXNlcjIzNTMwNw==",
+              "login": "kmill"
+            },
+            {
+              "id": "MDQ6VXNlcjQ3Nzk1Ng==",
+              "login": "kim-em"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat(Tactic/ExtractGoal + test/ExtractGoal): port `extract_goal` tactic",
+        "updatedAt": "2023-08-02T16:24:18Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/4595",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0c95979eaf396c912395cb6f233516a56f363437"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5nnXNuzwAAAAIxNBPg",
+              "createdAt": "2023-06-02T15:10:34Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5nnXNuzwAAAAIxNBPr",
+              "createdAt": "2023-06-02T15:10:34Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7mTAET",
+                "name": "modifies-tactic-syntax"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ec6fc5681d8f50592ef88cda9343db1484e899af"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5W5Ntu",
+              "createdAt": "2023-06-02T15:37:30Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5W5OKk",
+              "createdAt": "2023-06-02T15:38:17Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5W5Ocr",
+              "createdAt": "2023-06-02T15:38:44Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "05380df9605fc0927a1b35e1a2800e858425460d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "16426b810f9b97d4bf72988c53e2377fd07b9ffb"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "090b3791e4bfb2ac69280c8fe7e474bf2728641d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "390be49cb34b388d2cf8f251e274ac371996e199"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3572b00d876e14012e36ab9b477712a44b406d51"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5W5Uum",
+              "createdAt": "2023-06-02T15:49:03Z",
+              "body": "",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "298c6d203663b2d3335a868fe749629e8ea52e7c"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9d2b17562b92d510af5bc9c4dd6d3b83f26dabbb"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5f2fbffd4efe997029ff75a135033748b8f91746"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "90b993fe99c959c6218f26e50d03d3db48414e03"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5nnXNuzwAAAAIybkLV",
+              "createdAt": "2023-06-05T16:51:06Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+                "name": "t-meta"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5eAWJ5",
+              "createdAt": "2023-06-05T16:57:35Z",
+              "body": "I'm sorry I don't have time to make this comment more precise right now (so maybe its just a useless comment), but part of me can't help feeling some of this approach is a bit low-tech somehow? e.g. there is a lot of manual matching on and joining of strings. Although I don't know precisely how to do it immediately I would quite like to see a version of this PR that targets `Syntax` rather than strings/format, and uses the built in delaborators more somehow.\r\nOf course if it gets good results as is then maybe we shouldn't worry too much right now, and maybe merge this and discuss whether a shorter/cleaner implementation is possible later, but if you were interested I think it would be good to play with a more Syntaxey version (I'd also like to try more seriously, but unfortunately can't this week)",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5eBV9i",
+              "createdAt": "2023-06-05T20:11:06Z",
+              "body": "Alex, I see what you are saying, although I do not really know how to actually put it in practice.  I'm all for learning how to work with Syntax, but I am not really sure where to start.\n\nWhen you have the time, I'd be happy to hear some suggestions!  In the meantime, I'll see that I can find!",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5nnXNuzwAAAAI2EB4j",
+              "createdAt": "2023-06-12T03:10:57Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "38a393cd101adcb2fc80353ca81605215f91276e"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5nnXNuzwAAAAI_JXCI",
+              "createdAt": "2023-06-27T09:13:59Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5nnXNuzwAAAAJAhDBm",
+              "createdAt": "2023-06-29T04:08:04Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5Ne9be",
+              "createdAt": "2023-07-12T11:22:07Z",
+              "source": {
+                "id": "I_kwDOFcwZ1c5SLg7U",
+                "title": "tactic porting tracking issue",
+                "url": "https://github.com/leanprover-community/mathlib4/issues/430"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "dc0a560c59159f0937d850f051dc0526b9aecdff"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5nnXNuzwAAAAJIH6Ic",
+              "createdAt": "2023-07-12T14:05:25Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d7affb8c6673adc1c0b02c2462a2c9970118976e"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5i9edY",
+              "createdAt": "2023-08-01T13:11:07Z",
+              "body": "Thanks for working on porting this tactic.\r\n\r\nI'd prefer that we use delaborators and other constructions to build a declaration for this, rather than doing string manipulation though. Here's an implementation that makes use of the signature pretty printer that's used by `#check`.\r\n\r\n```lean\r\nopen Lean Meta Elab Tactic\r\n\r\n/--\r\n`extract_goal` formats the current goal as a stand-alone theorem or definition.\r\nIt tries to produce an output that can be copy-pasted and just work.\r\n\r\nBy default it cleans up the local context. To use the full local context, use `extract_goal*`.\r\n-/\r\nelab (name := extractGoal) \"extract_goal\" full?:&\"*\"? name?:(colGt ppSpace ident)? : tactic => do\r\n  let name ← if let some name := name?\r\n             then pure name.getId\r\n             else mkAuxName ((← getCurrNamespace) ++ `extracted) 1\r\n  let msg ← withoutModifyingEnv <| withoutModifyingState do\r\n    let mut g ← getMainGoal\r\n    unless full?.isSome do\r\n      g ← g.cleanup\r\n    (g, _) ← g.renameInaccessibleFVars\r\n    (_, g) ← g.revert (clearAuxDeclsInsteadOfRevert := true) (← g.getDecl).lctx.getFVarIds\r\n    let ty ← instantiateMVars (← g.getType)\r\n    if ty.hasExprMVar then\r\n      -- TODO: turn metavariables into new hypotheses?\r\n      throwError \"Extracted goal has metavariables: {ty}\"\r\n    let ty ← Term.levelMVarToParam ty\r\n    let seenLevels := collectLevelParams {} ty\r\n    let levels := (← Term.getLevelNames).filter\r\n                    fun u => seenLevels.visitedLevel.contains (.param u)\r\n    addAndCompile <| Declaration.axiomDecl\r\n      { name := name\r\n        levelParams := levels\r\n        isUnsafe := false\r\n        type := ty }\r\n    let sig ← addMessageContext <| MessageData.ofPPFormat { pp := fun\r\n                | some ctx => ctx.runMetaM <| PrettyPrinter.ppSignature name\r\n                | none     => unreachable!\r\n              }\r\n    let cmd := if ← Meta.isProp ty then \"theorem\" else \"def\"\r\n    pure m!\"{cmd} {sig} := sorry\"\r\n  logInfo msg\r\n```\r\nThis has some downsides, like writing `[inst : F]` rather than just `[F]`, but perhaps we could get some pretty printer options into Lean 4 to handle this.",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ab7add3939b853d615bb030404b577c15af7ac89"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e3f4d1617f6aed27677732963249e5bad5285e4e"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jB9x5",
+              "createdAt": "2023-08-02T04:07:51Z",
+              "body": "Kyle, thank you very much: your version is great!\r\n\r\nI replaced mine with yours, added you as an author and mentioned some of the cases in which the extracted theorem is incorrect.\r\n\r\nNote that my version gave incorrect results way more often!",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "626eed4a1b924fc10ae4f02db79539de6df6003f"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jCE3i",
+              "createdAt": "2023-08-02T04:45:38Z",
+              "body": "I will add a test that the extracted goal proves the given goal and emit a warning otherwise.  However, I do not have time to do it right now!",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f48a135c57e1065ee70cb310fd9b7c6627efec00"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jD3t4",
+              "createdAt": "2023-08-02T10:28:49Z",
+              "body": "I tried and failed.  I am unable to get my hands on the output of `logInfo msg`, in order to parse it again.  If I had that, then I would\r\n* make sure that it parses with no issues, other than the `sorry`;\r\n* check that the new declaration actually closes the initial goal.\r\n\r\nI have added a couple of examples to the docs-module containing examples that would form good tests, if the above were implemented.\r\n\r\nStill, I think that the tactic already works very well as is and these improvements could come later on.\r\n\r\nAn option would be to add something like `extract_goal [...] pp.all` to specify that you want the full, round-tripping expression.",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5c6Hgz",
+              "createdAt": "2023-08-02T10:50:10Z",
+              "body": "",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "647b359acbc19e940a47971d083d8361751b8a48"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "37d505b3fc0b9893cdc0dea94b2c559e88f874a4"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jEmhj",
+              "createdAt": "2023-08-02T12:48:10Z",
+              "body": "@kmill, CI failed to build the tests, since `#guard_msgs` complained for the `pp.all` output.  Does CI remove `pp`-options and hence the test will check against the non-`pp.all` message?\r\n\r\nI am running CI again to test this, but maybe you already know what the issue it!",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jEqvH",
+              "createdAt": "2023-08-02T12:58:47Z",
+              "body": "I'm not sure this is a CI issue per se, since it could be a difference between Lean in an editor and Lean on the command line. Maybe the options aren't actually guaranteed to be propagated into the pretty printer at line 135? I can take a look later.",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4104eb6c6d69fe3364edd67749ab8d8afcf7b2ce"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jErrP",
+              "createdAt": "2023-08-02T13:01:16Z",
+              "body": "I looked closer at the diff: the current hypothesis is that\r\n* my computer displays `fun`s as `fun ... ↦ ...`,\r\n* CI displays `fun`s as `fun ... => ...`.",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jEuBw",
+              "createdAt": "2023-08-02T13:07:17Z",
+              "body": "Yes, it seems to be this: on my local version, `#guard_msgs` complains that the outputs do not match, because of the `fun` arrow.  On GitHub, though, the PR has passed the tests, so that `#guard_msgs` liked what it received.",
+              "author": {
+                "login": "adomani"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jEwXI",
+              "createdAt": "2023-08-02T13:13:23Z",
+              "body": "Ok, that's a known issue then. Add `set_option pp.unicode.fun true` to the top of the tests file.",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d728ac6b90a15a80a1c75a1a3e03e461031df438"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jF0Zs",
+              "createdAt": "2023-08-02T15:50:39Z",
+              "body": "Thanks!\r\n\r\nbors r+\r\n\r\nIn a followup PR, feel free to add this to `Mathlib.Tactic.Common` so that it's readily available.",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5nnXNuzwAAAAJTcEqb",
+              "createdAt": "2023-08-02T15:50:53Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5nnXNuzwAAAAJTcEtC",
+              "createdAt": "2023-08-02T15:50:54Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5jGD1a",
+              "createdAt": "2023-08-02T16:24:08Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5741039884/job/15560239400)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5741039884/job/15560239985)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5741039884/job/15560240261)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5nnXNuzwAAAAJTdUx-",
+              "createdAt": "2023-08-02T16:24:10Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5nnXNuzwAAAAJTdVIW",
+              "createdAt": "2023-08-02T16:24:18Z"
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5Ny0Nq",
+              "createdAt": "2023-08-02T16:47:55Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5XB816",
+                "title": "[Merged by Bors] - chore: add `extract_goal` to `Tactic.Common`",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/6313"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5ODOB2",
+              "createdAt": "2023-08-21T15:01:57Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5YZbPf",
+                "title": "[Merged by Bors] - fix(Tactic/ExtractGoal): remove mathport's placeholder syntax for `extract_goal`",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/6707"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
