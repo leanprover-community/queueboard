@@ -1,0 +1,1447 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 218,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "acmepjz"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "Main changes:\r\n\r\n- [x] Change the `variableChange` (was `u r s t` everywhere) into a structure `VariableChange`.\r\n- [x] Add `id`, `comp` and `inv` to `VariableChange` and prove that it form a group and acts on the set of elliptic curves to the left.\r\n- [x] Add `baseChange` to `VariableChange`, prove the compatibility of it with base change of elliptic curves.\r\n- [x] Prove that if the ring homomorphism is injective, then `baseChange` of `VariableChange` and elliptic curves are injective (NB: We don't say anything about elliptic curves modulo isomorphism yet!)\r\n- [x] Prove that `baseChange` of `VariableChange` is a group homomorphism\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 1,
+        "closed": true,
+        "closedAt": "2023-08-01T15:41:03Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5haP4I",
+              "body": "Done with `changeCurve`. For `changeRing` I think it's better in another PR?\r\n\r\nPS: I noticed that `changeCurve` and `changePoint` are member functions of `WeierstrassCurve` and `Point`, respectively, unlike my design that they are member functions of `VariableChange`. So technically they can all share the same name `variableChange`.",
+              "createdAt": "2023-07-13T13:42:28Z",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5haaaN",
+              "body": "> Done with `changeCurve`. For `changeRing` I think it's better in another PR?\r\n> \r\n> PS: I noticed that `changeCurve` and `changePoint` are member functions of `WeierstrassCurve` and `Point`, respectively, unlike my design that they are member functions of `VariableChange`. So technically they can all share the same name `variableChange`.\r\n\r\nYeah, that was kinda my original hesitance. I definitely don't want to have it as member functions of something else other than `WeierstrassCurve`, so that we can use dot notation `E.variableChange`, and it sounded weird saying `E.changeCurve` (we're taking a curve and then changing the curve?). You've convinced me with the existing function in Pari/GP, but now that you've mentioned the `Point` version it's gonna be even weirder with `P.changeCurve` (we're taking a point and then changing the curve?), whereas `changeCoordinate` or `variableChange` is understood for both the curve and the point. I leave it up to you to decide whether we want to revert to `variableChange` or leave the changes as it is, but in any case I think renaming `baseChange` can be done in the same PR (and we'll put it in the commit description). Sorry for the trouble!",
+              "createdAt": "2023-07-13T14:08:35Z",
+              "author": {
+                "login": "Multramate"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5hbesR",
+              "body": "> You've convinced me with the existing function in Pari/GP, but now that you've mentioned the `Point` version it's gonna be even weirder with `P.changeCurve` (we're taking a point and then changing the curve?), whereas `changeCoordinate` or `variableChange` is understood for both the curve and the point.\r\n\r\nFor the point it should be `P.changePoint` 😂.\r\n\r\n> Yeah, that was kinda my original hesitance. I definitely don't want to have it as member functions of something else other than `WeierstrassCurve`, so that we can use dot notation `E.variableChange`, and it sounded weird saying `E.changeCurve` (we're taking a curve and then changing the curve?).\r\n\r\nAh, I remembered the design consideration in my previous implementation. It uses `C.changeCurve E` and `C.changePoint P`. Whereas in current mathlib4 version, it uses `E.changeCurve C` and `P.changePoint C` (to be renamed with `variableChange`).\r\n\r\nMy design emphasis the fact that change of variables form a group and acts on the set of elliptic curves to the left. (It also acts on the set of points, but I forgot if it's also acts to the left.) Namely, there is the identity change, the composite of change `C1.composite C2`, etc etc., which satisfies `(C1.composite C2).changeCurve E = C1.changeCurve (C2.changeCurve E)`, etc etc.\r\nI think the advantage is that it allows us to define the automorphism group of an elliptic curve easily.\r\n\r\n* If using my previous implementation, it will introduce significant changes to the current code.\r\n* If keeping current implementation, the notation `E.changeCurve C` and `P.changePoint C` give one the feel that the change of variables acts to the right. I think this is also OK, but I need to figure out necessary changes to my previous codes. Does Lean have the notion of group action to the right? Also what's the usual convention in the literature, does change of variables act to the left or to the right?\r\n\r\nWhat's your opinion?",
+              "createdAt": "2023-07-13T17:01:18Z",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5hb0Wx",
+              "body": "Mathlib certainly has right actions e.g. [rightMul](https://leanprover-community.github.io/mathlib4_docs//Mathlib/Algebra/Group/Defs.html#rightMul) and I don't know what the usual convention in the literature is (my hunch is it's acting on the left). These are good to have in mind, but ultimately we want to establish a sensible and consistent API that's easy to use for other applications, and my opinion is that we should stick to the `WeierstrassCurve` namespace (as the main subject we're dealing with is the Weierstrass curve). For instance, I think it still makes sense to say `E.changeCurve (C1.composite C2)`, and we can still define the automorphism set of `E` as `{C : VariableChange // E.changeCurve C = E}` rather than making it a structure. If the action direction gets confusing we can always clarify with docstrings.",
+              "createdAt": "2023-07-13T18:08:42Z",
+              "author": {
+                "login": "Multramate"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5hcGKi",
+              "body": "OK, let's stick to current design then. I choose to come back to `variableChange` and leave `baseChange` unchanged, since renaming it require too many changes in both of these two files.",
+              "createdAt": "2023-07-13T19:08:02Z",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5hkSAz",
+              "body": "Should I add more properties of `VariableChange` to this PR, e.g. they form a group? Or should I open a new PR later?",
+              "createdAt": "2023-07-15T22:18:48Z",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5hkSX7",
+              "body": "I think doing it here is fine, since the maintainers are currently busy with the port and probably won't look at this just yet.",
+              "createdAt": "2023-07-15T22:29:35Z",
+              "author": {
+                "login": "Multramate"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5ifSpQ",
+              "body": "I think the following are also worth to be added:\r\n\r\n* base change of `VariableChange`\r\n  * if `B` is an `A`-algebra, then `VariableChange A -> VariableChange B` is a group homomorphism, and if `A -> B` is injective, then this is also injective\r\n  * base change of `VariableChange` compatible with base change of elliptic curves\r\n* `Isomorphism E E'` and they form a groupoid (do we actually need such advanced things? Or only `Isomorphism E E` form a group)\r\n  * if `B` is an `A`-algebra, then there is `Isomorphism E E' -> Isomorphism E/B E'/B`, and if `A -> B` is injective, then this is also injective\r\n\r\nThe intention is, in another PR, prove that over a field, `Isomorphism E E'` is finite (by proving a complete classification of `Isomorphism E E` over an algebraic closed field).\r\n\r\nAny comments?",
+              "createdAt": "2023-07-26T19:30:11Z",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5ifzB2",
+              "body": "Yes, I think they're all wonderful! I don't know anything about the groupoid API though, and will be more than happy with just `Isomorphism E E` being a group. The `VariableChange` stuff can be added in this PR probably, while the rest in another PR.",
+              "createdAt": "2023-07-26T21:12:44Z",
+              "author": {
+                "login": "Multramate"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5if6tH",
+              "body": "There is groupoid API `Mathlib.CategoryTheory.Groupoid` but it involves category, which is overkill I think.",
+              "createdAt": "2023-07-26T21:40:13Z",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5ijIsw",
+              "body": "I also added `WeierstrassCurve.baseChange_injective` and `EllipticCurve.baseChange_injective` lemmas. But I think they don't make much sense, because they are blatantly wrong for elliptic curves **up to isomorphism**, e.g. on an algebraic closed field, elliptic curve with same j is isomorphic, while it is not true on a general field.",
+              "createdAt": "2023-07-27T10:52:48Z",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5iwUD9",
+              "body": "> I still don't quite get what you mean by blatantly wrong: if we're working over a general field we can still do base and variable changes. Even though the resulting curve may not be isomorphic to the original curve, wouldn't these still be well-defined?\r\n\r\nAh yes, they are well-defined. I just mean that the lemmas only responsible for `EllipticCurve R -> EllipticCurve A` being injective, but not for `EllipticCurve R / isomorphisms -> EllipticCurve A / isomorphisms`.",
+              "createdAt": "2023-07-29T18:50:16Z",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5i-LQi",
+              "body": "> Can you please add a short description of this PR? Thanks!\r\n\r\nSure, the description is edited.",
+              "createdAt": "2023-08-01T14:40:35Z",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5i-Zu4",
+              "body": "LGTM, thanks!\r\n\r\nbors merge",
+              "createdAt": "2023-08-01T15:12:31Z",
+              "author": {
+                "login": "riccardobrasca"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5i-nSj",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5728610982/job/15523551515)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5728610982/job/15523552155)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5728610982/job/15523552392)",
+              "createdAt": "2023-08-01T15:41:02Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "6ce303df5e066dc1230988bdcd6ba59cd18cbf45",
+                "additions": 35,
+                "deletions": 23,
+                "committedDate": "2023-07-12T22:24:03Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3ca49eb5fcf5d0b2a0d36ebab4fb97b9ec584faa",
+                "additions": 7,
+                "deletions": 3,
+                "committedDate": "2023-07-12T22:47:28Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a0370b3cf5d00528da6016391a058bb93d471e6c",
+                "additions": 8,
+                "deletions": 8,
+                "committedDate": "2023-07-12T23:37:58Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8cf8c7688b8b274625f46cfb86aec2df664a1539",
+                "additions": 59,
+                "deletions": 59,
+                "committedDate": "2023-07-13T13:38:18Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1ed44f7502a495705a2f37e1a3e69cd475fe8ab5",
+                "additions": 59,
+                "deletions": 59,
+                "committedDate": "2023-07-13T19:06:19Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3d202c28f2d8af940faf8476d89b4bd07f3a2a46",
+                "additions": 79,
+                "deletions": 0,
+                "committedDate": "2023-07-17T01:25:29Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "640b6f6d6c5796970aac8d0f47161abf4c75bd30",
+                "additions": 15,
+                "deletions": 38,
+                "committedDate": "2023-07-18T08:58:55Z",
+                "author": {
+                  "name": "Jz Pan",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "693c7eb8283611665972334b633a45cd9936fa23",
+                "additions": 28,
+                "deletions": 18,
+                "committedDate": "2023-07-18T09:11:43Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "101a03f0a86ddc7cf9041b571da9bc35a4967d05",
+                "additions": 4,
+                "deletions": 4,
+                "committedDate": "2023-07-21T12:58:05Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3c368aca664a2267c9aeed5796d26176677cbde0",
+                "additions": 43,
+                "deletions": 0,
+                "committedDate": "2023-07-21T12:58:33Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c4d82e907c96058e575360f1b5697d5fe725eb13",
+                "additions": 5,
+                "deletions": 7,
+                "committedDate": "2023-07-21T22:31:22Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "11f38ae95f875f9dc472928c712d8d7e06594a8f",
+                "additions": 15,
+                "deletions": 0,
+                "committedDate": "2023-07-21T22:56:12Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9330a9eababe70e29656171b671a59b718a3bc3a",
+                "additions": 23459,
+                "deletions": 20729,
+                "committedDate": "2023-07-21T23:03:49Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7caa11eeaa38f1e9698d167f9d15815be3afd074",
+                "additions": 39,
+                "deletions": 2,
+                "committedDate": "2023-07-27T01:19:21Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1e772758385ab1e4e417468762d825f3e5e87631",
+                "additions": 37,
+                "deletions": 0,
+                "committedDate": "2023-07-27T09:56:51Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7354e4bd580b70e09e34b742729f040250b47421",
+                "additions": 5243,
+                "deletions": 3115,
+                "committedDate": "2023-07-27T21:41:01Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "cbc5eb0b101edebf69064da61a15f5450b5e1282",
+                "additions": 15,
+                "deletions": 34,
+                "committedDate": "2023-07-29T18:55:50Z",
+                "author": {
+                  "name": "Jz Pan",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c11cefd97702acd8ed9384dd63819539462e5d23",
+                "additions": 15,
+                "deletions": 34,
+                "committedDate": "2023-07-29T18:58:42Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "277fadd5f42f04f086dc5a4552f393ff5a7efd05",
+                "additions": 6,
+                "deletions": 4,
+                "committedDate": "2023-07-29T19:19:25Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "28a2eb661f1370f3c8f630aa21622d41c5f35287",
+                "additions": 2162,
+                "deletions": 618,
+                "committedDate": "2023-07-29T19:29:22Z",
+                "author": {
+                  "name": "acmepjz",
+                  "email": "acme_pjz@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-07-12T22:32:01Z",
+        "deletions": 23,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib/AlgebraicGeometry/EllipticCurve/Weierstrass.lean",
+              "additions": 218,
+              "deletions": 23
+            }
+          ]
+        },
+        "headRefName": "acmepjz_ec_variable_change_1",
+        "headRefOid": "28a2eb661f1370f3c8f630aa21622d41c5f35287",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5VW6vW",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABViJLNA",
+              "color": "33DBEC",
+              "name": "t-number-theory"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABViJgtQ",
+              "color": "33DBEC",
+              "name": "t-algebraic-geometry"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5clVM2",
+              "body": "Some golfs! I still don't quite get what you mean by blatantly wrong: if we're working over a general field we can still do base and variable changes. Even though the resulting curve may not be isomorphic to the original curve, wouldn't these still be well-defined?",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Multramate"
+              },
+              "submittedAt": "2023-07-29T14:57:05Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5czkoq",
+              "body": "Can you please add a short description of this PR? Thanks!",
+              "state": "COMMENTED",
+              "author": {
+                "login": "riccardobrasca"
+              },
+              "submittedAt": "2023-08-01T13:34:32Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 5841,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": "APPROVED",
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5bCWmK",
+              "body": "Looks good to me",
+              "state": "APPROVED",
+              "author": {
+                "login": "Multramate"
+              },
+              "submittedAt": "2023-07-12T23:00:10Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5bCcfe",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "acmepjz"
+              },
+              "submittedAt": "2023-07-12T23:29:15Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5bCtPd",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Multramate"
+              },
+              "submittedAt": "2023-07-13T01:30:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5bFIg6",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "acmepjz"
+              },
+              "submittedAt": "2023-07-13T09:57:18Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5bF7gi",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Multramate"
+              },
+              "submittedAt": "2023-07-13T12:03:36Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5bbikw",
+              "body": "I've left some comments, mostly stylistic but with some golfs",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Multramate"
+              },
+              "submittedAt": "2023-07-18T02:21:42Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5b3-oj",
+              "body": "",
+              "state": "APPROVED",
+              "author": {
+                "login": "Multramate"
+              },
+              "submittedAt": "2023-07-21T16:34:13Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5b248H",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "acmepjz"
+              },
+              "submittedAt": "2023-07-21T22:57:58Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5clVM2",
+              "body": "Some golfs! I still don't quite get what you mean by blatantly wrong: if we're working over a general field we can still do base and variable changes. Even though the resulting curve may not be isomorphic to the original curve, wouldn't these still be well-defined?",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Multramate"
+              },
+              "submittedAt": "2023-07-29T14:57:05Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5clpTo",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "acmepjz"
+              },
+              "submittedAt": "2023-07-29T18:51:50Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5clrBT",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "acmepjz"
+              },
+              "submittedAt": "2023-07-29T19:23:05Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5czkoq",
+              "body": "Can you please add a short description of this PR? Thanks!",
+              "state": "COMMENTED",
+              "author": {
+                "login": "riccardobrasca"
+              },
+              "submittedAt": "2023-08-01T13:34:32Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LNYwA",
+                    "body": "\"change of variable*s*\"? I've been using the plural form everywhere below. I'm also unsure if we should call it `VariableChange` since it might be confused with `variableChange`, but I don't have a better name either.",
+                    "createdAt": "2023-07-12T22:57:19Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LNc5-",
+                    "body": "Yes, it's called change of variable**s** in Silverman's book. I think the function to change the curve could be called `changeCurve` (at least in my previous attempt). Waiting for other opinions...",
+                    "createdAt": "2023-07-12T23:29:15Z",
+                    "author": {
+                      "login": "acmepjz"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LNrTq",
+                    "body": "What about `changeCoordinate`? I'm trying to compare it with `baseChange` (which should probably be called `changeBase` if we decide to rename everything), where it's clear what we're changing (whereas `changeCurve` doesn't say exactly what). SageMath uses `change_ring`/`base_extend` and `change_weierstrass_model` (too long) while Magma uses `ChangeRing`/`BaseExtend`/`BaseChange` and no corresponding variable change function.",
+                    "createdAt": "2023-07-13T01:30:21Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LPY2F",
+                    "body": "My proposal `changeCurve` is in fact coming from the names of corresponding functions in Pari/GP: `ellchangecurve()`, `ellchangepoint()` and `ellchangepointinv()`.\r\n```\r\nellchangecurve(E,v):\r\n\r\n   Changes  the data for the elliptic curve E by changing the coordinates using\r\nthe vector v = [u,r,s,t],  i.e. if x' and y' are the new coordinates,  then x =\r\nu^2x'+r, y = u^3y'+su^2x'+t.   E must be an ell structure as output by ellinit.\r\nThe  special case v = 1 is also used instead of [1,0,0,0] to denote the trivial\r\ncoordinate change.\r\n\r\nellchangepoint(x,v):\r\n\r\n   Changes  the coordinates of the point or vector of points x using the vector\r\nv = [u,r,s,t], i.e. if x' and y' are the new coordinates, then x = u^2x'+r, y =\r\nu^3y'+su^2x'+t (see also ellchangecurve).\r\n\r\n   ? E0 = ellinit([1,1]); P0 = [0,1]; v = [1,2,3,4];\r\n   ? E = ellchangecurve(E0, v);\r\n   ? P = ellchangepoint(P0,v)\r\n   %3 = [-2, 3]\r\n   ? ellisoncurve(E, P)\r\n   %4 = 1\r\n   ? ellchangepointinv(P,v)\r\n   %5 = [0, 1]\r\n```\r\nBTW, I think `changeRing` is better than `changeBase` (which sounds too weird), while I think `baseChange` is the best, since it is a standard word in mathematics.",
+                    "createdAt": "2023-07-13T09:57:17Z",
+                    "author": {
+                      "login": "acmepjz"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LP55z",
+                    "body": "I see - let's do `changeCurve` and `changeRing` then",
+                    "createdAt": "2023-07-13T12:03:36Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LNYzT",
+                    "body": "\"change of variable*s*\" plural form",
+                    "createdAt": "2023-07-12T22:57:44Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LNZEc",
+                    "body": "My convention is to have as many terms as possible in the same line, so e.g. `- (C.t + C.r * C.s) * W.a₁` (and maybe even `+ 3 * C.r ^ 2`) should be in the same line, and then line break afterwards",
+                    "createdAt": "2023-07-12T22:59:45Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Ldr5f",
+                    "body": "I think you can remove `section` since you already enclosed everything with `namespace`, and now that you've done this you can also do `variable (C C' C'' : VariableChange R)` to avoid writing them below.",
+                    "createdAt": "2023-07-18T01:28:56Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LdsCd",
+                    "body": "These should be unnecessary - `R` already exists and is implicit.",
+                    "createdAt": "2023-07-18T01:30:20Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LdtYN",
+                    "body": "What about calling them `id` and `comp` (`inv` is perfectly fine)? I get that they are matrices but personally e.g. `VariableChange.id` sounds nicer than `VariableChange.one` - up to you on this one.",
+                    "createdAt": "2023-07-18T01:36:21Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Ldt2w",
+                    "body": "If you decide to call it `id` and `comp`, then this doesn't need the `_root_`'s:\r\n```suggestion\r\nlemma id_comp (C : VariableChange R) : comp id C = C := by\r\n  simp only [comp, id, zero_add, zero_mul, mul_zero, one_mul]\r\n```",
+                    "createdAt": "2023-07-18T01:41:15Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LduFg",
+                    "body": "Same here\r\n```suggestion\r\nlemma comp_id (C : VariableChange R) : comp C id = C := by\r\n  simp only [comp, id, add_zero, mul_zero, one_mul, mul_one, one_pow, Units.val_one]\r\n```",
+                    "createdAt": "2023-07-18T01:43:27Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LduWn",
+                    "body": "I forgot that these need to have docstrings too now - you add them just like how I did for the `a\\_i`'s. Based on the porting conventions I'd also recommend putting a line break between `(u : Rˣ)` and `(r s t : R)`.",
+                    "createdAt": "2023-07-18T01:45:59Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Ldycr",
+                    "body": "Golf with `linear_combination` and `Units.inv_mul`:\r\n```suggestion\r\nlemma comp_left_inv (C : VariableChange R) : comp (inv C) C = id := by\r\n  rw [comp, id, inv]\r\n  ext\r\n  · exact C.u.inv_mul\r\n  · linear_combination (norm := (simp only; ring1)) -C.r * pow_mul_pow_eq_one 2 C.u.inv_mul\r\n  · linear_combination (norm := (simp only; ring1)) -C.s * C.u.inv_mul\r\n  · linear_combination (norm := (simp only; ring1))\r\n      (C.r * C.s - C.t) * pow_mul_pow_eq_one 3 C.u.inv_mul\r\n        + -C.r * C.s * pow_mul_pow_eq_one 2 C.u.inv_mul\r\n```\r\nYou can change back to `one` and `mul` if you prefer.",
+                    "createdAt": "2023-07-18T02:13:20Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Ldy_a",
+                    "body": "Golf with `<;>`:\r\n```suggestion\r\nlemma comp_assoc (C C' C'' : VariableChange R) : comp (comp C C') C'' = comp C (comp C' C'') := by\r\n  ext <;> simp only [comp, Units.val_mul] <;> ring1\r\n```\r\nYou can change back to `one` and `mul` if you prefer.",
+                    "createdAt": "2023-07-18T02:18:39Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LdzGr",
+                    "body": "I guess `⟨1, 0, 0, 0⟩` is probably fine since they're so short?",
+                    "createdAt": "2023-07-18T02:19:26Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LdzOu",
+                    "body": "You want docstrings on `def`s. They're not checked in the CI linter currently for the porting but you can check them locally with `#lint`, and I think they'll add this back eventually.",
+                    "createdAt": "2023-07-18T02:20:15Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LvJdV",
+                    "body": "I really want the parameter order of the `variableChange` to be `C W` instead of `W C`. This change should not affect the `W.variableChange C` notation, but makes `instMulActionVariableChange` easier to define.",
+                    "createdAt": "2023-07-21T13:00:51Z",
+                    "author": {
+                      "login": "acmepjz"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Lv0TU",
+                    "body": "What's the point of this? I don't think this is necessary if you just wanted to put `W` on the right.",
+                    "createdAt": "2023-07-21T15:43:45Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LwZ7e",
+                    "body": "Otherwise in `instance instMulActionVariableChange : MulAction (VariableChange R) (WeierstrassCurve R)` I need to write `smul := fun C W => variableChange W C` and then `one_smul := variableChange_id` refuses to work ☹",
+                    "createdAt": "2023-07-21T18:43:51Z",
+                    "author": {
+                      "login": "acmepjz"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LxDHT",
+                    "body": "> I need to write `smul := fun C W => variableChange W C` and then `one_smul := variableChange_id` refuses to work\r\n\r\nOops, it works. Nevermind.",
+                    "createdAt": "2023-07-21T22:29:35Z",
+                    "author": {
+                      "login": "acmepjz"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Lv0p6",
+                    "body": "`W.variableChange VariableChange.id = W` is probably fine, and you shouldn't need to add `W : WeierstrassCurve R` since it should already be visible in this namespace?",
+                    "createdAt": "2023-07-21T15:45:16Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5LwaL7",
+                    "body": "> `W.variableChange VariableChange.id = W` is probably fine\r\n\r\nNo, this breaks `one_smul := variableChange_id`\r\n\r\n> and you shouldn't need to add `W : WeierstrassCurve R` since it should already be visible in this namespace?\r\n\r\nOops you're right. I'll check later",
+                    "createdAt": "2023-07-21T18:45:19Z",
+                    "author": {
+                      "login": "acmepjz"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MMWcW",
+                    "body": "Surely this is OK:\r\n```suggestion\r\ndef baseChange : VariableChange A :=\r\n  ⟨Units.map (algebraMap R A) C.u, algebraMap R A C.r, algebraMap R A C.s, algebraMap R A C.t⟩\r\n```",
+                    "createdAt": "2023-07-29T14:23:12Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MMWg3",
+                    "body": "If you added a bunch of lemmas to `map_simp` for `comp`, you might as well do the same for `id`. On the other hand I personally wouldn't add those lemmas to `map_simp` though, since they're only specific to `Units` or `MonoidHom`.",
+                    "createdAt": "2023-07-29T14:26:01Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MMlSJ",
+                    "body": "Oh OK. Let me revert it to the previous state.",
+                    "createdAt": "2023-07-29T18:51:50Z",
+                    "author": {
+                      "login": "acmepjz"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MMWiP",
+                    "body": "```suggestion\r\nlemma baseChange_self : C.baseChange R = C :=\r\n  rfl\r\n```",
+                    "createdAt": "2023-07-29T14:26:56Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MMWzT",
+                    "body": "```suggestion\r\nlemma baseChange_injective (h : Function.Injective <| algebraMap R A) :\r\n    Function.Injective <| baseChange (R := R) (A := A) := fun W W' h1 => by\r\n  rcases mk.inj h1 with ⟨_, _, _, _, _⟩\r\n  ext <;> apply_fun _ using h <;> assumption\r\n```",
+                    "createdAt": "2023-07-29T14:40:47Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MMW4I",
+                    "body": "```suggestion\r\nlemma baseChange_injective (h : Function.Injective <| algebraMap R A) :\r\n    Function.Injective <| baseChange (R := R) A := fun C C' h1 => by\r\n  rcases mk.inj h1 with ⟨h1, _, _, _⟩\r\n  replace h1 := (Units.mk.inj h1).left\r\n  ext <;> apply_fun _ using h <;> assumption\r\n```",
+                    "createdAt": "2023-07-29T14:45:53Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MMW_3",
+                    "body": "```suggestion\r\nlemma baseChange_injective (h : Function.Injective <| algebraMap R A) :\r\n    Function.Injective <| baseChange (R := R) (A := A) := fun E E' h1 => by\r\n  rcases mk.inj h1 with ⟨h1, h2⟩\r\n  replace h2 := (Units.mk.inj h2).left\r\n  rcases WeierstrassCurve.mk.inj h1 with ⟨_, _, _, _, _⟩\r\n  ext <;> apply_fun _ using h <;> assumption\r\n```",
+                    "createdAt": "2023-07-29T14:51:49Z",
+                    "author": {
+                      "login": "Multramate"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5MMmQa",
+                    "body": "Here I'd like to call `WeierstrassCurve.baseChange_injective` but I can't figure out how to tell `ext` don't expand everything.",
+                    "createdAt": "2023-07-29T19:23:05Z",
+                    "author": {
+                      "login": "acmepjz"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjMzOTc3Nzk=",
+              "login": "acmepjz"
+            },
+            {
+              "id": "MDQ6VXNlcjI1MTEyNjQx",
+              "login": "Multramate"
+            },
+            {
+              "id": "MDQ6VXNlcjMyNDkwNTMy",
+              "login": "riccardobrasca"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - refactor(AlgebraicGeometry/EllipticCurve/Weierstrass): change the variableChange into a structure",
+        "updatedAt": "2023-08-01T15:41:07Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/5841",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "6ce303df5e066dc1230988bdcd6ba59cd18cbf45"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3ca49eb5fcf5d0b2a0d36ebab4fb97b9ec584faa"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5bCWmK",
+              "createdAt": "2023-07-12T22:57:19Z",
+              "body": "Looks good to me",
+              "author": {
+                "login": "Multramate"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a0370b3cf5d00528da6016391a058bb93d471e6c"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5rZhK3zwAAAAJIcaqa",
+              "createdAt": "2023-07-13T01:42:35Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8cf8c7688b8b274625f46cfb86aec2df664a1539"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5haP4I",
+              "createdAt": "2023-07-13T13:42:28Z",
+              "body": "Done with `changeCurve`. For `changeRing` I think it's better in another PR?\r\n\r\nPS: I noticed that `changeCurve` and `changePoint` are member functions of `WeierstrassCurve` and `Point`, respectively, unlike my design that they are member functions of `VariableChange`. So technically they can all share the same name `variableChange`.",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5haaaN",
+              "createdAt": "2023-07-13T14:08:35Z",
+              "body": "> Done with `changeCurve`. For `changeRing` I think it's better in another PR?\r\n> \r\n> PS: I noticed that `changeCurve` and `changePoint` are member functions of `WeierstrassCurve` and `Point`, respectively, unlike my design that they are member functions of `VariableChange`. So technically they can all share the same name `variableChange`.\r\n\r\nYeah, that was kinda my original hesitance. I definitely don't want to have it as member functions of something else other than `WeierstrassCurve`, so that we can use dot notation `E.variableChange`, and it sounded weird saying `E.changeCurve` (we're taking a curve and then changing the curve?). You've convinced me with the existing function in Pari/GP, but now that you've mentioned the `Point` version it's gonna be even weirder with `P.changeCurve` (we're taking a point and then changing the curve?), whereas `changeCoordinate` or `variableChange` is understood for both the curve and the point. I leave it up to you to decide whether we want to revert to `variableChange` or leave the changes as it is, but in any case I think renaming `baseChange` can be done in the same PR (and we'll put it in the commit description). Sorry for the trouble!",
+              "author": {
+                "login": "Multramate"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5hbesR",
+              "createdAt": "2023-07-13T17:01:18Z",
+              "body": "> You've convinced me with the existing function in Pari/GP, but now that you've mentioned the `Point` version it's gonna be even weirder with `P.changeCurve` (we're taking a point and then changing the curve?), whereas `changeCoordinate` or `variableChange` is understood for both the curve and the point.\r\n\r\nFor the point it should be `P.changePoint` 😂.\r\n\r\n> Yeah, that was kinda my original hesitance. I definitely don't want to have it as member functions of something else other than `WeierstrassCurve`, so that we can use dot notation `E.variableChange`, and it sounded weird saying `E.changeCurve` (we're taking a curve and then changing the curve?).\r\n\r\nAh, I remembered the design consideration in my previous implementation. It uses `C.changeCurve E` and `C.changePoint P`. Whereas in current mathlib4 version, it uses `E.changeCurve C` and `P.changePoint C` (to be renamed with `variableChange`).\r\n\r\nMy design emphasis the fact that change of variables form a group and acts on the set of elliptic curves to the left. (It also acts on the set of points, but I forgot if it's also acts to the left.) Namely, there is the identity change, the composite of change `C1.composite C2`, etc etc., which satisfies `(C1.composite C2).changeCurve E = C1.changeCurve (C2.changeCurve E)`, etc etc.\r\nI think the advantage is that it allows us to define the automorphism group of an elliptic curve easily.\r\n\r\n* If using my previous implementation, it will introduce significant changes to the current code.\r\n* If keeping current implementation, the notation `E.changeCurve C` and `P.changePoint C` give one the feel that the change of variables acts to the right. I think this is also OK, but I need to figure out necessary changes to my previous codes. Does Lean have the notion of group action to the right? Also what's the usual convention in the literature, does change of variables act to the left or to the right?\r\n\r\nWhat's your opinion?",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5hb0Wx",
+              "createdAt": "2023-07-13T18:08:42Z",
+              "body": "Mathlib certainly has right actions e.g. [rightMul](https://leanprover-community.github.io/mathlib4_docs//Mathlib/Algebra/Group/Defs.html#rightMul) and I don't know what the usual convention in the literature is (my hunch is it's acting on the left). These are good to have in mind, but ultimately we want to establish a sensible and consistent API that's easy to use for other applications, and my opinion is that we should stick to the `WeierstrassCurve` namespace (as the main subject we're dealing with is the Weierstrass curve). For instance, I think it still makes sense to say `E.changeCurve (C1.composite C2)`, and we can still define the automorphism set of `E` as `{C : VariableChange // E.changeCurve C = E}` rather than making it a structure. If the action direction gets confusing we can always clarify with docstrings.",
+              "author": {
+                "login": "Multramate"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1ed44f7502a495705a2f37e1a3e69cd475fe8ab5"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5hcGKi",
+              "createdAt": "2023-07-13T19:08:02Z",
+              "body": "OK, let's stick to current design then. I choose to come back to `variableChange` and leave `baseChange` unchanged, since renaming it require too many changes in both of these two files.",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5hkSAz",
+              "createdAt": "2023-07-15T22:18:48Z",
+              "body": "Should I add more properties of `VariableChange` to this PR, e.g. they form a group? Or should I open a new PR later?",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5hkSX7",
+              "createdAt": "2023-07-15T22:29:35Z",
+              "body": "I think doing it here is fine, since the maintainers are currently busy with the port and probably won't look at this just yet.",
+              "author": {
+                "login": "Multramate"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3d202c28f2d8af940faf8476d89b4bd07f3a2a46"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5bbikw",
+              "createdAt": "2023-07-18T01:27:34Z",
+              "body": "I've left some comments, mostly stylistic but with some golfs",
+              "author": {
+                "login": "Multramate"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "640b6f6d6c5796970aac8d0f47161abf4c75bd30"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "693c7eb8283611665972334b633a45cd9936fa23"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "101a03f0a86ddc7cf9041b571da9bc35a4967d05"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3c368aca664a2267c9aeed5796d26176677cbde0"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5b3-oj",
+              "createdAt": "2023-07-21T15:43:45Z",
+              "body": "",
+              "author": {
+                "login": "Multramate"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c4d82e907c96058e575360f1b5697d5fe725eb13"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "11f38ae95f875f9dc472928c712d8d7e06594a8f"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5b248H",
+              "createdAt": "2023-07-21T13:00:51Z",
+              "body": "",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9330a9eababe70e29656171b671a59b718a3bc3a"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5ifSpQ",
+              "createdAt": "2023-07-26T19:30:11Z",
+              "body": "I think the following are also worth to be added:\r\n\r\n* base change of `VariableChange`\r\n  * if `B` is an `A`-algebra, then `VariableChange A -> VariableChange B` is a group homomorphism, and if `A -> B` is injective, then this is also injective\r\n  * base change of `VariableChange` compatible with base change of elliptic curves\r\n* `Isomorphism E E'` and they form a groupoid (do we actually need such advanced things? Or only `Isomorphism E E` form a group)\r\n  * if `B` is an `A`-algebra, then there is `Isomorphism E E' -> Isomorphism E/B E'/B`, and if `A -> B` is injective, then this is also injective\r\n\r\nThe intention is, in another PR, prove that over a field, `Isomorphism E E'` is finite (by proving a complete classification of `Isomorphism E E` over an algebraic closed field).\r\n\r\nAny comments?",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5ifzB2",
+              "createdAt": "2023-07-26T21:12:44Z",
+              "body": "Yes, I think they're all wonderful! I don't know anything about the groupoid API though, and will be more than happy with just `Isomorphism E E` being a group. The `VariableChange` stuff can be added in this PR probably, while the rest in another PR.",
+              "author": {
+                "login": "Multramate"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5rZhK3zwAAAAJPzMM2",
+              "createdAt": "2023-07-26T21:12:54Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABViJLNA",
+                "name": "t-number-theory"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5rZhK3zwAAAAJPzMM7",
+              "createdAt": "2023-07-26T21:12:54Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABViJgtQ",
+                "name": "t-algebraic-geometry"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5if6tH",
+              "createdAt": "2023-07-26T21:40:13Z",
+              "body": "There is groupoid API `Mathlib.CategoryTheory.Groupoid` but it involves category, which is overkill I think.",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7caa11eeaa38f1e9698d167f9d15815be3afd074"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1e772758385ab1e4e417468762d825f3e5e87631"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5ijIsw",
+              "createdAt": "2023-07-27T10:52:48Z",
+              "body": "I also added `WeierstrassCurve.baseChange_injective` and `EllipticCurve.baseChange_injective` lemmas. But I think they don't make much sense, because they are blatantly wrong for elliptic curves **up to isomorphism**, e.g. on an algebraic closed field, elliptic curve with same j is isomorphic, while it is not true on a general field.",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7354e4bd580b70e09e34b742729f040250b47421"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5clVM2",
+              "createdAt": "2023-07-29T14:23:12Z",
+              "body": "Some golfs! I still don't quite get what you mean by blatantly wrong: if we're working over a general field we can still do base and variable changes. Even though the resulting curve may not be isomorphic to the original curve, wouldn't these still be well-defined?",
+              "author": {
+                "login": "Multramate"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5iwUD9",
+              "createdAt": "2023-07-29T18:50:16Z",
+              "body": "> I still don't quite get what you mean by blatantly wrong: if we're working over a general field we can still do base and variable changes. Even though the resulting curve may not be isomorphic to the original curve, wouldn't these still be well-defined?\r\n\r\nAh yes, they are well-defined. I just mean that the lemmas only responsible for `EllipticCurve R -> EllipticCurve A` being injective, but not for `EllipticCurve R / isomorphisms -> EllipticCurve A / isomorphisms`.",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "cbc5eb0b101edebf69064da61a15f5450b5e1282"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c11cefd97702acd8ed9384dd63819539462e5d23"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "277fadd5f42f04f086dc5a4552f393ff5a7efd05"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "28a2eb661f1370f3c8f630aa21622d41c5f35287"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5czkoq",
+              "createdAt": "2023-08-01T13:34:32Z",
+              "body": "Can you please add a short description of this PR? Thanks!",
+              "author": {
+                "login": "riccardobrasca"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5i-LQi",
+              "createdAt": "2023-08-01T14:40:35Z",
+              "body": "> Can you please add a short description of this PR? Thanks!\r\n\r\nSure, the description is edited.",
+              "author": {
+                "login": "acmepjz"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5i-Zu4",
+              "createdAt": "2023-08-01T15:12:31Z",
+              "body": "LGTM, thanks!\r\n\r\nbors merge",
+              "author": {
+                "login": "riccardobrasca"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5rZhK3zwAAAAJSvDl8",
+              "createdAt": "2023-08-01T15:12:43Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5rZhK3zwAAAAJSvDo6",
+              "createdAt": "2023-08-01T15:12:44Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5i-nSj",
+              "createdAt": "2023-08-01T15:41:02Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5728610982/job/15523551515)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5728610982/job/15523552155)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5728610982/job/15523552392)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5rZhK3zwAAAAJSwTRq",
+              "createdAt": "2023-08-01T15:41:03Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5rZhK3zwAAAAJSwTa3",
+              "createdAt": "2023-08-01T15:41:07Z"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
