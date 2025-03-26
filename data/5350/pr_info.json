@@ -1,0 +1,876 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 366,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "kmill"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "Changes:\r\n* `use` now by default discharges with `try with_reducible use_discharger` with a custom discharger tactic rather than `try with_reducible rfl`, which makes it be closer to `exists` and the `use` in mathlib3. It doesn't go so far as to do `try with_reducible trivial` since that involves the `contradiction` tactic.\r\n* this discharger is configurable with `use (discharger := tacticSeq...)`\r\n* the `use` evaluation loop will try refining after constructor failure, so it can be used to fill in all arguments rather than all but the last, like in mathlib3 (closes #5072) but with the caveat that it only works so long as the last argument is not an inductive type (like `Eq`).\r\n* adds `use!`, which is nearly the same as the mathlib3 `use` and fills in constructor arguments along the nodes *and* leaves of the nested constructor expressions. This version tries refining before applying constructors, so it can be used like `exact` for the last argument.\r\n\r\nThe difference between mathlib3 `use` and this `use!` is that (1) `use!` uses a different tactic to discharge goals (mathlib3 used `trivial'`, which did reducible refl, but also `contradiction`, which we don't emulate) (2) it does not rewrite using `exists_prop`. Regarding 2, this feature seems to be less useful now that bounded existentials encode the bound using a conjunction rather than with nested existentials. We do have `exists_prop` as part of `use_discharger` however.\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 19,
+        "closed": true,
+        "closedAt": "2023-07-28T07:34:46Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5ilLmz",
+              "body": "bors d+",
+              "createdAt": "2023-07-27T16:03:26Z",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5ilLno",
+              "body": ":v: kmill can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "createdAt": "2023-07-27T16:03:28Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5in3rI",
+              "body": "bors r+",
+              "createdAt": "2023-07-27T21:37:15Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5in4s0",
+              "body": "Build failed:\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5685700492/job/15411118596)",
+              "createdAt": "2023-07-27T21:41:33Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5ippvT",
+              "body": "bors r+",
+              "createdAt": "2023-07-28T06:10:33Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5iqEck",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5688823138/job/15419301953)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5688823138/job/15419301492)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5688823138/job/15419301658)",
+              "createdAt": "2023-07-28T07:34:45Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "60593c2690be635aa9dacd200b8b6a2ec6234984",
+                "additions": 274,
+                "deletions": 24,
+                "committedDate": "2023-06-21T17:47:43Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3074df1021a818ee43603c2b57cb1201f6742a39",
+                "additions": 3,
+                "deletions": 0,
+                "committedDate": "2023-06-21T17:56:29Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4f9fbea092428b88f8e385a41b225f53f31b0a9b",
+                "additions": 19,
+                "deletions": 5,
+                "committedDate": "2023-06-21T19:07:56Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "cd53953e3c5a329be446cebe8860fac005ae4ad9",
+                "additions": 11,
+                "deletions": 8,
+                "committedDate": "2023-06-21T20:21:46Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "cfbe24ffed310a8708862795745c45504e71b04a",
+                "additions": 2,
+                "deletions": 4,
+                "committedDate": "2023-06-21T21:32:41Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c98d728a33b6a33f0bc70cf34277d3e39621c326",
+                "additions": 46,
+                "deletions": 15,
+                "committedDate": "2023-06-22T00:35:11Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "559aa6e4085039ca66e5f07a56c3a5d78b87c0ed",
+                "additions": 5,
+                "deletions": 9,
+                "committedDate": "2023-06-22T00:43:40Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "31633f18150fcd04372ae68cd40cf1de74cb8cec",
+                "additions": 25,
+                "deletions": 7,
+                "committedDate": "2023-06-22T01:21:03Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "92f97a23e98338e08e776c99caed607320374dc0",
+                "additions": 0,
+                "deletions": 4,
+                "committedDate": "2023-06-22T02:35:40Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "887d92f13add1a19c600cc32cbf7999f3931ff05",
+                "additions": 0,
+                "deletions": 1,
+                "committedDate": "2023-06-22T03:06:09Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "466e9d05a3c79e31439150da92b84a99896ed3f6",
+                "additions": 2,
+                "deletions": 4,
+                "committedDate": "2023-06-22T03:21:49Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "254143b95752d4f61054918b2f196d85ca51ecee",
+                "additions": 6,
+                "deletions": 5,
+                "committedDate": "2023-06-22T03:22:01Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0813c44e0742e03f54bf074cbcfc863d39f45e1a",
+                "additions": 4,
+                "deletions": 6,
+                "committedDate": "2023-06-22T05:30:52Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f5de7c57e6343de31fb0e6ccadf45302177c6490",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-06-22T06:08:19Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8fdd3104d1f5d68ede6b5f3293b049c497b3e15d",
+                "additions": 72380,
+                "deletions": 4194,
+                "committedDate": "2023-06-29T15:36:56Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6bf750cc862aa637d1b4e860610b1152a992f399",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-06-29T18:24:37Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c8754b292ed888d0b6a3c79353f21fdc88ed29f0",
+                "additions": 67785,
+                "deletions": 31390,
+                "committedDate": "2023-07-27T15:58:42Z",
+                "author": {
+                  "name": "Floris van Doorn",
+                  "email": "fpvdoorn@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4bd3fc9deeaff85746107503e78a3a4ec7b3b2b0",
+                "additions": 4,
+                "deletions": 7,
+                "committedDate": "2023-07-27T18:48:02Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2d93b99d4ff75f64cecb3350c75aafcbb91ad750",
+                "additions": 11,
+                "deletions": 11,
+                "committedDate": "2023-07-27T19:11:41Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "aa8e52194abd7b3e447562e9a1dc6b00059dff8e",
+                "additions": 0,
+                "deletions": 1,
+                "committedDate": "2023-07-27T19:13:13Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5bc9354d90f19123bd665cde80a2ef45a37f7f71",
+                "additions": 705,
+                "deletions": 99,
+                "committedDate": "2023-07-27T21:54:52Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-06-21T17:53:26Z",
+        "deletions": 65,
+        "files": {
+          "nodes": [
+            {
+              "path": "Archive/MiuLanguage/DecisionSuf.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Archive/Wiedijk100Theorems/SumOfPrimeReciprocalsDiverges.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Algebra/ContinuedFractions/Computation/TerminatesIffRat.lean",
+              "additions": 2,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/AlgebraicGeometry/Morphisms/RingHomProperties.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/CategoryTheory/Functor/Flat.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/CategoryTheory/Sites/Coherent.lean",
+              "additions": 0,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Combinatorics/Composition.lean",
+              "additions": 1,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Combinatorics/Hall/Finite.lean",
+              "additions": 1,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/Data/Vector/MapLemmas.lean",
+              "additions": 4,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/LinearAlgebra/FiniteDimensional.lean",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/LinearAlgebra/LinearPMap.lean",
+              "additions": 2,
+              "deletions": 4
+            },
+            {
+              "path": "Mathlib/NumberTheory/Fermat4.lean",
+              "additions": 0,
+              "deletions": 3
+            },
+            {
+              "path": "Mathlib/RingTheory/FiniteType.lean",
+              "additions": 0,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/RingTheory/Polynomial/Content.lean",
+              "additions": 0,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/RingTheory/Polynomial/GaussLemma.lean",
+              "additions": 1,
+              "deletions": 2
+            },
+            {
+              "path": "Mathlib/RingTheory/UniqueFactorizationDomain.lean",
+              "additions": 5,
+              "deletions": 9
+            },
+            {
+              "path": "Mathlib/Tactic/Use.lean",
+              "additions": 178,
+              "deletions": 13
+            },
+            {
+              "path": "Mathlib/Topology/Homotopy/HSpaces.lean",
+              "additions": 2,
+              "deletions": 4
+            },
+            {
+              "path": "test/Use.lean",
+              "additions": 167,
+              "deletions": 8
+            }
+          ]
+        },
+        "headRefName": "kmill_use_tactic",
+        "headRefOid": "5bc9354d90f19123bd665cde80a2ef45a37f7f71",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5Tkz5t",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+              "color": "bfd4f2",
+              "name": "delegated"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+              "color": "33DBEC",
+              "name": "t-meta"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": []
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 5350,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": []
+        },
+        "reviewThreads": {
+          "nodes": []
+        },
+        "closingIssuesReferences": {
+          "nodes": [
+            {
+              "id": "I_kwDOFcwZ1c5ozhXX",
+              "title": "`use` does not work with the goal type",
+              "url": "https://github.com/leanprover-community/mathlib4/issues/5072"
+            }
+          ]
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjIzNTMwNw==",
+              "login": "kmill"
+            },
+            {
+              "id": "MDQ6VXNlcjczNzYwMTI=",
+              "login": "fpvandoorn"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - fix: let `use` provide last constructor argument, introduce mathlib3-like flattening `use!`",
+        "updatedAt": "2023-07-28T07:34:49Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/5350",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "60593c2690be635aa9dacd200b8b6a2ec6234984"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5pY2O8zwAAAAI8BmCO",
+              "createdAt": "2023-06-21T17:53:51Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5pY2O8zwAAAAI8BmCZ",
+              "createdAt": "2023-06-21T17:53:51Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+                "name": "t-meta"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5pY2O8zwAAAAI8BmCh",
+              "createdAt": "2023-06-21T17:53:51Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5NL6RH",
+              "createdAt": "2023-06-21T17:55:08Z",
+              "source": {
+                "id": "I_kwDOFcwZ1c5ozhXX",
+                "title": "`use` does not work with the goal type",
+                "url": "https://github.com/leanprover-community/mathlib4/issues/5072"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3074df1021a818ee43603c2b57cb1201f6742a39"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4f9fbea092428b88f8e385a41b225f53f31b0a9b"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "cd53953e3c5a329be446cebe8860fac005ae4ad9"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "cfbe24ffed310a8708862795745c45504e71b04a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c98d728a33b6a33f0bc70cf34277d3e39621c326"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "559aa6e4085039ca66e5f07a56c3a5d78b87c0ed"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "31633f18150fcd04372ae68cd40cf1de74cb8cec"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "92f97a23e98338e08e776c99caed607320374dc0"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "887d92f13add1a19c600cc32cbf7999f3931ff05"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "466e9d05a3c79e31439150da92b84a99896ed3f6"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "254143b95752d4f61054918b2f196d85ca51ecee"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0813c44e0742e03f54bf074cbcfc863d39f45e1a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f5de7c57e6343de31fb0e6ccadf45302177c6490"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5pY2O8zwAAAAI8Wipb",
+              "createdAt": "2023-06-22T06:17:11Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8fdd3104d1f5d68ede6b5f3293b049c497b3e15d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "6bf750cc862aa637d1b4e860610b1152a992f399"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c8754b292ed888d0b6a3c79353f21fdc88ed29f0"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5ilLmz",
+              "createdAt": "2023-07-27T16:03:26Z",
+              "body": "bors d+",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5ilLno",
+              "createdAt": "2023-07-27T16:03:28Z",
+              "body": ":v: kmill can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5pY2O8zwAAAAJQVcP1",
+              "createdAt": "2023-07-27T16:03:38Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+                "name": "delegated"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5pY2O8zwAAAAJQVcTD",
+              "createdAt": "2023-07-27T16:03:39Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4bd3fc9deeaff85746107503e78a3a4ec7b3b2b0"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2d93b99d4ff75f64cecb3350c75aafcbb91ad750"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "aa8e52194abd7b3e447562e9a1dc6b00059dff8e"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5in3rI",
+              "createdAt": "2023-07-27T21:37:15Z",
+              "body": "bors r+",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5pY2O8zwAAAAJQhuUR",
+              "createdAt": "2023-07-27T21:37:27Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5in4s0",
+              "createdAt": "2023-07-27T21:41:33Z",
+              "body": "Build failed:\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5685700492/job/15411118596)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5bc9354d90f19123bd665cde80a2ef45a37f7f71"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5ippvT",
+              "createdAt": "2023-07-28T06:10:33Z",
+              "body": "bors r+",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5iqEck",
+              "createdAt": "2023-07-28T07:34:45Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5688823138/job/15419301953)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5688823138/job/15419301492)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5688823138/job/15419301658)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5pY2O8zwAAAAJQw7lK",
+              "createdAt": "2023-07-28T07:34:46Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5pY2O8zwAAAAJQw7sW",
+              "createdAt": "2023-07-28T07:34:49Z"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
