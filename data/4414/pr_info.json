@@ -1,0 +1,566 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 258,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "int-y1"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "---\r\n\r\ntodo:\r\n\r\n* [x] `constructLeftAdjoint` error\r\n  the error likely involves `constructLeftAdjointEquiv_apply` and `@[simps (config := { rhsMd := semireducible })]`\r\n\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 2,
+        "closed": true,
+        "closedAt": "2023-07-07T04:28:44Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5ezto0",
+              "body": "Oh dear! It's an inscrutable block of rewrites that goes bad part way through.\r\n\r\n@b-mehta, any chance you'd be able to look at this?",
+              "createdAt": "2023-06-14T07:17:05Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5gtS55",
+              "body": "As `int-y1` suggests, I think the problem is that the type of `constructLeftAdjointEquiv_apply` is completely different in Lean 3 than in Lean 4. I don't know what `@[simps (config := { rhsMd := semireducible })]` did in Lean 3 but I can see that the type of the Lean 3 theorem is \r\n```\r\nconstruct_left_adjoint_equiv_apply :\r\n  ∀ {A : Type u_4} {B : Type u_5} {C : Type u_6} [_inst_1 : category A] [_inst_2 : category B]\r\n  [_inst_3 : category C]\r\n  {U : B ⥤ C} {F : C ⥤ B} (R : A ⥤ B) (F' : C ⥤ A) (adj₁ : F ⊣ U) (adj₂ : F' ⊣ R ⋙ U)\r\n  [_inst_4 : has_reflexive_coequalizers A]\r\n  [_inst_5 : Π (X : B), regular_epi (adj₁.counit.app X)] (Y : A) (X : B)\r\n  (ᾰ : construct_left_adjoint_obj R F' adj₁ adj₂ X ⟶ Y),\r\n    ⇑(construct_left_adjoint_equiv R F' adj₁ adj₂ Y X) ᾰ =\r\n      (⇑((cofork.is_colimit.hom_iso (counit_coequalises adj₁ X) (R.obj Y)).symm) ∘\r\n         ⇑(((cofork.is_colimit.hom_iso\r\n                (colimit.is_colimit\r\n                   (parallel_pair (F'.map (U.map (adj₁.counit.app X))) (other_map R F' adj₁ adj₂ X)))\r\n                Y).trans\r\n               ((adj₂.hom_equiv (U.obj X) Y).subtype_equiv _)).trans\r\n              ((adj₁.hom_equiv (U.obj X) (R.obj Y)).symm.subtype_equiv _)))\r\n```\r\nwhich is pretty much what you would expect from the definition. In Lean 4 the type is totally different: it's\r\n```\r\nCategoryTheory.LiftAdjoint.constructLeftAdjointEquiv_apply.{v₁, v₂, v₃, u₁, u₂, u₃} {A : Type u₁} {B : Type u₂}\r\n  {C : Type u₃} [inst✝ : Category A] [inst✝¹ : Category B] [inst✝² : Category C] {U : B ⥤ C} {F : C ⥤ B} (R : A ⥤ B)\r\n  (F' : C ⥤ A) (adj₁ : F ⊣ U) (adj₂ : F' ⊣ R ⋙ U) [inst✝³ : HasReflexiveCoequalizers A]\r\n  [inst✝⁴ : (X : B) → RegularEpi (adj₁.counit.app X)] (Y : A) (X : B)\r\n  (a✝ : constructLeftAdjointObj R F' adj₁ adj₂ X ⟶ Y) :\r\n  ↑(constructLeftAdjointEquiv R F' adj₁ adj₂ Y X) a✝ =\r\n    ↑(Cofork.IsColimit.homIso (counitCoequalises adj₁ X) (R.obj Y)).symm\r\n      {\r\n        val :=\r\n          F.map\r\n              (↑(Adjunction.homEquiv adj₂ (U.obj X) Y)\r\n                ↑(↑(Cofork.IsColimit.homIso\r\n                        (colimit.isColimit\r\n                          (parallelPair (F'.map (U.map (adj₁.counit.app X))) (otherMap R F' adj₁ adj₂ X)))\r\n                        Y)\r\n                    a✝)) ≫\r\n            adj₁.counit.app (R.obj Y),\r\n        property :=\r\n          (_ :\r\n            (fun b ↦ F.map (U.map (adj₁.counit.app X)) ≫ b = adj₁.counit.app (F.obj (U.obj X)) ≫ b)\r\n              (F.map\r\n                  (↑(Adjunction.homEquiv adj₂ (U.obj X) Y)\r\n                    ↑(↑(Cofork.IsColimit.homIso\r\n                            (colimit.isColimit\r\n                              (parallelPair (F'.map (U.map (adj₁.counit.app X))) (otherMap R F' adj₁ adj₂ X)))\r\n                            Y)\r\n                        a✝)) ≫\r\n                adj₁.counit.app (R.obj Y))) }\r\n```\r\nand so after `rw [constructLeftAdjointEquiv_apply, constructLeftAdjointEquiv_apply]` the goal is totally different in Lean 3 than in Lean 4. I suspect the path of least resistance here is to figure out how to make Lean 4 simps make the same lemma as Lean 3 simps, or just make the Lean 3 lemma manually. I tried this with\r\n```\r\nlemma construct_left_adjoint_equiv_apply' [∀ (X : B), RegularEpi (adj₁.counit.app X)] (Y : A) (X : B)\r\n  (a : constructLeftAdjointObj R F' adj₁ adj₂ X ⟶ Y) :\r\n    (constructLeftAdjointEquiv R F' adj₁ adj₂ Y X) a =\r\n      (↑((Cofork.IsColimit.homIso (counitCoequalises adj₁ X) (R.obj Y)).symm) ∘\r\n         ⇑(((Cofork.IsColimit.homIso\r\n                (colimit.isColimit\r\n                   (parallelPair (F'.map (U.map (adj₁.counit.app X))) (otherMap R F' adj₁ adj₂ X)))\r\n                Y).trans\r\n               ((adj₂.homEquiv (U.obj X) Y).subtypeEquiv _)).trans\r\n              ((adj₁.homEquiv (U.obj X) (R.obj Y)).symm.subtypeEquiv _))) := sorry\r\n```\r\nbut I couldn't get the statement to typecheck. If there is just some quick way of making `simps` behave in the same way as Lean 3 then it would save all this bother. \r\n",
+              "createdAt": "2023-07-05T20:53:00Z",
+              "author": {
+                "login": "kbuzzard"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5g1Qwf",
+              "body": "Or just bull ahead naively...\n",
+              "createdAt": "2023-07-07T02:50:16Z",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5g1wmD",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5482688757/jobs/9988275370)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5482688757/jobs/9988275533)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5482688757/jobs/9988275597)",
+              "createdAt": "2023-07-07T04:28:42Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "c518fef0b49d69d29a773c2e1307fa9f94dde4bc",
+                "additions": 0,
+                "deletions": 0,
+                "committedDate": "2023-05-27T03:46:43Z",
+                "author": {
+                  "name": "int-y1",
+                  "email": "jason_yuen2007@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c530ae571d16388085af50779c9d32d6443db285",
+                "additions": 273,
+                "deletions": 0,
+                "committedDate": "2023-05-27T03:46:43Z",
+                "author": {
+                  "name": "int-y1",
+                  "email": "jason_yuen2007@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "450ea368dd05b1d7e5463c00ab8946049f9a54e2",
+                "additions": 13,
+                "deletions": 20,
+                "committedDate": "2023-05-27T03:46:45Z",
+                "author": {
+                  "name": "int-y1",
+                  "email": "jason_yuen2007@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "686b8e7b24ef1c208f9f2a49b986bff9245647a3",
+                "additions": 43,
+                "deletions": 48,
+                "committedDate": "2023-05-27T04:05:37Z",
+                "author": {
+                  "name": "int-y1",
+                  "email": "jason_yuen2007@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f23c99d3fd25a3163b7cae2eec0180a7c52ea5ca",
+                "additions": 16,
+                "deletions": 19,
+                "committedDate": "2023-05-27T04:12:15Z",
+                "author": {
+                  "name": "int-y1",
+                  "email": "jason_yuen2007@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6a71e679a97c09f50f6491835547844e74e6e76a",
+                "additions": 177761,
+                "deletions": 10151,
+                "committedDate": "2023-06-14T00:42:30Z",
+                "author": {
+                  "name": "Matthew Ballard",
+                  "email": "matt@mrb.email"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "6f93ee3f82d83b39aa9caa67d5eaff65c57178f3",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-06-14T07:18:55Z",
+                "author": {
+                  "name": "Scott Morrison",
+                  "email": "scott.morrison@anu.edu.au"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7ee290595d4d3e1cc0957d3504f06265b44a6fc4",
+                "additions": 146759,
+                "deletions": 12512,
+                "committedDate": "2023-07-07T02:29:29Z",
+                "author": {
+                  "name": "Matthew Ballard",
+                  "email": "matt@mrb.email"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c268b0956b3eb7e742a1c4dd46121ee60ceecb08",
+                "additions": 7,
+                "deletions": 7,
+                "committedDate": "2023-07-07T02:40:17Z",
+                "author": {
+                  "name": "Matthew Ballard",
+                  "email": "matt@mrb.email"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e18eb993dca3756d1be2fa6087f023fffcc8165f",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-07-07T02:41:02Z",
+                "author": {
+                  "name": "Matthew Ballard",
+                  "email": "matt@mrb.email"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-05-27T04:21:07Z",
+        "deletions": 0,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/CategoryTheory/Adjunction/Lifting.lean",
+              "additions": 257,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "port/CategoryTheory.Adjunction.Lifting",
+        "headRefOid": "e18eb993dca3756d1be2fa6087f023fffcc8165f",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5Re-08",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHdNnVg",
+              "color": "006B75",
+              "name": "mathlib-port"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5adwv-",
+              "body": "Thanks :tada:\r\n\r\nbors merge",
+              "state": "APPROVED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-07-07T04:06:36Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 4414,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": "APPROVED",
+        "reviewRequests": {
+          "nodes": [
+            {
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjI5OTU5MjI2",
+                "login": "b-mehta"
+              }
+            }
+          ]
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5adwv-",
+              "body": "Thanks :tada:\r\n\r\nbors merge",
+              "state": "APPROVED",
+              "author": {
+                "login": "jcommelin"
+              },
+              "submittedAt": "2023-07-07T04:06:36Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": []
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjE0MjIzNTI5",
+              "login": "int-y1"
+            },
+            {
+              "id": "MDQ6VXNlcjQ3Nzk1Ng==",
+              "login": "kim-em"
+            },
+            {
+              "id": "MDQ6VXNlcjMxODY3ODI3",
+              "login": "kbuzzard"
+            },
+            {
+              "id": "U_kgDOBfZl7g",
+              "login": "mattrobball"
+            },
+            {
+              "id": "MDQ6VXNlcjU2MzY3MDU=",
+              "login": "jcommelin"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat: port CategoryTheory.Adjunction.Lifting",
+        "updatedAt": "2023-07-07T04:28:49Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/4414",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c518fef0b49d69d29a773c2e1307fa9f94dde4bc"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c530ae571d16388085af50779c9d32d6443db285"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "450ea368dd05b1d7e5463c00ab8946049f9a54e2"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "686b8e7b24ef1c208f9f2a49b986bff9245647a3"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f23c99d3fd25a3163b7cae2eec0180a7c52ea5ca"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5nBgWrzwAAAAItponO",
+              "createdAt": "2023-05-27T04:21:07Z",
+              "label": {
+                "id": "MDU6TGFiZWwyOTg0NTM0NDU0",
+                "name": "help-wanted"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5nBgWrzwAAAAItponP",
+              "createdAt": "2023-05-27T04:21:07Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHdNnVg",
+                "name": "mathlib-port"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "6a71e679a97c09f50f6491835547844e74e6e76a"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5ezto0",
+              "createdAt": "2023-06-14T07:17:05Z",
+              "body": "Oh dear! It's an inscrutable block of rewrites that goes bad part way through.\r\n\r\n@b-mehta, any chance you'd be able to look at this?",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c5nBgWrzwAAAAI3tUsr",
+              "createdAt": "2023-06-14T07:17:13Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjI5OTU5MjI2",
+                "login": "b-mehta"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "6f93ee3f82d83b39aa9caa67d5eaff65c57178f3"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5gtS55",
+              "createdAt": "2023-07-05T20:53:00Z",
+              "body": "As `int-y1` suggests, I think the problem is that the type of `constructLeftAdjointEquiv_apply` is completely different in Lean 3 than in Lean 4. I don't know what `@[simps (config := { rhsMd := semireducible })]` did in Lean 3 but I can see that the type of the Lean 3 theorem is \r\n```\r\nconstruct_left_adjoint_equiv_apply :\r\n  ∀ {A : Type u_4} {B : Type u_5} {C : Type u_6} [_inst_1 : category A] [_inst_2 : category B]\r\n  [_inst_3 : category C]\r\n  {U : B ⥤ C} {F : C ⥤ B} (R : A ⥤ B) (F' : C ⥤ A) (adj₁ : F ⊣ U) (adj₂ : F' ⊣ R ⋙ U)\r\n  [_inst_4 : has_reflexive_coequalizers A]\r\n  [_inst_5 : Π (X : B), regular_epi (adj₁.counit.app X)] (Y : A) (X : B)\r\n  (ᾰ : construct_left_adjoint_obj R F' adj₁ adj₂ X ⟶ Y),\r\n    ⇑(construct_left_adjoint_equiv R F' adj₁ adj₂ Y X) ᾰ =\r\n      (⇑((cofork.is_colimit.hom_iso (counit_coequalises adj₁ X) (R.obj Y)).symm) ∘\r\n         ⇑(((cofork.is_colimit.hom_iso\r\n                (colimit.is_colimit\r\n                   (parallel_pair (F'.map (U.map (adj₁.counit.app X))) (other_map R F' adj₁ adj₂ X)))\r\n                Y).trans\r\n               ((adj₂.hom_equiv (U.obj X) Y).subtype_equiv _)).trans\r\n              ((adj₁.hom_equiv (U.obj X) (R.obj Y)).symm.subtype_equiv _)))\r\n```\r\nwhich is pretty much what you would expect from the definition. In Lean 4 the type is totally different: it's\r\n```\r\nCategoryTheory.LiftAdjoint.constructLeftAdjointEquiv_apply.{v₁, v₂, v₃, u₁, u₂, u₃} {A : Type u₁} {B : Type u₂}\r\n  {C : Type u₃} [inst✝ : Category A] [inst✝¹ : Category B] [inst✝² : Category C] {U : B ⥤ C} {F : C ⥤ B} (R : A ⥤ B)\r\n  (F' : C ⥤ A) (adj₁ : F ⊣ U) (adj₂ : F' ⊣ R ⋙ U) [inst✝³ : HasReflexiveCoequalizers A]\r\n  [inst✝⁴ : (X : B) → RegularEpi (adj₁.counit.app X)] (Y : A) (X : B)\r\n  (a✝ : constructLeftAdjointObj R F' adj₁ adj₂ X ⟶ Y) :\r\n  ↑(constructLeftAdjointEquiv R F' adj₁ adj₂ Y X) a✝ =\r\n    ↑(Cofork.IsColimit.homIso (counitCoequalises adj₁ X) (R.obj Y)).symm\r\n      {\r\n        val :=\r\n          F.map\r\n              (↑(Adjunction.homEquiv adj₂ (U.obj X) Y)\r\n                ↑(↑(Cofork.IsColimit.homIso\r\n                        (colimit.isColimit\r\n                          (parallelPair (F'.map (U.map (adj₁.counit.app X))) (otherMap R F' adj₁ adj₂ X)))\r\n                        Y)\r\n                    a✝)) ≫\r\n            adj₁.counit.app (R.obj Y),\r\n        property :=\r\n          (_ :\r\n            (fun b ↦ F.map (U.map (adj₁.counit.app X)) ≫ b = adj₁.counit.app (F.obj (U.obj X)) ≫ b)\r\n              (F.map\r\n                  (↑(Adjunction.homEquiv adj₂ (U.obj X) Y)\r\n                    ↑(↑(Cofork.IsColimit.homIso\r\n                            (colimit.isColimit\r\n                              (parallelPair (F'.map (U.map (adj₁.counit.app X))) (otherMap R F' adj₁ adj₂ X)))\r\n                            Y)\r\n                        a✝)) ≫\r\n                adj₁.counit.app (R.obj Y))) }\r\n```\r\nand so after `rw [constructLeftAdjointEquiv_apply, constructLeftAdjointEquiv_apply]` the goal is totally different in Lean 3 than in Lean 4. I suspect the path of least resistance here is to figure out how to make Lean 4 simps make the same lemma as Lean 3 simps, or just make the Lean 3 lemma manually. I tried this with\r\n```\r\nlemma construct_left_adjoint_equiv_apply' [∀ (X : B), RegularEpi (adj₁.counit.app X)] (Y : A) (X : B)\r\n  (a : constructLeftAdjointObj R F' adj₁ adj₂ X ⟶ Y) :\r\n    (constructLeftAdjointEquiv R F' adj₁ adj₂ Y X) a =\r\n      (↑((Cofork.IsColimit.homIso (counitCoequalises adj₁ X) (R.obj Y)).symm) ∘\r\n         ⇑(((Cofork.IsColimit.homIso\r\n                (colimit.isColimit\r\n                   (parallelPair (F'.map (U.map (adj₁.counit.app X))) (otherMap R F' adj₁ adj₂ X)))\r\n                Y).trans\r\n               ((adj₂.homEquiv (U.obj X) Y).subtypeEquiv _)).trans\r\n              ((adj₁.homEquiv (U.obj X) (R.obj Y)).symm.subtypeEquiv _))) := sorry\r\n```\r\nbut I couldn't get the statement to typecheck. If there is just some quick way of making `simps` behave in the same way as Lean 3 then it would save all this bother. \r\n",
+              "author": {
+                "login": "kbuzzard"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7ee290595d4d3e1cc0957d3504f06265b44a6fc4"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c268b0956b3eb7e742a1c4dd46121ee60ceecb08"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e18eb993dca3756d1be2fa6087f023fffcc8165f"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5nBgWrzwAAAAJFJTac",
+              "createdAt": "2023-07-07T02:49:04Z",
+              "label": {
+                "id": "MDU6TGFiZWwyOTg0NTM0NDU0",
+                "name": "help-wanted"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5nBgWrzwAAAAJFJTid",
+              "createdAt": "2023-07-07T02:49:13Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5g1Qwf",
+              "createdAt": "2023-07-07T02:50:16Z",
+              "body": "Or just bull ahead naively...\n",
+              "author": {
+                "login": "mattrobball"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5adwv-",
+              "createdAt": "2023-07-07T04:06:36Z",
+              "body": "Thanks :tada:\r\n\r\nbors merge",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5nBgWrzwAAAAJFKdgM",
+              "createdAt": "2023-07-07T04:06:51Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5nBgWrzwAAAAJFKdhU",
+              "createdAt": "2023-07-07T04:06:52Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5g1wmD",
+              "createdAt": "2023-07-07T04:28:42Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5482688757/jobs/9988275370)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5482688757/jobs/9988275533)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5482688757/jobs/9988275597)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5nBgWrzwAAAAJFK2ts",
+              "createdAt": "2023-07-07T04:28:44Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5nBgWrzwAAAAJFK2zp",
+              "createdAt": "2023-07-07T04:28:49Z"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
