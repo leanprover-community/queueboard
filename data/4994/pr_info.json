@@ -1,0 +1,998 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 75,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "alexkeizer"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "Co-authored-by Chris Hughes\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\nMostly adds a collection of simp lemmas for various operations on vectors.\r\nAlso adds a way to index vectors with `Nat`, returning `none` if the `Nat` is out of range, plus define `GetElem` instances for the convenient `x[i]` notation on vectors.\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 2,
+        "closed": true,
+        "closedAt": "2023-06-27T14:11:22Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5fa7Bc",
+              "body": "@gebner I've now made the change from `get v i` to `v[i.1]` as simp normal form in `Vector` files. The CI is still unhappy, because some downstream files are still broken and have to be updated. But before I continue on to fix those, I want to check in with you and confirm that this is indeed the direction we want to go to.\r\n\r\nWith the new simp normal form, some simp lemmas are not firing automatically anymore, and have to be explicitly given some of their arguments. Compare the following two proofs of `Vector.scanl_get` (admittedly, the worst case, most proofs worked just fine)\r\n```lean\r\ntheorem scanl_get (i : Fin n) :\r\n    (scanl f b v).get i.succ = f ((scanl f b v).get (Fin.castSucc i)) (v.get i) := by\r\n  cases' n with n\r\n  · exact i.elim0\r\n  induction' n with n hn generalizing b\r\n  · have i0 : i = 0 := Fin.eq_zero _\r\n    simp [scanl_singleton, i0, get_zero]; simp [get_eq_get]\r\n  · rw [← cons_head_tail v, scanl_cons, get_cons_succ]\r\n    refine' Fin.cases _ _ i\r\n    · simp only [get_zero, scanl_head, Fin.castSucc_zero, head_cons]\r\n    · intro i'\r\n      simp only [hn, Fin.castSucc_fin_succ, get_cons_succ]\r\n```\r\nAnd the new version:\r\n```lean\r\ntheorem scanl_get (i : Fin n) :\r\n    (scanl f b v)[i.1 + 1]'i.succ.2 = f ((scanl f b v)[i.1]) v[i.1] := by\r\n  cases' n with n\r\n  · exact i.elim0\r\n  induction' n with n hn generalizing b\r\n  · simp [scanl_singleton, get_zero, get_eq_get, get_cons_succ _ _ i]\r\n  · rw [← cons_head_tail v, scanl_cons, get_cons_succ_nat (n:=n+2) _ _ i.1]\r\n    refine' Fin.cases _ _ i\r\n    · simp [get_zero_nat (n := n + 1), get_zero_nat (n := n + 2), scanl_head, head_cons]\r\n    · intro i'\r\n      simp only [Fin.val_succ, hn, get_cons_succ_nat (n := n + 2), get_cons_succ_nat (n := n + 1)]\r\n```\r\nNotice how `get_cons_succ` does not work, but instead we have to `get_cons_succ_nat (n := n + 2), get_cons_succ_nat (n := n + 1)` --- `get_cons_succ_nat` is a new version of the lemma in terms of `i : Nat` and `h : i < n`, instead of the old spelling in terms of `i : Fin n`, because the simplifier is quite aggresive with destructuring into `Nat`s.\r\n\r\n\r\nMaybe it would be beneficial to get rid of `getElem_fin` as a simp-lemma (or even reverse it), so that we can at least keep indexing with `Fin`s instead of `Nat`s as the normal-form\r\n```lean\r\n@[simp] theorem getElem_fin [GetElem Cont Nat Elem Dom] (a : Cont) (i : Fin n) (h : Dom a i) :\r\n    a[i] = a[i.1] := rfl\r\n```\r\nIf we don't, then it would probably be less painful to write all theorems in terms of `i : Nat` and `h : i < n` instead of `i : Fin n`.\r\n\r\nEDIT: I've proposed removing the simp attribute from this lemma at https://github.com/leanprover/std4/pull/162",
+              "createdAt": "2023-06-21T14:00:23Z",
+              "author": {
+                "login": "alexkeizer"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5foiv5",
+              "body": "The consensus on [Zulip](https://leanprover.zulipchat.com/#narrow/stream/287929-mathlib4/topic/simp.20normal.20form.20for.20.60Vector.60.20indexing.3A.20.60get.60.20vs.20.60.2E.5B.2E.5D.60) seems to be that we want to stick with `Vector.get` for the normal form, so I've reverted the PR back to the original.\r\nI have stashed the reverted changes in a `add-vector-api-opt3` branch, might we want to revisit this decision.",
+              "createdAt": "2023-06-23T15:41:39Z",
+              "author": {
+                "login": "alexkeizer"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5f3Jjz",
+              "body": ":v: alexkeizer can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "createdAt": "2023-06-26T21:32:28Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5f6P-j",
+              "body": "bors merge",
+              "createdAt": "2023-06-27T09:12:28Z",
+              "author": {
+                "login": "alexkeizer"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5f6TXj",
+              "body": "Build failed:\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5388040202/jobs/9780163240)",
+              "createdAt": "2023-06-27T09:21:57Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5f7r7V",
+              "body": "bors merge",
+              "createdAt": "2023-06-27T13:13:09Z",
+              "author": {
+                "login": "alexkeizer"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5f8GbS",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5390265469/jobs/9785361744)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5390265469/jobs/9785362179)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5390265469/jobs/9785362409)",
+              "createdAt": "2023-06-27T14:11:21Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "4d1776a27156ecdf77ee2c1c2d8ed0895879f6b9",
+                "additions": 54,
+                "deletions": 0,
+                "committedDate": "2023-06-13T13:10:44Z",
+                "author": {
+                  "name": "Alex Keizer",
+                  "email": "alex@keizer.dev"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "680c88e2adc2e40ec72ae30ec0824127826d2a1f",
+                "additions": 28,
+                "deletions": 0,
+                "committedDate": "2023-06-13T13:10:44Z",
+                "author": {
+                  "name": "Alex Keizer",
+                  "email": "alex@keizer.dev"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "275c19cd5efca96a4f11e12d31cdf813212b2f7a",
+                "additions": 3,
+                "deletions": 1,
+                "committedDate": "2023-06-13T13:10:44Z",
+                "author": {
+                  "name": "Alex Keizer",
+                  "email": "alex@keizer.dev"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "83029e04ff40f1c09dd708c6b4bb64e4a641356d",
+                "additions": 10,
+                "deletions": 10,
+                "committedDate": "2023-06-13T13:10:44Z",
+                "author": {
+                  "name": "Alex Keizer",
+                  "email": "alex@keizer.dev"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d7d40ef752660a79de1fce9e30f67a81349a0ccc",
+                "additions": 5,
+                "deletions": 6,
+                "committedDate": "2023-06-15T11:08:18Z",
+                "author": {
+                  "name": "Alex Keizer",
+                  "email": "alex@keizer.dev"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3025c8ab85faa4b2272e20ef80dc50f4b4d6c622",
+                "additions": 0,
+                "deletions": 4,
+                "committedDate": "2023-06-15T12:47:00Z",
+                "author": {
+                  "name": "Alex Keizer",
+                  "email": "alex@keizer.dev"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "78d1c13b0811b938313d1038b948cb8a7ef2741c",
+                "additions": 5,
+                "deletions": 6,
+                "committedDate": "2023-06-15T12:47:03Z",
+                "author": {
+                  "name": "Alex Keizer",
+                  "email": "alex@keizer.dev"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "acc8928152c3a319a06e38941c27a2d11fc58692",
+                "additions": 0,
+                "deletions": 3,
+                "committedDate": "2023-06-15T13:06:42Z",
+                "author": {
+                  "name": "Alex Keizer",
+                  "email": "alex@keizer.dev"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7405cd165b7e110e00d1881ed42e0cbaa5367046",
+                "additions": 1,
+                "deletions": 2,
+                "committedDate": "2023-06-23T15:26:02Z",
+                "author": {
+                  "name": "Alex Keizer",
+                  "email": "alex@keizer.dev"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5ce9740b814466e6f3d69c33a4dce92acac441d8",
+                "additions": 0,
+                "deletions": 5,
+                "committedDate": "2023-06-23T15:40:23Z",
+                "author": {
+                  "name": "Alex Keizer",
+                  "email": "alex@keizer.dev"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2e76e47e46d905f75ad3d6590d47b98b24c37104",
+                "additions": 12,
+                "deletions": 17,
+                "committedDate": "2023-06-27T09:12:09Z",
+                "author": {
+                  "name": "Alex Keizer",
+                  "email": "alex@keizer.dev"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "99f4b002f94f86c03fe3c05cc1893cd9c5ff0163",
+                "additions": 70356,
+                "deletions": 3430,
+                "committedDate": "2023-06-27T09:33:50Z",
+                "author": {
+                  "name": "Alex Keizer",
+                  "email": "alex@keizer.dev"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a3e3dab9d83f2f609b9c1d3fe377264541196243",
+                "additions": 39985,
+                "deletions": 2150,
+                "committedDate": "2023-06-27T10:07:49Z",
+                "author": {
+                  "name": "Alex Keizer",
+                  "email": "alex@keizer.dev"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "1f2805759e7852907d9f23285eb11971f84dd657",
+                "additions": 9,
+                "deletions": 1,
+                "committedDate": "2023-06-27T10:16:58Z",
+                "author": {
+                  "name": "Alex Keizer",
+                  "email": "alex@keizer.dev"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-06-12T15:22:44Z",
+        "deletions": 2,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib/Data/Vector.lean",
+              "additions": 4,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Data/Vector/Basic.lean",
+              "additions": 71,
+              "deletions": 2
+            }
+          ]
+        },
+        "headRefName": "add-vector-api",
+        "headRefOid": "1f2805759e7852907d9f23285eb11971f84dd657",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5SyVBx",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+              "color": "bfd4f2",
+              "name": "delegated"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5ZYAeb",
+              "body": "I think this is good to go modulo whitespace changes.\r\n\r\nbors d+",
+              "state": "COMMENTED",
+              "author": {
+                "login": "gebner"
+              },
+              "submittedAt": "2023-06-26T21:32:26Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 4994,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5YN6-1",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "gebner"
+              },
+              "submittedAt": "2023-06-14T18:26:09Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5YTGHu",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexkeizer"
+              },
+              "submittedAt": "2023-06-15T12:00:07Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5YUzuV",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexkeizer"
+              },
+              "submittedAt": "2023-06-15T15:20:09Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5YfHJq",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "gebner"
+              },
+              "submittedAt": "2023-06-16T23:28:47Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5YlFqr",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexkeizer"
+              },
+              "submittedAt": "2023-06-19T12:30:01Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Ylh4e",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "alexkeizer"
+              },
+              "submittedAt": "2023-06-19T13:23:43Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5ZYAeb",
+              "body": "I think this is good to go modulo whitespace changes.\r\n\r\nbors d+",
+              "state": "COMMENTED",
+              "author": {
+                "login": "gebner"
+              },
+              "submittedAt": "2023-06-26T21:32:26Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JUEZY",
+                    "body": "This isn't used, you should probably use `a[i]?` instead.",
+                    "createdAt": "2023-06-14T18:13:32Z",
+                    "author": {
+                      "login": "gebner"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JUFg1",
+                    "body": "This conflicts with another instance in core that has a different outparam.  I'd just put the same instance here like we do for arrays, i.e., only the `Nat` one.  https://github.com/leanprover/lean4/blob/bff612e59e4860bef5180db08356ab5f256bea86/src/Init/Data/Fin/Basic.lean#L120",
+                    "createdAt": "2023-06-14T18:17:19Z",
+                    "author": {
+                      "login": "gebner"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JUFiO",
+                    "body": "```suggestion\r\n  getElem := fun x i h => get x ⟨i, h⟩\r\n```",
+                    "createdAt": "2023-06-14T18:17:25Z",
+                    "author": {
+                      "login": "gebner"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JUFk9",
+                    "body": "```suggestion\r\ninstance : GetElem (Vector α n) Nat α fun _ i => i < n where\r\n```",
+                    "createdAt": "2023-06-14T18:17:38Z",
+                    "author": {
+                      "login": "gebner"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JUFqR",
+                    "body": "```suggestion\r\ndef casesOn {motive : ∀ {n}, Vector α n → Sort _}\r\n```",
+                    "createdAt": "2023-06-14T18:17:55Z",
+                    "author": {
+                      "login": "gebner"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JUF4w",
+                    "body": "```suggestion\r\n```",
+                    "createdAt": "2023-06-14T18:18:40Z",
+                    "author": {
+                      "login": "gebner"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JUGBT",
+                    "body": "```suggestion\r\ntheorem append_nil : append xs nil = xs := by\r\n  cases xs; simp [append]\r\n```",
+                    "createdAt": "2023-06-14T18:19:13Z",
+                    "author": {
+                      "login": "gebner"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JUGlL",
+                    "body": "```suggestion\r\ntheorem get_append_cons_zero : (append (x ::ᵥ xs) ys)[0] = x :=\r\n```\r\nWe probably want to standardize on a simp-normal form here, either `get` or `·[·]`.  For arrays we simplify everything to `·[·]` so I think this would be good here as well.  [@[simp] theorem get_eq_getElem (a : Array α) (i : Fin _) : a.get i = a[i.1] := rfl](https://github.com/leanprover/std4/blob/d5471b83378e8ace4845f9a029af92f8b0cf10cb/Std/Data/Array/Lemmas.lean#L40-L41)",
+                    "createdAt": "2023-06-14T18:21:44Z",
+                    "author": {
+                      "login": "gebner"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JXhdu",
+                    "body": "> We probably want to standardize on a simp-normal form here, either `get` or `·[·]`. For arrays we simplify everything to `·[·]` so I think this would be good here as well. [@[simp] theorem get_eq_getElem (a : Array α) (i : Fin _) : a.get i = a[i.1] := rfl](https://github.com/leanprover/std4/blob/d5471b83378e8ace4845f9a029af92f8b0cf10cb/Std/Data/Array/Lemmas.lean#L40-L41)\r\n\r\nThanks for the quick review!\r\n\r\nThat does seem more consistent; do we then want to change all the existing `get_...` lemmas for `Vector` in terms of `·[·]`?\r\n\r\nEDIT: It seems that for `List` we do use `List.get` and `List.get?` as the simp-normal form, so that feels like an equally strong reason to prefer `Vector.get`/`Vector.get?` as the simp-normal form. For example,\r\n```lean\r\nexample (xs : List Nat) (i : Fin xs.length) : (some xs[i]) = (xs[0]?) := by\r\n  simp\r\n  -- Goal state:\r\n  --  some (List.get xs { val := ↑i, isLt := (_ : ↑i < List.length xs) }) = List.get? xs 0\r\n  sorry\r\n```\r\n\r\nPersonally, I would prefer `get`/`get?` as the normal form over `.[.]`/`.[.]?` since the former feels simpler, but that is a matter of taste.\r\n\r\nRegardless, we should probably pick one form and keep it consistent across `Vector`/`List`/`Array` and any other collections. Which form do you think that should be?",
+                    "createdAt": "2023-06-15T12:00:07Z",
+                    "author": {
+                      "login": "alexkeizer"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JfC-H",
+                    "body": "My personal preference is for `·[·]`, and I think that `Vector` is closer to `Array` than to `List`.  We generally don't access lists by index.\r\n\r\nI don't remember any discussion about the simp-normal form for indexing.  Maybe it's best to take this to Zulip.",
+                    "createdAt": "2023-06-16T23:28:46Z",
+                    "author": {
+                      "login": "gebner"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JjTED",
+                    "body": "I started a topic on Zulip: https://leanprover.zulipchat.com/#narrow/stream/287929-mathlib4/topic/simp.20normal.20form.20for.20.60Vector.60.20indexing.3A.20.60get.60.20vs.20.60.2E.5B.2E.5D.60",
+                    "createdAt": "2023-06-19T12:30:00Z",
+                    "author": {
+                      "login": "alexkeizer"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Jjkt0",
+                    "body": "Still, do you think we should change existing theorems in the current PR, or make the changes in a subsequent PR, so that it's a bit more clear which changes are new API, and which changes are just related to the new simp normal form?",
+                    "createdAt": "2023-06-19T13:23:34Z",
+                    "author": {
+                      "login": "alexkeizer"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JUIDR",
+                    "body": "I'm not sure if we need this congruence lemma, it's also not used anywhere.  Using `Vector.eq` directly seems to be just as straightforward.",
+                    "createdAt": "2023-06-14T18:25:56Z",
+                    "author": {
+                      "login": "gebner"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JYl4j",
+                    "body": "We indeed don't, removed it",
+                    "createdAt": "2023-06-15T15:20:09Z",
+                    "author": {
+                      "login": "alexkeizer"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5KE32l",
+                    "body": "```suggestion\r\ndef casesOn {motive : ∀ {n}, Vector α n → Sort _} (v : Vector α m)\r\n    (nil : motive nil) (cons : ∀ {n}, (hd : α) → (tl : Vector α n) → motive (Vector.cons hd tl)) :\r\n    motive v :=\r\n  inductionOn (C := motive) v nil @fun _ hd tl _ => cons hd tl\r\n```",
+                    "createdAt": "2023-06-26T21:31:57Z",
+                    "author": {
+                      "login": "gebner"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjE4NDkwMTg3",
+              "login": "alexkeizer"
+            },
+            {
+              "id": "MDQ6VXNlcjMxMzkyOQ==",
+              "login": "gebner"
+            },
+            {
+              "id": "MDQ6VXNlcjQ3Nzk1Ng==",
+              "login": "kim-em"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat: Add simp lemmas for vectors, and a way to index vectors with Nats",
+        "updatedAt": "2023-06-27T14:11:29Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/4994",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5ofK9xzwAAAAI2i_xq",
+              "createdAt": "2023-06-12T16:50:08Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5ofK9xzwAAAAI2i_x7",
+              "createdAt": "2023-06-12T16:50:08Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABMtntmA",
+                "name": "new-feature"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4d1776a27156ecdf77ee2c1c2d8ed0895879f6b9"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "680c88e2adc2e40ec72ae30ec0824127826d2a1f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "275c19cd5efca96a4f11e12d31cdf813212b2f7a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "83029e04ff40f1c09dd708c6b4bb64e4a641356d"
+              }
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c5ofK9xzwAAAAI3NIMq",
+              "createdAt": "2023-06-13T13:11:26Z"
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5YN6-1",
+              "createdAt": "2023-06-14T18:13:31Z",
+              "body": "",
+              "author": {
+                "login": "gebner"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5ofK9xzwAAAAI4Jvn_",
+              "createdAt": "2023-06-14T18:26:22Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5ofK9xzwAAAAI4JvoL",
+              "createdAt": "2023-06-14T18:26:22Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d7d40ef752660a79de1fce9e30f67a81349a0ccc"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3025c8ab85faa4b2272e20ef80dc50f4b4d6c622"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "78d1c13b0811b938313d1038b948cb8a7ef2741c"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "acc8928152c3a319a06e38941c27a2d11fc58692"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5ofK9xzwAAAAI4veEy",
+              "createdAt": "2023-06-15T15:19:09Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5ofK9xzwAAAAI4veE8",
+              "createdAt": "2023-06-15T15:19:09Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5fa7Bc",
+              "createdAt": "2023-06-21T14:00:23Z",
+              "body": "@gebner I've now made the change from `get v i` to `v[i.1]` as simp normal form in `Vector` files. The CI is still unhappy, because some downstream files are still broken and have to be updated. But before I continue on to fix those, I want to check in with you and confirm that this is indeed the direction we want to go to.\r\n\r\nWith the new simp normal form, some simp lemmas are not firing automatically anymore, and have to be explicitly given some of their arguments. Compare the following two proofs of `Vector.scanl_get` (admittedly, the worst case, most proofs worked just fine)\r\n```lean\r\ntheorem scanl_get (i : Fin n) :\r\n    (scanl f b v).get i.succ = f ((scanl f b v).get (Fin.castSucc i)) (v.get i) := by\r\n  cases' n with n\r\n  · exact i.elim0\r\n  induction' n with n hn generalizing b\r\n  · have i0 : i = 0 := Fin.eq_zero _\r\n    simp [scanl_singleton, i0, get_zero]; simp [get_eq_get]\r\n  · rw [← cons_head_tail v, scanl_cons, get_cons_succ]\r\n    refine' Fin.cases _ _ i\r\n    · simp only [get_zero, scanl_head, Fin.castSucc_zero, head_cons]\r\n    · intro i'\r\n      simp only [hn, Fin.castSucc_fin_succ, get_cons_succ]\r\n```\r\nAnd the new version:\r\n```lean\r\ntheorem scanl_get (i : Fin n) :\r\n    (scanl f b v)[i.1 + 1]'i.succ.2 = f ((scanl f b v)[i.1]) v[i.1] := by\r\n  cases' n with n\r\n  · exact i.elim0\r\n  induction' n with n hn generalizing b\r\n  · simp [scanl_singleton, get_zero, get_eq_get, get_cons_succ _ _ i]\r\n  · rw [← cons_head_tail v, scanl_cons, get_cons_succ_nat (n:=n+2) _ _ i.1]\r\n    refine' Fin.cases _ _ i\r\n    · simp [get_zero_nat (n := n + 1), get_zero_nat (n := n + 2), scanl_head, head_cons]\r\n    · intro i'\r\n      simp only [Fin.val_succ, hn, get_cons_succ_nat (n := n + 2), get_cons_succ_nat (n := n + 1)]\r\n```\r\nNotice how `get_cons_succ` does not work, but instead we have to `get_cons_succ_nat (n := n + 2), get_cons_succ_nat (n := n + 1)` --- `get_cons_succ_nat` is a new version of the lemma in terms of `i : Nat` and `h : i < n`, instead of the old spelling in terms of `i : Fin n`, because the simplifier is quite aggresive with destructuring into `Nat`s.\r\n\r\n\r\nMaybe it would be beneficial to get rid of `getElem_fin` as a simp-lemma (or even reverse it), so that we can at least keep indexing with `Fin`s instead of `Nat`s as the normal-form\r\n```lean\r\n@[simp] theorem getElem_fin [GetElem Cont Nat Elem Dom] (a : Cont) (i : Fin n) (h : Dom a i) :\r\n    a[i] = a[i.1] := rfl\r\n```\r\nIf we don't, then it would probably be less painful to write all theorems in terms of `i : Nat` and `h : i < n` instead of `i : Fin n`.\r\n\r\nEDIT: I've proposed removing the simp attribute from this lemma at https://github.com/leanprover/std4/pull/162",
+              "author": {
+                "login": "alexkeizer"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5NNPKi",
+              "createdAt": "2023-06-22T20:06:35Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5TsJMQ",
+                "title": "[Merged by Bors] - feat: add reverse induction principle for Vector",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/5400"
+              }
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c5ofK9xzwAAAAI9MQoA",
+              "createdAt": "2023-06-23T10:49:49Z"
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5NN1ZS",
+              "createdAt": "2023-06-23T10:55:05Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5TvLwC",
+                "title": "feat: Add simp lemmas for vectors, and a way to index vectors with Nats (Alternative)",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/5421"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5NODZI",
+              "createdAt": "2023-06-23T15:10:57Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5TpKE_",
+                "title": "feat: define Bitvec constants for -1, INT_MIN and INT_MAX",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/5383"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7405cd165b7e110e00d1881ed42e0cbaa5367046"
+              }
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c5ofK9xzwAAAAI9Vnul",
+              "createdAt": "2023-06-23T15:26:13Z"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5ce9740b814466e6f3d69c33a4dce92acac441d8"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5foiv5",
+              "createdAt": "2023-06-23T15:41:39Z",
+              "body": "The consensus on [Zulip](https://leanprover.zulipchat.com/#narrow/stream/287929-mathlib4/topic/simp.20normal.20form.20for.20.60Vector.60.20indexing.3A.20.60get.60.20vs.20.60.2E.5B.2E.5D.60) seems to be that we want to stick with `Vector.get` for the normal form, so I've reverted the PR back to the original.\r\nI have stashed the reverted changes in a `add-vector-api-opt3` branch, might we want to revisit this decision.",
+              "author": {
+                "login": "alexkeizer"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5ofK9xzwAAAAI9WIy6",
+              "createdAt": "2023-06-23T15:41:59Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5ofK9xzwAAAAI9YEPB",
+              "createdAt": "2023-06-23T16:42:37Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5ZYAeb",
+              "createdAt": "2023-06-26T21:31:57Z",
+              "body": "I think this is good to go modulo whitespace changes.\r\n\r\nbors d+",
+              "author": {
+                "login": "gebner"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5f3Jjz",
+              "createdAt": "2023-06-26T21:32:28Z",
+              "body": ":v: alexkeizer can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5ofK9xzwAAAAI-1qrj",
+              "createdAt": "2023-06-26T21:32:41Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+                "name": "delegated"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5ofK9xzwAAAAI-1qtY",
+              "createdAt": "2023-06-26T21:32:42Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2e76e47e46d905f75ad3d6590d47b98b24c37104"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5f6P-j",
+              "createdAt": "2023-06-27T09:12:28Z",
+              "body": "bors merge",
+              "author": {
+                "login": "alexkeizer"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5f6TXj",
+              "createdAt": "2023-06-27T09:21:57Z",
+              "body": "Build failed:\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5388040202/jobs/9780163240)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "99f4b002f94f86c03fe3c05cc1893cd9c5ff0163"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a3e3dab9d83f2f609b9c1d3fe377264541196243"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "1f2805759e7852907d9f23285eb11971f84dd657"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5f7r7V",
+              "createdAt": "2023-06-27T13:13:09Z",
+              "body": "bors merge",
+              "author": {
+                "login": "alexkeizer"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5f8GbS",
+              "createdAt": "2023-06-27T14:11:21Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5390265469/jobs/9785361744)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5390265469/jobs/9785362179)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5390265469/jobs/9785362409)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5ofK9xzwAAAAI_WpCa",
+              "createdAt": "2023-06-27T14:11:23Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5ofK9xzwAAAAI_WpaX",
+              "createdAt": "2023-06-27T14:11:29Z"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
