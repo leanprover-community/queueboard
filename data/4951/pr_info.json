@@ -1,0 +1,462 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 282,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "int-y1"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "---\r\n\r\ntodo:\r\n\r\n* [x] `reflective_products` cannot find synthesization order\r\n* [x] `bijection_symm_apply_id` error in a big rw\r\n* [x] `bijection_natural` error in a big rw\r\n\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 2,
+        "closed": true,
+        "closedAt": "2023-06-27T09:18:53Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5fvZT2",
+              "body": "The first of the remaining errors in this file is on `attribute [local instance 10] reflective_products`, and not without good reason! The declaration is this:\r\n\r\n```lean\r\ntheorem reflective_products {C : Type u₁} {D : Type u₂} [Category.{v₁} C] [Category.{v₁} D]\r\n  (i : D ⥤ C) [HasFiniteProducts C] [Reflective i] : HasFiniteProducts D :=\r\n  ⟨fun _ => hasLimitsOfShape_of_reflective i⟩\r\n```\r\nand I guess there is no way that typeclass inference is going to be able to find `i` and `C` in general. However it worked in Lean 3! So maybe I'm wrong about this. If we give up completely on making this an instance (which is probably the correct thing to do?) then this causes a bunch of new breakage. In proofs the breakage can always be fixed with some diligent insertions of `haveI : HasFiniteProducts D := reflective_products i` (note: it's always `D` and `i`). However there are two *statements* which no longer compile, and I was unsure what to do here; this is why I have not pushed my work to this branch. The diff which makes the first one compile is this:\r\n\r\n```diff\r\n@@ -148,9 +156,11 @@ variable [ExponentialIdeal i]\r\n /-- If `i` witnesses that `D` is a reflective subcategory and an exponential ideal, then `D` is\r\n itself cartesian closed.\r\n -/\r\n-def cartesianClosedOfReflective : CartesianClosed D :=\r\n-  { monoidalOfHasFiniteProducts D with -- Porting note: Added this instance\r\n-    closed := fun B =>\r\n+def cartesianClosedOfReflective : @CartesianClosed D _ (reflective_products i) :=\r\n+  -- porting note: next two lines are a workaround for no `reflective_products` instance\r\n+  haveI : HasFiniteProducts D := reflective_products i\r\n+  letI _ : MonoidalCategory D := monoidalOfHasFiniteProducts D\r\n+  { closed := fun B =>\r\n       { isAdj :=\r\n           { right := i ⋙ exp (i.obj B) ⋙ leftAdjoint i\r\n             adj := by\r\n``` \r\nNote: this def is not an instance and is never used in mathlib3.\r\n\r\nThe second one is this:\r\n```diff\r\n@@ -232,7 +249,10 @@ theorem bijection_natural (A B : C) (X X' : D) (f : (leftAdjoint i).obj (A ⨯ B\r\n The bijection allows us to show that `prodComparison L A B` is an isomorphism, where the inverse\r\n is the forward map of the identity morphism.\r\n -/\r\n-theorem prodComparison_iso (A B : C) : IsIso (prodComparison (leftAdjoint i) A B) :=\r\n+theorem prodComparison_iso (A B : C) :\r\n+    -- porting note: adding dangerous instance manually\r\n+    haveI : HasFiniteProducts D := reflective_products i;\r\n+    IsIso (prodComparison (leftAdjoint i) A B) :=\r\n   ⟨⟨bijection i _ _ _ (𝟙 _), by\r\n       rw [← (bijection i _ _ _).injective.eq_iff, bijection_natural, ← bijection_symm_apply_id,\r\n         Equiv.apply_symm_apply, id_comp],\r\n```\r\nwhich looks less bad. With these two changes, plus a bunch of `haveI : HasFiniteProducts D := reflective_products i`, I can get the file down to two errors from three. ",
+              "createdAt": "2023-06-25T21:00:05Z",
+              "author": {
+                "login": "kbuzzard"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5f6DTN",
+              "body": "bors merge",
+              "createdAt": "2023-06-27T08:40:41Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5f6SPe",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5387762001/jobs/9779516315)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5387762001/jobs/9779516140)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5387762001/jobs/9779516512)",
+              "createdAt": "2023-06-27T09:18:51Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "4f4d002285bd530c96133f80a7c13e2f11371edc",
+                "additions": 0,
+                "deletions": 0,
+                "committedDate": "2023-06-10T10:06:33Z",
+                "author": {
+                  "name": "int-y1",
+                  "email": "jason_yuen2007@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2c9d520c59b7c12fafb619edfa81ba640d8b8e9d",
+                "additions": 280,
+                "deletions": 0,
+                "committedDate": "2023-06-10T10:06:35Z",
+                "author": {
+                  "name": "int-y1",
+                  "email": "jason_yuen2007@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2ef2c910b322fb7b44b473762989b9653b0f938a",
+                "additions": 17,
+                "deletions": 25,
+                "committedDate": "2023-06-10T10:06:36Z",
+                "author": {
+                  "name": "int-y1",
+                  "email": "jason_yuen2007@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a7ee311bf05ee15deb5d781b6033442448b719c3",
+                "additions": 18,
+                "deletions": 20,
+                "committedDate": "2023-06-10T10:15:13Z",
+                "author": {
+                  "name": "int-y1",
+                  "email": "jason_yuen2007@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "bc931a917baa3f812d772d7e1ad7bf147a8e578a",
+                "additions": 52,
+                "deletions": 53,
+                "committedDate": "2023-06-10T10:34:06Z",
+                "author": {
+                  "name": "int-y1",
+                  "email": "jason_yuen2007@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a3159f492ce6d5ae63058d723802b72d3e6ff3f8",
+                "additions": 15,
+                "deletions": 16,
+                "committedDate": "2023-06-10T10:51:18Z",
+                "author": {
+                  "name": "int-y1",
+                  "email": "jason_yuen2007@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f3eeedd5fc9d31469b19a1d86b6d433a69ad327a",
+                "additions": 4,
+                "deletions": 3,
+                "committedDate": "2023-06-10T10:59:18Z",
+                "author": {
+                  "name": "int-y1",
+                  "email": "jason_yuen2007@hotmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b7b8ad30a0eb18edeb891c0705543db23bbdcd37",
+                "additions": 24,
+                "deletions": 11,
+                "committedDate": "2023-06-27T07:56:50Z",
+                "author": {
+                  "name": "Alex J Best",
+                  "email": "alex.j.best@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-06-10T10:34:33Z",
+        "deletions": 0,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/CategoryTheory/Closed/Ideal.lean",
+              "additions": 281,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "port/CategoryTheory.Closed.Ideal",
+        "headRefOid": "b7b8ad30a0eb18edeb891c0705543db23bbdcd37",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5SrYXr",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHdNnVg",
+              "color": "006B75",
+              "name": "mathlib-port"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": []
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 4951,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": []
+        },
+        "reviewThreads": {
+          "nodes": []
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjE0MjIzNTI5",
+              "login": "int-y1"
+            },
+            {
+              "id": "MDQ6VXNlcjMxODY3ODI3",
+              "login": "kbuzzard"
+            },
+            {
+              "id": "MDQ6VXNlcjQ3Nzk1Ng==",
+              "login": "kim-em"
+            },
+            {
+              "id": "MDQ6VXNlcjE2ODg1MzM=",
+              "login": "alexjbest"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat: port CategoryTheory.Closed.Ideal",
+        "updatedAt": "2023-06-27T09:18:58Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/4951",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4f4d002285bd530c96133f80a7c13e2f11371edc"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2c9d520c59b7c12fafb619edfa81ba640d8b8e9d"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2ef2c910b322fb7b44b473762989b9653b0f938a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a7ee311bf05ee15deb5d781b6033442448b719c3"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "bc931a917baa3f812d772d7e1ad7bf147a8e578a"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5oXND-zwAAAAI1rf1B",
+              "createdAt": "2023-06-10T10:34:33Z",
+              "label": {
+                "id": "MDU6TGFiZWwyOTg0NTM0NDU0",
+                "name": "help-wanted"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5oXND-zwAAAAI1rf1F",
+              "createdAt": "2023-06-10T10:34:33Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHdNnVg",
+                "name": "mathlib-port"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a3159f492ce6d5ae63058d723802b72d3e6ff3f8"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f3eeedd5fc9d31469b19a1d86b6d433a69ad327a"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5fvZT2",
+              "createdAt": "2023-06-25T21:00:05Z",
+              "body": "The first of the remaining errors in this file is on `attribute [local instance 10] reflective_products`, and not without good reason! The declaration is this:\r\n\r\n```lean\r\ntheorem reflective_products {C : Type u₁} {D : Type u₂} [Category.{v₁} C] [Category.{v₁} D]\r\n  (i : D ⥤ C) [HasFiniteProducts C] [Reflective i] : HasFiniteProducts D :=\r\n  ⟨fun _ => hasLimitsOfShape_of_reflective i⟩\r\n```\r\nand I guess there is no way that typeclass inference is going to be able to find `i` and `C` in general. However it worked in Lean 3! So maybe I'm wrong about this. If we give up completely on making this an instance (which is probably the correct thing to do?) then this causes a bunch of new breakage. In proofs the breakage can always be fixed with some diligent insertions of `haveI : HasFiniteProducts D := reflective_products i` (note: it's always `D` and `i`). However there are two *statements* which no longer compile, and I was unsure what to do here; this is why I have not pushed my work to this branch. The diff which makes the first one compile is this:\r\n\r\n```diff\r\n@@ -148,9 +156,11 @@ variable [ExponentialIdeal i]\r\n /-- If `i` witnesses that `D` is a reflective subcategory and an exponential ideal, then `D` is\r\n itself cartesian closed.\r\n -/\r\n-def cartesianClosedOfReflective : CartesianClosed D :=\r\n-  { monoidalOfHasFiniteProducts D with -- Porting note: Added this instance\r\n-    closed := fun B =>\r\n+def cartesianClosedOfReflective : @CartesianClosed D _ (reflective_products i) :=\r\n+  -- porting note: next two lines are a workaround for no `reflective_products` instance\r\n+  haveI : HasFiniteProducts D := reflective_products i\r\n+  letI _ : MonoidalCategory D := monoidalOfHasFiniteProducts D\r\n+  { closed := fun B =>\r\n       { isAdj :=\r\n           { right := i ⋙ exp (i.obj B) ⋙ leftAdjoint i\r\n             adj := by\r\n``` \r\nNote: this def is not an instance and is never used in mathlib3.\r\n\r\nThe second one is this:\r\n```diff\r\n@@ -232,7 +249,10 @@ theorem bijection_natural (A B : C) (X X' : D) (f : (leftAdjoint i).obj (A ⨯ B\r\n The bijection allows us to show that `prodComparison L A B` is an isomorphism, where the inverse\r\n is the forward map of the identity morphism.\r\n -/\r\n-theorem prodComparison_iso (A B : C) : IsIso (prodComparison (leftAdjoint i) A B) :=\r\n+theorem prodComparison_iso (A B : C) :\r\n+    -- porting note: adding dangerous instance manually\r\n+    haveI : HasFiniteProducts D := reflective_products i;\r\n+    IsIso (prodComparison (leftAdjoint i) A B) :=\r\n   ⟨⟨bijection i _ _ _ (𝟙 _), by\r\n       rw [← (bijection i _ _ _).injective.eq_iff, bijection_natural, ← bijection_symm_apply_id,\r\n         Equiv.apply_symm_apply, id_comp],\r\n```\r\nwhich looks less bad. With these two changes, plus a bunch of `haveI : HasFiniteProducts D := reflective_products i`, I can get the file down to two errors from three. ",
+              "author": {
+                "login": "kbuzzard"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b7b8ad30a0eb18edeb891c0705543db23bbdcd37"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5oXND-zwAAAAI_Hc5U",
+              "createdAt": "2023-06-27T08:31:15Z",
+              "label": {
+                "id": "MDU6TGFiZWwyOTg0NTM0NDU0",
+                "name": "help-wanted"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5oXND-zwAAAAI_Hc5g",
+              "createdAt": "2023-06-27T08:31:15Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5f6DTN",
+              "createdAt": "2023-06-27T08:40:41Z",
+              "body": "bors merge",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5oXND-zwAAAAI_H1fn",
+              "createdAt": "2023-06-27T08:40:53Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5oXND-zwAAAAI_H1iq",
+              "createdAt": "2023-06-27T08:40:54Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5f6SPe",
+              "createdAt": "2023-06-27T09:18:51Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5387762001/jobs/9779516315)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5387762001/jobs/9779516140)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5387762001/jobs/9779516512)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5oXND-zwAAAAI_Jj9U",
+              "createdAt": "2023-06-27T09:18:53Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5oXND-zwAAAAI_JkJt",
+              "createdAt": "2023-06-27T09:18:58Z"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
