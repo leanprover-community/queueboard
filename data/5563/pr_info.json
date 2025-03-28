@@ -1,0 +1,527 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 65,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "kim-em"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "As reported on [zulip](https://leanprover.zulipchat.com/#narrow/stream/287929-mathlib4/topic/panic.20and.20error.20with.20rw.3F/near/370495531)\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 3,
+        "closed": true,
+        "closedAt": "2023-06-29T20:50:40Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5gHj7a",
+              "body": "Are these the same fixes as #5528?",
+              "createdAt": "2023-06-29T08:04:05Z",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5gH7UX",
+              "body": "@alexjbest, I think these fixes are slightly better (using telescoping), so I'd prefer to go with this one. I think the tests here cover the new tests in #5528.\r\n\r\nSorry I didn't see it earlier. (My github inbox is out of control and I rely on the #queue.)",
+              "createdAt": "2023-06-29T09:18:16Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5gIWmL",
+              "body": "I like the idea of using telescoping, it's much cleaner of course, but manually skipping loose bvars did have a strong motivation. How does your implementation handle expressions with a variable under the binder though, seeing as rw can't handle them returning those matches and trying rw with them won't work as the rw will fail. How about we also try simp_rw and return that as a suggestion too in that case (we will need to check that simp_rw actually did something)",
+              "createdAt": "2023-06-29T10:23:51Z",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5gIoFE",
+              "body": "Am I correct that `getSubexpressionMatches` will operate multiple times on identical subexpressions that occur multiple times in `e` (and hence will be exponentially slower than a tactic that would only operate on each subexpression once)? \r\nIf so, maybe there should be a note/todo for that (I don't know a good solution, because `memoFix` doesn't accept monadic operations). I don't know the logic of `rw?` to understand if this is a big performance problem.\r\n\r\nIn any case, LGTM.",
+              "createdAt": "2023-06-29T10:52:35Z",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5gI_io",
+              "body": "Yes, `getSubexpressionMatches` will not skip repeated subexpressions. I'll add a note.",
+              "createdAt": "2023-06-29T11:37:40Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5gJAUH",
+              "body": "@alexjbest, I put in some tests to check that at least in limited conditions it can rewrite both in binders and body. However I didn't attempt any cases where `rw` would fail but `simp_rw` would succeed. Let's put that (excellent idea) off for a separate PR, however.",
+              "createdAt": "2023-06-29T11:38:42Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5gLsLy",
+              "body": "I had to convince myself that `getSubexpressionMatches` is OK, but the only issue as far as `rw` goes is that it allows lemmas that might only apply to subexpressions with bound variables. We could be more careful with filtering, but it might not be worth it (who knows, it could be slower overall to do the filtering than have the occasional inapplicable rw lemma). I'm sure there will be future improvements, but for now\r\n\r\nbors merge",
+              "createdAt": "2023-06-29T19:22:16Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5gMIkF",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5415925121/jobs/9844917187)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5415925121/jobs/9844917480)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5415925121/jobs/9844917603)",
+              "createdAt": "2023-06-29T20:50:39Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "b6bff136a0c9b3c7397beeb18785068b84566c9d",
+                "additions": 48,
+                "deletions": 2,
+                "committedDate": "2023-06-28T23:31:19Z",
+                "author": {
+                  "name": "Scott Morrison",
+                  "email": "scott.morrison@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "487b09890f3dc3c5be83261056ac279a878c606b",
+                "additions": 13,
+                "deletions": 0,
+                "committedDate": "2023-06-29T01:22:49Z",
+                "author": {
+                  "name": "Scott Morrison",
+                  "email": "scott.morrison@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "33b2fb3ac8c21789431863588c35057696f2866c",
+                "additions": 4,
+                "deletions": 0,
+                "committedDate": "2023-06-29T11:40:00Z",
+                "author": {
+                  "name": "Scott Morrison",
+                  "email": "scott.morrison@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-06-28T23:32:18Z",
+        "deletions": 2,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib/Lean/Meta/DiscrTree.lean",
+              "additions": 17,
+              "deletions": 1
+            },
+            {
+              "path": "Mathlib/Tactic/Rewrites.lean",
+              "additions": 2,
+              "deletions": 1
+            },
+            {
+              "path": "test/rewrites.lean",
+              "additions": 46,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "rewrites_fixes",
+        "headRefOid": "33b2fb3ac8c21789431863588c35057696f2866c",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5UMXUP",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+              "color": "33DBEC",
+              "name": "t-meta"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": []
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 5563,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": [
+            {
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjIzNTMwNw==",
+                "login": "kmill"
+              }
+            },
+            {
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjE2ODg1MzM=",
+                "login": "alexjbest"
+              }
+            },
+            {
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjczNzYwMTI=",
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjI1MzE2MTYy",
+                "login": "hrmacbeth"
+              }
+            }
+          ]
+        },
+        "reviews": {
+          "nodes": []
+        },
+        "reviewThreads": {
+          "nodes": []
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjQ3Nzk1Ng==",
+              "login": "kim-em"
+            },
+            {
+              "id": "MDQ6VXNlcjE2ODg1MzM=",
+              "login": "alexjbest"
+            },
+            {
+              "id": "MDQ6VXNlcjczNzYwMTI=",
+              "login": "fpvandoorn"
+            },
+            {
+              "id": "MDQ6VXNlcjIzNTMwNw==",
+              "login": "kmill"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - fix: bug fixes to rw?",
+        "updatedAt": "2023-06-29T20:50:44Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/5563",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b6bff136a0c9b3c7397beeb18785068b84566c9d"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5qFx19zwAAAAJAb-Jd",
+              "createdAt": "2023-06-28T23:32:18Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5qFx19zwAAAAJAb-Jf",
+              "createdAt": "2023-06-28T23:32:18Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+                "name": "t-meta"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5qFx19zwAAAAJAb-Jj",
+              "createdAt": "2023-06-28T23:32:18Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5qFx19zwAAAAJAdgZT",
+              "createdAt": "2023-06-29T00:58:18Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "487b09890f3dc3c5be83261056ac279a878c606b"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c5qFx19zwAAAAJAlend",
+              "createdAt": "2023-06-29T07:13:48Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjIzNTMwNw==",
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c5qFx19zwAAAAJAlenx",
+              "createdAt": "2023-06-29T07:13:48Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjE2ODg1MzM=",
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c5qFx19zwAAAAJAlen4",
+              "createdAt": "2023-06-29T07:13:48Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjczNzYwMTI=",
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "__typename": "ReviewRequestedEvent",
+              "id": "RRE_lADOFcwZ1c5qFx19zwAAAAJAleoC",
+              "createdAt": "2023-06-29T07:13:48Z",
+              "requestedReviewer": {
+                "id": "MDQ6VXNlcjI1MzE2MTYy",
+                "login": "hrmacbeth"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5gHj7a",
+              "createdAt": "2023-06-29T08:04:05Z",
+              "body": "Are these the same fixes as #5528?",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5gH7UX",
+              "createdAt": "2023-06-29T09:18:16Z",
+              "body": "@alexjbest, I think these fixes are slightly better (using telescoping), so I'd prefer to go with this one. I think the tests here cover the new tests in #5528.\r\n\r\nSorry I didn't see it earlier. (My github inbox is out of control and I rely on the #queue.)",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5gIWmL",
+              "createdAt": "2023-06-29T10:23:51Z",
+              "body": "I like the idea of using telescoping, it's much cleaner of course, but manually skipping loose bvars did have a strong motivation. How does your implementation handle expressions with a variable under the binder though, seeing as rw can't handle them returning those matches and trying rw with them won't work as the rw will fail. How about we also try simp_rw and return that as a suggestion too in that case (we will need to check that simp_rw actually did something)",
+              "author": {
+                "login": "alexjbest"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5gIoFE",
+              "createdAt": "2023-06-29T10:52:35Z",
+              "body": "Am I correct that `getSubexpressionMatches` will operate multiple times on identical subexpressions that occur multiple times in `e` (and hence will be exponentially slower than a tactic that would only operate on each subexpression once)? \r\nIf so, maybe there should be a note/todo for that (I don't know a good solution, because `memoFix` doesn't accept monadic operations). I don't know the logic of `rw?` to understand if this is a big performance problem.\r\n\r\nIn any case, LGTM.",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5gI_io",
+              "createdAt": "2023-06-29T11:37:40Z",
+              "body": "Yes, `getSubexpressionMatches` will not skip repeated subexpressions. I'll add a note.",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5gJAUH",
+              "createdAt": "2023-06-29T11:38:42Z",
+              "body": "@alexjbest, I put in some tests to check that at least in limited conditions it can rewrite both in binders and body. However I didn't attempt any cases where `rw` would fail but `simp_rw` would succeed. Let's put that (excellent idea) off for a separate PR, however.",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "33b2fb3ac8c21789431863588c35057696f2866c"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5gLsLy",
+              "createdAt": "2023-06-29T19:22:16Z",
+              "body": "I had to convince myself that `getSubexpressionMatches` is OK, but the only issue as far as `rw` goes is that it allows lemmas that might only apply to subexpressions with bound variables. We could be more careful with filtering, but it might not be worth it (who knows, it could be slower overall to do the filtering than have the occasional inapplicable rw lemma). I'm sure there will be future improvements, but for now\r\n\r\nbors merge",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5qFx19zwAAAAJBAxjZ",
+              "createdAt": "2023-06-29T19:22:28Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5qFx19zwAAAAJBAxln",
+              "createdAt": "2023-06-29T19:22:29Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5gMIkF",
+              "createdAt": "2023-06-29T20:50:39Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5415925121/jobs/9844917187)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5415925121/jobs/9844917480)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5415925121/jobs/9844917603)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5qFx19zwAAAAJBD7WX",
+              "createdAt": "2023-06-29T20:50:40Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5qFx19zwAAAAJBD7gL",
+              "createdAt": "2023-06-29T20:50:44Z"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
