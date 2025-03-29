@@ -1,0 +1,1533 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 1690,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "urkud"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "---\n<!-- The text above the `---` will become the commit message when your\nPR is merged. Please leave a blank newline before the `---`, otherwise\nGitHub will format the text above it as a title.\n\nTo indicate co-authors, include lines at the bottom of the commit message\n(that is, before the `---`) using the following format:\n\nCo-authored-by: Author Name <author@email.com>\n\nAny other comments you want to keep out of the PR commit should go\nbelow the `---`, and placed outside this HTML comment, or else they\nwill be invisible to reviewers.\n\nIf this PR depends on other PRs, please list them below this comment,\nusing the following format:\n- [ ] depends on: #abc [optional extra text]\n- [ ] depends on: #xyz [optional extra text]\n-->\n\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)",
+        "changedFiles": 3,
+        "closed": true,
+        "closedAt": "2023-06-21T16:11:49Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5efJn2",
+              "body": "Ah, I wasn't paying attention and also started on this. Only got as far as the second theorem, though:\r\n```diff\r\n--- Mathlib/Analysis/Convolution.lean\r\n+++ Mathlib/Analysis/Convolution.lean\r\n@@ -123,13 +123,17 @@ variable [AddGroup G] [TopologicalSpace G]\r\n theorem convolution_integrand_bound_right_of_le_of_subset {C : ℝ} (hC : ∀ i, ‖g i‖ ≤ C) {x t : G}\r\n     {s u : Set G} (hx : x ∈ s) (hu : -tsupport g + s ⊆ u) :\r\n     ‖L (f t) (g (x - t))‖ ≤ u.indicator (fun t => ‖L‖ * ‖f t‖ * C) t := by\r\n-  refine' le_indicator (fun t ht => _) (fun t ht => _) t\r\n+  -- Porting note: added `suffices`\r\n+  suffices (fun t => ‖(L (f t)) (g (x - t))‖) ≤ indicator u (fun t ↦ ‖L‖ * ‖f t‖ * C) by\r\n+    apply this t\r\n+  refine' le_indicator (fun t _ => _) (fun t ht => _)\r\n   · refine' (L.le_op_norm₂ _ _).trans _\r\n-    apply mul_le_mul_of_nonneg_left (hC _) (mul_nonneg (norm_nonneg _) (norm_nonneg _))\r\n+    apply mul_le_mul_of_nonneg_left (hC _) (mul_nonneg (norm_nonneg L) (norm_nonneg _))\r\n   · have : x - t ∉ support g := by\r\n       refine' mt (fun hxt => _) ht\r\n       apply hu\r\n-      refine' ⟨_, _, set.neg_mem_neg.mpr (subset_closure hxt), hx, _⟩\r\n+      refine' ⟨_, _, Set.neg_mem_neg.mpr (subset_closure hxt), hx, _⟩\r\n+      simp only\r\n       rw [neg_sub, sub_add_cancel]\r\n     rw [nmem_support.mp this, (L _).map_zero, norm_zero]\r\n #align convolution_integrand_bound_right_of_le_of_subset convolution_integrand_bound_right_of_le_of_subset\r\n@@ -137,8 +141,8 @@ theorem convolution_integrand_bound_right_of_le_of_subset {C : ℝ} (hC : ∀ i,\r\n theorem HasCompactSupport.convolution_integrand_bound_right_of_subset (hcg : HasCompactSupport g)\r\n     (hg : Continuous g) {x t : G} {s u : Set G} (hx : x ∈ s) (hu : -tsupport g + s ⊆ u) :\r\n     ‖L (f t) (g (x - t))‖ ≤ u.indicator (fun t => ‖L‖ * ‖f t‖ * ⨆ i, ‖g i‖) t := by\r\n-  apply convolution_integrand_bound_right_of_le_of_subset _ (fun i => _) hx hu\r\n-  exact le_ciSup (hg.norm.bdd_above_range_of_has_compact_support hcg.norm) _\r\n+  refine convolution_integrand_bound_right_of_le_of_subset _ (fun i => ?_) hx hu\r\n+  exact le_ciSup (hg.norm.bddAbove_range_of_hasCompactSupport hcg.norm) _\r\n #align has_compact_support.convolution_integrand_bound_right_of_subset HasCompactSupport.convolution_integrand_bound_right_of_subset\r\n \r\n theorem HasCompactSupport.convolution_integrand_bound_right (hcg : HasCompactSupport g)\r\n```",
+              "createdAt": "2023-06-09T23:03:33Z",
+              "author": {
+                "login": "Ruben-VandeVelde"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5efXb7",
+              "body": "@Ruben-VandeVelde After a few merge conflicts, I started pushing to github & opening a PR right after running `start_port.sh`.",
+              "createdAt": "2023-06-09T23:38:55Z",
+              "author": {
+                "login": "urkud"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5e-uR8",
+              "body": "This file is incredibly slow since [`MeasureTheory.Measure`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Measure/MeasureSpaceDef.html#MeasureTheory.Measure) is overloaded with [`Measure`](https://leanprover-community.github.io/mathlib4_docs/Init/WF.html#Measure), that alone probably adds multiple minutes of compile time in this file.",
+              "createdAt": "2023-06-15T17:54:02Z",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5e-w67",
+              "body": "What should we do? Introduce `local notation \"Measure\" := MeasureTheory.Measure`? Something else? Ask core devs to add a namespace to `_root_.Measure`? (is it an option?)",
+              "createdAt": "2023-06-15T18:03:01Z",
+              "author": {
+                "login": "urkud"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5e-y7p",
+              "body": "I started https://leanprover.zulipchat.com/#narrow/stream/287929-mathlib4/topic/Measure.20is.20overloaded/near/366584965",
+              "createdAt": "2023-06-15T18:09:54Z",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5e-zvk",
+              "body": "`local notation \"Measure\" => MeasureTheory.Measure` would be nice, but it doesn't work. It still considers `_root_.Measure`. I think as a workaround I'll just search-and-replace `Measure` to `MeasureTheory.Measure` (with a porting note).",
+              "createdAt": "2023-06-15T18:12:52Z",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5fbgod",
+              "body": "bors r+",
+              "createdAt": "2023-06-21T15:22:07Z",
+              "author": {
+                "login": "ChrisHughes24"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5fb2Gh",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5336053774/jobs/9670168360)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5336053774/jobs/9670168772)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5336053774/jobs/9670168946)",
+              "createdAt": "2023-06-21T16:11:48Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "4a2250ad864afa5e2cf2206abab393abd4850b21",
+                "additions": 0,
+                "deletions": 0,
+                "committedDate": "2023-06-10T23:44:49Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "759fad55a59661f6cccc844c449321a82d29f542",
+                "additions": 1809,
+                "deletions": 0,
+                "committedDate": "2023-06-10T23:44:49Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4d109de2aa7e4b156920a5b8622d32cdb83d9049",
+                "additions": 82,
+                "deletions": 155,
+                "committedDate": "2023-06-10T23:45:04Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "4cbd5154da1be37157b63314229f6c374949ab81",
+                "additions": 79,
+                "deletions": 91,
+                "committedDate": "2023-06-10T23:45:06Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ebcb65d2165c4758f860abfe2a34a76b8f2b7383",
+                "additions": 67,
+                "deletions": 82,
+                "committedDate": "2023-06-10T23:45:06Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7e6a0d98c49cce6e21e8d03c38cba8090f453dde",
+                "additions": 12,
+                "deletions": 2,
+                "committedDate": "2023-06-11T02:15:03Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "16c2e13d3aa1f25f894946d688901d561789296c",
+                "additions": 116,
+                "deletions": 158,
+                "committedDate": "2023-06-11T02:15:58Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "756ac6f9ca389e3c2b4734055e772cb3fef5d09f",
+                "additions": 58,
+                "deletions": 66,
+                "committedDate": "2023-06-11T17:10:03Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3c0e6c8ec022a87ac30f44e4304da9c0332c6b6e",
+                "additions": 48,
+                "deletions": 34,
+                "committedDate": "2023-06-11T21:43:32Z",
+                "author": {
+                  "name": "Antoine Chambert-Loir",
+                  "email": "antoine.chambert-loir@math.univ-paris-diderot.fr"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f01b8f8e031dab99b60117944542c98d83470bc8",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-06-12T01:06:58Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ee6c9fc214324cdc79470f55058d002f42997e02",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-06-12T05:14:50Z",
+                "author": {
+                  "name": "Antoine Chambert-Loir",
+                  "email": "antoine.chambert-loir@math.univ-paris-diderot.fr"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d2cba8784d44de93d9483e0b16a81ada77e6b009",
+                "additions": 0,
+                "deletions": 9,
+                "committedDate": "2023-06-14T22:17:56Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "5cacb3bc0a763354901185dd8dcc9f151922ad37",
+                "additions": 23,
+                "deletions": 9,
+                "committedDate": "2023-06-15T12:36:25Z",
+                "author": {
+                  "name": "Ruben Van de Velde",
+                  "email": "65514131+Ruben-VandeVelde@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "ec84c1e915367ce7b017119793d8a310e3485679",
+                "additions": 3,
+                "deletions": 3,
+                "committedDate": "2023-06-15T12:42:37Z",
+                "author": {
+                  "name": "Ruben Van de Velde",
+                  "email": "65514131+Ruben-VandeVelde@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d3bafd70554caa251e315f3aebc526acb111ddea",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-06-15T12:51:40Z",
+                "author": {
+                  "name": "Ruben Van de Velde",
+                  "email": "65514131+Ruben-VandeVelde@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3b07e7588cdf06ba22744c4d167c109ecec78fb6",
+                "additions": 2,
+                "deletions": 2,
+                "committedDate": "2023-06-15T13:12:50Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "9e0ff2ad6b0b2c227d1fef8a07e7bbc94f845aa4",
+                "additions": 7,
+                "deletions": 6,
+                "committedDate": "2023-06-15T14:19:39Z",
+                "author": {
+                  "name": "Ruben Van de Velde",
+                  "email": "65514131+Ruben-VandeVelde@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "23a8599d7babb53ffb82b1eb3401792ecd531bff",
+                "additions": 26,
+                "deletions": 26,
+                "committedDate": "2023-06-15T14:36:54Z",
+                "author": {
+                  "name": "Ruben Van de Velde",
+                  "email": "65514131+Ruben-VandeVelde@users.noreply.github.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "738f72e33222ac989cf3efff865e0816144e7d4f",
+                "additions": 1,
+                "deletions": 2,
+                "committedDate": "2023-06-15T18:23:52Z",
+                "author": {
+                  "name": "Floris van Doorn",
+                  "email": "fpvdoorn@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "8cb7117aae3aa8d3c4730da58a59352d3b500b14",
+                "additions": 18,
+                "deletions": 14,
+                "committedDate": "2023-06-15T18:26:49Z",
+                "author": {
+                  "name": "Floris van Doorn",
+                  "email": "fpvdoorn@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c01c7230eede099d9a4a2f2d75845a340cd5074a",
+                "additions": 0,
+                "deletions": 1,
+                "committedDate": "2023-06-16T17:01:09Z",
+                "author": {
+                  "name": "Jeremy Tan Jie Rui",
+                  "email": "reddeloostw@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "03547180ed1ad5faf9435e72b708ccfdcde508aa",
+                "additions": 1,
+                "deletions": 0,
+                "committedDate": "2023-06-18T22:29:06Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d6fcf95826150bb8091cb1284927b5b76b5f969a",
+                "additions": 50606,
+                "deletions": 4425,
+                "committedDate": "2023-06-18T22:29:13Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0995a08bacf2388e8f2ac0efd6506d313fb2270e",
+                "additions": 3073,
+                "deletions": 117,
+                "committedDate": "2023-06-18T22:29:31Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "215df2910e7ad9a173f0f6e7454a21fe371bc399",
+                "additions": 5,
+                "deletions": 5,
+                "committedDate": "2023-06-18T22:32:30Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "fcf1e7966ee95a7c984ba92a537a06fd27169151",
+                "additions": 18572,
+                "deletions": 1623,
+                "committedDate": "2023-06-21T04:21:33Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "68b4ba337c04ce998f2854d5e8d4d82eaf403fde",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-06-21T14:19:00Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "702e430e6741d07f083bcd77581a48069b8632c5",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-06-21T14:27:22Z",
+                "author": {
+                  "name": "Jeremy Tan Jie Rui",
+                  "email": "reddeloostw@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0abb70e760db457dbef7ba0f6a6745d7cda590d4",
+                "additions": 4,
+                "deletions": 11,
+                "committedDate": "2023-06-21T14:55:19Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "404ee359c9bf30e9916a8d550d893afe3875241f",
+                "additions": 8,
+                "deletions": 9,
+                "committedDate": "2023-06-21T14:55:19Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "a519f426827bf42b6eab9953c072c5eda4d47025",
+                "additions": 6,
+                "deletions": 2,
+                "committedDate": "2023-06-21T15:09:35Z",
+                "author": {
+                  "name": "Yury G. Kudryashov",
+                  "email": "urkud@urkud.name"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-06-09T22:49:24Z",
+        "deletions": 2,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Analysis/Convolution.lean",
+              "additions": 1677,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Analysis/NormedSpace/OperatorNorm.lean",
+              "additions": 12,
+              "deletions": 2
+            }
+          ]
+        },
+        "headRefName": "port/Analysis.Convolution",
+        "headRefOid": "a519f426827bf42b6eab9953c072c5eda4d47025",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5SqRFz",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHdNnVg",
+              "color": "006B75",
+              "name": "mathlib-port"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5YtUsR",
+              "body": "LGTM, if all other review comments are also addressed.",
+              "state": "COMMENTED",
+              "author": {
+                "login": "fpvandoorn"
+              },
+              "submittedAt": "2023-06-20T14:20:12Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Yc1m5",
+              "body": "Looks mostly good to me aside from the comments below (and Floris' naming suggestion). Is the file fast enough now with the `MeasureTheory.Measure` change?",
+              "state": "COMMENTED",
+              "author": {
+                "login": "j-loreaux"
+              },
+              "submittedAt": "2023-06-16T17:02:30Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Yc4A8",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Parcly-Taxel"
+              },
+              "submittedAt": "2023-06-16T17:00:43Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 4929,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5YToZn",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "urkud"
+              },
+              "submittedAt": "2023-06-15T13:12:43Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5YVyAX",
+              "body": "I didn't finish the review yet, but I pushed some changes. The `MeasureTheory.Measure` fix speeds the file up by much more than 2x.",
+              "state": "COMMENTED",
+              "author": {
+                "login": "fpvandoorn"
+              },
+              "submittedAt": "2023-06-15T18:27:41Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5YWMe7",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "urkud"
+              },
+              "submittedAt": "2023-06-15T18:57:54Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Yc1Eo",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "j-loreaux"
+              },
+              "submittedAt": "2023-06-16T16:54:10Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Yc4A8",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "Parcly-Taxel"
+              },
+              "submittedAt": "2023-06-16T17:00:43Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Yc1m5",
+              "body": "Looks mostly good to me aside from the comments below (and Floris' naming suggestion). Is the file fast enough now with the `MeasureTheory.Measure` change?",
+              "state": "COMMENTED",
+              "author": {
+                "login": "j-loreaux"
+              },
+              "submittedAt": "2023-06-16T17:02:30Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Ygcyo",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "urkud"
+              },
+              "submittedAt": "2023-06-17T21:22:21Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Yho-v",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "urkud"
+              },
+              "submittedAt": "2023-06-18T22:33:11Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Yho_w",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "urkud"
+              },
+              "submittedAt": "2023-06-18T22:33:44Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5YhpBo",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "urkud"
+              },
+              "submittedAt": "2023-06-18T22:34:47Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5YhpTm",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "urkud"
+              },
+              "submittedAt": "2023-06-18T22:42:01Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5YtUsR",
+              "body": "LGTM, if all other review comments are also addressed.",
+              "state": "COMMENTED",
+              "author": {
+                "login": "fpvandoorn"
+              },
+              "submittedAt": "2023-06-20T14:20:12Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Y3asX",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "urkud"
+              },
+              "submittedAt": "2023-06-21T14:29:28Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5Y3bCy",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "urkud"
+              },
+              "submittedAt": "2023-06-21T14:30:05Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JX3fM",
+                    "body": "```suggestion\r\n    AEStronglyMeasurable (uncurry fun x y => L₃ (f y) (L₄ (g x) (k (x₀ - y - x))))\r\n      (μ.prod ν) := by\r\n```",
+                    "createdAt": "2023-06-15T13:12:42Z",
+                    "author": {
+                      "login": "urkud"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JZPCL",
+                    "body": "I prefer `le_of_op_norm_le_of_le2` or `le_of_op_norm_le_of_le_of_le` or something. There is no \"le_op_norm\" in this lemma. (Also: will we ever do anything with this porting note?)",
+                    "createdAt": "2023-06-15T17:39:45Z",
+                    "author": {
+                      "login": "fpvandoorn"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JZgxO",
+                    "body": "I agree about the name. The note says that we didn't loose `#align`. Someone asked me to add a note like this when I was porting another file, so I started adding them.",
+                    "createdAt": "2023-06-15T18:57:53Z",
+                    "author": {
+                      "login": "urkud"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JhCMw",
+                    "body": "I renamed to `le_of_op_norm₂_le_of_le`. Feel free to rename again.",
+                    "createdAt": "2023-06-18T22:33:11Z",
+                    "author": {
+                      "login": "urkud"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JdoSD",
+                    "body": "I don't know what this line is doing here.\r\n```suggestion\r\n-- · exact K'.indicator fun t => ‖L'‖ * ‖f t‖ * ⨆ x, ‖fderiv 𝕜 g x‖\r\n```",
+                    "createdAt": "2023-06-16T16:54:09Z",
+                    "author": {
+                      "login": "j-loreaux"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JhCNs",
+                    "body": "I guess, an edit artifact.",
+                    "createdAt": "2023-06-18T22:33:44Z",
+                    "author": {
+                      "login": "urkud"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JdoqE",
+                    "body": "At the very least this should have a porting note, even if this increase seems reasonable for this declaration.",
+                    "createdAt": "2023-06-16T16:55:17Z",
+                    "author": {
+                      "login": "j-loreaux"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JhCPT",
+                    "body": "@Ruben-VandeVelde added this line. Redirecting.",
+                    "createdAt": "2023-06-18T22:34:46Z",
+                    "author": {
+                      "login": "urkud"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JdpQc",
+                    "body": "What universe problem? There is not enough context in this porting note. Also, what is the purpose of the commented lines? Is this just to indicate what the old code was? Please indicate if so.",
+                    "createdAt": "2023-06-16T16:57:40Z",
+                    "author": {
+                      "login": "j-loreaux"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JvMM2",
+                    "body": "No longer needed, reverted.",
+                    "createdAt": "2023-06-21T14:30:05Z",
+                    "author": {
+                      "login": "urkud"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JdpWd",
+                    "body": "Still, or is this now fixed?",
+                    "createdAt": "2023-06-16T16:58:02Z",
+                    "author": {
+                      "login": "j-loreaux"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JdplH",
+                    "body": "Is this still an issue? If so, needs `porting note:`",
+                    "createdAt": "2023-06-16T16:59:00Z",
+                    "author": {
+                      "login": "j-loreaux"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JhCag",
+                    "body": "Merged `master`, waiting for the CI.",
+                    "createdAt": "2023-06-18T22:42:01Z",
+                    "author": {
+                      "login": "urkud"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JdqPS",
+                    "body": "```suggestion\r\n```",
+                    "createdAt": "2023-06-16T17:00:43Z",
+                    "author": {
+                      "login": "Parcly-Taxel"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JdqQY",
+                    "body": "that's because the tactic isn't ported right? Please indicate that instead if so.",
+                    "createdAt": "2023-06-16T17:00:49Z",
+                    "author": {
+                      "login": "j-loreaux"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JgCMl",
+                    "body": "No, it seems that `set` works differently in Lean 4 and `borelize` doesn't support it. UPD: looks like a bug in `borelize`, see [Zulip](https://leanprover.zulipchat.com/#narrow/stream/287929-mathlib4/topic/bug.20in.20.60borelize.60).",
+                    "createdAt": "2023-06-17T21:22:20Z",
+                    "author": {
+                      "login": "urkud"
+                    }
+                  },
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JvL-i",
+                    "body": "Merged `master`, works now.",
+                    "createdAt": "2023-06-21T14:29:28Z",
+                    "author": {
+                      "login": "urkud"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Jodu1",
+                    "body": "```suggestion\r\ntheorem integral_posConvolution [CompleteSpace E] [CompleteSpace E']\r\n```\r\n(I know the statement doesn't actually mention `posConvolution`, though it should).",
+                    "createdAt": "2023-06-20T14:19:46Z",
+                    "author": {
+                      "login": "fpvandoorn"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjE4ODgxMw==",
+              "login": "urkud"
+            },
+            {
+              "id": "MDQ6VXNlcjY1NTE0MTMx",
+              "login": "Ruben-VandeVelde"
+            },
+            {
+              "id": "MDQ6VXNlcjczNzYwMTI=",
+              "login": "fpvandoorn"
+            },
+            {
+              "id": "MDQ6VXNlcjMzODQ3Njg2",
+              "login": "ChrisHughes24"
+            },
+            {
+              "id": "MDQ6VXNlcjg5MjA1OTg=",
+              "login": "j-loreaux"
+            },
+            {
+              "id": "MDQ6VXNlcjU0MTc1NDYz",
+              "login": "Parcly-Taxel"
+            },
+            {
+              "id": "MDQ6VXNlcjQ3Nzk1Ng==",
+              "login": "kim-em"
+            },
+            {
+              "id": "MDQ6VXNlcjE0MDYwODgz",
+              "login": "PatrickMassot"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat: port Analysis.Convolution",
+        "updatedAt": "2023-06-21T16:11:54Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/4929",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5efJn2",
+              "createdAt": "2023-06-09T23:03:33Z",
+              "body": "Ah, I wasn't paying attention and also started on this. Only got as far as the second theorem, though:\r\n```diff\r\n--- Mathlib/Analysis/Convolution.lean\r\n+++ Mathlib/Analysis/Convolution.lean\r\n@@ -123,13 +123,17 @@ variable [AddGroup G] [TopologicalSpace G]\r\n theorem convolution_integrand_bound_right_of_le_of_subset {C : ℝ} (hC : ∀ i, ‖g i‖ ≤ C) {x t : G}\r\n     {s u : Set G} (hx : x ∈ s) (hu : -tsupport g + s ⊆ u) :\r\n     ‖L (f t) (g (x - t))‖ ≤ u.indicator (fun t => ‖L‖ * ‖f t‖ * C) t := by\r\n-  refine' le_indicator (fun t ht => _) (fun t ht => _) t\r\n+  -- Porting note: added `suffices`\r\n+  suffices (fun t => ‖(L (f t)) (g (x - t))‖) ≤ indicator u (fun t ↦ ‖L‖ * ‖f t‖ * C) by\r\n+    apply this t\r\n+  refine' le_indicator (fun t _ => _) (fun t ht => _)\r\n   · refine' (L.le_op_norm₂ _ _).trans _\r\n-    apply mul_le_mul_of_nonneg_left (hC _) (mul_nonneg (norm_nonneg _) (norm_nonneg _))\r\n+    apply mul_le_mul_of_nonneg_left (hC _) (mul_nonneg (norm_nonneg L) (norm_nonneg _))\r\n   · have : x - t ∉ support g := by\r\n       refine' mt (fun hxt => _) ht\r\n       apply hu\r\n-      refine' ⟨_, _, set.neg_mem_neg.mpr (subset_closure hxt), hx, _⟩\r\n+      refine' ⟨_, _, Set.neg_mem_neg.mpr (subset_closure hxt), hx, _⟩\r\n+      simp only\r\n       rw [neg_sub, sub_add_cancel]\r\n     rw [nmem_support.mp this, (L _).map_zero, norm_zero]\r\n #align convolution_integrand_bound_right_of_le_of_subset convolution_integrand_bound_right_of_le_of_subset\r\n@@ -137,8 +141,8 @@ theorem convolution_integrand_bound_right_of_le_of_subset {C : ℝ} (hC : ∀ i,\r\n theorem HasCompactSupport.convolution_integrand_bound_right_of_subset (hcg : HasCompactSupport g)\r\n     (hg : Continuous g) {x t : G} {s u : Set G} (hx : x ∈ s) (hu : -tsupport g + s ⊆ u) :\r\n     ‖L (f t) (g (x - t))‖ ≤ u.indicator (fun t => ‖L‖ * ‖f t‖ * ⨆ i, ‖g i‖) t := by\r\n-  apply convolution_integrand_bound_right_of_le_of_subset _ (fun i => _) hx hu\r\n-  exact le_ciSup (hg.norm.bdd_above_range_of_has_compact_support hcg.norm) _\r\n+  refine convolution_integrand_bound_right_of_le_of_subset _ (fun i => ?_) hx hu\r\n+  exact le_ciSup (hg.norm.bddAbove_range_of_hasCompactSupport hcg.norm) _\r\n #align has_compact_support.convolution_integrand_bound_right_of_subset HasCompactSupport.convolution_integrand_bound_right_of_subset\r\n \r\n theorem HasCompactSupport.convolution_integrand_bound_right (hcg : HasCompactSupport g)\r\n```",
+              "author": {
+                "login": "Ruben-VandeVelde"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5oV75xzwAAAAI1lO3j",
+              "createdAt": "2023-06-09T23:27:10Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5efXb7",
+              "createdAt": "2023-06-09T23:38:55Z",
+              "body": "@Ruben-VandeVelde After a few merge conflicts, I started pushing to github & opening a PR right after running `start_port.sh`.",
+              "author": {
+                "login": "urkud"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5oV75xzwAAAAI1sdFI",
+              "createdAt": "2023-06-10T12:40:09Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4a2250ad864afa5e2cf2206abab393abd4850b21"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "759fad55a59661f6cccc844c449321a82d29f542"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4d109de2aa7e4b156920a5b8622d32cdb83d9049"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "4cbd5154da1be37157b63314229f6c374949ab81"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ebcb65d2165c4758f860abfe2a34a76b8f2b7383"
+              }
+            },
+            {
+              "__typename": "HeadRefForcePushedEvent",
+              "id": "HRFPE_lADOFcwZ1c5oV75xzwAAAAI1wuS-",
+              "createdAt": "2023-06-10T23:45:13Z"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7e6a0d98c49cce6e21e8d03c38cba8090f453dde"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "16c2e13d3aa1f25f894946d688901d561789296c"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "756ac6f9ca389e3c2b4734055e772cb3fef5d09f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3c0e6c8ec022a87ac30f44e4304da9c0332c6b6e"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5oV75xzwAAAAI1_hZ6",
+              "createdAt": "2023-06-11T22:20:14Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHdNnVg",
+                "name": "mathlib-port"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f01b8f8e031dab99b60117944542c98d83470bc8"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ee6c9fc214324cdc79470f55058d002f42997e02"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5oV75xzwAAAAI4QVU4",
+              "createdAt": "2023-06-14T22:12:03Z",
+              "label": {
+                "id": "MDU6TGFiZWwyOTg0NTM0NDU0",
+                "name": "help-wanted"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d2cba8784d44de93d9483e0b16a81ada77e6b009"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "5cacb3bc0a763354901185dd8dcc9f151922ad37"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "ec84c1e915367ce7b017119793d8a310e3485679"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d3bafd70554caa251e315f3aebc526acb111ddea"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5YToZn",
+              "createdAt": "2023-06-15T13:12:42Z",
+              "body": "",
+              "author": {
+                "login": "urkud"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3b07e7588cdf06ba22744c4d167c109ecec78fb6"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "9e0ff2ad6b0b2c227d1fef8a07e7bbc94f845aa4"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5oV75xzwAAAAI4s3Fy",
+              "createdAt": "2023-06-15T14:25:12Z",
+              "label": {
+                "id": "MDU6TGFiZWwyOTg0NTM0NDU0",
+                "name": "help-wanted"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5oV75xzwAAAAI4s3GD",
+              "createdAt": "2023-06-15T14:25:12Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5oV75xzwAAAAI4s3GO",
+              "createdAt": "2023-06-15T14:25:12Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5oV75xzwAAAAI4tUFj",
+              "createdAt": "2023-06-15T14:35:01Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKteTVQ",
+                "name": "awaiting-CI"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "23a8599d7babb53ffb82b1eb3401792ecd531bff"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5e-uR8",
+              "createdAt": "2023-06-15T17:54:02Z",
+              "body": "This file is incredibly slow since [`MeasureTheory.Measure`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Measure/MeasureSpaceDef.html#MeasureTheory.Measure) is overloaded with [`Measure`](https://leanprover-community.github.io/mathlib4_docs/Init/WF.html#Measure), that alone probably adds multiple minutes of compile time in this file.",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5e-w67",
+              "createdAt": "2023-06-15T18:03:01Z",
+              "body": "What should we do? Introduce `local notation \"Measure\" := MeasureTheory.Measure`? Something else? Ask core devs to add a namespace to `_root_.Measure`? (is it an option?)",
+              "author": {
+                "login": "urkud"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5e-y7p",
+              "createdAt": "2023-06-15T18:09:54Z",
+              "body": "I started https://leanprover.zulipchat.com/#narrow/stream/287929-mathlib4/topic/Measure.20is.20overloaded/near/366584965",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5e-zvk",
+              "createdAt": "2023-06-15T18:12:52Z",
+              "body": "`local notation \"Measure\" => MeasureTheory.Measure` would be nice, but it doesn't work. It still considers `_root_.Measure`. I think as a workaround I'll just search-and-replace `Measure` to `MeasureTheory.Measure` (with a porting note).",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "738f72e33222ac989cf3efff865e0816144e7d4f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "8cb7117aae3aa8d3c4730da58a59352d3b500b14"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5YVyAX",
+              "createdAt": "2023-06-15T17:39:45Z",
+              "body": "I didn't finish the review yet, but I pushed some changes. The `MeasureTheory.Measure` fix speeds the file up by much more than 2x.",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "__typename": "CrossReferencedEvent",
+              "id": "CRE_kwDOFcwZ1c5NHrLt",
+              "createdAt": "2023-06-16T12:32:27Z",
+              "source": {
+                "id": "PR_kwDOFcwZ1c5TL9IC",
+                "title": "[Merged by Bors] - feat: port Probability.Kernel.IntegralCompProd",
+                "url": "https://github.com/leanprover-community/mathlib4/pull/5140"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5Yc1Eo",
+              "createdAt": "2023-06-16T16:54:09Z",
+              "body": "",
+              "author": {
+                "login": "j-loreaux"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5Yc4A8",
+              "createdAt": "2023-06-16T17:00:43Z",
+              "body": "",
+              "author": {
+                "login": "Parcly-Taxel"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c01c7230eede099d9a4a2f2d75845a340cd5074a"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5Yc1m5",
+              "createdAt": "2023-06-16T16:55:17Z",
+              "body": "Looks mostly good to me aside from the comments below (and Floris' naming suggestion). Is the file fast enough now with the `MeasureTheory.Measure` change?",
+              "author": {
+                "login": "j-loreaux"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5oV75xzwAAAAI5iBz_",
+              "createdAt": "2023-06-16T19:34:39Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5oV75xzwAAAAI5iB0J",
+              "createdAt": "2023-06-16T19:34:39Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "03547180ed1ad5faf9435e72b708ccfdcde508aa"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d6fcf95826150bb8091cb1284927b5b76b5f969a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0995a08bacf2388e8f2ac0efd6506d313fb2270e"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "215df2910e7ad9a173f0f6e7454a21fe371bc399"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5oV75xzwAAAAI65Zbn",
+              "createdAt": "2023-06-20T10:48:55Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5YtUsR",
+              "createdAt": "2023-06-20T14:19:46Z",
+              "body": "LGTM, if all other review comments are also addressed.",
+              "author": {
+                "login": "fpvandoorn"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "fcf1e7966ee95a7c984ba92a537a06fd27169151"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5oV75xzwAAAAI7dfGi",
+              "createdAt": "2023-06-21T04:23:00Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABIFoUmw",
+                "name": "merge-conflict"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "68b4ba337c04ce998f2854d5e8d4d82eaf403fde"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "702e430e6741d07f083bcd77581a48069b8632c5"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0abb70e760db457dbef7ba0f6a6745d7cda590d4"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "404ee359c9bf30e9916a8d550d893afe3875241f"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "a519f426827bf42b6eab9953c072c5eda4d47025"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5oV75xzwAAAAI76f2D",
+              "createdAt": "2023-06-21T15:10:21Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7P265b",
+                "name": "awaiting-author"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5oV75xzwAAAAI76f2N",
+              "createdAt": "2023-06-21T15:10:21Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5fbgod",
+              "createdAt": "2023-06-21T15:22:07Z",
+              "body": "bors r+",
+              "author": {
+                "login": "ChrisHughes24"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5oV75xzwAAAAI77L71",
+              "createdAt": "2023-06-21T15:24:21Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5oV75xzwAAAAI77L_2",
+              "createdAt": "2023-06-21T15:24:22Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5fb2Gh",
+              "createdAt": "2023-06-21T16:11:48Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5336053774/jobs/9670168360)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5336053774/jobs/9670168772)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5336053774/jobs/9670168946)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5oV75xzwAAAAI79Uw8",
+              "createdAt": "2023-06-21T16:11:49Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5oV75xzwAAAAI79VAv",
+              "createdAt": "2023-06-21T16:11:54Z"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
