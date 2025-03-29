@@ -1,0 +1,874 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "additions": 542,
+        "assignees": {
+          "nodes": []
+        },
+        "author": {
+          "login": "kmill"
+        },
+        "autoMergeRequest": null,
+        "baseRefName": "master",
+        "body": "The `variable?` command is like `variable`, but whenever there is an unsatisfied typeclass problem, it inserts this problem as a new instance argument and continues.\r\n\r\nFor example, if you write\r\n```\r\nvariable? [Module R M]\r\n```\r\nthen, assuming there are no other instances in scope, it's as if you wrote\r\n```\r\nvariable [Semiring R] [AddCommMonoid M] [Module R M]\r\n```\r\nIt will not include instances that can be deduced from others in scope.\r\n\r\nIt can handle parameterized instances:\r\n```\r\nvariable? (f : α → Type) [(i : α) → Module R (f i)]\r\n```\r\n\r\nThere are some inherent limitations with this system. The main one is that internally variables are stored as Syntax objects, so whenever `variables?` discovers a missing instance argument, it has to pretty print it. If pretty printing does not round trip (for instance due to implicit arguments) then the command might fail.\r\n\r\nAs a safeguard against changes in the typeclass hierarchy, the command suggests replacing itself with a version that includes the expanded binders list, for example\r\n```\r\nvariable? [Module R M] =>\r\n  [Semiring R] [AddCommMonoid M] [Module R M]\r\n```\r\nThis expanded list is elaborated separately for a defeq check on the resulting contexts. If the short version is not wanted, one can always replace everything up to and including the `=>` with `variable`.\r\n\r\n---\r\n<!-- The text above the `---` will become the commit message when your\r\nPR is merged. Please leave a blank newline before the `---`, otherwise\r\nGitHub will format the text above it as a title.\r\n\r\nTo indicate co-authors, include lines at the bottom of the commit message\r\n(that is, before the `---`) using the following format:\r\n\r\nCo-authored-by: Author Name <author@email.com>\r\n\r\nAny other comments you want to keep out of the PR commit should go\r\nbelow the `---`, and placed outside this HTML comment, or else they\r\nwill be invisible to reviewers.\r\n\r\nIf this PR depends on other PRs, please list them below this comment,\r\nusing the following format:\r\n- [ ] depends on: #abc [optional extra text]\r\n- [ ] depends on: #xyz [optional extra text]\r\n-->\r\n\r\n[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/from-referrer/)\r\n",
+        "changedFiles": 4,
+        "closed": true,
+        "closedAt": "2023-06-21T19:45:39Z",
+        "comments": {
+          "nodes": [
+            {
+              "id": "IC_kwDOFcwZ1c5dnaw6",
+              "body": "We probably should have a discussion on zulip about whether it is acceptable to leave `variable!` in code. I hope/think the answer should be yes (it's easy to remove later if we change our mind, so we might as well try it out?), but if the answer is no we'd probably want to make `?` the default mode.",
+              "createdAt": "2023-05-31T17:17:40Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5dxtgU",
+              "body": "Does it check whether `[Semiring R]` is already deducible in the current context?\r\n\r\nAnswer: yes\r\n\r\nI figured out from the tests that this is happening. I think it would be good to add a sentence about this in the docstring.",
+              "createdAt": "2023-06-02T07:54:53Z",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5eBiO0",
+              "body": "I finally asked on [zulip](https://leanprover.zulipchat.com/#narrow/stream/287929-mathlib4/topic/variable!) for opinions on leaving `variable!` in committed code.",
+              "createdAt": "2023-06-05T20:55:21Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5eBrZ9",
+              "body": "This seems to trick it:\r\n```lean\r\nvariable!? (A : ℕ → Type) [∀ i : ℕ, Module R (A i)] [∀ i : ℕ, Algebra S (A i)]\r\n```\r\ngiving\r\n```lean\r\nvariable (A : ℕ → Type) [Semiring R] [(i : ℕ) → AddCommMonoid (A i)] [∀ i : ℕ, Module R (A i)]\r\n  [CommSemiring S] [(i : ℕ) → Semiring (A i)] [∀ i : ℕ, Algebra S (A i)]\r\n```\r\nwhich has two different add operations on `A i`",
+              "createdAt": "2023-06-05T21:24:20Z",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5ezDbI",
+              "body": "I've done some cleanup and switched it to be `variable?`, so it's situated more as an informational command.\r\n\r\n@eric-wieser Your example also applies to\r\n```\r\nvariable? [Module R A] [Algebra S A]\r\n```\r\nI'm not sure there's a good way to fix it since it processes variables left-to-right and it doesn't check that previous binders can be inferred from successive ones. I've at least left this in the test file.\r\n",
+              "createdAt": "2023-06-14T04:18:35Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5e65Gi",
+              "body": "Now the command suggests an expansion like `variable? [Module R M] => [Semiring R] [AddCommMonoid M] [Module R M]` to save the expanded form to help the reader and to improve maintainability.",
+              "createdAt": "2023-06-15T07:18:59Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5fWk_c",
+              "body": "Two suggestions about the documentation, otherwise let's try it out!\r\n\r\nbors d+",
+              "createdAt": "2023-06-21T00:03:15Z",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5fWk_u",
+              "body": ":v: kmill can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "createdAt": "2023-06-21T00:03:16Z",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5fdY4z",
+              "body": "bors r+",
+              "createdAt": "2023-06-21T19:20:41Z",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "id": "IC_kwDOFcwZ1c5fdhSq",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5338100072/jobs/9675003334)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5338100072/jobs/9675003191)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5338100072/jobs/9675003057)",
+              "createdAt": "2023-06-21T19:45:38Z",
+              "author": {
+                "login": "bors"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "oid": "e8008e5ed47fe99593fe6687fc29688f5a69e655",
+                "additions": 232,
+                "deletions": 0,
+                "committedDate": "2023-03-29T01:56:17Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7845277b760ceef1f95bcb45dfaa5de5e57d90c5",
+                "additions": 145,
+                "deletions": 94,
+                "committedDate": "2023-03-29T19:14:40Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "0595a21f443db2c645dda012304c60fe8d9cbce7",
+                "additions": 324955,
+                "deletions": 23666,
+                "committedDate": "2023-05-25T13:57:34Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "32fdc913f169f8148661ce981fc487f14d61d6fd",
+                "additions": 99,
+                "deletions": 46,
+                "committedDate": "2023-05-25T16:07:48Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "2815a4e9a3c0aca50e98d0981824eedcf9d8128a",
+                "additions": 67,
+                "deletions": 49,
+                "committedDate": "2023-05-25T19:10:25Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "d898d7a59d0664c1a1fb436a7d855b55edc1caae",
+                "additions": 0,
+                "deletions": 1,
+                "committedDate": "2023-05-25T19:24:30Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "b6a13e5216a365a1b25e382820dff93d9bb04b0e",
+                "additions": 129744,
+                "deletions": 5460,
+                "committedDate": "2023-06-06T16:10:48Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "80ad422376aeee1dcc5a0798f3e1dc912b8eb6c2",
+                "additions": 2,
+                "deletions": 1,
+                "committedDate": "2023-06-06T16:14:44Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "804b787320a629c33e60aa7ddf9c0d198da6f6dc",
+                "additions": 27,
+                "deletions": 13,
+                "committedDate": "2023-06-06T18:38:07Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "331014308a296515c2451d222686afa5a3f46ca2",
+                "additions": 259,
+                "deletions": 187,
+                "committedDate": "2023-06-14T04:09:29Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "3bae219ddebccb9ef8210f98f24ab9093fb0b7a7",
+                "additions": 76372,
+                "deletions": 6432,
+                "committedDate": "2023-06-14T04:09:51Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "7ebe06f059195b7ce9fc9caf1535afa23e02d06a",
+                "additions": 147,
+                "deletions": 47,
+                "committedDate": "2023-06-15T07:11:32Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "f30283c4d5163ba5333c9c4ef41992b94c008b44",
+                "additions": 3,
+                "deletions": 3,
+                "committedDate": "2023-06-15T07:13:09Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "c8a5bc87894a8920f7101eb650c63506bf0960ae",
+                "additions": 1,
+                "deletions": 1,
+                "committedDate": "2023-06-15T07:17:48Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            },
+            {
+              "commit": {
+                "oid": "e3ee6a5312fc2f45e7c669abcc2e32c46537b86a",
+                "additions": 5,
+                "deletions": 3,
+                "committedDate": "2023-06-21T19:20:04Z",
+                "author": {
+                  "name": "Kyle Miller",
+                  "email": "kmill31415@gmail.com"
+                },
+                "statusCheckRollup": null
+              }
+            }
+          ]
+        },
+        "createdAt": "2023-03-29T01:56:36Z",
+        "deletions": 0,
+        "files": {
+          "nodes": [
+            {
+              "path": "Mathlib.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic.lean",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "Mathlib/Tactic/Variable.lean",
+              "additions": 301,
+              "deletions": 0
+            },
+            {
+              "path": "test/Variable.lean",
+              "additions": 239,
+              "deletions": 0
+            }
+          ]
+        },
+        "headRefName": "kmill_variable",
+        "headRefOid": "e3ee6a5312fc2f45e7c669abcc2e32c46537b86a",
+        "headRepository": {
+          "name": "mathlib4",
+          "owner": {
+            "login": "leanprover-community"
+          }
+        },
+        "headRepositoryOwner": {
+          "login": "leanprover-community"
+        },
+        "id": "PR_kwDOFcwZ1c5NHoHl",
+        "isCrossRepository": false,
+        "isDraft": false,
+        "labels": {
+          "nodes": [
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+              "color": "bfd4f2",
+              "name": "delegated"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+              "color": "06e039",
+              "name": "ready-to-merge"
+            },
+            {
+              "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+              "color": "33DBEC",
+              "name": "t-meta"
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5XOsfd",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-06-05T21:15:41Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5YxHfB",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-21T00:01:56Z"
+            }
+          ]
+        },
+        "maintainerCanModify": false,
+        "mergeCommit": null,
+        "mergeStateStatus": "UNKNOWN",
+        "mergeable": "UNKNOWN",
+        "mergedAt": null,
+        "mergedBy": null,
+        "milestone": null,
+        "number": 3162,
+        "potentialMergeCommit": null,
+        "projectCards": {
+          "nodes": []
+        },
+        "reactionGroups": [
+          {
+            "content": "THUMBS_UP",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "THUMBS_DOWN",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "LAUGH",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HOORAY",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "CONFUSED",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "HEART",
+            "users": {
+              "nodes": [
+                {
+                  "login": "kim-em"
+                },
+                {
+                  "login": "fpvandoorn"
+                }
+              ]
+            }
+          },
+          {
+            "content": "ROCKET",
+            "users": {
+              "nodes": []
+            }
+          },
+          {
+            "content": "EYES",
+            "users": {
+              "nodes": []
+            }
+          }
+        ],
+        "reviewDecision": null,
+        "reviewRequests": {
+          "nodes": []
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "id": "PRR_kwDOFcwZ1c5XOsfd",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "eric-wieser"
+              },
+              "submittedAt": "2023-06-05T21:15:41Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5YxHJN",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-20T23:59:58Z"
+            },
+            {
+              "id": "PRR_kwDOFcwZ1c5YxHfB",
+              "body": "",
+              "state": "COMMENTED",
+              "author": {
+                "login": "kim-em"
+              },
+              "submittedAt": "2023-06-21T00:01:56Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5Iol_R",
+                    "body": "Since I assume this is intended to work?\r\n```suggestion\r\n-- TODO: This fails due to requiring `Module k A` with two different sets of instance arguments\r\n```",
+                    "createdAt": "2023-06-05T21:15:40Z",
+                    "author": {
+                      "login": "eric-wieser"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JrCMb",
+                    "body": "```suggestion\r\n`variable?` resilient against changes to the typeclass hierarchy, at least in the sense\r\n```",
+                    "createdAt": "2023-06-20T23:59:57Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "PRRC_kwDOFcwZ1c5JrCam",
+                    "body": "Perhaps add explicit clarification that this definition should not have a body (i.e. fields of the structure)?",
+                    "createdAt": "2023-06-21T00:01:56Z",
+                    "author": {
+                      "login": "kim-em"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "closingIssuesReferences": {
+          "nodes": []
+        },
+        "participants": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjIzNTMwNw==",
+              "login": "kmill"
+            },
+            {
+              "id": "MDQ6VXNlcjQ3Nzk1Ng==",
+              "login": "kim-em"
+            },
+            {
+              "id": "MDQ6VXNlcjU2MzY3MDU=",
+              "login": "jcommelin"
+            },
+            {
+              "id": "MDQ6VXNlcjQyNTI2MA==",
+              "login": "eric-wieser"
+            }
+          ]
+        },
+        "state": "CLOSED",
+        "statusCheckRollup": null,
+        "title": "[Merged by Bors] - feat: `variable?` command for automatically adding typeclass dependencies",
+        "updatedAt": "2023-06-21T19:45:43Z",
+        "url": "https://github.com/leanprover-community/mathlib4/pull/3162",
+        "timelineItems": {
+          "nodes": [
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e8008e5ed47fe99593fe6687fc29688f5a69e655"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5iC0uazwAAAAIQwybB",
+              "createdAt": "2023-03-29T01:56:50Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5iC0uazwAAAAIQwybF",
+              "createdAt": "2023-03-29T01:56:50Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABKAKYew",
+                "name": "t-meta"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7845277b760ceef1f95bcb45dfaa5de5e57d90c5"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "0595a21f443db2c645dda012304c60fe8d9cbce7"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "32fdc913f169f8148661ce981fc487f14d61d6fd"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "2815a4e9a3c0aca50e98d0981824eedcf9d8128a"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5iC0uazwAAAAIs7JHL",
+              "createdAt": "2023-05-25T19:11:18Z",
+              "label": {
+                "id": "MDU6TGFiZWwzMjcxMjQ0NzU5",
+                "name": "WIP"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5iC0uazwAAAAIs7JHZ",
+              "createdAt": "2023-05-25T19:11:18Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "d898d7a59d0664c1a1fb436a7d855b55edc1caae"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5dnaw6",
+              "createdAt": "2023-05-31T17:17:40Z",
+              "body": "We probably should have a discussion on zulip about whether it is acceptable to leave `variable!` in code. I hope/think the answer should be yes (it's easy to remove later if we change our mind, so we might as well try it out?), but if the answer is no we'd probably want to make `?` the default mode.",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5dxtgU",
+              "createdAt": "2023-06-02T07:54:53Z",
+              "body": "Does it check whether `[Semiring R]` is already deducible in the current context?\r\n\r\nAnswer: yes\r\n\r\nI figured out from the tests that this is happening. I think it would be good to add a sentence about this in the docstring.",
+              "author": {
+                "login": "jcommelin"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5eBiO0",
+              "createdAt": "2023-06-05T20:55:21Z",
+              "body": "I finally asked on [zulip](https://leanprover.zulipchat.com/#narrow/stream/287929-mathlib4/topic/variable!) for opinions on leaving `variable!` in committed code.",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5XOsfd",
+              "createdAt": "2023-06-05T21:15:40Z",
+              "body": "",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5eBrZ9",
+              "createdAt": "2023-06-05T21:24:20Z",
+              "body": "This seems to trick it:\r\n```lean\r\nvariable!? (A : ℕ → Type) [∀ i : ℕ, Module R (A i)] [∀ i : ℕ, Algebra S (A i)]\r\n```\r\ngiving\r\n```lean\r\nvariable (A : ℕ → Type) [Semiring R] [(i : ℕ) → AddCommMonoid (A i)] [∀ i : ℕ, Module R (A i)]\r\n  [CommSemiring S] [(i : ℕ) → Semiring (A i)] [∀ i : ℕ, Algebra S (A i)]\r\n```\r\nwhich has two different add operations on `A i`",
+              "author": {
+                "login": "eric-wieser"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "b6a13e5216a365a1b25e382820dff93d9bb04b0e"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "80ad422376aeee1dcc5a0798f3e1dc912b8eb6c2"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "804b787320a629c33e60aa7ddf9c0d198da6f6dc"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "331014308a296515c2451d222686afa5a3f46ca2"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "3bae219ddebccb9ef8210f98f24ab9093fb0b7a7"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5ezDbI",
+              "createdAt": "2023-06-14T04:18:35Z",
+              "body": "I've done some cleanup and switched it to be `variable?`, so it's situated more as an informational command.\r\n\r\n@eric-wieser Your example also applies to\r\n```\r\nvariable? [Module R A] [Algebra S A]\r\n```\r\nI'm not sure there's a good way to fix it since it processes variables left-to-right and it doesn't check that previous binders can be inferred from successive ones. I've at least left this in the test file.\r\n",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "MentionedEvent"
+            },
+            {
+              "__typename": "SubscribedEvent"
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "7ebe06f059195b7ce9fc9caf1535afa23e02d06a"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "f30283c4d5163ba5333c9c4ef41992b94c008b44"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "c8a5bc87894a8920f7101eb650c63506bf0960ae"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5e65Gi",
+              "createdAt": "2023-06-15T07:18:59Z",
+              "body": "Now the command suggests an expansion like `variable? [Module R M] => [Semiring R] [AddCommMonoid M] [Module R M]` to save the expanded form to help the reader and to improve maintainability.",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5YxHJN",
+              "createdAt": "2023-06-20T23:59:57Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "PullRequestReview",
+              "id": "PRR_kwDOFcwZ1c5YxHfB",
+              "createdAt": "2023-06-21T00:01:56Z",
+              "body": "",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5fWk_c",
+              "createdAt": "2023-06-21T00:03:15Z",
+              "body": "Two suggestions about the documentation, otherwise let's try it out!\r\n\r\nbors d+",
+              "author": {
+                "login": "kim-em"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5fWk_u",
+              "createdAt": "2023-06-21T00:03:16Z",
+              "body": ":v: kmill can now approve this pull request. To approve and merge a pull request, simply reply with `bors r+`. More detailed instructions are available [here](https://bors.tech/documentation/getting-started/#reviewing-pull-requests).",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5iC0uazwAAAAI7Wgf9",
+              "createdAt": "2023-06-21T00:03:29Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABAt13Ow",
+                "name": "delegated"
+              }
+            },
+            {
+              "__typename": "UnlabeledEvent",
+              "id": "UNLE_lADOFcwZ1c5iC0uazwAAAAI7WghG",
+              "createdAt": "2023-06-21T00:03:30Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c7ECuhA",
+                "name": "awaiting-review"
+              }
+            },
+            {
+              "__typename": "PullRequestCommit",
+              "commit": {
+                "oid": "e3ee6a5312fc2f45e7c669abcc2e32c46537b86a"
+              }
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5fdY4z",
+              "createdAt": "2023-06-21T19:20:41Z",
+              "body": "bors r+",
+              "author": {
+                "login": "kmill"
+              }
+            },
+            {
+              "__typename": "LabeledEvent",
+              "id": "LE_lADOFcwZ1c5iC0uazwAAAAI8GavT",
+              "createdAt": "2023-06-21T19:20:53Z",
+              "label": {
+                "id": "LA_kwDOFcwZ1c8AAAABHuWjJg",
+                "name": "ready-to-merge"
+              }
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "IssueComment",
+              "id": "IC_kwDOFcwZ1c5fdhSq",
+              "createdAt": "2023-06-21T19:45:38Z",
+              "body": "Pull request successfully merged into master.\n\n  Build succeeded!\n\n  The publicly hosted instance of bors-ng is deprecated and will go away soon.\n\n  If you want to self-host your own instance, [instructions are here][instructions].\n  For more help, visit [the forum].\n\n  If you want to switch to GitHub's built-in merge queue, visit [their help page][gh].\n\n  [instructions]: https://github.com/bors-ng/bors-ng#how-to-set-up-your-own-real-instance\n  [the forum]: https://forum.bors.tech\n  [gh]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue\n\n\n\n  * [Build](https://github.com/leanprover-community/mathlib4/actions/runs/5338100072/jobs/9675003334)\n  * [Check all files imported](https://github.com/leanprover-community/mathlib4/actions/runs/5338100072/jobs/9675003191)\n  * [Lint style](https://github.com/leanprover-community/mathlib4/actions/runs/5338100072/jobs/9675003057)",
+              "author": {
+                "login": "bors"
+              }
+            },
+            {
+              "__typename": "RenamedTitleEvent"
+            },
+            {
+              "__typename": "ClosedEvent",
+              "id": "CE_lADOFcwZ1c5iC0uazwAAAAI8Hnec",
+              "createdAt": "2023-06-21T19:45:39Z"
+            },
+            {
+              "__typename": "HeadRefDeletedEvent",
+              "id": "HRDE_lADOFcwZ1c5iC0uazwAAAAI8Hnrx",
+              "createdAt": "2023-06-21T19:45:43Z"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            },
+            {
+              "__typename": "ReferencedEvent"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
