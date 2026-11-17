@@ -87,10 +87,115 @@ jobs:
       with:
         path: gh-pages
 
+    # This makes the same API calls as actions/deploy-pages, which always uses the commit SHA as the
+    # Pages build version. This workflow redeploys one commit every few minutes, and Pages keys a
+    # deployment by its build version, so every run shared one deployment ID: the status check could
+    # answer "succeed" from an earlier deployment. On 2026-11-17 Pages stopped putting new deployments
+    # live while every run stayed green. Here the build version is unique to each run attempt.
     - name: Deploy to GitHub Pages
       if: ${{ github.ref == 'refs/heads/master' && (steps.pages-artifact.outcome == 'success') }}
       id: deployment
-      uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        ARTIFACT_ID: ${{ steps.pages-artifact.outputs.artifact_id }}
+        BUILD_VERSION: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+      with:
+        script: |
+          const { owner, repo } = context.repo;
+          const artifactId = Number(process.env.ARTIFACT_ID);
+          const buildVersion = process.env.BUILD_VERSION;
+          if (!artifactId) {
+            core.setFailed('The upload step did not report an artifact ID.');
+            return;
+          }
+
+          const { data: created } = await github.request('POST /repos/{owner}/{repo}/pages/deployments', {
+            owner,
+            repo,
+            artifact_id: artifactId,
+            pages_build_version: buildVersion,
+            oidc_token: await core.getIDToken(),
+          });
+          const id = created.id || created.status_url?.split('/').pop() || buildVersion;
+          core.info(`Created Pages deployment ${id} for build version ${buildVersion}`);
+          core.setOutput('page_url', created.page_url);
+
+          let pending = true;
+          const cancel = async () => {
+            if (!pending) return;
+            pending = false;
+            await github.request('POST /repos/{owner}/{repo}/pages/deployments/{id}/cancel', { owner, repo, id });
+            core.info(`Cancelled Pages deployment ${id}`);
+          };
+          // A cancelled run (cancel-in-progress) should not leave the deployment pending.
+          for (const signal of ['SIGINT', 'SIGTERM']) {
+            process.on(signal, () => cancel().finally(() => process.exit(1)));
+          }
+
+          // Status values and their handling follow actions/deploy-pages.
+          const finalErrors = {
+            deployment_failed: 'Deployment failed.',
+            deployment_content_failed: 'The artifact could not be deployed (hard links, symlinks, or over 10 GB?).',
+            deployment_cancelled: 'Deployment cancelled.',
+            deployment_lost: 'Deployment failed to report a final status.',
+          };
+          const deadline = Date.now() + 10 * 60 * 1000;
+          const maxErrors = 10;
+          let errors = 0;
+          while (true) {
+            if (Date.now() > deadline) {
+              await cancel();
+              core.setFailed('The deployment did not finish within 10 minutes.');
+              return;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+            let status;
+            try {
+              ({ data: { status } } = await github.request('GET /repos/{owner}/{repo}/pages/deployments/{id}', { owner, repo, id }));
+            } catch (error) {
+              errors += 1;
+              core.warning(`Getting the deployment status failed (${errors}/${maxErrors}): ${error.message}`);
+              if (errors >= maxErrors) {
+                await cancel();
+                core.setFailed('Too many errors getting the deployment status.');
+                return;
+              }
+              continue;
+            }
+            if (status === 'succeed') {
+              pending = false;
+              core.info('Pages reports the deployment succeeded.');
+              return;
+            }
+            if (finalErrors[status]) {
+              pending = false;
+              core.setFailed(finalErrors[status]);
+              return;
+            }
+            core.info(`Current status: ${status}`);
+          }
+
+    # Pages reported success for deployments it never put live, so check what is actually served.
+    - name: Check the live site serves this run's build
+      if: ${{ steps.deployment.outcome == 'success' }}
+      shell: bash -euo pipefail {0}
+      env:
+        PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+      run: |
+        built=gh-pages/index.html
+        for attempt in $(seq 1 20); do
+          # A query string unique to each request gets past the CDN cache.
+          if curl -fsS -o live-index.html "${PAGE_URL%/}/index.html?check=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}" \
+            && cmp -s "$built" live-index.html; then
+            echo "The live site serves this run's build (check ${attempt})."
+            exit 0
+          fi
+          sleep 15
+        done
+        echo "::error::Five minutes after Pages reported success, the live site still does not serve this run's build."
+        echo "built: $(grep -o 'last updated on: [^<]*' "$built" || true)"
+        echo "live:  $(grep -o 'last updated on: [^<]*' live-index.html 2>/dev/null || true)"
+        exit 1
 
   workflow-keepalive:
     if: github.event_name == 'schedule'
